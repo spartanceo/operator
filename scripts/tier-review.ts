@@ -9,7 +9,7 @@
  * Usage: pnpm run tier-review
  */
 
-import { spawnSync } from "child_process";
+import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -37,11 +37,13 @@ function tick(r: CheckResult): string {
 }
 
 function run(cmd: string, cwd = ROOT): { ok: boolean; output: string } {
-  const result = spawnSync(cmd, { shell: true, cwd, encoding: "utf8" });
-  return {
-    ok: result.status === 0,
-    output: (result.stdout ?? "") + (result.stderr ?? ""),
-  };
+  try {
+    const output = execSync(cmd, { cwd, encoding: "utf8", shell: true, stdio: "pipe" });
+    return { ok: true, output: String(output) };
+  } catch (e: unknown) {
+    const err = e as { stdout?: string; stderr?: string };
+    return { ok: false, output: (err.stdout ?? "") + (err.stderr ?? "") };
+  }
 }
 
 function collectFiles(dir: string, exts: string[]): string[] {
@@ -85,32 +87,22 @@ function checkTypeScript(): CheckResult {
 }
 
 // ─── Check 2: All tests passing ──────────────────────────────────────────────
+// Always runs `pnpm test` — never skipped. The root test script uses
+// `--if-present` so packages without tests are silently skipped by pnpm itself.
 function checkTests(): CheckResult {
-  const testFiles = [
-    ...collectFiles(path.join(ROOT, "artifacts"), [".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx"]),
-    ...collectFiles(path.join(ROOT, "lib"), [".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx"]),
-  ];
-  if (testFiles.length === 0) {
-    return {
-      name: "All tests passing",
-      passed: true,
-      skipped: true,
-      message: "No test files found — skipped (tests required from Tier 1 onwards)",
-    };
-  }
   const { ok, output } = run("pnpm test");
   if (ok) {
     return { name: "All tests passing", passed: true, message: "All tests pass" };
   }
   const failing = output
     .split("\n")
-    .filter((l) => /FAIL|✕|× /.test(l))
+    .filter((l) => /FAIL|✕|× |Error/.test(l))
     .slice(0, 10);
   return {
     name: "All tests passing",
     passed: false,
-    message: "Test failures detected",
-    detail: failing,
+    message: "Test failures detected — run `pnpm test` for details",
+    detail: failing.length > 0 ? failing : [output.trim().slice(0, 200)],
   };
 }
 
@@ -150,18 +142,20 @@ function checkConsoleLogs(): CheckResult {
 }
 
 // ─── Check 4: No hardcoded hex colours in component files ────────────────────
-// Exempt files: design-tokens.ts / design-tokens.tsx (the single design system file).
-// Exempt directory: mockup-sandbox — this is a Replit boilerplate template, not
-// Omninity product code. Its shadcn/ui chart component uses hardcoded colours by
-// design. All other .tsx files under artifacts/ are in scope.
-const DESIGN_TOKEN_FILES = ["design-tokens.ts", "design-tokens.tsx"];
+// Scope: all .tsx files under artifacts/.
+// Exempt: ONLY artifacts/frontend/src/design-tokens.ts (the single token file).
+// All other files, including third-party templates, are in scope per the spec.
+const DESIGN_TOKEN_EXEMPT_PATH = path.join(
+  ROOT,
+  "artifacts",
+  "frontend",
+  "src",
+  "design-tokens.ts",
+);
 
 function checkHardcodedColours(): CheckResult {
   const componentFiles = collectFiles(path.join(ROOT, "artifacts"), [".tsx"]).filter(
-    (f) =>
-      !f.includes("node_modules") &&
-      !f.includes(`${path.sep}mockup-sandbox${path.sep}`) &&
-      !DESIGN_TOKEN_FILES.some((name) => f.endsWith(name)),
+    (f) => !f.includes("node_modules") && f !== DESIGN_TOKEN_EXEMPT_PATH,
   );
 
   const HEX_RE = /#([0-9a-fA-F]{3,8})\b/g;
