@@ -12,6 +12,7 @@
 import { spawnSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -274,19 +275,9 @@ function checkDrizzleSchema(): CheckResult {
 // For $ref responses: checks only the named component schema, not the whole file.
 // For inline responses: checks that "success:" appears within the indented
 //   properties block of that specific response, not anywhere in the file.
-
-function checkOpenApiEnvelope(): CheckResult {
-  const specPath = path.join(ROOT, "lib", "api-spec", "openapi.yaml");
-  if (!fs.existsSync(specPath)) {
-    return {
-      name: "API envelope on OpenAPI responses",
-      passed: true,
-      skipped: true,
-      message: "openapi.yaml not found — skipped",
-    };
-  }
-
-  const src = fs.readFileSync(specPath, "utf8");
+//
+// Exported for unit testing with fixture YAML strings (see tier-review.check6.test.ts).
+export function parseOpenApiEnvelopeProblems(src: string): string[] {
   const lines = src.split("\n");
   const problems: string[] = [];
 
@@ -365,6 +356,10 @@ function checkOpenApiEnvelope(): CheckResult {
     let schemaRef = "";
     let inPropsBlock = false;
     let propsIndent = -1;
+    // sawInlineProperties is set true when we enter a properties block and stays
+    // true until resetResponse() — so flushResponse() can detect inline schemas
+    // even after the parser has left the block.
+    let sawInlineProperties = false;
     let inlineHasSuccess = false;
 
     function flushResponse() {
@@ -377,7 +372,9 @@ function checkOpenApiEnvelope(): CheckResult {
         } else if (has === undefined) {
           problems.push(`${label} — $ref schema "${schemaRef}" not found in components`);
         }
-      } else if (inPropsBlock || propsIndent >= 0) {
+      } else if (sawInlineProperties) {
+        // Use sawInlineProperties (not inPropsBlock) so we validate inline schemas
+        // even when flushResponse is called after the parser has exited the block.
         if (!inlineHasSuccess) {
           problems.push(`${label} — inline schema properties lacks "success" field`);
         }
@@ -392,6 +389,7 @@ function checkOpenApiEnvelope(): CheckResult {
       schemaRef = "";
       inPropsBlock = false;
       propsIndent = -1;
+      sawInlineProperties = false;
       inlineHasSuccess = false;
     }
 
@@ -451,6 +449,7 @@ function checkOpenApiEnvelope(): CheckResult {
       if (propsMatch && propsIndent === -1) {
         propsIndent = propsMatch[1].length;
         inPropsBlock = true;
+        sawInlineProperties = true; // persists until resetResponse(), survives block exit
         continue;
       }
 
@@ -472,6 +471,23 @@ function checkOpenApiEnvelope(): CheckResult {
     }
     flushResponse();
   }
+
+  return problems;
+}
+
+function checkOpenApiEnvelope(): CheckResult {
+  const specPath = path.join(ROOT, "lib", "api-spec", "openapi.yaml");
+  if (!fs.existsSync(specPath)) {
+    return {
+      name: "API envelope on OpenAPI responses",
+      passed: true,
+      skipped: true,
+      message: "openapi.yaml not found — skipped",
+    };
+  }
+
+  const src = fs.readFileSync(specPath, "utf8");
+  const problems = parseOpenApiEnvelopeProblems(src);
 
   if (problems.length === 0) {
     return {
@@ -703,4 +719,10 @@ async function main() {
   }
 }
 
-main();
+// Only auto-execute when this file is the direct entry point, not when imported
+const _isMain =
+  process.argv[1] === fileURLToPath(import.meta.url) ||
+  process.argv[1].endsWith("tier-review.ts");
+if (_isMain) {
+  main();
+}
