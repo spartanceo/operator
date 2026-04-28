@@ -1,0 +1,48 @@
+The shift in the one-liner is a significant improvement—it’s punchier and feels less like a technical manual and more like a product promise.
+
+Your "tiered execution" and "hardware tier" defense is the most honest way to handle the resource problem. By positioning it like Final Cut Pro or Xcode, you’re signaling that this is a professional tool for professional hardware, which actually increases its perceived value.
+
+Here is how we can sharpen the architecture and the self-healing narrative to make it bulletproof.
+
+1. The Tiered Execution Architecture
+To address the "RAM tax," we should formalize the Dynamic Resource Governor. This isn't just about slowing down; it's about intelligent swapping.
+
+Sequential Mode (The "8GB Path"): Uses a cold-swap mechanism where the Vision model (Moondream) triggers, identifies the UI element, writes the coordinates to the tool registry, and then hands off the memory to the Reasoning model (Llama 3/Qwen).
+
+Parallel Mode (The "Power Path"): On 16GB+ or Apple Silicon, the Vision and Reasoning agents stay "warm," allowing for the 500ms real-time feedback loop.
+
+2. The "Self-Healing" Verification Loop
+To bridge the Reliability Gap, we should explain the verification loop as a Look-Act-Verify (LAV) cycle.
+
+Look: Vision Agent maps the current UI state.
+
+Act: Executor Agent performs the OS-level input (via nut-js).
+
+Verify: Vision Agent takes a "post-action" snapshot. If the expected state change (e.g., a modal closing or a field filling) isn't detected, it triggers the Planner Agent to re-index the screen and try a different approach.
+
+Key Distinction: Unlike traditional bots that fail if a button moves 5 pixels, OP uses semantic vision. It doesn't look for "Button at X:100, Y:200"; it looks for "The blue button labeled 'Submit'."
+
+3. The "Cloud-Adapter" Fallback
+The Task 30 — Model Runtime Abstraction is the perfect safety valve for the "Hardware Paradox."
+
+Privacy-First: Users can choose to use the local agent for 90% of tasks and only "burst" to the cloud (using their own API key) for massive document reasoning or high-latency complex planning.
+
+Transparency: A "Privacy Meter" in the UI can show exactly when and why data is leaving the device, keeping the user in total control.
+
+4. The Creator "Interview" Mode
+To solve the Cold Start, the "Interview" mode is the winner.
+
+The Workflow: A domain expert doesn't write a schema. They talk to the Research Agent for 5 minutes.
+
+The Output: The Agent asks, "What do you do if the client doesn't respond in 3 days?" and "What specific fields do you need in the spreadsheet?"
+
+The Result: OP compiles these answers into a Deterministic Skill (JSON schema + prompt instructions) that can be published to the Marketplace.
+
+The Strategic Prominence of Air-Gapped Enterprise
+Since you agree this is a "category unlock," we should lead the Enterprise section with "The Air-Gap Standard."
+
+Feature	Consumer/Prosumer	Enterprise/Sovereign
+Data Residency	Local-first	100% Air-gapped (No WAN)
+Model Choice	Community (Llama/Mistral)	Verified/Fine-tuned Private Models
+Auditability	Personal History	Immutable Tamper-Evident Logs
+Compliance	GDPR/CCPA Ready	SOC2 / HIPAA / FedRAMP Native

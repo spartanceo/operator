@@ -1,0 +1,328 @@
+Build a production-ready MVP called “LocalOps AI”.
+
+Goal:
+Create a local-first, privacy-first, multi-agent desktop/web app that competes with Claude computer-use and Perplexity-style agent workflows, but with deterministic execution, local models, and optional cloud fallback only when the user allows it.
+
+Core principle:
+Sensitive data should stay on the user’s machine. Local AI should be the default. Cloud AI should be optional, visible, and permission-based.
+
+Tech stack:
+- Frontend: React + TypeScript + Vite
+- Backend: Node.js + Express
+- Local model runtime: Ollama integration
+- Database: SQLite
+- Job queue: simple local queue stored in SQLite
+- Browser automation: Playwright
+- File access: local sandbox folder only
+- Auth: local password login
+- Styling: clean modern UI, card-based, dark/light mode
+
+Main features:
+
+1. Local AI model manager
+Allow the user to:
+- connect to Ollama
+- list installed models
+- select default model
+- test local model response
+- see model status
+- install instructions if Ollama is missing
+
+Default supported models:
+- llama3.1
+- qwen2.5
+- mistral
+- phi3
+- deepseek-r1
+
+2. Multi-agent system
+Create these deterministic agents:
+
+A. Router Agent
+- Classifies user request
+- Decides whether task is research, file work, browser action, planning, coding, or general chat
+- Returns structured JSON only
+
+B. Planner Agent
+- Breaks task into steps
+- Each step must have:
+  - action_type
+  - required_tool
+  - risk_level
+  - needs_user_approval
+  - expected_output
+
+C. Executor Agent
+- Executes only approved deterministic tool calls
+- Cannot invent tools
+- Cannot send emails, delete files, make payments, submit forms, or install software without explicit approval
+
+D. Verifier Agent
+- Checks whether the result matches the plan
+- Flags hallucinations, missing info, failed steps, or unsafe actions
+
+E. Research Agent
+- Uses local model first
+- Optional cloud/web mode must be disabled by default
+- If web/cloud is needed, ask user permission first
+
+F. Memory Agent
+- Stores only user-approved memories
+- Uses SQLite
+- Memory should be inspectable, editable, and deletable
+
+3. Deterministic tool registry
+Create a central tool registry. Agents may only call tools listed here.
+
+Initial tools:
+- read_file
+- write_file
+- list_files
+- search_files
+- summarize_file
+- open_browser
+- navigate_url
+- click_selector
+- type_text
+- extract_page_text
+- screenshot_page
+- create_task_plan
+- run_local_llm
+- save_memory
+- search_memory
+
+Each tool must have:
+- name
+- description
+- input schema
+- output schema
+- risk level: low, medium, high
+- approval_required boolean
+
+4. Approval system
+Before any risky action, show an approval card.
+
+Approval card must display:
+- what will happen
+- which tool will be used
+- what data will be accessed
+- risk level
+- exact action preview
+- approve / reject buttons
+
+High-risk actions always require approval:
+- writing files
+- deleting files
+- submitting forms
+- sending messages
+- external network calls
+- cloud model calls
+
+5. Privacy dashboard
+Create a dedicated privacy page showing:
+- local mode enabled
+- selected model
+- whether cloud fallback is enabled
+- recent tool calls
+- data accessed
+- memories stored
+- browser sessions created
+- network requests made
+
+User must be able to:
+- disable cloud completely
+- clear memory
+- clear logs
+- export logs
+- inspect every agent decision
+
+6. Main chat UI
+Create a ChatGPT-style interface with:
+- user messages
+- agent replies
+- visible plan cards
+- approval cards
+- execution timeline
+- verifier results
+- tool call logs
+
+The assistant should never pretend something was done unless the tool result confirms it.
+
+7. Agent orchestration flow
+For every user request:
+
+Step 1:
+Router Agent classifies intent.
+
+Step 2:
+Planner Agent creates structured plan.
+
+Step 3:
+System checks if steps need approval.
+
+Step 4:
+User approves if needed.
+
+Step 5:
+Executor Agent runs approved tools only.
+
+Step 6:
+Verifier Agent checks the result.
+
+Step 7:
+Final answer explains what was done, what failed, and what needs user input.
+
+8. Safety rules
+Hard-code these rules:
+
+- Never execute destructive actions without approval.
+- Never send data to cloud unless cloud mode is enabled and user approves.
+- Never browse the web silently.
+- Never claim local privacy if cloud calls were used.
+- Never invent completed actions.
+- Never bypass the tool registry.
+- Never store memory unless user explicitly approves.
+- Never access files outside the configured workspace folder.
+
+9. Workspace system
+Create a local workspace directory:
+./workspace
+
+All file operations must be limited to this folder.
+
+10. Demo workflows
+Add built-in demo buttons:
+
+- “Summarize local files”
+- “Research this page locally”
+- “Plan a project”
+- “Use browser to extract page text”
+- “Compare two documents”
+- “Create a safe task plan”
+- “Run verifier on previous answer”
+
+11. API endpoints
+Create backend endpoints:
+
+GET /api/health
+GET /api/models
+POST /api/models/test
+POST /api/chat
+POST /api/agent/route
+POST /api/agent/plan
+POST /api/agent/execute
+POST /api/agent/verify
+GET /api/tools
+POST /api/tools/run
+GET /api/privacy/logs
+DELETE /api/privacy/logs
+GET /api/memory
+POST /api/memory
+DELETE /api/memory/:id
+GET /api/files
+POST /api/files/read
+POST /api/files/write
+POST /api/browser/start
+POST /api/browser/navigate
+POST /api/browser/extract
+
+12. Database tables
+Create SQLite tables:
+
+messages
+- id
+- role
+- content
+- created_at
+
+agent_runs
+- id
+- user_message
+- router_output
+- plan_output
+- verifier_output
+- status
+- created_at
+
+tool_calls
+- id
+- agent_run_id
+- tool_name
+- input_json
+- output_json
+- risk_level
+- approved
+- status
+- created_at
+
+memories
+- id
+- content
+- source
+- created_at
+
+privacy_events
+- id
+- event_type
+- description
+- data_accessed
+- network_used
+- cloud_used
+- created_at
+
+13. UI pages
+Create these pages:
+
+/chat
+Main multi-agent chat interface.
+
+/agents
+Shows each agent, role, model used, and last decision.
+
+/tools
+Shows deterministic tool registry.
+
+/privacy
+Shows privacy dashboard.
+
+/memory
+Shows stored memories and lets user delete them.
+
+/settings
+Model selection, Ollama URL, cloud mode toggle, workspace path.
+
+14. Important UX details
+The app should feel serious and trustworthy.
+
+Use:
+- clean cards
+- visible status badges
+- “Local only” badge
+- “Cloud disabled” badge
+- execution timeline
+- approval modals
+- tool logs
+- readable JSON inspector
+
+15. Output expectations
+Build the full working MVP with:
+- frontend
+- backend
+- SQLite setup
+- Ollama integration
+- Playwright integration
+- deterministic tool registry
+- approval flow
+- privacy logs
+- memory management
+- sample demo workflows
+
+After implementation, provide:
+- how to run locally
+- required env variables
+- Ollama setup instructions
+- test commands
+- limitations
+- next steps
+
+Do not build a fake UI only. Make the tool calls, agent planning, privacy logs, and local model calls actually work.
