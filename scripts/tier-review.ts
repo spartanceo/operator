@@ -231,7 +231,16 @@ function checkDrizzleSchema(): CheckResult {
   const problems: string[] = [];
 
   for (const file of schemaFiles) {
-    const src = fs.readFileSync(file, "utf8");
+    const rawSrc = fs.readFileSync(file, "utf8");
+    // Strip comments before parsing to avoid matching commented-out example code.
+    // 1. Remove block comments /* ... */
+    // 2. Remove single-line comment lines (lines whose first non-whitespace is //)
+    const src = rawSrc
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .filter((line) => !/^\s*\/\//.test(line))
+      .join("\n");
+
     const tableRe = /(?:sqliteTable|pgTable)\s*\(\s*["'`](\w+)["'`]\s*,\s*\{([^}]+)\}/gs;
     let m: RegExpExecArray | null;
     while ((m = tableRe.exec(src)) !== null) {
