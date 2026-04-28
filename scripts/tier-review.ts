@@ -2,19 +2,18 @@
 /**
  * Omninity Operator — Tier Review Script
  *
- * Runs all 8 automated quality gates. Execute after every tier merges.
- * Exit 0 = all checks pass (safe to start next tier).
+ * Runs all 8 automated quality gates after every tier merges.
+ * Exit 0 = all checks pass (safe to activate next tier).
  * Exit 1 = one or more checks failed (fix before advancing).
  *
  * Usage: pnpm run tier-review
  */
 
-import { execSync, spawnSync } from "child_process";
+import { spawnSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
-import * as readline from "readline";
 
-const ROOT = path.resolve(import.meta.dirname, "../..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -44,7 +43,7 @@ function run(cmd: string, cwd = ROOT): { ok: boolean; output: string } {
   };
 }
 
-function collectFiles(dir: string, ext: string[]): string[] {
+function collectFiles(dir: string, exts: string[]): string[] {
   if (!fs.existsSync(dir)) return [];
   const results: string[] = [];
   function walk(d: string) {
@@ -53,7 +52,7 @@ function collectFiles(dir: string, ext: string[]): string[] {
       if (entry.isDirectory()) {
         if (entry.name === "node_modules" || entry.name === ".git") continue;
         walk(full);
-      } else if (ext.some((e) => entry.name.endsWith(e))) {
+      } else if (exts.some((e) => entry.name.endsWith(e))) {
         results.push(full);
       }
     }
@@ -87,8 +86,8 @@ function checkTypeScript(): CheckResult {
 // ─── Check 2: All tests passing ──────────────────────────────────────────────
 function checkTests(): CheckResult {
   const testFiles = [
-    ...collectFiles(path.join(ROOT, "artifacts"), [".test.ts", ".test.tsx", ".spec.ts"]),
-    ...collectFiles(path.join(ROOT, "lib"), [".test.ts", ".test.tsx", ".spec.ts"]),
+    ...collectFiles(path.join(ROOT, "artifacts"), [".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx"]),
+    ...collectFiles(path.join(ROOT, "lib"), [".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx"]),
   ];
   if (testFiles.length === 0) {
     return {
@@ -115,15 +114,15 @@ function checkTests(): CheckResult {
 }
 
 // ─── Check 3: No console.log in source files ─────────────────────────────────
+// Scope: .ts AND .tsx under both artifacts/ and lib/ (excluding test/spec files)
 function checkConsoleLogs(): CheckResult {
   const sourceFiles = [
     ...collectFiles(path.join(ROOT, "artifacts"), [".ts", ".tsx"]),
-    ...collectFiles(path.join(ROOT, "lib"), [".ts"]),
+    ...collectFiles(path.join(ROOT, "lib"), [".ts", ".tsx"]),
   ].filter(
     (f) =>
       !f.includes(".test.") &&
       !f.includes(".spec.") &&
-      !f.includes("node_modules") &&
       !f.endsWith("tier-review.ts") &&
       !f.endsWith("hello.ts"),
   );
@@ -133,8 +132,7 @@ function checkConsoleLogs(): CheckResult {
     const lines = readLines(file);
     lines.forEach((line, i) => {
       if (/console\.log\s*\(/.test(line)) {
-        const rel = path.relative(ROOT, file);
-        offenders.push(`${rel}:${i + 1}  ${line.trim()}`);
+        offenders.push(`${path.relative(ROOT, file)}:${i + 1}  ${line.trim()}`);
       }
     });
   }
@@ -151,20 +149,18 @@ function checkConsoleLogs(): CheckResult {
 }
 
 // ─── Check 4: No hardcoded hex colours in component files ────────────────────
-const DESIGN_TOKEN_EXEMPT = [
-  "design-tokens.ts",
-  "design-tokens.tsx",
-  "tokens.ts",
-  "tailwind.config.ts",
-  "tailwind.config.js",
-];
+// Exempt files: design-tokens.ts / design-tokens.tsx (the single design system file).
+// Exempt directory: mockup-sandbox — this is a Replit boilerplate template, not
+// Omninity product code. Its shadcn/ui chart component uses hardcoded colours by
+// design. All other .tsx files under artifacts/ are in scope.
+const DESIGN_TOKEN_FILES = ["design-tokens.ts", "design-tokens.tsx"];
 
 function checkHardcodedColours(): CheckResult {
   const componentFiles = collectFiles(path.join(ROOT, "artifacts"), [".tsx"]).filter(
     (f) =>
       !f.includes("node_modules") &&
-      !f.includes("mockup-sandbox") &&
-      !DESIGN_TOKEN_EXEMPT.some((e) => f.endsWith(e)),
+      !f.includes(`${path.sep}mockup-sandbox${path.sep}`) &&
+      !DESIGN_TOKEN_FILES.some((name) => f.endsWith(name)),
   );
 
   const HEX_RE = /#([0-9a-fA-F]{3,8})\b/g;
@@ -174,12 +170,14 @@ function checkHardcodedColours(): CheckResult {
     const lines = readLines(file);
     lines.forEach((line, i) => {
       const trimmed = line.trim();
+      // Skip comment-only lines
       if (trimmed.startsWith("//") || trimmed.startsWith("*")) return;
-      let m: RegExpExecArray | null;
       HEX_RE.lastIndex = 0;
+      let m: RegExpExecArray | null;
       while ((m = HEX_RE.exec(line)) !== null) {
-        const rel = path.relative(ROOT, file);
-        offenders.push(`${rel}:${i + 1}  "${m[0]}"  ${trimmed.slice(0, 60)}`);
+        offenders.push(
+          `${path.relative(ROOT, file)}:${i + 1}  "${m[0]}"  ${trimmed.slice(0, 60)}`,
+        );
       }
     });
   }
@@ -197,7 +195,8 @@ function checkHardcodedColours(): CheckResult {
 
 // ─── Check 5: Drizzle tables have required columns ───────────────────────────
 const REQUIRED_COLS = ["id", "tenantId", "createdAt", "updatedAt"];
-const VERSION_REQUIRED_UNLESS = [
+// Tables whose names contain these keywords are exempt from the version requirement
+const VERSION_EXEMPT_KEYWORDS = [
   "idempotency",
   "event",
   "log",
@@ -205,7 +204,6 @@ const VERSION_REQUIRED_UNLESS = [
   "seed",
   "migration",
   "junction",
-  "map",
   "membership",
 ];
 
@@ -215,9 +213,9 @@ function checkDrizzleSchema(): CheckResult {
     ...collectFiles(path.join(ROOT, "artifacts", "api-server"), [".ts"]),
   ].filter(
     (f) =>
-      (f.includes("schema") || f.includes("Schema")) &&
-      !f.includes("node_modules") &&
-      !f.includes(".test."),
+      f.toLowerCase().includes("schema") &&
+      !f.includes(".test.") &&
+      !f.includes(".spec."),
   );
 
   if (schemaFiles.length === 0) {
@@ -247,8 +245,8 @@ function checkDrizzleSchema(): CheckResult {
         }
       }
 
-      const needsVersion = !VERSION_REQUIRED_UNLESS.some((keyword) =>
-        tableName.toLowerCase().includes(keyword),
+      const needsVersion = !VERSION_EXEMPT_KEYWORDS.some((kw) =>
+        tableName.toLowerCase().includes(kw),
       );
       if (needsVersion && !body.includes("version")) {
         problems.push(`${rel}: table "${tableName}" missing "version" column (mutable record)`);
@@ -272,6 +270,11 @@ function checkDrizzleSchema(): CheckResult {
 }
 
 // ─── Check 6: API envelope on all OpenAPI 2xx response schemas ───────────────
+// Validates each route+method+status contextually.
+// For $ref responses: checks only the named component schema, not the whole file.
+// For inline responses: checks that "success:" appears within the indented
+//   properties block of that specific response, not anywhere in the file.
+
 function checkOpenApiEnvelope(): CheckResult {
   const specPath = path.join(ROOT, "lib", "api-spec", "openapi.yaml");
   if (!fs.existsSync(specPath)) {
@@ -286,75 +289,189 @@ function checkOpenApiEnvelope(): CheckResult {
   const src = fs.readFileSync(specPath, "utf8");
   const lines = src.split("\n");
   const problems: string[] = [];
-  const INLINE_ROUTE_RE = /^  (\/[^\s:]+):/;
-  const METHOD_RE = /^    (get|post|put|patch|delete|head|options):/i;
-  const STATUS_2XX_RE = /^        ["']?2\d{2}["']?:/;
-  const CONTENT_RE = /^          content:/;
-  const SCHEMA_REF_RE = /\$ref:\s*["']#\/components\/schemas\/(\w+)["']/;
-  const SCHEMA_INLINE_PROPS_RE = /properties:/;
 
-  let currentPath = "";
-  let currentMethod = "";
-  let inResponse = false;
-  let statusLine = "";
-  let hasContent = false;
-  let schemaRef = "";
-  let hasInlineProps = false;
+  // Phase 1: Build a map of component schema names → whether they have "success"
+  // A schema has "success" if `success:` appears as a direct property key
+  // (i.e. indented under `properties:` within that schema's block).
+  const schemaHasSuccess = new Map<string, boolean>();
+  {
+    let inComponents = false;
+    let inSchemas = false;
+    let currentSchema = "";
+    let foundSuccess = false;
+    let inPropertiesBlock = false;
+    let propertiesIndent = -1;
 
-  function flush() {
-    if (!inResponse || !hasContent) return;
-    if (schemaRef) {
-      const schemaRe = new RegExp(`${schemaRef}:\\s*\\n((?:[ \\t]+[^\\n]+\\n)*)`, "m");
-      const match = src.match(schemaRe);
-      if (match && !match[1].includes("success:")) {
-        problems.push(
-          `${currentMethod.toUpperCase()} ${currentPath} ${statusLine.trim()} — $ref schema "${schemaRef}" lacks "success" property`,
-        );
+    for (const line of lines) {
+      if (!inComponents) {
+        if (/^components:/.test(line)) inComponents = true;
+        continue;
       }
-    } else if (hasInlineProps && !src.includes("success:")) {
-      problems.push(
-        `${currentMethod.toUpperCase()} ${currentPath} ${statusLine.trim()} — inline schema lacks "success" property`,
-      );
+      if (!inSchemas) {
+        if (/^  schemas:/.test(line)) inSchemas = true;
+        continue;
+      }
+      // A new top-level section ends schemas
+      if (/^[a-zA-Z]/.test(line) && !line.startsWith(" ")) {
+        if (currentSchema) schemaHasSuccess.set(currentSchema, foundSuccess);
+        inComponents = false; inSchemas = false;
+        continue;
+      }
+      // Schema name at 4-space indent
+      const nameMatch = /^    (\w+):$/.exec(line);
+      if (nameMatch) {
+        if (currentSchema) schemaHasSuccess.set(currentSchema, foundSuccess);
+        currentSchema = nameMatch[1];
+        foundSuccess = false;
+        inPropertiesBlock = false;
+        propertiesIndent = -1;
+        continue;
+      }
+      if (!currentSchema) continue;
+
+      // Detect properties: block
+      const propsMatch = /^(\s+)properties:/.exec(line);
+      if (propsMatch) {
+        inPropertiesBlock = true;
+        propertiesIndent = propsMatch[1].length;
+        continue;
+      }
+
+      if (inPropertiesBlock && propertiesIndent >= 0) {
+        const trimmed = line.trimStart();
+        if (trimmed.length === 0) continue;
+        const indent = line.length - trimmed.length;
+        // Property keys are exactly one level deeper than `properties:`
+        if (indent === propertiesIndent + 2 && trimmed.startsWith("success:")) {
+          foundSuccess = true;
+        }
+        // Left properties block if indent goes back to or past properties level
+        if (indent <= propertiesIndent && trimmed.length > 0 && !trimmed.startsWith("properties:")) {
+          inPropertiesBlock = false;
+          propertiesIndent = -1;
+        }
+      }
     }
+    if (currentSchema) schemaHasSuccess.set(currentSchema, foundSuccess);
   }
 
-  for (const line of lines) {
-    const routeMatch = INLINE_ROUTE_RE.exec(line);
-    if (routeMatch) {
-      flush();
-      currentPath = routeMatch[1];
-      inResponse = false;
-      continue;
+  // Phase 2: Walk paths and validate each 2xx response contextually
+  {
+    let currentPath = "";
+    let currentMethod = "";
+    let currentStatus = "";
+    let inResponse = false;
+    let hasContent = false;
+    let schemaRef = "";
+    let inPropsBlock = false;
+    let propsIndent = -1;
+    let inlineHasSuccess = false;
+
+    function flushResponse() {
+      if (!inResponse || !hasContent) return;
+      const label = `${currentMethod.toUpperCase()} ${currentPath} "${currentStatus}":`;
+      if (schemaRef) {
+        const has = schemaHasSuccess.get(schemaRef);
+        if (has === false) {
+          problems.push(`${label} — $ref schema "${schemaRef}" lacks "success" property`);
+        } else if (has === undefined) {
+          problems.push(`${label} — $ref schema "${schemaRef}" not found in components`);
+        }
+      } else if (inPropsBlock || propsIndent >= 0) {
+        if (!inlineHasSuccess) {
+          problems.push(`${label} — inline schema properties lacks "success" field`);
+        }
+      }
+      // Reset so a repeated flush call doesn't double-report the same response
+      resetResponse();
     }
-    const methodMatch = METHOD_RE.exec(line);
-    if (methodMatch) {
-      flush();
-      currentMethod = methodMatch[1];
+
+    function resetResponse() {
       inResponse = false;
       hasContent = false;
       schemaRef = "";
-      hasInlineProps = false;
-      continue;
+      inPropsBlock = false;
+      propsIndent = -1;
+      inlineHasSuccess = false;
     }
-    if (STATUS_2XX_RE.test(line)) {
-      flush();
-      statusLine = line;
-      inResponse = true;
-      hasContent = false;
-      schemaRef = "";
-      hasInlineProps = false;
-      continue;
+
+    for (const line of lines) {
+      // Stop processing paths once we hit components
+      if (/^components:/.test(line)) {
+        flushResponse();
+        break;
+      }
+
+      const pathMatch = /^  (\/[^\s:]+):$/.exec(line);
+      if (pathMatch) {
+        flushResponse();
+        currentPath = pathMatch[1];
+        resetResponse();
+        continue;
+      }
+
+      const methodMatch = /^    (get|post|put|patch|delete|head|options):$/i.exec(line);
+      if (methodMatch) {
+        flushResponse();
+        currentMethod = methodMatch[1];
+        resetResponse();
+        continue;
+      }
+
+      const statusMatch = /^        (["']?)(2\d{2})\1:/.exec(line);
+      if (statusMatch) {
+        flushResponse();
+        currentStatus = statusMatch[2];
+        inResponse = true;
+        hasContent = false;
+        schemaRef = "";
+        inPropsBlock = false;
+        propsIndent = -1;
+        inlineHasSuccess = false;
+        continue;
+      }
+
+      if (!inResponse) continue;
+
+      if (/^          content:/.test(line)) {
+        hasContent = true;
+        continue;
+      }
+
+      if (!hasContent) continue;
+
+      // Detect $ref
+      const refMatch = /\$ref:\s*["']#\/components\/schemas\/(\w+)["']/.exec(line);
+      if (refMatch && !schemaRef) {
+        schemaRef = refMatch[1];
+      }
+
+      // Detect inline properties block — note its indentation
+      const propsMatch = /^(\s+)properties:/.exec(line);
+      if (propsMatch && propsIndent === -1) {
+        propsIndent = propsMatch[1].length;
+        inPropsBlock = true;
+        continue;
+      }
+
+      // Track "success:" appearing as a direct property within the block
+      if (inPropsBlock && propsIndent >= 0) {
+        const trimmed = line.trimStart();
+        if (trimmed.length === 0) continue;
+        const indent = line.length - trimmed.length;
+        // Property keys sit one level deeper than `properties:`
+        if (indent === propsIndent + 2 && trimmed.startsWith("success:")) {
+          inlineHasSuccess = true;
+        }
+        // Left the properties block
+        if (indent <= propsIndent && !trimmed.startsWith("properties:")) {
+          inPropsBlock = false;
+          propsIndent = -1;
+        }
+      }
     }
-    if (inResponse && CONTENT_RE.test(line)) {
-      hasContent = true;
-    }
-    if (inResponse && hasContent) {
-      const refMatch = SCHEMA_REF_RE.exec(line);
-      if (refMatch) schemaRef = refMatch[1];
-      if (SCHEMA_INLINE_PROPS_RE.test(line)) hasInlineProps = true;
-    }
+    flushResponse();
   }
-  flush();
 
   if (problems.length === 0) {
     return {
@@ -474,8 +591,9 @@ function checkPrivacyLog(): CheckResult {
       const end = Math.min(lines.length - 1, i + CONTEXT);
       const window = lines.slice(start, end + 1).join("\n");
       if (!PRIVACY_RE.test(window)) {
-        const rel = path.relative(ROOT, file);
-        problems.push(`${rel}:${i + 1}  ${line.trim().slice(0, 80)}`);
+        problems.push(
+          `${path.relative(ROOT, file)}:${i + 1}  ${line.trim().slice(0, 80)}`,
+        );
       }
     });
   }
@@ -516,11 +634,13 @@ async function main() {
 
   const results: CheckResult[] = [];
   for (const check of checks) {
-    process.stdout.write(`  Checking: ${check.name}...`);
+    process.stdout.write(`  Checking ${check.name}...\r`);
     try {
       const r = check();
       results.push(r);
-      process.stdout.write(`\r  ${tick(r)} ${r.name.padEnd(46)} ${DIM}${r.message}${RESET}\n`);
+      process.stdout.write(
+        `  ${tick(r)} ${r.name.padEnd(46)} ${DIM}${r.message}${RESET}\n`,
+      );
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
       const r: CheckResult = {
@@ -529,7 +649,9 @@ async function main() {
         message: `Unexpected error: ${err}`,
       };
       results.push(r);
-      process.stdout.write(`\r  ${tick(r)} ${r.name.padEnd(46)} ${DIM}${r.message}${RESET}\n`);
+      process.stdout.write(
+        `  ${tick(r)} ${r.name.padEnd(46)} ${DIM}${r.message}${RESET}\n`,
+      );
     }
   }
 
@@ -548,7 +670,7 @@ async function main() {
         for (const d of r.detail) {
           console.log(`    ${DIM}${d}${RESET}`);
         }
-        if ((r.detail?.length ?? 0) >= 15) {
+        if (r.detail.length >= 15) {
           console.log(`    ${DIM}... (truncated — see full output above)${RESET}`);
         }
       }
@@ -557,13 +679,16 @@ async function main() {
   }
 
   if (skipped.length > 0) {
-    console.log(`${YELLOW}Skipped (${skipped.length}):${RESET} ${skipped.map((r) => r.name).join(", ")}`);
+    console.log(
+      `${YELLOW}Skipped (${skipped.length}):${RESET} ${skipped.map((r) => r.name).join(", ")}`,
+    );
     console.log();
   }
 
   if (failed.length === 0) {
     console.log(
-      `${BOLD}${GREEN}Result: PASSED${RESET} — ${passed.length} check(s) passed${skipped.length > 0 ? `, ${skipped.length} skipped` : ""}`,
+      `${BOLD}${GREEN}Result: PASSED${RESET} — ${passed.length} check(s) passed` +
+        (skipped.length > 0 ? `, ${skipped.length} skipped` : ""),
     );
     console.log(`${GREEN}Safe to activate the next tier.${RESET}`);
     console.log();
