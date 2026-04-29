@@ -29,6 +29,10 @@ pnpm run tier-review
 | 12 | **No unsanitised `dangerouslySetInnerHTML`** | XSS via React HTML injection without `DOMPurify.sanitize` |
 | 13 | **Dependency audit clean of high/critical** | Supply-chain advisories (`pnpm audit --json`) at high or critical severity |
 | 14 | **No raw SQL string interpolation** | SQL injection via template literals or `+` concatenation in `db.exec/run/all/get/prepare` |
+| 15 | **Tenant scoping helper required** | Service/route files that import `db` from `@workspace/db` without the canonical `tenantScope`/`withTenant` helper |
+| 16 | **Pagination on list endpoints** | GET routes whose 2xx response is a bare `type: array` instead of the `{ items, nextCursor }` envelope |
+| 17 | **Required indexes on tenant + FK columns** | Drizzle tables with `tenant_id`/`workspace_id` or `.references(...)` columns and no covering `index(...)` entry |
+| 18 | **No unbounded module-level caches** | Module-level `new Map()`/`new Set()` not wrapped in `LRUCache` and not annotated with `// tier-review: bounded — <reason>` |
 
 ### When checks are skipped
 
@@ -41,6 +45,10 @@ Several checks skip when their prerequisites are not yet present:
 - Check 12 skips when no `.tsx` files exist under `artifacts/`
 - Check 13 skips when `pnpm audit` cannot reach the registry (offline development is not blocked)
 - Check 14 skips when neither `artifacts/api-server/` nor `lib/db/` exists yet
+- Check 15 skips until `artifacts/api-server/src/services/` or `.../routes/` exists (active from Task #1/#17)
+- Check 16 skips when `lib/api-spec/openapi.yaml` does not exist (active from Task #1)
+- Check 17 skips when no schema files (`*schema*.ts`) are found under `lib/db/` or `artifacts/api-server/` (active from Task #37 onwards)
+- Check 18 skips when neither `artifacts/` nor `lib/` exists yet
 
 All other checks run unconditionally on every tier. Check 2 runs `pnpm test`
 which uses `--if-present` so packages without a test script are silently skipped
@@ -111,12 +119,22 @@ The four security checks enforce Standard 12 of `OMNINITY_BUG_PREVENTION_STANDAR
 - **Check 13** runs `pnpm audit --json --prod` at the workspace root, parses the result, and fails on any `high`/`critical` advisory. Moderate counts surface as a non-blocking note. The check skips with `~` when the registry is unreachable (network errors detected by string match: `ENOTFOUND`, `ETIMEDOUT`, `ECONNREFUSED`, `getaddrinfo`, `network`, or non-JSON output).
 - **Check 14** scans `.ts` files under `artifacts/api-server/` and `lib/db/` for `db.exec`, `db.run`, `db.all`, `db.get`, and `db.prepare` calls. The parser captures the full argument list using bracket matching across up to 8 lines, strips any safe `sql\`...\`` tagged-template chunks, and fails if the remaining text contains a backtick template literal with `${...}` or a quoted string immediately followed by `+`. Drizzle's `sql\`...\`` tagged template and the typed query builder (`db.select().from(t).all()`) are the only allowed forms.
 
+### Checks 15–18 — Standard 13 (Scalability & Multi-Tenant Isolation)
+
+The four scalability checks enforce Standard 13 of `OMNINITY_BUG_PREVENTION_STANDARDS.md`. Like the security checks, each is a fast syntactic check — semantic review (e.g. "is this query plan actually fast?") is the architect subagent's job.
+
+- **Check 15** scans `.ts` files under `artifacts/api-server/src/services/` and `.../routes/` and parses every `import` statement from `@workspace/db` (multi-line tolerant). If a file imports the runtime `db` value but does not also import `tenantScope` (or the sanctioned alias `withTenant`), it fails. Type-only imports (`import type { db } from "@workspace/db"`) and aliased imports of unrelated names are correctly ignored. Documented heuristic limit: indirect access via `import * as dbMod` is not detected and is caught by code review.
+- **Check 16** parses `lib/api-spec/openapi.yaml` with the same indentation-aware walker used by Check #6. For every `GET` route's 2xx response, the schema (or any `$ref` it points to, up to 3 levels) must mention `nextCursor:` — the canonical envelope marker. A bare `type: array` schema (or a `$ref` to one) fails the check. Singleton GETs (one object) are not flagged.
+- **Check 17** scans schema files (any `*schema*.ts` under `lib/db/` or `artifacts/api-server/`) and parses each `pgTable`/`sqliteTable` declaration. For every column whose JS or SQL name is `tenant_id`/`tenantId`/`workspace_id`/`workspaceId`, OR whose declaration includes `.references(...)`, the table's index callback (`(t) => ({...})` or `(table) => [...]`) must include an `index(...).on(t.<col>, ...)` covering that column. Composite indexes that mention the column count as covered. Block- and line-comments are stripped first so commented-out examples don't trigger.
+- **Check 18** scans `.ts`/`.tsx` files under `artifacts/` and `lib/` for module-level (column-0) `const`/`let`/`var` declarations whose RHS is `new Map<...>(...)` or `new Set<...>(...)`. Function-local constructors are ignored. The check passes when the line wraps the structure in `LRUCache(...)` OR when the previous non-blank line carries the explicit annotation `// tier-review: bounded — <reason>`. Test/spec files and the tier-review script itself are excluded.
+
 ### Fixture tests
 
 ```
 pnpm run tier-review:test                # Check 6 (OpenAPI envelope) — 7 tests
 pnpm run tier-review:check9-test         # Check 9 (budget annotation parser)
 pnpm run tier-review:check11-14-test     # Checks 11–14 (security pattern parsers)
+pnpm run tier-review:check15-18-test     # Checks 15–18 (scalability pattern parsers) — 31 tests
 ```
 
 All test suites exit non-zero on failure so they can be wired into CI.

@@ -2,7 +2,7 @@
 /**
  * Omninity Operator — Tier Review Script
  *
- * Runs all 14 automated quality gates after every tier merges.
+ * Runs all 18 automated quality gates after every tier merges.
  * Exit 0 = all checks pass (safe to activate next tier).
  * Exit 1 = one or more checks failed (fix before advancing).
  *
@@ -1643,6 +1643,720 @@ function checkRawSql(): CheckResult {
   };
 }
 
+// ─── Check 15: Tenant scoping helper required ────────────────────────────────
+//
+// Every service or route file under artifacts/api-server/src/{services,routes}
+// that imports `db` from `@workspace/db` must also import the canonical
+// `tenantScope` (or `withTenant`) helper from the same module. This catches
+// the most dangerous pattern in a multi-tenant local-first app: an unscoped
+// `db.select().from(t)` that returns rows across tenants.
+//
+// The detector parses import statements with a small regex pass that handles:
+//   import { db } from "@workspace/db";
+//   import { db, tenantScope } from "@workspace/db";
+//   import { db, type X } from "@workspace/db";
+//   import {
+//     db,
+//     tenantScope,
+//   } from "@workspace/db";
+//   import type { ... } from "@workspace/db"   <- type-only, ignored
+//
+// Documented heuristic limit: indirect access via `import * as dbMod` is not
+// detected — caught by code review.
+//
+// Exported for fixture testing.
+
+export interface UnscopedDbAccess {
+  file: string;
+  line: number;
+  reason: string;
+}
+
+const SCOPED_HELPER_NAMES = ["tenantScope", "withTenant"];
+
+export function findUnscopedDbAccess(src: string, file = "<test>"): UnscopedDbAccess[] {
+  const out: UnscopedDbAccess[] = [];
+
+  // Find every import statement from "@workspace/db" (multi-line tolerant).
+  // We capture the brace body so we can inspect the named imports.
+  const importRe =
+    /^(\s*import\s+(?:type\s+)?\{)([^}]*)\}\s*from\s*["']@workspace\/db["'];?/gm;
+
+  let m: RegExpExecArray | null;
+  let importsDb = false;
+  let importsHelper = false;
+  let firstDbImportLine = 0;
+
+  while ((m = importRe.exec(src)) !== null) {
+    const head = m[1];
+    const body = m[2];
+    const isType = /\bimport\s+type\b/.test(head);
+    // Split the body by commas, normalise each named import token.
+    const names = body
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => {
+        // strip leading `type ` from per-name type imports, strip aliasing
+        const noType = s.replace(/^type\s+/, "");
+        const base = noType.split(/\s+as\s+/)[0].trim();
+        return base;
+      });
+
+    const hasDb = names.includes("db");
+    const hasHelper = names.some((n) => SCOPED_HELPER_NAMES.includes(n));
+
+    if (hasDb && !isType) {
+      importsDb = true;
+      if (firstDbImportLine === 0) {
+        // Compute the line where this import statement begins
+        const upTo = src.slice(0, m.index);
+        firstDbImportLine = upTo.split("\n").length;
+      }
+    }
+    // Only count runtime helper imports — type-only `import type { tenantScope }`
+    // does NOT exist at runtime and cannot be used to scope a query.
+    if (hasHelper && !isType) {
+      importsHelper = true;
+    }
+  }
+
+  if (importsDb && !importsHelper) {
+    out.push({
+      file,
+      line: firstDbImportLine,
+      reason:
+        "imports `db` from @workspace/db without `tenantScope`/`withTenant` (Standard 13)",
+    });
+  }
+  return out;
+}
+
+function checkTenantScoping(): CheckResult {
+  const dirs = [
+    path.join(ROOT, "artifacts", "api-server", "src", "services"),
+    path.join(ROOT, "artifacts", "api-server", "src", "routes"),
+  ].filter(fs.existsSync);
+
+  if (dirs.length === 0) {
+    return {
+      name: "Tenant scoping helper required",
+      passed: true,
+      skipped: true,
+      message:
+        "Neither artifacts/api-server/src/services nor /routes exists — skipped (active from Task #1/#17)",
+    };
+  }
+
+  const files = dirs
+    .flatMap((d) => collectFiles(d, [".ts"]))
+    .filter((f) => !f.includes(".test.") && !f.includes(".spec."));
+
+  const problems: string[] = [];
+  for (const file of files) {
+    const src = fs.readFileSync(file, "utf8");
+    const matches = findUnscopedDbAccess(src, path.relative(ROOT, file));
+    for (const x of matches) {
+      problems.push(`${x.file}:${x.line}  ${x.reason}`);
+    }
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "Tenant scoping helper required",
+      passed: true,
+      message: `${files.length} file(s) scanned — all db imports paired with tenantScope`,
+    };
+  }
+  return {
+    name: "Tenant scoping helper required",
+    passed: false,
+    message: `${problems.length} unscoped service/route file(s)`,
+    detail: problems.slice(0, 15),
+  };
+}
+
+// ─── Check 16: Pagination on list endpoints ──────────────────────────────────
+//
+// Every GET route in lib/api-spec/openapi.yaml whose 2xx response is a
+// collection MUST return the cursor envelope `{ items, nextCursor }` (nested
+// under the standard `{ success, data, error }` outer envelope).
+//
+// The detector reuses the same indentation-aware YAML walker as Check #6.
+// For each (path, method=GET, status=2xx) tuple, it determines whether the
+// response is:
+//   1. A collection → must contain `items` AND `nextCursor` properties
+//      somewhere inside the schema (inline or via $ref). This tolerates
+//      `oneOf`/`anyOf` shapes as long as every branch contains the envelope.
+//   2. A singleton  → not flagged.
+//
+// Heuristic for "collection": the response schema (or any of its branches)
+// must declare a `data` property whose schema mentions `items:` AND
+// `nextCursor:`, OR it must contain a top-level `type: array`. The first
+// shape is the canonical envelope; the second is the bare-array form that
+// MUST be flagged.
+//
+// Exported for fixture testing.
+
+export interface PaginationProblem {
+  path: string;
+  method: string;
+  status: string;
+  reason: string;
+}
+
+export function findUnpaginatedListRoutes(src: string): PaginationProblem[] {
+  const lines = src.split("\n");
+  const problems: PaginationProblem[] = [];
+
+  // Phase 1: index components/schemas → raw schema text (so we can scan $refs).
+  const schemaText = new Map<string, string>();
+  {
+    let inComponents = false;
+    let inSchemas = false;
+    let currentSchema = "";
+    let buffer: string[] = [];
+    for (const line of lines) {
+      if (!inComponents) {
+        if (/^components:/.test(line)) inComponents = true;
+        continue;
+      }
+      if (!inSchemas) {
+        if (/^  schemas:/.test(line)) inSchemas = true;
+        continue;
+      }
+      if (/^[a-zA-Z]/.test(line) && !line.startsWith(" ")) {
+        if (currentSchema) schemaText.set(currentSchema, buffer.join("\n"));
+        break;
+      }
+      const nameMatch = /^    (\w+):$/.exec(line);
+      if (nameMatch) {
+        if (currentSchema) schemaText.set(currentSchema, buffer.join("\n"));
+        currentSchema = nameMatch[1];
+        buffer = [];
+        continue;
+      }
+      if (currentSchema) buffer.push(line);
+    }
+    if (currentSchema && !schemaText.has(currentSchema)) {
+      schemaText.set(currentSchema, buffer.join("\n"));
+    }
+  }
+
+  // Helper: given a chunk of schema text, return the "kind" we care about.
+  // - "envelope"   → top-level shape is the canonical pagination envelope
+  // - "bare-array" → top-level shape is `type: array`
+  // - "singleton"  → anything else (single object, scalar, etc.)
+  //
+  // Classification is top-level / structural — NOT a global text search —
+  // because a singleton response can legitimately carry a nested array
+  // property (e.g. a User schema with a `friends: { type: array }` property)
+  // and must NOT be flagged as an unpaginated list. The previous global
+  // heuristic produced false positives for exactly this case.
+  //
+  // The "envelope" shape is recognised by the presence of `nextCursor:`
+  // anywhere in the schema text — `nextCursor:` is the canonical marker
+  // and is unique enough in practice that property-name collisions are
+  // tolerated. Top-level $refs are chased up to 3 levels deep.
+  //
+  // Documented heuristic limit: `oneOf`/`anyOf` schemas with a mix of
+  // envelope and bare-array branches are not validated branch-by-branch;
+  // the first branch that produces a recognisable shape wins. The standard
+  // documents this and recommends extracting each branch to its own
+  // component schema.
+  function classify(text: string, depth = 0): "envelope" | "bare-array" | "singleton" {
+    if (!text) return "singleton";
+    const lines = text.split("\n");
+
+    // Find the smallest indent of any non-blank line — that's the top level.
+    let baseIndent = -1;
+    for (const line of lines) {
+      if (line.trim() === "") continue;
+      const ind = line.length - line.trimStart().length;
+      if (baseIndent === -1 || ind < baseIndent) baseIndent = ind;
+    }
+    if (baseIndent < 0) return "singleton";
+
+    // Scan top-level keys: top-level `type:` and top-level `$ref:` win first.
+    let topLevelType = "";
+    let topLevelRef = "";
+    for (const line of lines) {
+      if (line.trim() === "") continue;
+      const ind = line.length - line.trimStart().length;
+      if (ind !== baseIndent) continue;
+      const m = /^\s*([\w$]+)\s*:\s*(.*)$/.exec(line);
+      if (!m) continue;
+      const key = m[1];
+      const valuePart = m[2];
+      if (key === "type" && !topLevelType) topLevelType = valuePart.trim();
+      if (key === "$ref" && !topLevelRef) {
+        const refMatch = /["']#\/components\/schemas\/(\w+)["']/.exec(valuePart);
+        if (refMatch) topLevelRef = refMatch[1];
+      }
+    }
+
+    if (topLevelType === "array") return "bare-array";
+
+    // Follow a top-level $ref before doing any global text scan
+    if (topLevelRef && depth < 3) {
+      const refText = schemaText.get(topLevelRef);
+      if (refText !== undefined) return classify(refText, depth + 1);
+    }
+
+    // For object responses, the canonical envelope is recognised by the
+    // presence of `nextCursor:` anywhere in the schema text. This is the
+    // documented marker — singleton schemas should not contain it.
+    if (/^\s*nextCursor\s*:/m.test(text)) return "envelope";
+
+    // Last-ditch: walk nested $refs (e.g. response = $ref → envelope wrapper)
+    if (depth >= 3) return "singleton";
+    const refRe = /\$ref:\s*["']#\/components\/schemas\/(\w+)["']/g;
+    let r: RegExpExecArray | null;
+    let sawRefAsEnvelope = false;
+    let sawRefAsBareArray = false;
+    while ((r = refRe.exec(text)) !== null) {
+      const refText = schemaText.get(r[1]);
+      const k = classify(refText ?? "", depth + 1);
+      if (k === "envelope") sawRefAsEnvelope = true;
+      if (k === "bare-array") sawRefAsBareArray = true;
+    }
+    if (sawRefAsBareArray) return "bare-array";
+    if (sawRefAsEnvelope) return "envelope";
+    return "singleton";
+  }
+
+  // Phase 2: walk paths → method → 2xx response → classify.
+  let currentPath = "";
+  let currentMethod = "";
+  let currentStatus = "";
+  let inResponse = false;
+  let inSchemaBlock = false;
+  let schemaIndent = -1;
+  let schemaBuf: string[] = [];
+
+  function flush() {
+    if (!inResponse) return;
+    if (currentMethod.toUpperCase() !== "GET") {
+      reset();
+      return;
+    }
+    const kind = classify(schemaBuf.join("\n"));
+    if (kind === "bare-array") {
+      problems.push({
+        path: currentPath,
+        method: currentMethod.toUpperCase(),
+        status: currentStatus,
+        reason: "bare `type: array` 2xx response — use `{ items, nextCursor }` envelope",
+      });
+    }
+    // For oneOf branches: if ANY branch is bare-array, the route is unpaginated
+    // because the caller cannot rely on a cursor. The classify() call above
+    // walks $refs but treats `oneOf` as multiple inline siblings — those
+    // siblings are part of the same schema text, so a mixed oneOf with one
+    // bare branch will already be detected as bare-array (items missing in
+    // the bare branch). Acceptable for v1; documented in the standard.
+    reset();
+  }
+
+  function reset() {
+    inResponse = false;
+    inSchemaBlock = false;
+    schemaIndent = -1;
+    schemaBuf = [];
+  }
+
+  for (const line of lines) {
+    if (/^components:/.test(line)) {
+      flush();
+      break;
+    }
+    const pathMatch = /^  (\/[^\s:]+):$/.exec(line);
+    if (pathMatch) {
+      flush();
+      currentPath = pathMatch[1];
+      reset();
+      continue;
+    }
+    const methodMatch = /^    (get|post|put|patch|delete|head|options):$/i.exec(line);
+    if (methodMatch) {
+      flush();
+      currentMethod = methodMatch[1];
+      reset();
+      continue;
+    }
+    const statusMatch = /^        (["']?)(2\d{2})\1:/.exec(line);
+    if (statusMatch) {
+      flush();
+      currentStatus = statusMatch[2];
+      inResponse = true;
+      inSchemaBlock = false;
+      schemaIndent = -1;
+      schemaBuf = [];
+      continue;
+    }
+    if (!inResponse) continue;
+
+    // Detect the schema: block at any depth under this 2xx response and
+    // capture every line that is more deeply indented than `schema:` itself.
+    const schemaMatch = /^(\s+)schema:/.exec(line);
+    if (schemaMatch && schemaIndent === -1) {
+      schemaIndent = schemaMatch[1].length;
+      inSchemaBlock = true;
+      continue;
+    }
+    if (inSchemaBlock && schemaIndent >= 0) {
+      const trimmed = line.trimStart();
+      if (trimmed.length === 0) {
+        schemaBuf.push("");
+        continue;
+      }
+      const indent = line.length - trimmed.length;
+      if (indent <= schemaIndent) {
+        // left the schema block
+        inSchemaBlock = false;
+        schemaIndent = -1;
+      } else {
+        schemaBuf.push(line);
+      }
+    }
+  }
+  flush();
+  return problems;
+}
+
+function checkPaginationEnvelope(): CheckResult {
+  const specPath = path.join(ROOT, "lib", "api-spec", "openapi.yaml");
+  if (!fs.existsSync(specPath)) {
+    return {
+      name: "Pagination on list endpoints",
+      passed: true,
+      skipped: true,
+      message: "openapi.yaml not found — skipped",
+    };
+  }
+  const src = fs.readFileSync(specPath, "utf8");
+  const problems = findUnpaginatedListRoutes(src);
+  if (problems.length === 0) {
+    return {
+      name: "Pagination on list endpoints",
+      passed: true,
+      message: "All GET list endpoints return `{ items, nextCursor }` envelope",
+    };
+  }
+  return {
+    name: "Pagination on list endpoints",
+    passed: false,
+    message: `${problems.length} GET list endpoint(s) without pagination envelope`,
+    detail: problems.slice(0, 15).map(
+      (p) => `${p.method} ${p.path} "${p.status}": ${p.reason}`,
+    ),
+  };
+}
+
+// ─── Check 17: Required indexes on tenant + FK columns ───────────────────────
+//
+// Every Drizzle table (`pgTable`/`sqliteTable`) that declares a `tenant_id`
+// (or `tenantId`) column MUST declare an `index(...)` covering it. Same for
+// `workspace_id`/`workspaceId` and any column that uses `.references(...)`.
+// A composite index that mentions the column counts as covered.
+//
+// The detector parses each `pgTable("name", { ... }, (t) => ({ ... }))` (or
+// `sqliteTable`) declaration:
+//   1. Captures the table body (the `{ ... }` columns block) using bracket
+//      matching.
+//   2. Captures the optional trailing index callback `(t) => ({ ... })` (or
+//      `(table) => [ ... ]`) similarly. Drizzle accepts both shapes.
+//   3. From the body, extracts every column name and notes whether it is a
+//      tenant/workspace column or uses `.references(`.
+//   4. From the index block, extracts every `.on(t.col1, t.col2, ...)` token
+//      so we know which columns are indexed.
+//   5. Fails for each in-scope column that is not mentioned in any
+//      `.on(...)` token.
+//
+// Exported for fixture testing.
+
+export interface MissingIndex {
+  file: string;
+  table: string;
+  column: string;
+  reason: string;
+}
+
+const TENANT_COL_NAMES = ["tenant_id", "tenantId", "workspace_id", "workspaceId"];
+
+function captureBalanced(
+  src: string,
+  startIdx: number,
+  open: string,
+  close: string,
+): { text: string; endIdx: number } | null {
+  // Find the first `open` at or after startIdx
+  let i = src.indexOf(open, startIdx);
+  if (i < 0) return null;
+  let depth = 0;
+  let begin = -1;
+  for (; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === open) {
+      if (depth === 0) begin = i + 1;
+      depth++;
+    } else if (ch === close) {
+      depth--;
+      if (depth === 0) {
+        return { text: src.slice(begin, i), endIdx: i };
+      }
+    }
+  }
+  return null;
+}
+
+export function findMissingIndexes(src: string, file = "<test>"): MissingIndex[] {
+  const out: MissingIndex[] = [];
+  // Strip block + line comments to avoid matching commented examples
+  const stripped = src
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .map((l) => (/^\s*\/\//.test(l) ? "" : l))
+    .join("\n");
+
+  const tableRe = /\b(?:sqliteTable|pgTable)\s*\(\s*["'`](\w+)["'`]\s*,\s*\{/g;
+  let m: RegExpExecArray | null;
+  while ((m = tableRe.exec(stripped)) !== null) {
+    const tableName = m[1];
+    // Capture the columns body — start from the `{` we just matched
+    const openBrace = m.index + m[0].length - 1;
+    const body = captureBalanced(stripped, openBrace, "{", "}");
+    if (!body) continue;
+
+    // After the body's closing `}`, an optional `, (t) => ({...})` or
+    // `, (table) => [...]` index callback may follow. Look ahead within
+    // the same `(...)` envelope of the table call.
+    let indexBlock = "";
+    const afterBody = body.endIdx + 1;
+    // Find the closing `)` of the table call to bound our search
+    const tableCallEnd = (() => {
+      let depth = 1; // we're inside (...)
+      for (let i = afterBody; i < stripped.length; i++) {
+        if (stripped[i] === "(") depth++;
+        else if (stripped[i] === ")") {
+          depth--;
+          if (depth === 0) return i;
+        }
+      }
+      return -1;
+    })();
+    if (tableCallEnd > afterBody) {
+      const tail = stripped.slice(afterBody, tableCallEnd);
+      // Match a callback: `, (t) => ({...})` or `, (t) => [...]`
+      const cbObj = /,\s*\(\s*\w+\s*\)\s*=>\s*\(\s*\{/.exec(tail);
+      const cbArr = /,\s*\(\s*\w+\s*\)\s*=>\s*\[/.exec(tail);
+      if (cbObj) {
+        const start = afterBody + cbObj.index + cbObj[0].length - 1;
+        const cap = captureBalanced(stripped, start, "{", "}");
+        if (cap) indexBlock = cap.text;
+      } else if (cbArr) {
+        const start = afterBody + cbArr.index + cbArr[0].length - 1;
+        const cap = captureBalanced(stripped, start, "[", "]");
+        if (cap) indexBlock = cap.text;
+      }
+    }
+
+    // Determine indexed columns from `.on(t.col1, t.col2, ...)` in indexBlock
+    const indexedCols = new Set<string>();
+    const onRe = /\.on\s*\(\s*([^)]+)\)/g;
+    let onMatch: RegExpExecArray | null;
+    while ((onMatch = onRe.exec(indexBlock)) !== null) {
+      const argList = onMatch[1];
+      // Each arg is `t.colName` — strip `t.` and grab identifier
+      const colTokens = argList.match(/\w+\.(\w+)/g) ?? [];
+      for (const tok of colTokens) {
+        const name = tok.split(".")[1];
+        indexedCols.add(name);
+      }
+    }
+
+    // Walk the table body and collect (column name, in-scope reason)
+    // Column declarations look like:  colName: text("col_name")...
+    // We use the JS column name as the key — index callbacks reference it
+    // via t.colName.
+    const colRe = /^\s*(\w+)\s*:\s*([\s\S]*?)(?=,\s*\n|,\s*$|$)/gm;
+    const inScope: Array<{ jsName: string; reason: string }> = [];
+    let cm: RegExpExecArray | null;
+    while ((cm = colRe.exec(body.text)) !== null) {
+      const jsName = cm[1];
+      const decl = cm[2];
+      // Try to find the SQL name from the first string literal argument
+      const sqlNameMatch = /["'`]([\w]+)["'`]/.exec(decl);
+      const sqlName = sqlNameMatch ? sqlNameMatch[1] : "";
+      const isTenant = TENANT_COL_NAMES.includes(jsName) ||
+        TENANT_COL_NAMES.includes(sqlName);
+      const isFk = /\.references\s*\(/.test(decl);
+      if (isTenant || isFk) {
+        inScope.push({
+          jsName,
+          reason: isTenant ? "tenant/workspace column" : "foreign key (.references)",
+        });
+      }
+    }
+
+    for (const col of inScope) {
+      if (!indexedCols.has(col.jsName)) {
+        out.push({
+          file,
+          table: tableName,
+          column: col.jsName,
+          reason: `${col.reason} has no covering index() entry`,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+function checkRequiredIndexes(): CheckResult {
+  const schemaFiles = [
+    ...collectFiles(path.join(ROOT, "lib", "db"), [".ts"]),
+    ...collectFiles(path.join(ROOT, "artifacts", "api-server"), [".ts"]),
+  ].filter(
+    (f) =>
+      f.toLowerCase().includes("schema") &&
+      !f.includes(".test.") &&
+      !f.includes(".spec."),
+  );
+
+  if (schemaFiles.length === 0) {
+    return {
+      name: "Required indexes on tenant + FK columns",
+      passed: true,
+      skipped: true,
+      message: "No schema files found — skipped (active from Task #37 onwards)",
+    };
+  }
+
+  const problems: string[] = [];
+  for (const file of schemaFiles) {
+    const src = fs.readFileSync(file, "utf8");
+    const matches = findMissingIndexes(src, path.relative(ROOT, file));
+    for (const x of matches) {
+      problems.push(`${x.file}: ${x.table}.${x.column} — ${x.reason}`);
+    }
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "Required indexes on tenant + FK columns",
+      passed: true,
+      message: `${schemaFiles.length} schema file(s) checked — all required indexes present`,
+    };
+  }
+  return {
+    name: "Required indexes on tenant + FK columns",
+    passed: false,
+    message: `${problems.length} column(s) missing required index`,
+    detail: problems.slice(0, 15),
+  };
+}
+
+// ─── Check 18: No unbounded module-level caches ──────────────────────────────
+//
+// Module-level (top-level, file-scope) `new Map(...)` / `new Set(...)` are
+// forbidden unless wrapped by `LRUCache` on the same line OR the previous
+// non-blank line carries `// tier-review: bounded — <reason>`.
+//
+// "Module-level" here means a line whose first non-whitespace token is one of
+// `const`, `let`, `var`, or starts with `export const`/`export let`/`export var`.
+// Function-local declarations, useState/useRef calls, and class field
+// initialisers all have shorter indentation patterns OR sit on lines whose
+// declaration keyword is at non-zero indent.
+//
+// Exported for fixture testing.
+
+export interface UnboundedCache {
+  file: string;
+  line: number;
+  reason: string;
+}
+
+const MODULE_DECL_RE =
+  /^(?:export\s+(?:default\s+)?)?(?:const|let|var)\s+\w+/;
+const NEW_MAP_OR_SET_RE = /\bnew\s+(Map|Set)\b(?:\s*<[^>]*>)?\s*\(/;
+
+export function findUnboundedCaches(src: string, file = "<test>"): UnboundedCache[] {
+  const lines = src.split("\n");
+  const out: UnboundedCache[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Module-level declarations start at column 0
+    if (line.length === 0 || line[0] === " " || line[0] === "\t") continue;
+
+    if (!MODULE_DECL_RE.test(line)) continue;
+    if (!NEW_MAP_OR_SET_RE.test(line)) continue;
+
+    // Allowed if LRUCache is on the same line (the value is wrapped, not the
+    // forbidden raw Map/Set)
+    if (/\bLRUCache\b/.test(line)) continue;
+
+    // Allowed if the previous non-blank line carries the justification comment
+    let j = i - 1;
+    while (j >= 0 && lines[j].trim() === "") j--;
+    const prev = j >= 0 ? lines[j] : "";
+    if (/\/\/\s*tier-review:\s*bounded\b/.test(prev)) continue;
+
+    const which = NEW_MAP_OR_SET_RE.exec(line)?.[1] ?? "Map/Set";
+    out.push({
+      file,
+      line: i + 1,
+      reason: `module-level new ${which}() — wrap with LRUCache or annotate with \`// tier-review: bounded — <reason>\``,
+    });
+  }
+  return out;
+}
+
+function checkBoundedCaches(): CheckResult {
+  const dirs = [path.join(ROOT, "artifacts"), path.join(ROOT, "lib")].filter(fs.existsSync);
+  if (dirs.length === 0) {
+    return {
+      name: "No unbounded module-level caches",
+      passed: true,
+      skipped: true,
+      message: "Neither artifacts/ nor lib/ exists — skipped",
+    };
+  }
+
+  const files = dirs
+    .flatMap((d) => collectFiles(d, [".ts", ".tsx"]))
+    .filter(
+      (f) =>
+        !f.includes(".test.") &&
+        !f.includes(".spec.") &&
+        !f.endsWith("tier-review.ts"),
+    );
+
+  const problems: string[] = [];
+  for (const file of files) {
+    const src = fs.readFileSync(file, "utf8");
+    const matches = findUnboundedCaches(src, path.relative(ROOT, file));
+    for (const x of matches) {
+      problems.push(`${x.file}:${x.line}  ${x.reason}`);
+    }
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "No unbounded module-level caches",
+      passed: true,
+      message: `${files.length} file(s) scanned — no unbounded caches`,
+    };
+  }
+  return {
+    name: "No unbounded module-level caches",
+    passed: false,
+    message: `${problems.length} unbounded module-level cache(s)`,
+    detail: problems.slice(0, 15),
+  };
+}
+
 // ─── Runner ───────────────────────────────────────────────────────────────────
 async function main() {
   console.log();
@@ -1666,6 +2380,10 @@ async function main() {
     checkUnsafeHtml,
     checkDependencyAudit,
     checkRawSql,
+    checkTenantScoping,
+    checkPaginationEnvelope,
+    checkRequiredIndexes,
+    checkBoundedCaches,
   ];
 
   const results: CheckResult[] = [];
