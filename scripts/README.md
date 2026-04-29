@@ -25,14 +25,22 @@ pnpm run tier-review
 | 8 | **No raw `fetch()` without privacy log** | Outbound network calls missing a privacy audit event |
 | 9 | **Performance budget compliance** | Latency regressions caught at the task that introduced them, not at Tier 8 |
 | 10 | **Frontend bundle size budget** | JS chunk bloat that destroys cold-start performance |
+| 11 | **No dangerous code execution primitives** | `eval`, `new Function`, and `vm.runInNewContext` outside the canonical skill sandbox |
+| 12 | **No unsanitised `dangerouslySetInnerHTML`** | XSS via React HTML injection without `DOMPurify.sanitize` |
+| 13 | **Dependency audit clean of high/critical** | Supply-chain advisories (`pnpm audit --json`) at high or critical severity |
+| 14 | **No raw SQL string interpolation** | SQL injection via template literals or `+` concatenation in `db.exec/run/all/get/prepare` |
 
 ### When checks are skipped
 
-Four checks skip when their prerequisites are not yet present:
+Several checks skip when their prerequisites are not yet present:
 - Check 7 skips until the generated client directories exist (required after Task #1)
 - Check 8 skips until `artifacts/api-server/src/services/` exists (required after Task #1)
 - Check 9 skips until at least one `*.bench.ts` file exists (becomes active when the first task ships a benchmark)
 - Check 10 skips until at least one `artifacts/<name>/bundle-budget.json` exists (added by Task #2)
+- Check 11 skips when neither `artifacts/` nor `lib/` exists yet
+- Check 12 skips when no `.tsx` files exist under `artifacts/`
+- Check 13 skips when `pnpm audit` cannot reach the registry (offline development is not blocked)
+- Check 14 skips when neither `artifacts/api-server/` nor `lib/db/` exists yet
 
 All other checks run unconditionally on every tier. Check 2 runs `pnpm test`
 which uses `--if-present` so packages without a test script are silently skipped
@@ -94,14 +102,24 @@ JS chunk under `dist/assets/` (or `dist/`) is at or below `main_js_gzip_kb`.
 The gzipped size is measured with the system `gzip` binary so no extra
 JavaScript dependency is needed.
 
+### Checks 11–14 — Standard 12 (Security Patterns)
+
+The four security checks enforce Standard 12 of `OMNINITY_BUG_PREVENTION_STANDARDS.md`. Each is intentionally a syntactic check that runs in milliseconds — semantic security review is the architect subagent's job.
+
+- **Check 11** scans `.ts`/`.tsx` files under `artifacts/` and `lib/` for `eval(`, `new Function(`, and `vm.runInNewContext(`. Only the canonical skill sandbox file (`artifacts/api-server/src/skill-runtime/sandbox.ts`) is allowlisted, and only for `vm.runInNewContext`. Test/spec files and the tier-review script itself are excluded so the checker's own pattern strings don't trigger. Comment-only lines are skipped so example/forbidden-pattern docs don't false-positive.
+- **Check 12** scans `.tsx` files under `artifacts/` for `dangerouslySetInnerHTML`. The parser uses bracket matching to extract the full JSX prop expression (across multiple lines if needed) and passes only when `DOMPurify.sanitize` appears **inside** that prop expression. The single allowed escape hatch is binding the `__html` value to a local variable that was assigned from `DOMPurify.sanitize(...)` no more than 3 lines above — any other "nearby" sanitize call on an unrelated variable is correctly flagged.
+- **Check 13** runs `pnpm audit --json --prod` at the workspace root, parses the result, and fails on any `high`/`critical` advisory. Moderate counts surface as a non-blocking note. The check skips with `~` when the registry is unreachable (network errors detected by string match: `ENOTFOUND`, `ETIMEDOUT`, `ECONNREFUSED`, `getaddrinfo`, `network`, or non-JSON output).
+- **Check 14** scans `.ts` files under `artifacts/api-server/` and `lib/db/` for `db.exec`, `db.run`, `db.all`, `db.get`, and `db.prepare` calls. The parser captures the full argument list using bracket matching across up to 8 lines, strips any safe `sql\`...\`` tagged-template chunks, and fails if the remaining text contains a backtick template literal with `${...}` or a quoted string immediately followed by `+`. Drizzle's `sql\`...\`` tagged template and the typed query builder (`db.select().from(t).all()`) are the only allowed forms.
+
 ### Fixture tests
 
 ```
-pnpm run tier-review:test           # Check 6 (OpenAPI envelope) — 7 tests
-pnpm run tier-review:check9-test    # Check 9 (budget annotation parser) — tests
+pnpm run tier-review:test                # Check 6 (OpenAPI envelope) — 7 tests
+pnpm run tier-review:check9-test         # Check 9 (budget annotation parser)
+pnpm run tier-review:check11-14-test     # Checks 11–14 (security pattern parsers)
 ```
 
-Both test suites exit non-zero on failure so they can be wired into CI.
+All test suites exit non-zero on failure so they can be wired into CI.
 
 ### Fixing failures
 

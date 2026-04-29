@@ -2,7 +2,7 @@
 /**
  * Omninity Operator — Tier Review Script
  *
- * Runs all 8 automated quality gates after every tier merges.
+ * Runs all 14 automated quality gates after every tier merges.
  * Exit 0 = all checks pass (safe to activate next tier).
  * Exit 1 = one or more checks failed (fix before advancing).
  *
@@ -1085,6 +1085,564 @@ function checkPrivacyLog(): CheckResult {
   };
 }
 
+// ─── Check 11: No dangerous code execution primitives ────────────────────────
+//
+// Standard 12 forbids `eval(`, `new Function(`, and `vm.runInNewContext(` in
+// the codebase. The single exception is the canonical skill sandbox file,
+// which is the only module allowed to call `vm.runInNewContext` /
+// `vm.createContext`. Test/spec files and the tier-review script itself are
+// excluded so the checker's own pattern strings don't trigger it.
+//
+// Documented heuristic limits (intentional gaps caught only by the
+// architect/security_scan review, not by this fast gate):
+//  - `globalThis.eval(...)` / `window["eval"](...)` / aliased indirect calls
+//    are not detected — only the bare `eval(` form is matched
+//  - `Function.prototype.constructor(...)` and `setTimeout("...", n)` with a
+//    string body are not flagged here
+//  - `vm.createContext(...)` is the policy-allowed sandbox primitive used by
+//    the canonical sandbox file; we deliberately do NOT flag it because that
+//    would catch the legitimate use site
+//
+// Exported for fixture testing.
+
+const SKILL_SANDBOX_ALLOWLIST = path.join(
+  ROOT,
+  "artifacts",
+  "api-server",
+  "src",
+  "skill-runtime",
+  "sandbox.ts",
+);
+
+export interface DangerousExecMatch {
+  file: string;
+  line: number;
+  pattern: "eval" | "new Function" | "vm.runInNewContext";
+  snippet: string;
+}
+
+/**
+ * Scan a single source file's contents for forbidden code execution
+ * primitives. The sandbox file is allowlisted for `vm.runInNewContext` only;
+ * `eval` and `new Function` are forbidden everywhere.
+ *
+ * `(?<![.\w])eval` ensures we only flag the bare `eval(` call, never
+ * `someObj.eval(` or `myEval(` which are unrelated identifiers. Comment-only
+ * lines are skipped so docstrings explaining what is forbidden don't trigger.
+ */
+export function findDangerousExec(
+  src: string,
+  file: string,
+  isSandboxFile: boolean,
+): DangerousExecMatch[] {
+  const lines = src.split("\n");
+  const out: DangerousExecMatch[] = [];
+
+  const EVAL_RE = /(?<![.\w])eval\s*\(/;
+  const NEW_FUNC_RE = /\bnew\s+Function\s*\(/;
+  const VM_RUN_RE = /\bvm\s*\.\s*runInNewContext\s*\(/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    // Skip pure-comment lines so example/forbidden-pattern docs don't trigger
+    if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
+
+    if (EVAL_RE.test(line)) {
+      out.push({ file, line: i + 1, pattern: "eval", snippet: trimmed.slice(0, 80) });
+    }
+    if (NEW_FUNC_RE.test(line)) {
+      out.push({
+        file,
+        line: i + 1,
+        pattern: "new Function",
+        snippet: trimmed.slice(0, 80),
+      });
+    }
+    if (VM_RUN_RE.test(line) && !isSandboxFile) {
+      out.push({
+        file,
+        line: i + 1,
+        pattern: "vm.runInNewContext",
+        snippet: trimmed.slice(0, 80),
+      });
+    }
+  }
+
+  return out;
+}
+
+function checkDangerousExec(): CheckResult {
+  const dirs = [path.join(ROOT, "artifacts"), path.join(ROOT, "lib")].filter(fs.existsSync);
+  if (dirs.length === 0) {
+    return {
+      name: "No dangerous code execution primitives",
+      passed: true,
+      skipped: true,
+      message: "Neither artifacts/ nor lib/ exists — skipped",
+    };
+  }
+
+  const files = dirs
+    .flatMap((d) => collectFiles(d, [".ts", ".tsx"]))
+    .filter(
+      (f) =>
+        !f.includes(".test.") &&
+        !f.includes(".spec.") &&
+        !f.endsWith("tier-review.ts"),
+    );
+
+  const problems: string[] = [];
+  for (const file of files) {
+    const src = fs.readFileSync(file, "utf8");
+    const matches = findDangerousExec(src, path.relative(ROOT, file), file === SKILL_SANDBOX_ALLOWLIST);
+    for (const m of matches) {
+      problems.push(`${m.file}:${m.line}  ${m.pattern}  ${m.snippet}`);
+    }
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "No dangerous code execution primitives",
+      passed: true,
+      message: `${files.length} file(s) scanned — no eval / new Function / vm.runInNewContext outside sandbox`,
+    };
+  }
+  return {
+    name: "No dangerous code execution primitives",
+    passed: false,
+    message: `${problems.length} forbidden code execution call(s) — see Standard 12`,
+    detail: problems.slice(0, 15),
+  };
+}
+
+// ─── Check 12: No unsanitised dangerouslySetInnerHTML ─────────────────────────
+//
+// Tightened heuristic: when a `dangerouslySetInnerHTML` occurrence is found,
+// extract the JSX prop expression value (the `{{ __html: ... }}` block — even
+// if it spans multiple lines) and require `DOMPurify.sanitize` to appear
+// inside that expression. The single allowed escape hatch is binding the
+// expression to a local variable on the same or immediately preceding line —
+// then we look back up to 3 lines for that variable's `DOMPurify.sanitize`
+// declaration. This eliminates the prior "unrelated sanitize call nearby"
+// false negative the architect flagged.
+//
+// Bracket-matched extraction handles nested `{...}` correctly. The architect
+// review and code review skill remain the deeper semantic check; this gate
+// is a fast structural enforcement.
+//
+// Exported for fixture testing.
+
+export function findUnsafeHtml(src: string, file: string): string[] {
+  const lines = src.split("\n");
+  const out: string[] = [];
+  const HTML_RE = /dangerouslySetInnerHTML/;
+  const SANITIZE_RE = /DOMPurify\s*\.\s*sanitize\s*\(/;
+  const HTML_PROP_RE = /dangerouslySetInnerHTML\s*=\s*\{/;
+  const HTML_VAR_RE = /__html\s*:\s*([A-Za-z_$][\w$]*)\s*[,}]/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    // Skip pure-comment lines so docstrings about the forbidden pattern don't trigger
+    if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
+    if (!HTML_RE.test(line)) continue;
+
+    // Find the start of the prop value `dangerouslySetInnerHTML={` and walk
+    // forward across lines tracking nested `{` / `}` to extract the full prop
+    // expression. If we can't find an opening `{`, fall back to scanning the
+    // single line — but mark it unsafe by default so we don't silently pass.
+    const propMatch = HTML_PROP_RE.exec(line);
+    let exprText = "";
+    if (propMatch) {
+      const startCol = propMatch.index + propMatch[0].length - 1; // index of the opening `{`
+      let depth = 0;
+      let lineIdx = i;
+      let colIdx = startCol;
+      let captured = "";
+      let done = false;
+      while (lineIdx < lines.length && !done) {
+        const cur = lines[lineIdx];
+        for (let c = colIdx; c < cur.length; c++) {
+          const ch = cur[c];
+          captured += ch;
+          if (ch === "{") depth++;
+          else if (ch === "}") {
+            depth--;
+            if (depth === 0) {
+              done = true;
+              break;
+            }
+          }
+        }
+        captured += "\n";
+        lineIdx++;
+        colIdx = 0;
+        // Hard cap to keep the parser bounded on malformed input
+        if (lineIdx - i > 50) break;
+      }
+      exprText = captured;
+    } else {
+      exprText = line;
+    }
+
+    // Pass if sanitize appears inside the prop expression itself
+    if (SANITIZE_RE.test(exprText)) continue;
+
+    // Otherwise: allow the local-variable escape hatch. If the prop's
+    // `__html` value is a bare identifier (e.g. `__html: safeHtml`), look
+    // back up to 3 non-blank lines for that identifier being assigned from
+    // `DOMPurify.sanitize(...)`. Anything else fails.
+    const varMatch = HTML_VAR_RE.exec(exprText);
+    let safe = false;
+    if (varMatch) {
+      const varName = varMatch[1];
+      const ASSIGN_RE = new RegExp(
+        `\\b${varName}\\s*=\\s*[^;\\n]*DOMPurify\\s*\\.\\s*sanitize\\s*\\(`,
+      );
+      const start = Math.max(0, i - 3);
+      const lookback = lines.slice(start, i + 1).join("\n");
+      if (ASSIGN_RE.test(lookback)) safe = true;
+    }
+    if (safe) continue;
+
+    out.push(`${file}:${i + 1}  ${trimmed.slice(0, 80)}`);
+  }
+  return out;
+}
+
+function checkUnsafeHtml(): CheckResult {
+  const artifactsDir = path.join(ROOT, "artifacts");
+  if (!fs.existsSync(artifactsDir)) {
+    return {
+      name: "No unsanitised dangerouslySetInnerHTML",
+      passed: true,
+      skipped: true,
+      message: "No artifacts/ directory — skipped",
+    };
+  }
+  const files = collectFiles(artifactsDir, [".tsx"]).filter(
+    (f) => !f.includes(".test.") && !f.includes(".spec."),
+  );
+  if (files.length === 0) {
+    return {
+      name: "No unsanitised dangerouslySetInnerHTML",
+      passed: true,
+      skipped: true,
+      message: "No .tsx files under artifacts/ — skipped",
+    };
+  }
+
+  const problems: string[] = [];
+  for (const file of files) {
+    const src = fs.readFileSync(file, "utf8");
+    problems.push(...findUnsafeHtml(src, path.relative(ROOT, file)));
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "No unsanitised dangerouslySetInnerHTML",
+      passed: true,
+      message: `${files.length} .tsx file(s) scanned — clean`,
+    };
+  }
+  return {
+    name: "No unsanitised dangerouslySetInnerHTML",
+    passed: false,
+    message: `${problems.length} dangerouslySetInnerHTML use(s) without DOMPurify.sanitize`,
+    detail: problems.slice(0, 15),
+  };
+}
+
+// ─── Check 13: Dependency audit (high/critical) ──────────────────────────────
+//
+// Runs `pnpm audit --json` at the workspace root, parses the result, and
+// fails on any high/critical advisory. Moderate is reported as a non-blocking
+// warning. The check skips with `~` when the registry is unreachable (typical
+// in offline development environments) so local work isn't blocked.
+//
+// pnpm exits non-zero when vulnerabilities exist, so we intentionally do NOT
+// treat `ok: false` as a failure — we always parse the JSON output and decide
+// from the parsed counts.
+//
+// Exported for fixture testing.
+
+export interface AuditSummary {
+  high: number;
+  critical: number;
+  moderate: number;
+  low: number;
+  info: number;
+  advisoryTitles: string[]; // titles of high/critical advisories, for reporting
+}
+
+export function parseAuditOutput(jsonText: string): AuditSummary | null {
+  let data: unknown;
+  try {
+    data = JSON.parse(jsonText);
+  } catch {
+    return null;
+  }
+  if (!data || typeof data !== "object") return null;
+  const obj = data as Record<string, unknown>;
+
+  // pnpm audit --json shape: { advisories: { [id]: {...} }, metadata: { vulnerabilities: { ... } } }
+  const meta = obj.metadata as Record<string, unknown> | undefined;
+  const vulns = (meta?.vulnerabilities ?? {}) as Record<string, unknown>;
+  const num = (v: unknown): number => (typeof v === "number" ? v : 0);
+
+  const summary: AuditSummary = {
+    info: num(vulns.info),
+    low: num(vulns.low),
+    moderate: num(vulns.moderate),
+    high: num(vulns.high),
+    critical: num(vulns.critical),
+    advisoryTitles: [],
+  };
+
+  const advisories = obj.advisories as Record<string, unknown> | undefined;
+  if (advisories && typeof advisories === "object") {
+    for (const a of Object.values(advisories)) {
+      if (!a || typeof a !== "object") continue;
+      const ao = a as Record<string, unknown>;
+      const sev = String(ao.severity ?? "");
+      if (sev === "high" || sev === "critical") {
+        const title = String(ao.title ?? "(no title)");
+        const moduleName = String(ao.module_name ?? ao.moduleName ?? "?");
+        summary.advisoryTitles.push(`${sev}: ${moduleName} — ${title}`);
+      }
+    }
+  }
+
+  return summary;
+}
+
+function checkDependencyAudit(): CheckResult {
+  const { output } = run("pnpm audit --json --prod");
+
+  // Heuristic: if the output looks like a network failure (no JSON at all),
+  // skip rather than fail so offline development isn't blocked.
+  const trimmed = output.trim();
+  const looksLikeJson = trimmed.startsWith("{");
+  if (!looksLikeJson) {
+    const networkHints = /ENOTFOUND|ETIMEDOUT|ECONNREFUSED|registry|getaddrinfo|network/i;
+    if (networkHints.test(output)) {
+      return {
+        name: "Dependency audit clean of high/critical",
+        passed: true,
+        skipped: true,
+        message: "pnpm audit could not reach the registry — skipped (offline)",
+      };
+    }
+    return {
+      name: "Dependency audit clean of high/critical",
+      passed: false,
+      message: `pnpm audit produced no JSON output: ${output.slice(0, 200)}`,
+    };
+  }
+
+  const summary = parseAuditOutput(output);
+  if (!summary) {
+    return {
+      name: "Dependency audit clean of high/critical",
+      passed: false,
+      message: `Could not parse pnpm audit JSON output (length ${output.length})`,
+    };
+  }
+
+  const blocking = summary.high + summary.critical;
+  const moderateNote =
+    summary.moderate > 0
+      ? ` (${summary.moderate} moderate — review recommended)`
+      : "";
+
+  if (blocking === 0) {
+    return {
+      name: "Dependency audit clean of high/critical",
+      passed: true,
+      message: `0 high, 0 critical${moderateNote}`,
+    };
+  }
+  return {
+    name: "Dependency audit clean of high/critical",
+    passed: false,
+    message: `${summary.critical} critical, ${summary.high} high${moderateNote} — run \`pnpm audit\``,
+    detail: summary.advisoryTitles.slice(0, 15),
+  };
+}
+
+// ─── Check 14: No raw SQL string interpolation ───────────────────────────────
+//
+// Drizzle's typed query builder (`db.select().from(t)`) and tagged-template
+// `sql\`...\`` are the only two safe ways to construct SQL. Any call to
+// `db.exec`, `db.run`, `db.all`, `db.get`, or `db.prepare` whose argument
+// list contains a raw template literal with `${...}` (without the `sql` tag)
+// or a string concatenated with `+` is forbidden.
+//
+// The detector handles both single-line and multi-line call shapes by
+// matching the call opener (`<ident>.<method>(`) and then capturing up to the
+// matching closing paren across at most 8 lines. This catches the common
+// forms the architect flagged:
+//   db.run(
+//     `UPDATE x SET y = ${y}`,
+//   );
+//
+// The detector skips:
+//  - The chained typed-builder forms (no risky tokens in the captured args)
+//  - Drizzle's `sql\`...\`` tag (the only backtick is preceded by `sql`)
+//  - Single-quote / double-quote string LITERALS that contain placeholder
+//    syntax — only `+`-concatenation is risky for plain quoted strings
+//
+// Exported for fixture testing.
+
+export interface RawSqlMatch {
+  file: string;
+  line: number;
+  reason: "template literal" | "string concatenation";
+  snippet: string;
+}
+
+const SQL_CALL_OPEN_RE = /\b\w+\s*\.\s*(exec|run|all|get|prepare)\s*\(/g;
+const MAX_CALL_LINES = 8;
+
+/**
+ * Capture text inside a method call's parens, starting from the position of
+ * the opening paren in `lines[startLine][startCol]`. Returns the captured
+ * text (without the outer parens) plus the line offset where the matching
+ * `)` was found, or null if no closing paren is found within the window.
+ */
+function captureCallArgs(
+  lines: string[],
+  startLine: number,
+  startCol: number,
+  maxLines = MAX_CALL_LINES,
+): { text: string; endLine: number } | null {
+  let depth = 0;
+  let captured = "";
+  let started = false;
+  let lineIdx = startLine;
+  let colIdx = startCol;
+
+  while (lineIdx < lines.length && lineIdx - startLine < maxLines) {
+    const cur = lines[lineIdx];
+    for (let c = colIdx; c < cur.length; c++) {
+      const ch = cur[c];
+      if (ch === "(") {
+        depth++;
+        if (depth === 1) {
+          started = true;
+          continue; // don't capture the outer `(`
+        }
+      } else if (ch === ")") {
+        depth--;
+        if (depth === 0 && started) {
+          return { text: captured, endLine: lineIdx };
+        }
+      }
+      if (started) captured += ch;
+    }
+    captured += "\n";
+    lineIdx++;
+    colIdx = 0;
+  }
+  return null;
+}
+
+export function findRawSqlInterpolation(src: string, file = "<test>"): RawSqlMatch[] {
+  const lines = src.split("\n");
+  const out: RawSqlMatch[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
+
+    SQL_CALL_OPEN_RE.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = SQL_CALL_OPEN_RE.exec(line)) !== null) {
+      const method = m[1];
+      // Position of the `(` is at m.index + m[0].length - 1
+      const openCol = m.index + m[0].length - 1;
+      const captured = captureCallArgs(lines, i, openCol);
+      if (!captured) continue;
+      const args = captured.text;
+
+      // Strip Drizzle `sql\`...\`` tagged-template chunks before testing —
+      // the `sql` tag parameterises bindings safely.
+      const stripped = args.replace(/\bsql\s*`[^`]*`/g, "");
+
+      // Forbidden: any backtick template literal containing `${...}`
+      // remaining after sql-tag stripping
+      if (/`[^`]*\$\{[\s\S]*?`/.test(stripped)) {
+        out.push({
+          file,
+          line: i + 1,
+          reason: "template literal",
+          snippet: `.${method}(...)`,
+        });
+        continue;
+      }
+
+      // Forbidden: a quoted string followed by `+` (string concatenation
+      // building SQL). We require the `+` to follow a closing quote so we
+      // don't match unrelated arithmetic.
+      if (/['"][^'"]*['"]\s*\+/.test(stripped)) {
+        out.push({
+          file,
+          line: i + 1,
+          reason: "string concatenation",
+          snippet: `.${method}(...)`,
+        });
+        continue;
+      }
+    }
+  }
+  return out;
+}
+
+function checkRawSql(): CheckResult {
+  const dirs = [
+    path.join(ROOT, "artifacts", "api-server"),
+    path.join(ROOT, "lib", "db"),
+  ].filter(fs.existsSync);
+
+  if (dirs.length === 0) {
+    return {
+      name: "No raw SQL string interpolation",
+      passed: true,
+      skipped: true,
+      message: "Neither artifacts/api-server nor lib/db exists — skipped",
+    };
+  }
+
+  const files = dirs
+    .flatMap((d) => collectFiles(d, [".ts"]))
+    .filter((f) => !f.includes(".test.") && !f.includes(".spec."));
+
+  const problems: string[] = [];
+  for (const file of files) {
+    const src = fs.readFileSync(file, "utf8");
+    const matches = findRawSqlInterpolation(src, path.relative(ROOT, file));
+    for (const m of matches) {
+      problems.push(`${m.file}:${m.line}  ${m.reason}  ${m.snippet}`);
+    }
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "No raw SQL string interpolation",
+      passed: true,
+      message: `${files.length} file(s) scanned — all SQL parameterised`,
+    };
+  }
+  return {
+    name: "No raw SQL string interpolation",
+    passed: false,
+    message: `${problems.length} raw SQL interpolation(s) — use Drizzle builder or sql\`\` tag`,
+    detail: problems.slice(0, 15),
+  };
+}
+
 // ─── Runner ───────────────────────────────────────────────────────────────────
 async function main() {
   console.log();
@@ -1104,6 +1662,10 @@ async function main() {
     checkPrivacyLog,
     checkPerformanceBudgets,
     checkBundleSize,
+    checkDangerousExec,
+    checkUnsafeHtml,
+    checkDependencyAudit,
+    checkRawSql,
   ];
 
   const results: CheckResult[] = [];

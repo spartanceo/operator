@@ -8,6 +8,7 @@
     "tier-review": "tsx ./tier-review.ts",
     "tier-review:test": "tsx ./tier-review.check6.test.ts",
     "tier-review:check9-test": "tsx ./tier-review.check9.test.ts",
+    "tier-review:check11-14-test": "tsx ./tier-review.check11-14.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
