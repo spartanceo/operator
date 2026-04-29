@@ -8,6 +8,7 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
+    "bench": "pnpm -r --if-present run bench",
     "tier-review": "pnpm --filter @workspace/scripts run tier-review"
   },
   "private": true,

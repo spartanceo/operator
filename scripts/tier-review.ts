@@ -584,6 +584,459 @@ function checkCodegenSync(): CheckResult {
   };
 }
 
+// ─── Check 9: Performance budget compliance (vitest bench + @budget) ─────────
+//
+// Discovers every *.bench.ts under artifacts/ and lib/. For each, parses the
+// `/** @budget <ms>[ms] [p95|mean] */` annotation directly above each
+// `bench("name", ...)` call. Runs `pnpm run bench` and parses the JSON output
+// from vitest's bench reporter to extract measured durations. Fails the check
+// for any benchmark whose mean (or p95 when declared) exceeds its budget.
+//
+// Skips gracefully when:
+//  - No *.bench.ts files exist (Tier 0 — no benchmarks yet)
+//  - The root `bench` script is missing (shouldn't happen but defensive)
+
+export interface BenchBudget {
+  file: string;       // path relative to ROOT
+  benchName: string;  // the string passed to bench("...", fn)
+  budgetMs: number;   // the @budget value in milliseconds
+  metric: "mean" | "p95"; // which metric to enforce against
+  line: number;       // 1-indexed line of the bench() call
+}
+
+/**
+ * Parse `@budget` annotations from a single bench file's source.
+ *
+ * The annotation must be a JSDoc-style comment directly above (no blank line
+ * separator) a `bench("name", ...)` call. Format:
+ *   /** @budget 50ms p95 *​/
+ *   bench("doing the thing", async () => { ... });
+ *
+ * Defaults: metric is `mean` when unspecified. Unit is always milliseconds —
+ * `50ms` and `50` parse identically. `p95` is the only alternative metric for
+ * v1; bare `mean` is also accepted.
+ *
+ * Exported for fixture testing.
+ */
+export function parseBudgetAnnotations(src: string, file = "<test>"): BenchBudget[] {
+  const lines = src.split("\n");
+  const results: BenchBudget[] = [];
+
+  // Match a JSDoc comment containing @budget — supports single-line and
+  // multi-line /** ... */ forms. We look for the comment END line, then
+  // expect the next non-empty line to be the bench() call.
+  // The `\s*ms` is grouped together so the whitespace is only consumed when
+  // `ms` actually matches — otherwise the space stays available for the
+  // subsequent `\s+(p95|mean)` separator.
+  const BUDGET_RE = /@budget\s+(\d+(?:\.\d+)?)(?:\s*ms)?(?:\s+(p95|mean))?/i;
+  const BENCH_RE = /\bbench\s*\(\s*["'`]([^"'`]+)["'`]/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const m = BUDGET_RE.exec(lines[i]);
+    if (!m) continue;
+
+    // Find the end of this JSDoc comment block (the line containing `*/`).
+    // Single-line case: the same line ends with `*/`.
+    let endIdx = i;
+    if (!/\*\//.test(lines[i])) {
+      while (endIdx < lines.length - 1 && !/\*\//.test(lines[endIdx])) endIdx++;
+    }
+
+    // Walk forward to the first non-blank, non-comment line — that must be
+    // the bench() call. If it isn't, the annotation is orphaned and ignored.
+    let j = endIdx + 1;
+    while (j < lines.length) {
+      const t = lines[j].trim();
+      if (t === "" || t.startsWith("//") || t.startsWith("*")) {
+        j++;
+        continue;
+      }
+      break;
+    }
+    if (j >= lines.length) continue;
+
+    const bm = BENCH_RE.exec(lines[j]);
+    if (!bm) continue;
+
+    results.push({
+      file,
+      benchName: bm[1],
+      budgetMs: parseFloat(m[1]),
+      metric: (m[2]?.toLowerCase() as "p95" | "mean") || "mean",
+      line: j + 1,
+    });
+
+    // Skip past this match so a single budget can't double-count
+    i = j;
+  }
+
+  return results;
+}
+
+interface BenchResult {
+  name: string;
+  meanMs: number;
+  p95Ms?: number;
+}
+
+/**
+ * Parse the JSON output of `vitest bench --reporter=json`.
+ *
+ * Vitest's JSON bench reporter emits a tree-shaped result. We walk it
+ * recursively and collect every leaf with a `result.benchmark` field, which
+ * is where vitest stores the measured stats. Times are normalised to ms.
+ *
+ * The reporter format has changed across vitest versions; this parser is
+ * defensive and accepts either `{ testResults: [...] }` (newer) or
+ * `{ files: [{ tasks: [...] }] }` (older) shapes.
+ *
+ * Exported for fixture testing.
+ */
+export function parseVitestBenchOutput(jsonText: string): BenchResult[] {
+  let data: unknown;
+  try {
+    data = JSON.parse(jsonText);
+  } catch {
+    return [];
+  }
+
+  const results: BenchResult[] = [];
+
+  function visit(node: unknown) {
+    if (!node || typeof node !== "object") return;
+    const obj = node as Record<string, unknown>;
+
+    // Vitest stores bench stats on `result.benchmark` for bench tasks.
+    const result = obj.result as Record<string, unknown> | undefined;
+    const benchmark = result?.benchmark as Record<string, unknown> | undefined;
+    if (benchmark && typeof obj.name === "string") {
+      // benchmark.mean is in milliseconds in vitest's output
+      const meanRaw = benchmark.mean;
+      const p95Raw = (benchmark.p95 ?? benchmark.percentile95) as number | undefined;
+      if (typeof meanRaw === "number") {
+        results.push({
+          name: obj.name,
+          meanMs: meanRaw,
+          p95Ms: typeof p95Raw === "number" ? p95Raw : undefined,
+        });
+      }
+    }
+
+    // Recurse into common child arrays
+    for (const key of ["testResults", "files", "tasks", "suites", "children"]) {
+      const child = obj[key];
+      if (Array.isArray(child)) {
+        for (const c of child) visit(c);
+      }
+    }
+  }
+
+  visit(data);
+  return results;
+}
+
+/**
+ * Walk upwards from a file path to find the nearest package.json — this is
+ * the package root the file belongs to. Returns null if no package.json is
+ * found before reaching the workspace root (which would indicate a misplaced
+ * file outside any package).
+ *
+ * Exported for fixture testing.
+ */
+export function findPackageRoot(filePath: string, root = ROOT): string | null {
+  let dir = path.dirname(filePath);
+  while (dir.startsWith(root) && dir !== root) {
+    if (fs.existsSync(path.join(dir, "package.json"))) return dir;
+    dir = path.dirname(dir);
+  }
+  // Allow the workspace root to be a package itself
+  if (dir === root && fs.existsSync(path.join(root, "package.json"))) return root;
+  return null;
+}
+
+// File each package's `bench` script must write its vitest JSON output to.
+// The convention is documented in scripts/README.md and used by Check #9 to
+// avoid parsing pnpm's mixed stdout (which prefixes lines with package names
+// and would break a naive JSON.parse).
+const BENCH_RESULTS_FILENAME = ".bench-results.json";
+
+function checkPerformanceBudgets(): CheckResult {
+  const benchFiles = [
+    ...collectFiles(path.join(ROOT, "artifacts"), [".bench.ts"]),
+    ...collectFiles(path.join(ROOT, "lib"), [".bench.ts"]),
+  ];
+
+  if (benchFiles.length === 0) {
+    return {
+      name: "Performance budget compliance",
+      passed: true,
+      skipped: true,
+      message: "No *.bench.ts files found — skipped (active once first benchmark ships)",
+    };
+  }
+
+  // Parse @budget annotations and group budgets by their owning package
+  const budgetsByPackage = new Map<string, BenchBudget[]>();
+  const orphanedBenchFiles: string[] = [];
+  for (const file of benchFiles) {
+    const pkgRoot = findPackageRoot(file);
+    if (!pkgRoot) {
+      orphanedBenchFiles.push(`${path.relative(ROOT, file)}: not inside any package`);
+      continue;
+    }
+    const src = fs.readFileSync(file, "utf8");
+    const budgets = parseBudgetAnnotations(src, path.relative(ROOT, file));
+    if (!budgetsByPackage.has(pkgRoot)) budgetsByPackage.set(pkgRoot, []);
+    budgetsByPackage.get(pkgRoot)!.push(...budgets);
+  }
+
+  const allBudgets = Array.from(budgetsByPackage.values()).flat();
+  if (allBudgets.length === 0) {
+    const detail = [
+      ...benchFiles.map((f) => `${path.relative(ROOT, f)}: missing /** @budget Nms */ annotation`),
+      ...orphanedBenchFiles,
+    ];
+    return {
+      name: "Performance budget compliance",
+      passed: false,
+      message: `${benchFiles.length} bench file(s) found but no @budget annotations parsed`,
+      detail,
+    };
+  }
+
+  // For each package: clean up any stale results file, run that package's
+  // local `bench` script, then read the JSON it wrote. Per-package isolation
+  // is what makes parsing reliable — each package writes a clean, complete
+  // JSON document to a known location, with no interleaved pnpm log noise.
+  // Results are keyed by `<packageRoot>::<benchName>` so duplicate bench names
+  // across packages cannot collide.
+  const measured = new Map<string, BenchResult>();
+  const runProblems: string[] = [];
+
+  for (const pkgRoot of budgetsByPackage.keys()) {
+    const pkgBudgets = budgetsByPackage.get(pkgRoot)!;
+    const resultsFile = path.join(pkgRoot, BENCH_RESULTS_FILENAME);
+    if (fs.existsSync(resultsFile)) {
+      try {
+        fs.unlinkSync(resultsFile);
+      } catch {
+        // best-effort — if cleanup fails the freshness check below catches it
+      }
+    }
+
+    const pkgRel = path.relative(ROOT, pkgRoot);
+    const { ok, output } = run("pnpm run bench", pkgRoot);
+
+    if (!fs.existsSync(resultsFile)) {
+      runProblems.push(
+        `${pkgRel}: bench script did not write ${BENCH_RESULTS_FILENAME} — script must include "--outputFile=./${BENCH_RESULTS_FILENAME}"`,
+      );
+      if (!ok) {
+        runProblems.push(`${pkgRel}: bench command failed: ${output.split("\n").slice(-3).join(" | ").slice(0, 200)}`);
+      }
+      continue;
+    }
+
+    let json: string;
+    try {
+      json = fs.readFileSync(resultsFile, "utf8");
+    } catch (e) {
+      runProblems.push(`${pkgRel}: could not read ${BENCH_RESULTS_FILENAME}: ${(e as Error).message}`);
+      continue;
+    }
+
+    const pkgResults = parseVitestBenchOutput(json);
+    if (pkgResults.length === 0) {
+      runProblems.push(
+        `${pkgRel}: ${BENCH_RESULTS_FILENAME} parsed but contained no benchmark results (${pkgBudgets.length} budget(s) declared)`,
+      );
+      continue;
+    }
+    for (const r of pkgResults) {
+      measured.set(`${pkgRoot}::${r.name}`, r);
+    }
+  }
+
+  const problems: string[] = [...runProblems, ...orphanedBenchFiles];
+  for (const b of allBudgets) {
+    // The budget's owning package is the same one we ran benches for above —
+    // re-derive it from the budget's file path so the lookup key matches.
+    const absBenchFile = path.join(ROOT, b.file);
+    const pkgRoot = findPackageRoot(absBenchFile);
+    if (!pkgRoot) continue;
+    const m = measured.get(`${pkgRoot}::${b.benchName}`);
+    if (!m) {
+      problems.push(`${b.file}:${b.line}  bench "${b.benchName}" — no measurement found in ${path.relative(ROOT, pkgRoot)}/${BENCH_RESULTS_FILENAME}`);
+      continue;
+    }
+    const actual = b.metric === "p95" && m.p95Ms !== undefined ? m.p95Ms : m.meanMs;
+    if (actual > b.budgetMs) {
+      problems.push(
+        `${b.file}:${b.line}  "${b.benchName}" — ${actual.toFixed(1)}ms (${b.metric}) exceeds budget of ${b.budgetMs}ms`,
+      );
+    }
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "Performance budget compliance",
+      passed: true,
+      message: `${allBudgets.length} budget(s) checked across ${budgetsByPackage.size} package(s) — all within target`,
+    };
+  }
+  return {
+    name: "Performance budget compliance",
+    passed: false,
+    message: `${problems.length} performance budget issue(s)`,
+    detail: problems.slice(0, 15),
+  };
+}
+
+// ─── Check 10: Frontend bundle size budget ───────────────────────────────────
+//
+// For every artifact under artifacts/ that ships a `bundle-budget.json` at its
+// root, build the artifact in production mode and verify the gzipped main JS
+// chunk is at or below the declared `main_js_gzip_kb`. Skips gracefully when
+// no `bundle-budget.json` files exist anywhere.
+//
+// Schema (bundle-budget.json):
+// {
+//   "main_js_gzip_kb": 500,        // required — the enforced limit
+//   "total_js_gzip_kb": 1500,      // optional — informational only for now
+//   "css_gzip_kb": 100,            // optional — informational only for now
+//   "build_command": "pnpm build", // optional override (default: pnpm build)
+//   "dist_dir": "dist"             // optional override (default: dist)
+// }
+
+interface BundleBudget {
+  main_js_gzip_kb: number;
+  total_js_gzip_kb?: number;
+  css_gzip_kb?: number;
+  build_command?: string;
+  dist_dir?: string;
+}
+
+function gzipSizeKb(filePath: string): number {
+  // Use the system `gzip` binary so we don't add a node dependency. -c writes
+  // to stdout; we capture it and measure the byte length, then convert to KB.
+  const { ok, output } = run(`gzip -c "${filePath}" | wc -c`);
+  if (!ok) return -1;
+  const bytes = parseInt(output.trim(), 10);
+  if (!Number.isFinite(bytes)) return -1;
+  return bytes / 1024;
+}
+
+function checkBundleSize(): CheckResult {
+  const artifactsDir = path.join(ROOT, "artifacts");
+  if (!fs.existsSync(artifactsDir)) {
+    return {
+      name: "Frontend bundle size budget",
+      passed: true,
+      skipped: true,
+      message: "No artifacts/ directory — skipped",
+    };
+  }
+
+  const artifactRoots = fs
+    .readdirSync(artifactsDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => path.join(artifactsDir, d.name));
+
+  const budgeted = artifactRoots
+    .map((root) => ({ root, budgetPath: path.join(root, "bundle-budget.json") }))
+    .filter((x) => fs.existsSync(x.budgetPath));
+
+  if (budgeted.length === 0) {
+    return {
+      name: "Frontend bundle size budget",
+      passed: true,
+      skipped: true,
+      message: "No bundle-budget.json found in any artifact — skipped (added by Task #2)",
+    };
+  }
+
+  const problems: string[] = [];
+  const passes: string[] = [];
+
+  for (const { root, budgetPath } of budgeted) {
+    const rel = path.relative(ROOT, root);
+    let budget: BundleBudget;
+    try {
+      budget = JSON.parse(fs.readFileSync(budgetPath, "utf8"));
+    } catch (e) {
+      problems.push(`${rel}/bundle-budget.json — invalid JSON: ${(e as Error).message}`);
+      continue;
+    }
+    if (typeof budget.main_js_gzip_kb !== "number") {
+      problems.push(`${rel}/bundle-budget.json — missing required numeric field "main_js_gzip_kb"`);
+      continue;
+    }
+
+    const buildCmd = budget.build_command ?? "pnpm build";
+    const distDir = path.join(root, budget.dist_dir ?? "dist");
+
+    const build = run(buildCmd, root);
+    if (!build.ok) {
+      problems.push(`${rel} — build failed: ${build.output.split("\n").slice(-3).join(" | ").slice(0, 200)}`);
+      continue;
+    }
+    if (!fs.existsSync(distDir)) {
+      problems.push(`${rel} — dist directory "${path.relative(ROOT, distDir)}" not found after build`);
+      continue;
+    }
+
+    // Find the main JS chunk. Vite emits files like `assets/index-<hash>.js`;
+    // we pick the largest top-level .js under assets/ as a proxy for "main".
+    const assetsDir = path.join(distDir, "assets");
+    const jsCandidates = fs.existsSync(assetsDir)
+      ? collectFiles(assetsDir, [".js"]).filter((f) => !/\.map$/.test(f))
+      : collectFiles(distDir, [".js"]).filter((f) => !/\.map$/.test(f));
+
+    if (jsCandidates.length === 0) {
+      problems.push(`${rel} — no .js files found under ${path.relative(ROOT, distDir)}`);
+      continue;
+    }
+
+    let mainFile = jsCandidates[0];
+    let mainSize = fs.statSync(mainFile).size;
+    for (const f of jsCandidates) {
+      const s = fs.statSync(f).size;
+      if (s > mainSize) {
+        mainSize = s;
+        mainFile = f;
+      }
+    }
+
+    const sizeKb = gzipSizeKb(mainFile);
+    if (sizeKb < 0) {
+      problems.push(`${rel} — failed to measure gzip size of ${path.relative(ROOT, mainFile)}`);
+      continue;
+    }
+
+    if (sizeKb > budget.main_js_gzip_kb) {
+      problems.push(
+        `${rel} — main JS ${path.relative(root, mainFile)} is ${sizeKb.toFixed(1)} KB gzipped, exceeds budget of ${budget.main_js_gzip_kb} KB`,
+      );
+    } else {
+      passes.push(`${rel}: ${sizeKb.toFixed(1)} KB / ${budget.main_js_gzip_kb} KB`);
+    }
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "Frontend bundle size budget",
+      passed: true,
+      message: `${budgeted.length} artifact(s) within budget — ${passes.join(", ")}`,
+    };
+  }
+  return {
+    name: "Frontend bundle size budget",
+    passed: false,
+    message: `${problems.length} bundle budget violation(s)`,
+    detail: problems,
+  };
+}
+
 // ─── Check 8: No raw fetch() in service files without privacy log ─────────────
 function checkPrivacyLog(): CheckResult {
   const serviceDir = path.join(ROOT, "artifacts", "api-server", "src", "services");
@@ -649,6 +1102,8 @@ async function main() {
     checkOpenApiEnvelope,
     checkCodegenSync,
     checkPrivacyLog,
+    checkPerformanceBudgets,
+    checkBundleSize,
   ];
 
   const results: CheckResult[] = [];
