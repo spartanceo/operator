@@ -1,0 +1,19 @@
+{
+  "name": "@workspace/errors",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx ./src/errors.test.ts"
+  },
+  "dependencies": {
+    "@workspace/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}

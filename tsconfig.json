@@ -7,6 +7,9 @@
       "path": "./lib/types"
     },
     {
+      "path": "./lib/errors"
+    },
+    {
       "path": "./lib/db"
     },
     {

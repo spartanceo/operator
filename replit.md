@@ -59,6 +59,7 @@ These conventions were established by Task #17 and apply to every subsequent tas
   - The `tenants` table self-references `tenant_id = id` so every helper is uniform across all tables (no special-case for tenants itself).
 - **`@workspace/api-zod`** — orval-generated Zod schemas from `lib/api-spec/openapi.yaml`.
 - **`@workspace/api-client-react`** — orval-generated React Query hooks.
+- **`@workspace/errors`** — typed error taxonomy + resilience primitives (Task #31 foundation). See "Task #31 Foundation Notes" below.
 
 ### orval / OpenAPI codegen rules (CRITICAL — easy to break)
 
@@ -116,3 +117,38 @@ The tier-review reports 3 failures that are out of scope for Task #17:
 
 - `chart.tsx` hardcoded hex colours + unsanitised `dangerouslySetInnerHTML` — owned by Task #2 (Design System).
 - `path-to-regexp` high CVE — owned by Task #16 (Dependency Hygiene).
+
+---
+
+## Task #31 Foundation Notes (Error Handling & Graceful Degradation)
+
+The `@workspace/errors` package shipped Step 1 (taxonomy), part of Step 5 (disk monitor), and part of Step 6 (user-message catalog) of Task #31. Every other task should consume these primitives instead of inventing local equivalents.
+
+### What lives in `@workspace/errors`
+
+- **`DomainError`** + 9 domain subclasses (`RuntimeError`, `ToolError`, `StorageError`, `NetworkError`, `PermissionError`, `IntegrationError`, `ValidationError`, `AuthError`, `ModelError`) and 8 specialised errors (`TimeoutError`, `CircuitOpenError`, `OllamaUnavailableError`, `ModelOutOfMemoryError`, `DiskSpaceLowError`, `FileNotFoundError`, `RateLimitedError`, `OAuthExpiredError`). Each pins a stable `code` + HTTP `status` + `expose` flag.
+- **`getUserMessage(code)`** — single read path for any code → `{ message, action, severity }`. UI/notifications/error mapper NEVER inline message strings. A test enforces no `SCREAM_CASE` leaks into user-facing messages and that every default code emitted by the taxonomy has a catalog entry.
+- **`TIMEOUTS`** — Standard 8 constants (Ollama 60s/3s, Stripe 10s, Resend 5s, IPC 5s, skill 30s, LAV 15s, HTTP 10s, DB 5s). Add new entries here, never inline magic numbers at call sites.
+- **`withTimeout(promise, ms, opts)`** — fail-fast race wrapper, optional `onTimeout` cancellation hook (errors swallowed so the `TimeoutError` is never masked).
+- **`withRetry(fn, opts)`** — exponential backoff with jitter. Default policy retries network/runtime/integration/timeout errors; refuses to retry `validation`, `auth`, `permission`, `tenant`, `tool` (deterministic failures). `sleep`/`onRetry` are injectable for tests.
+- **`CircuitBreaker`** — in-house, dependency-free (no `opossum` dep). Three states (closed/open/half-open), rolling-window stats with `volumeThreshold` gating, optional fallback. Composes orthogonally with `withTimeout` — the breaker does NOT add its own timeout.
+- **`DiskMonitor`** — `fs.statfs` wrapper, returns `ok`/`warning`/`critical`/`unknown` against 2 GB / 500 MB thresholds. Refuses inverted threshold configs at construction time.
+- **`toApiError(unknown)`** — universal mapper to `{ code, message, status, details?, cause }`. `DomainError.message` only passes through when `expose === true`; otherwise the catalog message is used. Express-style `{ status, expose, code }` errors are honoured. Truly unknown values collapse to `INTERNAL` / 500 / safe catalog message — secrets never leak (Standard 12). The original error is preserved on `cause` for logging.
+
+### Rules for downstream tasks
+
+1. Every external call MUST use a `TIMEOUTS` constant. No naked `await fetch(...)` without a timeout wrapper.
+2. Every external service that can be flaky should be wrapped in a `CircuitBreaker` with a registered fallback so one external failure never cascades.
+3. Throw `DomainError` subclasses (or specialised errors) — never throw plain `Error` from request handlers or service layers. Plain throwables collapse to `INTERNAL` and lose all signal in logs and the UI.
+4. Never inline user-facing error strings. If a new error code is needed, add it to `error-catalog.ts` first.
+5. The api-server's `error-handler.ts` will eventually call `toApiError` to do the conversion (deferred — it would require re-opening Task #17). Until then, throwing a `DomainError` from a handler still works because the existing handler honours `e.status` / `e.code`, but the user-facing message will be the raw message rather than the catalog message.
+
+### Out of scope for the @workspace/errors package
+
+These belong to dependent tasks that will consume the primitives, not re-implement them:
+
+- Ollama-specific error UI / setup card → Task #30 (Model Runtime).
+- Per-step task pause/resume controls → Task #38 + Task #50.
+- OAuth re-auth flow / retry queues → Task #21 (Integrations).
+- Notification-centre escalation → Task #2 (Frontend Web App).
+- DB integrity check / KB rebuild → Task #57 + Task #37.
