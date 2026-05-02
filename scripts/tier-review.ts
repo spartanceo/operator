@@ -2374,6 +2374,7 @@ async function main() {
     checkDrizzleSchema,
     checkOpenApiEnvelope,
     checkCodegenSync,
+    checkGeneratedDeclarationsFresh,
     checkPrivacyLog,
     checkPerformanceBudgets,
     checkBundleSize,
@@ -2516,6 +2517,106 @@ function checkA11yAxeCore(): CheckResult {
     passed: false,
     message: "Serious or critical accessibility violations detected",
     detail,
+  };
+}
+
+// ─── Check 21: Compiled .d.ts in sync with generated source (Task #112) ──────
+// Project-reference consumers (e.g. omninity-website -> api-client-react) read
+// type declarations from `lib/*/dist/generated/*.d.ts`. If `tsc --build` is
+// not re-run after orval regenerates `src/generated/*.ts`, the consumer's
+// typecheck silently sees a stale API surface — that exact trap broke the
+// Communications page on Task #11/#112. The api-spec codegen script already
+// chains `pnpm -w run typecheck:libs` (`tsc --build`), so any regression here
+// means someone bypassed codegen and edited generated source by hand. This
+// check enforces dist freshness via a cheap mtime comparison: for each lib
+// package that ships both `src/generated/` and `dist/generated/`, the newest
+// `.d.ts` mtime must be >= the newest `src/generated/*` mtime.
+function checkGeneratedDeclarationsFresh(): CheckResult {
+  const candidates = [
+    path.join(ROOT, "lib", "api-client-react"),
+    path.join(ROOT, "lib", "api-zod"),
+  ];
+  // Verify each candidate's dist/generated/*.d.ts EXPORTS every identifier
+  // declared in src/generated/*.ts. We extract the names with a cheap regex
+  // (top-level `export {function|const|type|interface|class|enum|var|let}
+  // Name`) — far cheaper than running tsc and immune to mtime jitter from
+  // orval re-touching byte-identical output.
+  const NAME_RE =
+    /^export\s+(?:declare\s+)?(?:async\s+)?(?:function|const|type|interface|class|enum|var|let)\s+([A-Za-z_$][\w$]*)/gm;
+
+  function exportedNames(file: string): Set<string> {
+    const names = new Set<string>();
+    const text = fs.readFileSync(file, "utf8");
+    let m: RegExpExecArray | null;
+    while ((m = NAME_RE.exec(text)) !== null) names.add(m[1]);
+    return names;
+  }
+
+  const checked: string[] = [];
+  const missing: string[] = [];
+
+  for (const pkgRoot of candidates) {
+    const srcDir = path.join(pkgRoot, "src", "generated");
+    const distDir = path.join(pkgRoot, "dist", "generated");
+    if (!fs.existsSync(srcDir)) continue;
+    // Some lib packages don't emit declarations (consumed via source path
+    // mappings). Skip those — this check only guards project-reference
+    // consumers that read from dist.
+    if (!fs.existsSync(distDir)) continue;
+
+    const srcFiles = collectFiles(srcDir, [".ts", ".tsx"]).filter(
+      (f) => !f.endsWith(".d.ts"),
+    );
+    const dtsFiles = collectFiles(distDir, [".ts"]).filter((f) =>
+      f.endsWith(".d.ts"),
+    );
+    if (srcFiles.length === 0 || dtsFiles.length === 0) continue;
+
+    const distNames = new Set<string>();
+    for (const f of dtsFiles) {
+      for (const n of exportedNames(f)) distNames.add(n);
+    }
+
+    const rel = path.relative(ROOT, pkgRoot);
+    checked.push(rel);
+
+    const missingHere: string[] = [];
+    for (const f of srcFiles) {
+      for (const n of exportedNames(f)) {
+        if (!distNames.has(n)) missingHere.push(n);
+      }
+    }
+    if (missingHere.length > 0) {
+      // Show at most 5 names per package to keep output bounded.
+      const shown = missingHere.slice(0, 5).join(", ");
+      const more =
+        missingHere.length > 5 ? ` (+${missingHere.length - 5} more)` : "";
+      missing.push(
+        `${rel} — dist/generated/*.d.ts is missing ${missingHere.length} export(s) declared in src/generated: ${shown}${more}; run \`pnpm --filter @workspace/api-spec run codegen\``,
+      );
+    }
+  }
+
+  if (checked.length === 0) {
+    return {
+      name: "Generated .d.ts in sync",
+      passed: true,
+      skipped: true,
+      message: "No lib packages with dist/generated — skipped",
+    };
+  }
+  if (missing.length === 0) {
+    return {
+      name: "Generated .d.ts in sync",
+      passed: true,
+      message: `${checked.length} package(s) up to date — ${checked.join(", ")}`,
+    };
+  }
+  return {
+    name: "Generated .d.ts in sync",
+    passed: false,
+    message: `${missing.length} package(s) have stale compiled declarations`,
+    detail: missing,
   };
 }
 
