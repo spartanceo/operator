@@ -15,18 +15,49 @@ import type { TenantContext } from "@workspace/types";
 
 import { runWithTenantContext } from "../lib/tenant-context";
 import { err } from "../lib/api-envelope";
+import { ensureTenantWorkspace } from "../lib/tenant-ensure";
 
 const TENANT_HEADER = "x-tenant-id";
 const WORKSPACE_HEADER = "x-workspace-id";
 const USER_HEADER = "x-user-id";
 
+// In-process bootstrap cache. Once we have successfully ensured the
+// `tenants` + `workspaces` rows for a `${tenantId}:${workspaceId}` pair
+// in this process, every subsequent request can skip the two SELECTs.
+// Bounded — capped at MAX_BOOTSTRAP_CACHE entries with FIFO eviction so
+// we never accumulate unbounded memory if a long-running process sees
+// many distinct tenants (multi-user installs, tests).
+const MAX_BOOTSTRAP_CACHE = 1024;
+// tier-review: bounded — FIFO-evicted past MAX_BOOTSTRAP_CACHE entries.
+const bootstrappedPairs = new Set<string>();
+
+function rememberBootstrapped(key: string): void {
+  bootstrappedPairs.add(key);
+  if (bootstrappedPairs.size > MAX_BOOTSTRAP_CACHE) {
+    const oldest = bootstrappedPairs.values().next().value;
+    if (oldest !== undefined) bootstrappedPairs.delete(oldest);
+  }
+}
+
+/** Test-only: drop the cache so a fresh DB starts from a clean slate. */
+export function clearTenantBootstrapCacheForTests(): void {
+  bootstrappedPairs.clear();
+}
+
 /**
  * If the tenant header is present, populate the AsyncLocalStorage context
  * for the duration of the request. Missing header is allowed here —
  * `requireTenant()` is the gate that rejects anonymous requests.
+ *
+ * On the first request we see for a `(tenantId, workspaceId)` pair, this
+ * middleware also lazily seeds the parent `tenants` + `workspaces` rows
+ * via `ensureTenantWorkspace`. Without this, every tenant-scoped write
+ * (model select, install, knowledge ingest, media generate, comm
+ * connect, …) would 500 with `SQLITE_CONSTRAINT_FOREIGNKEY` on a fresh
+ * install — first surfaced as a wizard-blocking bug after Task #22.
  */
 export function tenantContext() {
-  return function tenantContextMiddleware(
+  return async function tenantContextMiddleware(
     req: Request,
     res: Response,
     next: NextFunction,
@@ -56,6 +87,21 @@ export function tenantContext() {
       ...(userId !== undefined ? { userId } : {}),
       requestId,
     };
+
+    const cacheKey = `${tenantId}:${workspaceId}`;
+    if (!bootstrappedPairs.has(cacheKey)) {
+      try {
+        await ensureTenantWorkspace(ctx);
+        rememberBootstrapped(cacheKey);
+      } catch (e) {
+        // Hard-fail: do NOT swallow. A bootstrap failure means the DB
+        // is in a state we don't understand; the downstream insert
+        // would also fail and the 5xx must surface to the operator.
+        next(e);
+        return;
+      }
+    }
+
     runWithTenantContext(ctx, () => next());
   };
 }

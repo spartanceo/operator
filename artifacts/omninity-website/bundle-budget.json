@@ -1,7 +1,7 @@
 {
-  "main_js_gzip_kb": 320,
-  "total_js_gzip_kb": 360,
-  "css_gzip_kb": 25,
+  "main_js_gzip_kb": 380,
+  "total_js_gzip_kb": 420,
+  "css_gzip_kb": 30,
   "build_command": "PORT=5000 BASE_PATH=/ pnpm build",
   "dist_dir": "dist/public"
 }

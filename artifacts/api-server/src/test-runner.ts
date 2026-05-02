@@ -939,6 +939,65 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "fresh tenant: middleware lazy-bootstraps tenant + workspace rows before /select",
+    run: async () => {
+      // Regression for Task #111: a brand-new visitor's first
+      // `POST /api/models/select` used to crash with
+      // SQLITE_CONSTRAINT_FOREIGNKEY because the parent `tenants` /
+      // `workspaces` rows didn't exist yet. The tenantContext()
+      // middleware now seeds them lazily — this test asserts both the
+      // 200 happy path AND that the rows actually landed in SQLite.
+      const { eq } = await import("drizzle-orm");
+      const { clearTenantBootstrapCacheForTests } = await import(
+        "./middlewares/tenant-context"
+      );
+      const FRESH = `tenant_first_run_${Date.now()}`;
+      const FRESH_WS = `default-${FRESH}`;
+      // Cache is process-wide; previous tests for other tenants must
+      // not satisfy the bootstrap check for this one.
+      clearTenantBootstrapCacheForTests();
+
+      // Pre-condition: parent rows do NOT exist for this tenant.
+      const beforeT = await db
+        .select({ id: tenants.id })
+        .from(tenants)
+        .where(eq(tenants.id, FRESH));
+      assert.equal(
+        beforeT.length,
+        0,
+        "tenant row already existed before /select",
+      );
+
+      // First call: middleware seeds the rows, /select succeeds.
+      const ok = await request(app)
+        .post("/api/models/select")
+        .set("X-Tenant-ID", FRESH)
+        .send({ primaryModel: "mistral:7b" });
+      assert.equal(
+        ok.status,
+        200,
+        `expected 200 from /select on fresh tenant, got ${ok.status} ${JSON.stringify(ok.body)}`,
+      );
+      assert.equal(ok.body.data.primaryModel, "mistral:7b");
+
+      // Post-condition: the parent rows now exist.
+      const afterT = await db
+        .select({ id: tenants.id })
+        .from(tenants)
+        .where(eq(tenants.id, FRESH));
+      assert.equal(afterT.length, 1, "tenants row missing after /select");
+      const afterW = await db
+        .select({ id: workspaces.id })
+        .from(workspaces)
+        .where(eq(workspaces.id, FRESH_WS));
+      assert.equal(
+        afterW.length,
+        1,
+        "default workspace row missing after /select",
+      );
+    },
+  },
+  {
     name: "POST /api/models/install pulls primary AND bundled vision via real bridge",
     run: async () => {
       // Reviewer's round-10 blocker: the wizard's "Install recommended"

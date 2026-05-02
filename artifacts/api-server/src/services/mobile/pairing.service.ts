@@ -25,7 +25,6 @@ import {
 } from "@workspace/db";
 import type { TenantContext } from "@workspace/types";
 
-import { ensureTenantWorkspace } from "../../lib/tenant-ensure";
 import { logPrivacyEvent } from "../privacy.service";
 
 export interface PairingTokenRow {
@@ -99,7 +98,8 @@ function toDeviceRow(r: typeof pairedDevices.$inferSelect): PairedDeviceRow {
 export async function startPairing(
   ctx: TenantContext,
 ): Promise<PairingTokenRow> {
-  await ensureTenantWorkspace(ctx);
+  // Tenant + workspace rows are now seeded by the tenantContext()
+  // middleware on first request, so this call is no longer needed here.
   const id = `ptk_${nanoid()}`;
   const code = generateCode();
   const relayToken = generateRelayToken();
