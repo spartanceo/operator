@@ -67,53 +67,53 @@
 }
 
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(0,0,0, .10);
+  --badge-outline: rgba(0,0,0, .08);
 
   --opaque-button-border-intensity: 9; 
 
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(0,0,0, .04);
+  --elevate-2: rgba(0,0,0, .08);
 
-  /* Same for root and .dark as we only have dark mode */
-  --background: 240 5% 4%;
-  --foreground: 240 6% 96%;
+  /* Light theme defaults */
+  --background: 240 10% 98%;
+  --foreground: 240 6% 10%;
   
-  --border: 240 5% 17%;
+  --border: 240 6% 88%;
   
-  --card: 240 6% 7%;
-  --card-foreground: 240 6% 96%;
-  --card-border: 240 5% 17%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 6% 10%;
+  --card-border: 240 6% 88%;
   
-  --sidebar: 240 5% 4%;
-  --sidebar-foreground: 240 6% 96%;
-  --sidebar-border: 240 5% 17%;
+  --sidebar: 240 8% 96%;
+  --sidebar-foreground: 240 6% 10%;
+  --sidebar-border: 240 6% 88%;
   --sidebar-primary: 25 100% 50%;
-  --sidebar-primary-foreground: 240 5% 4%;
-  --sidebar-accent: 240 5% 11%;
-  --sidebar-accent-foreground: 240 6% 96%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 6% 92%;
+  --sidebar-accent-foreground: 240 6% 10%;
   --sidebar-ring: 25 100% 50%;
   
-  --popover: 240 6% 7%;
-  --popover-foreground: 240 6% 96%;
-  --popover-border: 240 5% 17%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 6% 10%;
+  --popover-border: 240 6% 88%;
   
   --primary: 25 100% 50%;
-  --primary-foreground: 240 5% 4%;
+  --primary-foreground: 0 0% 100%;
   
-  --secondary: 240 6% 7%;
-  --secondary-foreground: 240 6% 96%;
+  --secondary: 240 6% 94%;
+  --secondary-foreground: 240 6% 10%;
   
-  --muted: 240 5% 11%;
-  --muted-foreground: 240 5% 65%;
+  --muted: 240 6% 94%;
+  --muted-foreground: 240 5% 40%;
   
   --accent: 25 100% 45%;
-  --accent-foreground: 240 5% 4%;
+  --accent-foreground: 0 0% 100%;
   
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 240 6% 96%;
+  --destructive: 0 84% 50%;
+  --destructive-foreground: 0 0% 100%;
   
-  --input: 240 5% 17%;
+  --input: 240 6% 88%;
   --ring: 25 100% 50%;
   
   --chart-1: 25 100% 50%;

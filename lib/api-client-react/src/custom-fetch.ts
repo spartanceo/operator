@@ -18,6 +18,8 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _defaultHeaders: Record<string, string> = {};
+let _defaultCredentials: RequestCredentials | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -43,6 +45,31 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/**
+ * Register default request headers that are applied to every fetch unless
+ * the caller has already set the same header. Pass `null` to clear the
+ * defaults entirely.
+ *
+ * Useful for browser web apps that need to attach tenant / workspace /
+ * trace headers to every API call.
+ */
+export function setDefaultHeaders(
+  headers: Record<string, string> | null,
+): void {
+  _defaultHeaders = headers ? { ...headers } : {};
+}
+
+/**
+ * Set the default `credentials` mode applied to every fetch (e.g. `"include"`
+ * so the browser attaches the session cookie on cross-origin calls). Pass
+ * `null` to fall back to `fetch`'s native default.
+ */
+export function setDefaultCredentials(
+  credentials: RequestCredentials | null,
+): void {
+  _defaultCredentials = credentials;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -336,7 +363,11 @@ export async function customFetch<T = unknown>(
     throw new TypeError(`customFetch: ${method} requests cannot have a body.`);
   }
 
-  const headers = mergeHeaders(isRequest(input) ? input.headers : undefined, headersInit);
+  const headers = mergeHeaders(
+    _defaultHeaders,
+    isRequest(input) ? input.headers : undefined,
+    headersInit,
+  );
 
   if (
     typeof init.body === "string" &&
@@ -361,7 +392,15 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const credentials =
+    init.credentials ?? _defaultCredentials ?? undefined;
+
+  const response = await fetch(input, {
+    ...init,
+    method,
+    headers,
+    ...(credentials !== undefined ? { credentials } : {}),
+  });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
