@@ -1253,6 +1253,199 @@ export interface KnowledgeImportResponse {
   data: KnowledgeImportReceipt;
 }
 
+export type MediaAssetKind =
+  (typeof MediaAssetKind)[keyof typeof MediaAssetKind];
+
+export const MediaAssetKind = {
+  image: "image",
+  audio: "audio",
+  video: "video",
+} as const;
+
+export type MediaAssetStatus =
+  (typeof MediaAssetStatus)[keyof typeof MediaAssetStatus];
+
+export const MediaAssetStatus = {
+  pending: "pending",
+  ready: "ready",
+  failed: "failed",
+} as const;
+
+export interface MediaAsset {
+  id: string;
+  kind: MediaAssetKind;
+  prompt: string;
+  style?: string | null;
+  status: MediaAssetStatus;
+  mimeType: string;
+  sizeBytes: number;
+  width?: number | null;
+  height?: number | null;
+  durationMs?: number | null;
+  modelUsed: string;
+  sourceAssetId?: string | null;
+  error?: string | null;
+  /** Relative URL where the binary can be streamed (`/api/media/assets/{id}/file`). */
+  fileUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MediaAssetListPage {
+  items: MediaAsset[];
+  nextCursor: string | null;
+}
+
+export interface MediaAssetListResponse {
+  success: boolean;
+  data: MediaAssetListPage;
+}
+
+export interface MediaAssetResponse {
+  success: boolean;
+  data: MediaAsset;
+}
+
+export interface MediaAssetDeleteReceipt {
+  id: string;
+  deleted: boolean;
+}
+
+export interface MediaAssetDeleteResponse {
+  success: boolean;
+  data: MediaAssetDeleteReceipt;
+}
+
+export type GenerateImageRequestStyle =
+  (typeof GenerateImageRequestStyle)[keyof typeof GenerateImageRequestStyle];
+
+export const GenerateImageRequestStyle = {
+  photorealistic: "photorealistic",
+  illustration: "illustration",
+  watercolor: "watercolor",
+  pixel: "pixel",
+  neon: "neon",
+  sketch: "sketch",
+} as const;
+
+export interface GenerateImageRequest {
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  prompt: string;
+  style?: GenerateImageRequestStyle;
+  /**
+   * @minimum 64
+   * @maximum 2048
+   */
+  width?: number;
+  /**
+   * @minimum 64
+   * @maximum 2048
+   */
+  height?: number;
+}
+
+/**
+ * music = MusicGen-style melody; tts = text-to-speech; sfx = short sound effect.
+ */
+export type GenerateAudioRequestKind =
+  (typeof GenerateAudioRequestKind)[keyof typeof GenerateAudioRequestKind];
+
+export const GenerateAudioRequestKind = {
+  music: "music",
+  tts: "tts",
+  sfx: "sfx",
+} as const;
+
+export interface GenerateAudioRequest {
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  prompt: string;
+  /** music = MusicGen-style melody; tts = text-to-speech; sfx = short sound effect. */
+  kind?: GenerateAudioRequestKind;
+  /**
+   * @minimum 250
+   * @maximum 30000
+   */
+  durationMs?: number;
+}
+
+export interface GenerateVideoRequest {
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  prompt: string;
+  /**
+   * @minimum 500
+   * @maximum 10000
+   */
+  durationMs?: number;
+  /** Optional image asset to animate (image-to-video flow). */
+  sourceAssetId?: string;
+}
+
+/**
+ * Scale factor (2x or 4x). Defaults to 2.
+ */
+export type UpscaleImageRequestScale =
+  (typeof UpscaleImageRequestScale)[keyof typeof UpscaleImageRequestScale];
+
+export const UpscaleImageRequestScale = {
+  NUMBER_2: 2,
+  NUMBER_4: 4,
+} as const;
+
+export interface UpscaleImageRequest {
+  /** Scale factor (2x or 4x). Defaults to 2. */
+  scale?: UpscaleImageRequestScale;
+}
+
+/**
+ * low = stub-only (≤4GB free RAM); mid = small diffusion models
+(4–12GB); high = SDXL / FLUX / AnimateDiff (12GB+).
+
+ */
+export type HardwareCapabilitiesRecommendedTier =
+  (typeof HardwareCapabilitiesRecommendedTier)[keyof typeof HardwareCapabilitiesRecommendedTier];
+
+export const HardwareCapabilitiesRecommendedTier = {
+  low: "low",
+  mid: "mid",
+  high: "high",
+} as const;
+
+export type HardwareCapabilitiesModelsItem = {
+  name: string;
+  kind: string;
+  available: boolean;
+  note?: string;
+};
+
+export interface HardwareCapabilities {
+  cpuCount: number;
+  totalRamMb: number;
+  freeRamMb: number;
+  platform?: string;
+  /** low = stub-only (≤4GB free RAM); mid = small diffusion models
+(4–12GB); high = SDXL / FLUX / AnimateDiff (12GB+).
+ */
+  recommendedTier: HardwareCapabilitiesRecommendedTier;
+  supportsImage: boolean;
+  supportsAudio: boolean;
+  supportsVideo: boolean;
+  models: HardwareCapabilitiesModelsItem[];
+}
+
+export interface HardwareCapabilitiesResponse {
+  success: boolean;
+  data: HardwareCapabilities;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -1440,3 +1633,29 @@ export type ListKnowledgeDocumentsParams = {
   limit?: LimitParamParameter;
   collectionId?: string;
 };
+
+export type ListMediaAssetsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  /**
+   * Filter by asset kind
+   */
+  kind?: ListMediaAssetsKind;
+};
+
+export type ListMediaAssetsKind =
+  (typeof ListMediaAssetsKind)[keyof typeof ListMediaAssetsKind];
+
+export const ListMediaAssetsKind = {
+  image: "image",
+  audio: "audio",
+  video: "video",
+} as const;

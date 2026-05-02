@@ -22,6 +22,7 @@ import ChatPage from "@/pages/operator/chat";
 import AgentsPage from "@/pages/operator/agents";
 import DesktopPage from "@/pages/operator/desktop";
 import ToolsPage from "@/pages/operator/tools";
+import MediaPage from "@/pages/operator/media";
 import PrivacyPage from "@/pages/operator/privacy";
 import MemoryPage from "@/pages/operator/memory";
 import KnowledgePage from "@/pages/operator/knowledge";
@@ -38,6 +39,7 @@ const OPERATOR_ROUTES = new Set([
   "/agents",
   "/desktop",
   "/tools",
+  "/media",
   "/privacy",
   "/memory",
   "/knowledge",
@@ -115,6 +117,7 @@ function OperatorShell() {
       <Route path="/agents" component={AgentsPage} />
       <Route path="/desktop" component={DesktopPage} />
       <Route path="/tools" component={ToolsPage} />
+      <Route path="/media" component={MediaPage} />
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/memory" component={MemoryPage} />
       <Route path="/knowledge" component={KnowledgePage} />

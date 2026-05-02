@@ -47,6 +47,8 @@ tags:
     description: Desktop control agent — Look-Act-Verify with semantic targeting
   - name: knowledge
     description: Personal knowledge base / second brain (collections, documents, semantic search, RAG)
+  - name: media
+    description: Local media generation (image / audio / video) — Tier 1 deterministic stubs
 
 paths:
   /healthz:
@@ -1430,6 +1432,217 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeImportResponse"
+
+
+  /media/assets:
+    get:
+      operationId: listMediaAssets
+      tags: [media]
+      summary: List media assets in the workspace library
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: kind
+          in: query
+          description: Filter by asset kind
+          schema:
+            type: string
+            enum: [image, audio, video]
+      responses:
+        "200":
+          description: Page of assets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAssetListResponse"
+
+  /media/assets/{id}:
+    get:
+      operationId: getMediaAsset
+      tags: [media]
+      summary: Fetch one media asset by id
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAssetResponse"
+    delete:
+      operationId: deleteMediaAsset
+      tags: [media]
+      summary: Delete a media asset (file + database row)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deletion receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAssetDeleteResponse"
+
+  /media/assets/{id}/file:
+    get:
+      operationId: getMediaAssetFile
+      tags: [media]
+      summary: Stream the binary bytes of a media asset
+      description: |
+        Returns the raw file with its native `Content-Type`. Used by the UI
+        to embed images / play audio / show video previews. Bypasses the
+        JSON envelope because the body is binary.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Binary asset stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /media/images/generate:
+    post:
+      operationId: generateImage
+      tags: [media]
+      summary: Generate an image from a text prompt (local stub)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateImageRequest"
+      responses:
+        "200":
+          description: Generated asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAssetResponse"
+
+  /media/audio/generate:
+    post:
+      operationId: generateAudio
+      tags: [media]
+      summary: Generate audio (music or text-to-speech) from a prompt (local stub)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateAudioRequest"
+      responses:
+        "200":
+          description: Generated asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAssetResponse"
+
+  /media/video/generate:
+    post:
+      operationId: generateVideo
+      tags: [media]
+      summary: Generate a short animated video from a prompt (local stub)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateVideoRequest"
+      responses:
+        "200":
+          description: Generated asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAssetResponse"
+
+  /media/images/{id}/upscale:
+    post:
+      operationId: upscaleImage
+      tags: [media]
+      summary: Upscale an existing image asset (local stub)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpscaleImageRequest"
+      responses:
+        "200":
+          description: New upscaled asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAssetResponse"
+
+  /media/images/{id}/remove-background:
+    post:
+      operationId: removeImageBackground
+      tags: [media]
+      summary: Remove the background from an image asset (local stub)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: New transparent-background asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAssetResponse"
+
+  /media/hardware:
+    get:
+      operationId: getMediaHardwareCapabilities
+      tags: [media]
+      summary: Probe local hardware and recommend model tier
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Hardware capability report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HardwareCapabilitiesResponse"
 
 
 components:
@@ -3631,3 +3844,211 @@ components:
         data:
           $ref: "#/components/schemas/KnowledgeImportReceipt"
 
+    MediaAsset:
+      type: object
+      required: [id, kind, prompt, status, mimeType, sizeBytes, modelUsed, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [image, audio, video]
+        prompt:
+          type: string
+        style:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, ready, failed]
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        durationMs:
+          type: integer
+          nullable: true
+        modelUsed:
+          type: string
+        sourceAssetId:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        fileUrl:
+          type: string
+          description: Relative URL where the binary can be streamed (`/api/media/assets/{id}/file`).
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MediaAssetListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaAsset"
+        nextCursor:
+          type: string
+          nullable: true
+
+    MediaAssetListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/MediaAssetListPage"
+
+    MediaAssetResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/MediaAsset"
+
+    MediaAssetDeleteReceipt:
+      type: object
+      required: [id, deleted]
+      properties:
+        id:
+          type: string
+        deleted:
+          type: boolean
+
+    MediaAssetDeleteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/MediaAssetDeleteReceipt"
+
+    GenerateImageRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        style:
+          type: string
+          enum: [photorealistic, illustration, watercolor, pixel, neon, sketch]
+        width:
+          type: integer
+          minimum: 64
+          maximum: 2048
+        height:
+          type: integer
+          minimum: 64
+          maximum: 2048
+
+    GenerateAudioRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        kind:
+          type: string
+          enum: [music, tts, sfx]
+          description: music = MusicGen-style melody; tts = text-to-speech; sfx = short sound effect.
+        durationMs:
+          type: integer
+          minimum: 250
+          maximum: 30000
+
+    GenerateVideoRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        durationMs:
+          type: integer
+          minimum: 500
+          maximum: 10000
+        sourceAssetId:
+          type: string
+          description: Optional image asset to animate (image-to-video flow).
+
+    UpscaleImageRequest:
+      type: object
+      properties:
+        scale:
+          type: integer
+          enum: [2, 4]
+          description: Scale factor (2x or 4x). Defaults to 2.
+
+    HardwareCapabilities:
+      type: object
+      required: [cpuCount, totalRamMb, freeRamMb, recommendedTier, supportsImage, supportsAudio, supportsVideo, models]
+      properties:
+        cpuCount:
+          type: integer
+        totalRamMb:
+          type: integer
+        freeRamMb:
+          type: integer
+        platform:
+          type: string
+        recommendedTier:
+          type: string
+          enum: [low, mid, high]
+          description: |
+            low = stub-only (≤4GB free RAM); mid = small diffusion models
+            (4–12GB); high = SDXL / FLUX / AnimateDiff (12GB+).
+        supportsImage:
+          type: boolean
+        supportsAudio:
+          type: boolean
+        supportsVideo:
+          type: boolean
+        models:
+          type: array
+          items:
+            type: object
+            required: [name, kind, available]
+            properties:
+              name:
+                type: string
+              kind:
+                type: string
+              available:
+                type: boolean
+              note:
+                type: string
+
+    HardwareCapabilitiesResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/HardwareCapabilities"

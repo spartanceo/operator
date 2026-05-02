@@ -28,6 +28,7 @@ import type { TenantContext } from "@workspace/types";
 import * as browserService from "./browser.service";
 import * as desktopInputService from "./desktop-input.service";
 import * as filesService from "./files.service";
+import * as mediaService from "./media.service";
 import * as memoryService from "./memory.service";
 import { chat as ollamaChat } from "./ollama.service";
 import { logPrivacyEvent } from "./privacy.service";
@@ -356,6 +357,89 @@ const TOOLS: ToolEntry[] = [
     handler: async () => {
       const status = desktopInputService.probeAdapter();
       return { available: status.available, mode: status.mode, reason: status.reason };
+    },
+  },
+  // ─── Local media generation (Tier 1 deterministic stubs) ───────────────────
+  {
+    name: "media.image.generate",
+    description: "Generate an image from a text prompt and save it to the media library.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const asset = await mediaService.generateImage(ctx, {
+        prompt: str(input["prompt"], "prompt"),
+        style:
+          typeof input["style"] === "string" ? (input["style"] as string) : undefined,
+        width: typeof input["width"] === "number" ? (input["width"] as number) : undefined,
+        height:
+          typeof input["height"] === "number" ? (input["height"] as number) : undefined,
+      });
+      return { ...asset };
+    },
+  },
+  {
+    name: "media.audio.generate",
+    description:
+      "Generate audio (music / TTS / SFX) from a text prompt and save it to the media library.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const asset = await mediaService.generateAudio(ctx, {
+        prompt: str(input["prompt"], "prompt"),
+        kind:
+          typeof input["kind"] === "string"
+            ? (input["kind"] as "music" | "tts" | "sfx")
+            : undefined,
+        durationMs:
+          typeof input["durationMs"] === "number"
+            ? (input["durationMs"] as number)
+            : undefined,
+      });
+      return { ...asset };
+    },
+  },
+  {
+    name: "media.video.generate",
+    description: "Generate a short animated video from a text prompt.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const asset = await mediaService.generateVideo(ctx, {
+        prompt: str(input["prompt"], "prompt"),
+        durationMs:
+          typeof input["durationMs"] === "number"
+            ? (input["durationMs"] as number)
+            : undefined,
+        sourceAssetId:
+          typeof input["sourceAssetId"] === "string"
+            ? (input["sourceAssetId"] as string)
+            : undefined,
+      });
+      return { ...asset };
+    },
+  },
+  {
+    name: "media.image.upscale",
+    description: "Upscale an existing image asset by 2x or 4x.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const asset = await mediaService.upscaleImage(
+        ctx,
+        str(input["id"], "id"),
+        {
+          scale: input["scale"] === 4 ? 4 : 2,
+        },
+      );
+      return { ...asset };
+    },
+  },
+  {
+    name: "media.image.removeBackground",
+    description: "Produce a transparent-background variant of an image asset.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const asset = await mediaService.removeBackground(
+        ctx,
+        str(input["id"], "id"),
+      );
+      return { ...asset };
     },
   },
 ];

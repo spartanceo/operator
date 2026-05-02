@@ -13,6 +13,7 @@ import desktopRouter from "./desktop";
 import filesRouter from "./files";
 import healthRouter from "./health";
 import knowledgeRouter from "./knowledge";
+import mediaRouter from "./media";
 import memoryRouter from "./memory";
 import modelsRouter from "./models";
 import onboardingRouter from "./onboarding";
@@ -37,5 +38,6 @@ router.use("/browser", browserRouter);
 router.use("/onboarding", onboardingRouter);
 router.use("/updates", updatesRouter);
 router.use("/desktop", desktopRouter);
+router.use("/media", mediaRouter);
 
 export default router;

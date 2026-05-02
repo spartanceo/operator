@@ -9,6 +9,7 @@ import {
   Settings,
   ArrowLeft,
   Monitor,
+  Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -25,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/desktop", label: "Desktop", icon: Monitor },
   { href: "/tools", label: "Tools", icon: Wrench },
+  { href: "/media", label: "Media", icon: ImageIcon },
   { href: "/privacy", label: "Privacy", icon: Shield },
   { href: "/memory", label: "Memory", icon: Brain },
   { href: "/knowledge", label: "Knowledge", icon: Library },

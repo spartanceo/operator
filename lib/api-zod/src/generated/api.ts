@@ -2699,3 +2699,462 @@ export const ImportKnowledgeResponse = zod.object({
     ),
   }),
 });
+
+/**
+ * @summary List media assets in the workspace library
+ */
+export const listMediaAssetsQueryLimitDefault = 20;
+export const listMediaAssetsQueryLimitMax = 100;
+
+export const ListMediaAssetsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listMediaAssetsQueryLimitMax)
+    .default(listMediaAssetsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  kind: zod
+    .enum(["image", "audio", "video"])
+    .optional()
+    .describe("Filter by asset kind"),
+});
+
+export const ListMediaAssetsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListMediaAssetsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        kind: zod.enum(["image", "audio", "video"]),
+        prompt: zod.string(),
+        style: zod.string().nullish(),
+        status: zod.enum(["pending", "ready", "failed"]),
+        mimeType: zod.string(),
+        sizeBytes: zod.number(),
+        width: zod.number().nullish(),
+        height: zod.number().nullish(),
+        durationMs: zod.number().nullish(),
+        modelUsed: zod.string(),
+        sourceAssetId: zod.string().nullish(),
+        error: zod.string().nullish(),
+        fileUrl: zod
+          .string()
+          .optional()
+          .describe(
+            "Relative URL where the binary can be streamed (`\/api\/media\/assets\/{id}\/file`).",
+          ),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Fetch one media asset by id
+ */
+export const GetMediaAssetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMediaAssetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMediaAssetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.enum(["image", "audio", "video"]),
+    prompt: zod.string(),
+    style: zod.string().nullish(),
+    status: zod.enum(["pending", "ready", "failed"]),
+    mimeType: zod.string(),
+    sizeBytes: zod.number(),
+    width: zod.number().nullish(),
+    height: zod.number().nullish(),
+    durationMs: zod.number().nullish(),
+    modelUsed: zod.string(),
+    sourceAssetId: zod.string().nullish(),
+    error: zod.string().nullish(),
+    fileUrl: zod
+      .string()
+      .optional()
+      .describe(
+        "Relative URL where the binary can be streamed (`\/api\/media\/assets\/{id}\/file`).",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Delete a media asset (file + database row)
+ */
+export const DeleteMediaAssetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteMediaAssetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteMediaAssetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * Returns the raw file with its native `Content-Type`. Used by the UI
+to embed images / play audio / show video previews. Bypasses the
+JSON envelope because the body is binary.
+
+ * @summary Stream the binary bytes of a media asset
+ */
+export const GetMediaAssetFileParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMediaAssetFileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+/**
+ * @summary Generate an image from a text prompt (local stub)
+ */
+export const GenerateImageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const generateImageBodyPromptMax = 2000;
+
+export const generateImageBodyWidthMin = 64;
+export const generateImageBodyWidthMax = 2048;
+
+export const generateImageBodyHeightMin = 64;
+export const generateImageBodyHeightMax = 2048;
+
+export const GenerateImageBody = zod.object({
+  prompt: zod.string().min(1).max(generateImageBodyPromptMax),
+  style: zod
+    .enum([
+      "photorealistic",
+      "illustration",
+      "watercolor",
+      "pixel",
+      "neon",
+      "sketch",
+    ])
+    .optional(),
+  width: zod
+    .number()
+    .min(generateImageBodyWidthMin)
+    .max(generateImageBodyWidthMax)
+    .optional(),
+  height: zod
+    .number()
+    .min(generateImageBodyHeightMin)
+    .max(generateImageBodyHeightMax)
+    .optional(),
+});
+
+export const GenerateImageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.enum(["image", "audio", "video"]),
+    prompt: zod.string(),
+    style: zod.string().nullish(),
+    status: zod.enum(["pending", "ready", "failed"]),
+    mimeType: zod.string(),
+    sizeBytes: zod.number(),
+    width: zod.number().nullish(),
+    height: zod.number().nullish(),
+    durationMs: zod.number().nullish(),
+    modelUsed: zod.string(),
+    sourceAssetId: zod.string().nullish(),
+    error: zod.string().nullish(),
+    fileUrl: zod
+      .string()
+      .optional()
+      .describe(
+        "Relative URL where the binary can be streamed (`\/api\/media\/assets\/{id}\/file`).",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Generate audio (music or text-to-speech) from a prompt (local stub)
+ */
+export const GenerateAudioHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const generateAudioBodyPromptMax = 2000;
+
+export const generateAudioBodyDurationMsMin = 250;
+export const generateAudioBodyDurationMsMax = 30000;
+
+export const GenerateAudioBody = zod.object({
+  prompt: zod.string().min(1).max(generateAudioBodyPromptMax),
+  kind: zod
+    .enum(["music", "tts", "sfx"])
+    .optional()
+    .describe(
+      "music = MusicGen-style melody; tts = text-to-speech; sfx = short sound effect.",
+    ),
+  durationMs: zod
+    .number()
+    .min(generateAudioBodyDurationMsMin)
+    .max(generateAudioBodyDurationMsMax)
+    .optional(),
+});
+
+export const GenerateAudioResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.enum(["image", "audio", "video"]),
+    prompt: zod.string(),
+    style: zod.string().nullish(),
+    status: zod.enum(["pending", "ready", "failed"]),
+    mimeType: zod.string(),
+    sizeBytes: zod.number(),
+    width: zod.number().nullish(),
+    height: zod.number().nullish(),
+    durationMs: zod.number().nullish(),
+    modelUsed: zod.string(),
+    sourceAssetId: zod.string().nullish(),
+    error: zod.string().nullish(),
+    fileUrl: zod
+      .string()
+      .optional()
+      .describe(
+        "Relative URL where the binary can be streamed (`\/api\/media\/assets\/{id}\/file`).",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Generate a short animated video from a prompt (local stub)
+ */
+export const GenerateVideoHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const generateVideoBodyPromptMax = 2000;
+
+export const generateVideoBodyDurationMsMin = 500;
+export const generateVideoBodyDurationMsMax = 10000;
+
+export const GenerateVideoBody = zod.object({
+  prompt: zod.string().min(1).max(generateVideoBodyPromptMax),
+  durationMs: zod
+    .number()
+    .min(generateVideoBodyDurationMsMin)
+    .max(generateVideoBodyDurationMsMax)
+    .optional(),
+  sourceAssetId: zod
+    .string()
+    .optional()
+    .describe("Optional image asset to animate (image-to-video flow)."),
+});
+
+export const GenerateVideoResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.enum(["image", "audio", "video"]),
+    prompt: zod.string(),
+    style: zod.string().nullish(),
+    status: zod.enum(["pending", "ready", "failed"]),
+    mimeType: zod.string(),
+    sizeBytes: zod.number(),
+    width: zod.number().nullish(),
+    height: zod.number().nullish(),
+    durationMs: zod.number().nullish(),
+    modelUsed: zod.string(),
+    sourceAssetId: zod.string().nullish(),
+    error: zod.string().nullish(),
+    fileUrl: zod
+      .string()
+      .optional()
+      .describe(
+        "Relative URL where the binary can be streamed (`\/api\/media\/assets\/{id}\/file`).",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Upscale an existing image asset (local stub)
+ */
+export const UpscaleImageParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpscaleImageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpscaleImageBody = zod.object({
+  scale: zod
+    .union([zod.literal(2), zod.literal(4)])
+    .optional()
+    .describe("Scale factor (2x or 4x). Defaults to 2."),
+});
+
+export const UpscaleImageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.enum(["image", "audio", "video"]),
+    prompt: zod.string(),
+    style: zod.string().nullish(),
+    status: zod.enum(["pending", "ready", "failed"]),
+    mimeType: zod.string(),
+    sizeBytes: zod.number(),
+    width: zod.number().nullish(),
+    height: zod.number().nullish(),
+    durationMs: zod.number().nullish(),
+    modelUsed: zod.string(),
+    sourceAssetId: zod.string().nullish(),
+    error: zod.string().nullish(),
+    fileUrl: zod
+      .string()
+      .optional()
+      .describe(
+        "Relative URL where the binary can be streamed (`\/api\/media\/assets\/{id}\/file`).",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Remove the background from an image asset (local stub)
+ */
+export const RemoveImageBackgroundParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RemoveImageBackgroundHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RemoveImageBackgroundResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.enum(["image", "audio", "video"]),
+    prompt: zod.string(),
+    style: zod.string().nullish(),
+    status: zod.enum(["pending", "ready", "failed"]),
+    mimeType: zod.string(),
+    sizeBytes: zod.number(),
+    width: zod.number().nullish(),
+    height: zod.number().nullish(),
+    durationMs: zod.number().nullish(),
+    modelUsed: zod.string(),
+    sourceAssetId: zod.string().nullish(),
+    error: zod.string().nullish(),
+    fileUrl: zod
+      .string()
+      .optional()
+      .describe(
+        "Relative URL where the binary can be streamed (`\/api\/media\/assets\/{id}\/file`).",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Probe local hardware and recommend model tier
+ */
+export const GetMediaHardwareCapabilitiesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMediaHardwareCapabilitiesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    cpuCount: zod.number(),
+    totalRamMb: zod.number(),
+    freeRamMb: zod.number(),
+    platform: zod.string().optional(),
+    recommendedTier: zod
+      .enum(["low", "mid", "high"])
+      .describe(
+        "low = stub-only (≤4GB free RAM); mid = small diffusion models\n(4–12GB); high = SDXL \/ FLUX \/ AnimateDiff (12GB+).\n",
+      ),
+    supportsImage: zod.boolean(),
+    supportsAudio: zod.boolean(),
+    supportsVideo: zod.boolean(),
+    models: zod.array(
+      zod.object({
+        name: zod.string(),
+        kind: zod.string(),
+        available: zod.boolean(),
+        note: zod.string().optional(),
+      }),
+    ),
+  }),
+});

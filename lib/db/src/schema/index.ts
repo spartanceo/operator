@@ -27,3 +27,4 @@ export * from "./desktop-steps";
 export * from "./kb-collections";
 export * from "./kb-documents";
 export * from "./kb-chunks";
+export * from "./media-assets";

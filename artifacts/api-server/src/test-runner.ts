@@ -258,6 +258,143 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "media: generate image returns ready asset with bytes on disk",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/media/images/generate")
+        .set("X-Tenant-ID", TENANT)
+        .send({ prompt: "test mountain", style: "illustration" });
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.data.kind, "image");
+      assert.equal(res.body.data.status, "ready");
+      assert.equal(res.body.data.mimeType, "image/svg+xml");
+      assert.ok(res.body.data.sizeBytes > 0, "expected non-empty asset");
+      assert.ok(
+        res.body.data.fileUrl.startsWith("/api/media/assets/"),
+        `unexpected fileUrl ${res.body.data.fileUrl}`,
+      );
+
+      const stream = await request(app)
+        .get(`/api/media/assets/${res.body.data.id}/file`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(stream.status, 200);
+      assert.equal(stream.headers["content-type"], "image/svg+xml");
+      assert.ok(
+        Buffer.isBuffer(stream.body) ? stream.body.length > 0 : stream.text.length > 0,
+        "expected file stream to return bytes",
+      );
+    },
+  },
+  {
+    name: "media: generate audio writes a real WAV with RIFF header",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/media/audio/generate")
+        .set("X-Tenant-ID", TENANT)
+        .send({ prompt: "ambient pad", kind: "music", durationMs: 500 });
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.data.kind, "audio");
+      assert.equal(res.body.data.mimeType, "audio/wav");
+      assert.ok(res.body.data.sizeBytes > 44, "WAV must be larger than its header");
+
+      const stream = await request(app)
+        .get(`/api/media/assets/${res.body.data.id}/file`)
+        .set("X-Tenant-ID", TENANT)
+        .buffer(true)
+        .parse((res2, cb) => {
+          const chunks: Buffer[] = [];
+          res2.on("data", (c: Buffer) => chunks.push(c));
+          res2.on("end", () => cb(null, Buffer.concat(chunks)));
+        });
+      assert.equal(stream.status, 200);
+      const buf = stream.body as Buffer;
+      assert.equal(buf.subarray(0, 4).toString("ascii"), "RIFF");
+      assert.equal(buf.subarray(8, 12).toString("ascii"), "WAVE");
+    },
+  },
+  {
+    name: "media: list filters by kind",
+    run: async () => {
+      // Seed one of each kind so the filter has signal.
+      await request(app)
+        .post("/api/media/images/generate")
+        .set("X-Tenant-ID", TENANT)
+        .send({ prompt: "filter test image" });
+      await request(app)
+        .post("/api/media/video/generate")
+        .set("X-Tenant-ID", TENANT)
+        .send({ prompt: "filter test video", durationMs: 800 });
+
+      const onlyImages = await request(app)
+        .get("/api/media/assets?kind=image&limit=50")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(onlyImages.status, 200);
+      const items = onlyImages.body.data.items as Array<{ kind: string }>;
+      assert.ok(items.length > 0);
+      assert.ok(
+        items.every((a) => a.kind === "image"),
+        "kind filter must only return images",
+      );
+    },
+  },
+  {
+    name: "media: tenant isolation — tenant 2 cannot read tenant 1 asset or stream its file",
+    run: async () => {
+      const created = await request(app)
+        .post("/api/media/images/generate")
+        .set("X-Tenant-ID", TENANT)
+        .send({ prompt: "private to tenant 1" });
+      assert.equal(created.status, 200);
+      const id = created.body.data.id;
+
+      const cross = await request(app)
+        .get(`/api/media/assets/${id}`)
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(cross.status, 404);
+
+      const crossFile = await request(app)
+        .get(`/api/media/assets/${id}/file`)
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(crossFile.status, 404);
+    },
+  },
+  {
+    name: "media: delete removes the row (subsequent GET 404s)",
+    run: async () => {
+      const created = await request(app)
+        .post("/api/media/images/generate")
+        .set("X-Tenant-ID", TENANT)
+        .send({ prompt: "delete me" });
+      assert.equal(created.status, 200);
+      const id = created.body.data.id;
+
+      const del = await request(app)
+        .delete(`/api/media/assets/${id}`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(del.status, 200);
+      assert.equal(del.body.data.deleted, true);
+
+      const after = await request(app)
+        .get(`/api/media/assets/${id}`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(after.status, 404);
+    },
+  },
+  {
+    name: "media: hardware probe reports a recommended tier",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/media/hardware")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.ok(["low", "mid", "high"].includes(res.body.data.recommendedTier));
+      assert.ok(Array.isArray(res.body.data.models));
+      assert.ok(res.body.data.models.length > 0);
+    },
+  },
+  {
     name: "desktop session plans LAV steps and gates risk",
     run: async () => {
       const res = await request(app)
