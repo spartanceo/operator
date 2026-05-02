@@ -1,0 +1,6 @@
+{
+  "main_js_gzip_kb": 75,
+  "total_js_gzip_kb": 90,
+  "css_gzip_kb": 20,
+  "build_command": "PORT=5001 BASE_PATH=/__mockup pnpm build"
+}

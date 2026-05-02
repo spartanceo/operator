@@ -1,0 +1,37 @@
+name: E2E — cold start
+
+# Runs the Playwright cold-start regression spec on every PR and on every
+# push to main. Enforces the < 2000 ms "ready chat interface" budget from
+# Standard 11 — Performance & Snappiness end-to-end against a production
+# build of the renderer.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  startup-time:
+    name: Playwright cold-start
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @workspace/e2e exec playwright install --with-deps chromium
+
+      - name: Run cold-start spec
+        run: pnpm --filter @workspace/e2e run e2e

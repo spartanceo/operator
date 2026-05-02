@@ -1,0 +1,12 @@
+{
+  "name": "@workspace/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test --config ../playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

@@ -60,6 +60,22 @@ interface LocalChatTurn {
   model?: string;
 }
 
+/**
+ * Cold-start ready marker consumed by `e2e/startup-time.spec.ts`.
+ *
+ * The Standard 11 budget is "Cold start → ready chat interface < 2000 ms".
+ * The Playwright spec navigates to `/chat` (with the onboarding profile
+ * mocked as completed so OperatorShell renders ChatPage instead of the
+ * wizard) and waits for `[data-test="chat-ready"]`. Rendering it as a
+ * scoped element inside ChatPage — not stamping a global body attribute
+ * — means the marker disappears when ChatPage unmounts, so other e2e
+ * specs that exercise different routes can never accidentally observe a
+ * stale "ready" signal. Do not remove without updating the spec.
+ */
+function ChatReadyMarker() {
+  return <span data-test="chat-ready" hidden aria-hidden="true" />;
+}
+
 export default function ChatPage() {
   const { settings } = useSettings();
   const qc = useQueryClient();
@@ -482,6 +498,8 @@ export default function ChatPage() {
         show={showSparkle}
         onDone={() => setShowSparkle(false)}
       />
+
+      <ChatReadyMarker />
     </OperatorLayout>
   );
 }

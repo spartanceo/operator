@@ -1,0 +1,45 @@
+name: Lighthouse CI
+
+# Runs Lighthouse against the built renderer for every PR and on pushes to
+# main. Thresholds are kept in sync with Standard 11 — Performance &
+# Snappiness in .local/tasks/OMNINITY_BUG_PREVENTION_STANDARDS.md. A failing
+# performance category here means the renderer regressed against the budget
+# table and must be fixed before merge.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lighthouse:
+    name: Lighthouse renderer audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build renderer (omninity-website)
+        env:
+          PORT: "5000"
+          BASE_PATH: "/"
+        run: pnpm --filter @workspace/omninity-website run build
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: ./.github/lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true

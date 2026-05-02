@@ -1,0 +1,35 @@
+name: Tier Review
+
+# Runs the full 18-check tier-review gate (scripts/tier-review.ts) on every
+# PR and on every push to main. This is the same script that gates promotion
+# between tiers locally. Check #9 (Performance Budget Compliance) and
+# Check #10 (Frontend Bundle Size) are the regression-protection mechanism
+# for Standard 11; both run unconditionally here.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  tier-review:
+    name: tier-review (18 checks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tier-review
+        run: pnpm run tier-review
