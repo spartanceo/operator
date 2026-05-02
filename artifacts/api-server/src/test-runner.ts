@@ -966,6 +966,97 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "vision lifecycle: load/unload privacy events are persisted under system tenant",
+    run: async () => {
+      // Reviewer's blocker (round-8 rejection): privacy events for vision
+      // load/unload were silently failing FK constraints. Migration 0004
+      // seeds the system tenant/workspace; this test asserts the audit row
+      // actually lands in `privacy_events` so the privacy guarantee holds.
+      //
+      // We deliberately use the REAL default bridge so the privacy log
+      // call (which lives inside the bridge, ±10 lines from `fetch()` per
+      // tier-review Check #8) is exercised. The fetch will fail (no
+      // Ollama running in CI), but the privacy event is written first
+      // and is the contract under test.
+      const { db, privacyEvents, SYSTEM_TENANT_ID } = await import(
+        "@workspace/db"
+      );
+      const { eq, and, desc } = await import("drizzle-orm");
+      const {
+        getVisionLifecycle,
+        resetVisionLifecycleForTests,
+        resetVisionRuntimeBridgeForTests,
+      } = await import("./services/hardware");
+
+      resetVisionRuntimeBridgeForTests();
+      try {
+        resetVisionLifecycleForTests();
+        const cycle = getVisionLifecycle("high");
+        const uniqueId = `moondream:test-persist-${Date.now()}`;
+        cycle.configure({
+          visionModelId: uniqueId,
+          mode: "balanced",
+          idleTimeoutMs: 60_000,
+        });
+
+        cycle.touch();
+        await cycle.awaitInflight();
+        // Allow the privacy.service insert to flush.
+        await new Promise((r) => setTimeout(r, 25));
+
+        const loadRows = await db
+          .select()
+          .from(privacyEvents)
+          .where(
+            and(
+              eq(privacyEvents.tenantId, SYSTEM_TENANT_ID),
+              eq(privacyEvents.eventType, "network.ollama"),
+              eq(privacyEvents.detail, "vision-load"),
+            ),
+          )
+          .orderBy(desc(privacyEvents.createdAt))
+          .limit(5);
+        const loadMatch = loadRows.find((r) => r.target.includes(uniqueId));
+        assert.ok(
+          loadMatch,
+          `vision-load privacy event must be persisted with target containing ${uniqueId}`,
+        );
+        assert.equal(loadMatch.actor, "system:vision-lifecycle");
+
+        cycle.unload();
+        await cycle.awaitInflight();
+        await new Promise((r) => setTimeout(r, 25));
+
+        const unloadRows = await db
+          .select()
+          .from(privacyEvents)
+          .where(
+            and(
+              eq(privacyEvents.tenantId, SYSTEM_TENANT_ID),
+              eq(privacyEvents.eventType, "network.ollama"),
+              eq(privacyEvents.detail, "vision-unload"),
+            ),
+          )
+          .orderBy(desc(privacyEvents.createdAt))
+          .limit(5);
+        const unloadMatch = unloadRows.find((r) =>
+          r.target.includes(uniqueId),
+        );
+        assert.ok(
+          unloadMatch,
+          "vision-unload privacy event must be persisted",
+        );
+        assert.ok(
+          unloadMatch.target.includes("keep_alive=0"),
+          "audit target must include keep_alive=0 for unload",
+        );
+      } finally {
+        resetVisionRuntimeBridgeForTests();
+        resetVisionLifecycleForTests();
+      }
+    },
+  },
+  {
     name: "vision lifecycle: bridge errors do not crash the lifecycle",
     run: async () => {
       // Best-effort contract: a thrown bridge must not propagate.

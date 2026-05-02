@@ -125,6 +125,8 @@ export {
 export {
   BACKGROUND_MIGRATIONS,
   SCHEMA_MIGRATIONS,
+  SYSTEM_TENANT_ID,
+  SYSTEM_WORKSPACE_ID,
   type BackgroundMigration,
   type BackgroundMigrationProgress,
   type BackgroundMigrationStep,

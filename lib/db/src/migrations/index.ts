@@ -14,6 +14,7 @@
 import { migration as m0001 } from "./0001_baseline";
 import { migration as m0002 } from "./0002_onboarding_profiles";
 import { migration as m0003 } from "./0003_model_preferences";
+import { migration as m0004 } from "./0004_system_tenant";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -28,6 +29,15 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0001,
   m0002,
   m0003,
+  m0004,
 ];
+
+/**
+ * Stable IDs for the seeded system tenant + workspace (migration 0004).
+ * Re-export so service code can reference these constants without
+ * hard-coding string literals at every call site.
+ */
+export const SYSTEM_TENANT_ID = "tenant_system";
+export const SYSTEM_WORKSPACE_ID = "workspace_system";
 
 export const BACKGROUND_MIGRATIONS: readonly BackgroundMigration[] = [];

@@ -34,6 +34,7 @@
  */
 import { nanoid } from "nanoid";
 
+import { SYSTEM_TENANT_ID, SYSTEM_WORKSPACE_ID } from "@workspace/db";
 import type { TenantContext } from "@workspace/types";
 
 import { logger } from "../../lib/logger";
@@ -49,11 +50,13 @@ function ollamaHost(): string {
 
 function systemContext(): TenantContext {
   // Vision lifecycle is a system-owned background process; it has no
-  // request-bound tenant. Use the documented "system" tenant so the
-  // event still satisfies the multi-tenant invariant on
-  // `privacy_events.tenantId` while staying clearly attributable.
+  // request-bound tenant. Use the seeded system tenant/workspace
+  // (migration 0004) so the FK constraint on `privacy_events`
+  // (.tenantId → tenants.id, .workspaceId → workspaces.id) is always
+  // satisfied and the audit row actually persists.
   return {
-    tenantId: "system",
+    tenantId: SYSTEM_TENANT_ID,
+    workspaceId: SYSTEM_WORKSPACE_ID,
     userId: "system:vision-lifecycle",
     requestId: `vision-${nanoid(10)}`,
   };
