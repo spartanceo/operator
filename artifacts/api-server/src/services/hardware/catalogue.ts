@@ -141,11 +141,30 @@ export function getDefaultVision(): ModelCatalogueEntry | null {
   return MODEL_CATALOGUE.find((m) => m.role === "vision") ?? null;
 }
 
-/** Stable lookup by id. */
+/** Stable lookup by id within the curated catalogue (engine-recommendable set). */
 export function getCatalogueEntry(
   id: string,
 ): ModelCatalogueEntry | undefined {
   return MODEL_CATALOGUE.find((m) => m.id === id);
+}
+
+/**
+ * Stable lookup across the curated catalogue **and** the broader Ollama
+ * library. Used when validating user-driven model selection (power-user
+ * mode picks a model outside the curated set) — the recommendation
+ * engine itself still reads MODEL_CATALOGUE only, so this lookup must
+ * not be used for auto-recommendation.
+ *
+ * Imported lazily to avoid an import cycle: `library.ts` is sibling
+ * data, not engine logic.
+ */
+export async function getSelectableModelEntry(
+  id: string,
+): Promise<ModelCatalogueEntry | undefined> {
+  const curated = getCatalogueEntry(id);
+  if (curated) return curated;
+  const { OLLAMA_LIBRARY } = await import("./library");
+  return OLLAMA_LIBRARY.find((m) => m.id === id);
 }
 
 /** Thresholds shared between the detector and the recommendation engine. */

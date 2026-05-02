@@ -2210,9 +2210,21 @@ components:
           enum: [true]
         data:
           type: object
-          required: [items]
+          required: [items, library]
           properties:
             items:
+              description: |
+                Curated recommendation set — the small list the engine
+                chooses from for auto-recommendation.
+              type: array
+              items:
+                $ref: "#/components/schemas/ModelCatalogueEntry"
+            library:
+              description: |
+                Broader Ollama library exposed to power users in the
+                "see all models" disclosure. NOT considered by the
+                recommendation engine — the frontend annotates each
+                entry with a fit verdict against the detected host.
               type: array
               items:
                 $ref: "#/components/schemas/ModelCatalogueEntry"

@@ -21,7 +21,7 @@ import type {
 
 import { defaultLifecycleForTier, timeoutForMode } from "./vision-lifecycle";
 import { getHardwareProfile } from "./cache";
-import { getCatalogueEntry } from "./catalogue";
+import { getSelectableModelEntry } from "./catalogue";
 import { buildModelInstallPlan } from "./recommendation";
 
 export interface ModelPreferencesView {
@@ -148,7 +148,11 @@ export async function upsertModelPreferences(
   input: UpsertModelPreferencesInput,
 ): Promise<ModelPreferencesView> {
   if (input.primaryModel !== undefined) {
-    const entry = getCatalogueEntry(input.primaryModel);
+    // Accept any primary from the curated catalogue OR the broader
+    // Ollama library exposed in power-user mode. Reject anything else
+    // (the API contract is "pick from a known model id" — arbitrary
+    // user-supplied ids still go through the Pull-by-name flow).
+    const entry = await getSelectableModelEntry(input.primaryModel);
     if (!entry || entry.role !== "primary") {
       throw new UnknownModelError(input.primaryModel);
     }

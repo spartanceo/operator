@@ -723,7 +723,16 @@ export interface ModelHardwareResponse {
 }
 
 export type ModelCatalogueResponseData = {
+  /** Curated recommendation set — the small list the engine
+chooses from for auto-recommendation.
+ */
   items: ModelCatalogueEntry[];
+  /** Broader Ollama library exposed to power users in the
+"see all models" disclosure. NOT considered by the
+recommendation engine — the frontend annotates each
+entry with a fit verdict against the detected host.
+ */
+  library: ModelCatalogueEntry[];
 };
 
 export interface ModelCatalogueResponse {

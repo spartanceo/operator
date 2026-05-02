@@ -14,7 +14,16 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Cpu, HardDrive, Loader2, RotateCcw, Wand2, Eye } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Cpu,
+  Eye,
+  HardDrive,
+  Loader2,
+  RotateCcw,
+  Wand2,
+} from "lucide-react";
 import {
   useGetModelsCatalogue,
   useGetModelsRecommended,
@@ -152,6 +161,14 @@ export function HardwareModelSettings() {
   const hardware: HardwareProfile | null = data?.hardware ?? null;
   const plan: ModelInstallPlan | null = data?.plan ?? null;
   const preferences = data?.preferences ?? null;
+  const curated: ReadonlyArray<ModelCatalogueEntry> =
+    catalogue.data?.data.items ?? [];
+  // Power-user view: full Ollama library returned by the catalogue route
+  // alongside the curated set. The recommendation engine doesn't see this
+  // list — it's only for users who want to pick something outside the
+  // engine's curation.
+  const library: ReadonlyArray<ModelCatalogueEntry> =
+    catalogue.data?.data.library ?? [];
 
   const [visionMode, setVisionMode] =
     useState<SelectModelRequestVisionLifecycleMode>("balanced");
@@ -342,6 +359,16 @@ export function HardwareModelSettings() {
                   })}
                 </div>
 
+                <PowerUserLibrary
+                  curated={curated}
+                  library={library}
+                  hardware={hardware}
+                  currentPrimary={currentPrimary}
+                  recommendedId={plan.primary.id}
+                  onSwap={onSwap}
+                  busy={select.isPending}
+                />
+
                 {plan.companions.length > 0 ? (
                   <div className="rounded-md border border-border bg-card p-3">
                     <div className="flex items-center gap-2">
@@ -402,5 +429,154 @@ export function HardwareModelSettings() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+const SYSTEM_RESERVE_BYTES = 2 * 1024 * 1024 * 1024;
+
+function fitsHost(
+  primary: ModelCatalogueEntry,
+  vision: ModelCatalogueEntry | null,
+  totalRamBytes: number,
+): boolean {
+  const need =
+    primary.ramRequiredBytes +
+    (vision ? vision.ramRequiredBytes : 0) +
+    SYSTEM_RESERVE_BYTES;
+  return need <= totalRamBytes;
+}
+
+function PowerUserLibrary({
+  curated,
+  library,
+  hardware,
+  currentPrimary,
+  recommendedId,
+  onSwap,
+  busy,
+}: {
+  curated: ReadonlyArray<ModelCatalogueEntry>;
+  library: ReadonlyArray<ModelCatalogueEntry>;
+  hardware: HardwareProfile | null;
+  currentPrimary: string | null;
+  recommendedId: string | null;
+  onSwap: (id: string) => void;
+  busy: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  // De-dupe by id — curated and library may overlap (e.g. llama3.1:8b
+  // appears in both). Curated comes first so familiar entries stay near
+  // the top of the list.
+  const merged: ReadonlyArray<ModelCatalogueEntry> = (() => {
+    const seen = new Set<string>();
+    const out: ModelCatalogueEntry[] = [];
+    for (const m of [...curated, ...library]) {
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+      out.push(m);
+    }
+    return out;
+  })();
+  const primaries = merged.filter((m) => m.role === "primary");
+  const visions = merged.filter((m) => m.role === "vision");
+  const bundledVision =
+    curated.find((m) => m.role === "vision") ?? visions[0] ?? null;
+  if (primaries.length === 0) return null;
+
+  return (
+    <div className="rounded-md border border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-muted/30"
+        data-testid="button-settings-toggle-power-user"
+      >
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+        )}
+        Power user: see all models
+        <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+          {primaries.length} primaries · {visions.length} vision
+        </span>
+      </button>
+      {open ? (
+        <div className="border-t border-border p-2">
+          <p className="px-1 pb-2 text-[11px] text-muted-foreground">
+            The full Ollama library is below. Picking a non-curated model
+            here swaps your primary immediately and keeps the bundled
+            vision companion (
+            <span className="font-mono">
+              {bundledVision?.displayName ?? "—"}
+            </span>
+            ).
+          </p>
+          <div className="space-y-1.5">
+            {primaries.map((m) => {
+              const fits = hardware
+                ? fitsHost(m, bundledVision, hardware.totalRamBytes)
+                : true;
+              const isCurrent = currentPrimary === m.id;
+              const isRecommended = m.id === recommendedId;
+              const isCurated = curated.some((c) => c.id === m.id);
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => onSwap(m.id)}
+                  disabled={busy}
+                  className={cn(
+                    "w-full rounded-md border p-2.5 text-left text-xs transition-colors",
+                    isCurrent
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/30",
+                  )}
+                  data-testid={`button-settings-swap-${m.id}`}
+                >
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-mono text-foreground">{m.id}</span>
+                    {isCurrent ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] uppercase"
+                      >
+                        Active
+                      </Badge>
+                    ) : null}
+                    {isRecommended && !isCurrent ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] uppercase"
+                      >
+                        Recommended
+                      </Badge>
+                    ) : null}
+                    {isCurated && !isRecommended && !isCurrent ? (
+                      <Badge variant="outline" className="text-[9px] uppercase">
+                        Curated
+                      </Badge>
+                    ) : null}
+                    <Badge
+                      variant={fits ? "outline" : "destructive"}
+                      className="text-[9px] uppercase"
+                    >
+                      {fits ? "Fits" : "Needs more RAM"}
+                    </Badge>
+                    <span className="ml-auto text-[11px] text-muted-foreground">
+                      {formatBytes(m.sizeBytes)} ·{" "}
+                      {formatBytes(m.ramRequiredBytes)} RAM
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {m.displayName} · {m.capabilities.join(" · ")}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

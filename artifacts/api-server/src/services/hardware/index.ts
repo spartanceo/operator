@@ -12,8 +12,10 @@ export {
   getCatalogueEntry,
   getDefaultVision,
   getMinimumPrimary,
+  getSelectableModelEntry,
   tierForRam,
 } from "./catalogue";
+export { OLLAMA_LIBRARY } from "./library";
 export { detectHardware } from "./detector";
 export {
   __clearHardwareCacheMemoForTests,

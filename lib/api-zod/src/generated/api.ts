@@ -1279,20 +1279,42 @@ export const GetModelsCatalogueHeader = zod.object({
 export const GetModelsCatalogueResponse = zod.object({
   success: zod.literal(true),
   data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        displayName: zod.string(),
-        family: zod.string(),
-        role: zod.enum(["primary", "vision", "embedding"]),
-        sizeBytes: zod.number(),
-        ramRequiredBytes: zod.number(),
-        minTier: zod.enum(["low", "mid", "high", "pro"]),
-        capabilities: zod.array(zod.string()),
-        tradeoff: zod.string(),
-        useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
-      }),
-    ),
+    items: zod
+      .array(
+        zod.object({
+          id: zod.string(),
+          displayName: zod.string(),
+          family: zod.string(),
+          role: zod.enum(["primary", "vision", "embedding"]),
+          sizeBytes: zod.number(),
+          ramRequiredBytes: zod.number(),
+          minTier: zod.enum(["low", "mid", "high", "pro"]),
+          capabilities: zod.array(zod.string()),
+          tradeoff: zod.string(),
+          useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
+        }),
+      )
+      .describe(
+        "Curated recommendation set — the small list the engine\nchooses from for auto-recommendation.\n",
+      ),
+    library: zod
+      .array(
+        zod.object({
+          id: zod.string(),
+          displayName: zod.string(),
+          family: zod.string(),
+          role: zod.enum(["primary", "vision", "embedding"]),
+          sizeBytes: zod.number(),
+          ramRequiredBytes: zod.number(),
+          minTier: zod.enum(["low", "mid", "high", "pro"]),
+          capabilities: zod.array(zod.string()),
+          tradeoff: zod.string(),
+          useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
+        }),
+      )
+      .describe(
+        'Broader Ollama library exposed to power users in the\n\"see all models\" disclosure. NOT considered by the\nrecommendation engine — the frontend annotates each\nentry with a fit verdict against the detected host.\n',
+      ),
   }),
 });
 

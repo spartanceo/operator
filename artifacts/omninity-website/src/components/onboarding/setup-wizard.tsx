@@ -154,6 +154,10 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
     recommendedQuery.data?.data.minimumSpec ?? null;
   const catalogue: ReadonlyArray<ModelCatalogueEntry> =
     catalogueQuery.data?.data.items ?? [];
+  // The broader Ollama library is what power-user mode renders — these
+  // are intentionally beyond the curated set the engine recommends from.
+  const library: ReadonlyArray<ModelCatalogueEntry> =
+    catalogueQuery.data?.data.library ?? [];
 
   // Default chosen model to the recommended primary as soon as the plan
   // loads — keeps "Continue" enabled without forcing a click on the card.
@@ -291,6 +295,7 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
               plan={plan}
               minimumSpec={minimumSpec}
               catalogue={catalogue}
+              library={library}
               featureDisabled={featureDisabled}
               chosenModel={chosenModel}
               onChooseModel={setChosenModel}
@@ -637,6 +642,7 @@ function ModelStep({
   plan,
   minimumSpec,
   catalogue,
+  library,
   featureDisabled,
   chosenModel,
   onChooseModel,
@@ -651,6 +657,7 @@ function ModelStep({
   plan: ModelInstallPlan | null;
   minimumSpec: MinimumSpecVerdict | null;
   catalogue: ReadonlyArray<ModelCatalogueEntry>;
+  library: ReadonlyArray<ModelCatalogueEntry>;
   featureDisabled: boolean;
   chosenModel: string | null;
   onChooseModel: (id: string) => void;
@@ -782,6 +789,7 @@ function ModelStep({
 
           <PowerUserCatalogue
             catalogue={catalogue}
+            library={library}
             hardware={hardware}
             chosenModel={chosenModel}
             recommendedId={recommendedId}
@@ -902,20 +910,38 @@ function HardwarePanels({ hardware }: { hardware: HardwareProfile | null }) {
 
 function PowerUserCatalogue({
   catalogue,
+  library,
   hardware,
   chosenModel,
   recommendedId,
   onChooseModel,
 }: {
   catalogue: ReadonlyArray<ModelCatalogueEntry>;
+  library: ReadonlyArray<ModelCatalogueEntry>;
   hardware: HardwareProfile | null;
   chosenModel: string | null;
   recommendedId: string | null;
   onChooseModel: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const primaries = catalogue.filter((m) => m.role === "primary");
-  const vision = catalogue.find((m) => m.role === "vision") ?? null;
+  // Merge curated entries (the engine-recommendable set) with the broader
+  // Ollama library so power users see everything, with the curated list
+  // first so familiar entries stay near the top. De-dupe by id — some
+  // entries (e.g. llama3.1:8b) intentionally appear in both lists.
+  const merged: ReadonlyArray<ModelCatalogueEntry> = (() => {
+    const seen = new Set<string>();
+    const out: ModelCatalogueEntry[] = [];
+    for (const m of [...catalogue, ...library]) {
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+      out.push(m);
+    }
+    return out;
+  })();
+  const primaries = merged.filter((m) => m.role === "primary");
+  const visions = merged.filter((m) => m.role === "vision");
+  const bundledVision =
+    catalogue.find((m) => m.role === "vision") ?? visions[0] ?? null;
   if (primaries.length === 0) return null;
 
   return (
@@ -933,24 +959,28 @@ function PowerUserCatalogue({
         )}
         Power user: see all models
         <span className="ml-auto text-[11px] font-normal text-muted-foreground">
-          {primaries.length} primaries · vision bundled
+          {primaries.length} primaries · {visions.length} vision
         </span>
       </button>
       {open ? (
         <div className="border-t border-border p-2">
           <p className="px-1 pb-2 text-[11px] text-muted-foreground">
             The bundled vision companion (
-            <span className="font-mono">{vision?.displayName ?? "—"}</span>) is
-            loaded on demand alongside whichever primary you pick. Models
-            below are tagged by whether they fit your detected hardware.
+            <span className="font-mono">
+              {bundledVision?.displayName ?? "—"}
+            </span>
+            ) is loaded on demand alongside whichever primary you pick. Models
+            below are the full Ollama library — tagged by whether they fit
+            your detected hardware.
           </p>
           <div className="space-y-1.5">
             {primaries.map((m) => {
               const fits = hardware
-                ? estimateFits(m, vision, hardware.totalRamBytes)
+                ? estimateFits(m, bundledVision, hardware.totalRamBytes)
                 : true;
               const selected = chosenModel === m.id;
               const isRecommended = m.id === recommendedId;
+              const isCurated = catalogue.some((c) => c.id === m.id);
               return (
                 <button
                   key={m.id}
@@ -969,6 +999,11 @@ function PowerUserCatalogue({
                     {isRecommended ? (
                       <Badge variant="secondary" className="text-[9px] uppercase">
                         Recommended
+                      </Badge>
+                    ) : null}
+                    {isCurated && !isRecommended ? (
+                      <Badge variant="outline" className="text-[9px] uppercase">
+                        Curated
                       </Badge>
                     ) : null}
                     <Badge

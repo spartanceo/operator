@@ -27,6 +27,7 @@ import {
   getHardwareProfile,
   getVisionLifecycle,
   MODEL_CATALOGUE,
+  OLLAMA_LIBRARY,
   timeoutForMode,
   UnknownModelError,
   upsertModelPreferences,
@@ -145,7 +146,14 @@ router.get(
   requireTenant(),
   async (_req, res, next) => {
     try {
-      res.json(ok({ items: MODEL_CATALOGUE }));
+      // `items` is the curated recommendation set (drives the engine).
+      // `library` is the broader Ollama library exposed to power users
+      // who want to step outside the curated set — these entries are
+      // NOT auto-recommended; they only appear in the "Power user: see
+      // all models" disclosure with a fit annotation computed by the
+      // frontend against the detected hardware (Task #64 "Done looks
+      // like": power-user mode exposes the full Ollama library).
+      res.json(ok({ items: MODEL_CATALOGUE, library: OLLAMA_LIBRARY }));
     } catch (e) {
       next(e);
     }

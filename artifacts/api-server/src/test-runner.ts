@@ -536,6 +536,52 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "GET /api/models/catalogue exposes the broader Ollama library",
+    run: async () => {
+      // Power-user mode requirement: the catalogue must surface a list
+      // strictly larger than the curated recommendation set, with models
+      // beyond the curated id list, plus capability tags + size metadata
+      // so the frontend can render a fit verdict (Task #64 round-3 fix).
+      const res = await request(app)
+        .get("/api/models/catalogue")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.ok(Array.isArray(res.body.data.library));
+      const curatedIds = new Set(
+        res.body.data.items.map((m: { id: string }) => m.id),
+      );
+      const libraryIds = new Set(
+        res.body.data.library.map((m: { id: string }) => m.id),
+      );
+      // Library must be strictly broader than the curated set.
+      assert.ok(
+        res.body.data.library.length > res.body.data.items.length,
+        `library (${res.body.data.library.length}) must exceed curated (${res.body.data.items.length})`,
+      );
+      // Library must include at least one model the curated list does not.
+      const beyond = [...libraryIds].filter((id) => !curatedIds.has(id));
+      assert.ok(
+        beyond.length >= 5,
+        `library should include >=5 models beyond curated, got ${beyond.length}`,
+      );
+      // Every library entry must carry the metadata the fit-annotation
+      // UI needs (size, ram, capability tags).
+      for (const m of res.body.data.library as Array<{
+        id: string;
+        sizeBytes: number;
+        ramRequiredBytes: number;
+        capabilities: ReadonlyArray<string>;
+      }>) {
+        assert.ok(m.sizeBytes > 0, `${m.id} sizeBytes`);
+        assert.ok(m.ramRequiredBytes > 0, `${m.id} ramRequiredBytes`);
+        assert.ok(
+          Array.isArray(m.capabilities) && m.capabilities.length > 0,
+          `${m.id} capabilities`,
+        );
+      }
+    },
+  },
+  {
     name: "GET /api/models/recommended returns plan + default preferences",
     run: async () => {
       const res = await request(app)
@@ -585,12 +631,66 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "POST /api/models/select accepts a library-only (non-curated) primary",
+    run: async () => {
+      // Power-user mode promise: the user can pick any primary from the
+      // broader Ollama library exposed by /catalogue, not just the
+      // curated recommendation set. qwen2.5:14b lives in OLLAMA_LIBRARY
+      // and is intentionally NOT in MODEL_CATALOGUE — selecting it
+      // exercises the cross-list lookup in upsertModelPreferences
+      // (architect round-4 finding for Task #64).
+      const cat = await request(app)
+        .get("/api/models/catalogue")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(cat.status, 200);
+      const curatedIds = new Set(
+        cat.body.data.items.map((m: { id: string }) => m.id),
+      );
+      assert.ok(
+        !curatedIds.has("qwen2.5:14b"),
+        "qwen2.5:14b should be library-only, not curated",
+      );
+
+      const ok = await request(app)
+        .post("/api/models/select")
+        .set("X-Tenant-ID", TENANT)
+        .send({ primaryModel: "qwen2.5:14b" });
+      assert.equal(ok.status, 200, JSON.stringify(ok.body));
+      assert.equal(ok.body.data.primaryModel, "qwen2.5:14b");
+      assert.equal(ok.body.data.catalogueChoiceMade, true);
+
+      const after = await request(app)
+        .get("/api/models/recommended")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(after.status, 200);
+      assert.equal(after.body.data.preferences.primaryModel, "qwen2.5:14b");
+    },
+  },
+  {
     name: "POST /api/models/select rejects unknown model id",
     run: async () => {
       const bad = await request(app)
         .post("/api/models/select")
         .set("X-Tenant-ID", TENANT)
         .send({ primaryModel: "made-up-model:foo" });
+      assert.equal(bad.status, 400);
+      assert.equal(bad.body.success, false);
+      assert.equal(bad.body.error.code, "INVALID_MODEL");
+    },
+  },
+  {
+    name: "POST /api/models/select rejects a vision-role id as primary",
+    run: async () => {
+      // Role gating: even though vision models exist in both the curated
+      // catalogue (moondream:v2) and the library (llava:7b/13b), they
+      // must not be selectable as the primary — vision is bundled and
+      // managed by the lifecycle controller, not by the user picker.
+      // Locks the role-check that survives the broader catalogue+library
+      // lookup added in round-5.
+      const bad = await request(app)
+        .post("/api/models/select")
+        .set("X-Tenant-ID", TENANT)
+        .send({ primaryModel: "llava:7b" });
       assert.equal(bad.status, 400);
       assert.equal(bad.body.success, false);
       assert.equal(bad.body.error.code, "INVALID_MODEL");
