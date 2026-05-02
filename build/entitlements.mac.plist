@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  macOS entitlements for Omninity Operator.
+
+  These are the *bare minimum* set required for Desktop Control + Voice +
+  local model runtime. Hardened runtime (mandatory for notarization) blocks
+  most of these by default; each entitlement re-opens exactly one capability:
+
+    - `com.apple.security.cs.allow-jit`               JIT for the local LLM runtime
+    - `com.apple.security.cs.allow-unsigned-executable-memory`
+                                                       JIT-compiled inference kernels
+    - `com.apple.security.cs.disable-library-validation`
+                                                       Loading the bundled SQLite + ggml binaries
+    - `com.apple.security.device.audio-input`         Microphone (Voice Interface)
+    - `com.apple.security.device.camera`              Camera (skill-opt-in only)
+    - `com.apple.security.network.client`             Outbound HTTPS (model downloads, integrations)
+    - `com.apple.security.network.server`             Loopback :PORT for the local API
+    - `com.apple.security.files.user-selected.read-write`
+                                                       Files the user explicitly drags in
+    - `com.apple.security.files.downloads.read-write`
+                                                       Save generated artefacts
+    - `com.apple.security.automation.apple-events`    Apple Events for Desktop Control
+    - `com.apple.security.personal-information.location`  False — never requested
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.device.camera</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.security.network.server</key>
+    <true/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <key>com.apple.security.files.downloads.read-write</key>
+    <true/>
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+</dict>
+</plist>

@@ -1,0 +1,114 @@
+appId: com.omninity.operator
+productName: Omninity Operator
+copyright: Copyright © Omninity
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+directories:
+  buildResources: build
+  output: dist/release
+
+files:
+  - "artifacts/api-server/dist/**/*"
+  - "artifacts/omninity-website/dist/**/*"
+  - "package.json"
+
+asar: true
+asarUnpack:
+  - "**/node_modules/better-sqlite3/**"
+
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  darkModeSupport: true
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  identity: ${env.APPLE_DEVELOPER_ID_APPLICATION}
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSCameraUsageDescription: >
+      Omninity Operator uses the camera only when a Skill you run explicitly
+      requests it (for example, taking a profile photo).
+    NSMicrophoneUsageDescription: >
+      Omninity Operator uses the microphone for the Voice Interface so you can
+      talk to your local AI hands-free.
+    NSScreenCaptureUsageDescription: >
+      Omninity Operator captures the screen during Desktop Control so it can
+      "look" at the UI before clicking. Capture is local-only and never leaves
+      your machine.
+    NSAppleEventsUsageDescription: >
+      Omninity Operator sends Apple Events to drive other apps when you
+      approve a Desktop Control step.
+    NSAccessibilityUsageDescription: >
+      Omninity Operator uses Accessibility to move the mouse and type on your
+      behalf for Desktop Control steps you approve.
+    NSDocumentsFolderUsageDescription: >
+      Omninity Operator reads files in Documents only when you explicitly add
+      them to your knowledge base or Skill workspace.
+    NSDownloadsFolderUsageDescription: >
+      Omninity Operator can save generated artefacts to Downloads when you
+      ask it to.
+    NSDesktopFolderUsageDescription: >
+      Omninity Operator can read or save files on your Desktop only when you
+      explicitly approve it.
+    LSMinimumSystemVersion: "11.0"
+    ITSAppUsesNonExemptEncryption: false
+
+# Notarization is performed via the dedicated `notarize` afterSign hook so
+# we have a single place to swap notarytool for an alternative tool. The
+# hook is configured in `package.json` -> `build.afterSign`.
+afterSign: build/notarize.cjs
+
+dmg:
+  sign: true
+  writeUpdateInfo: true
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+  publisherName: Omninity, Inc.
+  # EV (Extended Validation) signing — see build/sign-windows.ps1.
+  # The certificate lives in a hardware token; signtool reads it via the
+  # Windows certificate store. SHA-256 dual-signed for reputation transfer.
+  signingHashAlgorithms:
+    - sha256
+  signDlls: true
+  rfc3161TimeStampServer: http://timestamp.digicert.com
+  # `sign` points at the in-tree script so the EV USB token PIN can be
+  # injected from the CI secret manager (never written to disk).
+  sign: build/sign-windows.cjs
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  shortcutName: Omninity Operator
+  uninstallDisplayName: Omninity Operator (${version})
+  artifactName: ${productName}-${version}-Setup.${ext}
+  # Required so SmartScreen records the publisher reputation against the
+  # signed installer rather than each per-file payload.
+  differentialPackage: true
+
+publish:
+  provider: generic
+  url: https://releases.omninity.example/${os}/${channel}
+  channel: stable
+  publishAutoUpdate: true
+
+releaseInfo:
+  releaseNotesFile: build/release-notes.md

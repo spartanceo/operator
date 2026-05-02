@@ -7068,3 +7068,220 @@ export const GetTelemetrySummaryResponse = zod.object({
     generatedAt: zod.coerce.date(),
   }),
 });
+
+/**
+ * Returns the signing + notarization status of the running desktop
+binary. Defaults are read from `OMNINITY_BUILD_*` env vars; the
+desktop shell can override per-tenant via `POST /distribution/build`.
+
+ * @summary Current build attestation (signing, notarization, checksum)
+ */
+export const GetDistributionBuildHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetDistributionBuildResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    platform: zod.enum(["darwin", "win32", "linux", "unknown"]),
+    arch: zod.string(),
+    version: zod.string(),
+    channel: zod.enum(["stable", "beta", "canary", "dev"]),
+    builtAt: zod.string().nullish(),
+    signed: zod.boolean(),
+    certificateSubject: zod.string().nullish(),
+    certificateThumbprint: zod.string().nullish(),
+    hardenedRuntime: zod.boolean(),
+    notarized: zod.boolean(),
+    notarizationTicket: zod.string().nullish(),
+    stapled: zod.boolean(),
+    sha256: zod.string().nullish(),
+    privacyManifest: zod.boolean(),
+    compliant: zod.boolean(),
+    checks: zod.array(
+      zod.object({
+        id: zod.string(),
+        label: zod.string(),
+        passed: zod.boolean(),
+        detail: zod.string().optional(),
+      }),
+    ),
+    reportedAt: zod.coerce.date(),
+    source: zod.enum(["env", "shell"]),
+  }),
+});
+
+/**
+ * @summary Desktop shell reports its installed build attestation
+ */
+export const ReportDistributionBuildHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ReportDistributionBuildBody = zod.object({
+  platform: zod.enum(["darwin", "win32", "linux", "unknown"]).optional(),
+  arch: zod.string().optional(),
+  version: zod.string().optional(),
+  channel: zod.enum(["stable", "beta", "canary", "dev"]).optional(),
+  builtAt: zod.string().nullish(),
+  signed: zod.boolean().optional(),
+  certificateSubject: zod.string().nullish(),
+  certificateThumbprint: zod.string().nullish(),
+  hardenedRuntime: zod.boolean().optional(),
+  notarized: zod.boolean().optional(),
+  notarizationTicket: zod.string().nullish(),
+  stapled: zod.boolean().optional(),
+  sha256: zod.string().nullish(),
+  privacyManifest: zod.boolean().optional(),
+});
+
+export const ReportDistributionBuildResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    platform: zod.enum(["darwin", "win32", "linux", "unknown"]),
+    arch: zod.string(),
+    version: zod.string(),
+    channel: zod.enum(["stable", "beta", "canary", "dev"]),
+    builtAt: zod.string().nullish(),
+    signed: zod.boolean(),
+    certificateSubject: zod.string().nullish(),
+    certificateThumbprint: zod.string().nullish(),
+    hardenedRuntime: zod.boolean(),
+    notarized: zod.boolean(),
+    notarizationTicket: zod.string().nullish(),
+    stapled: zod.boolean(),
+    sha256: zod.string().nullish(),
+    privacyManifest: zod.boolean(),
+    compliant: zod.boolean(),
+    checks: zod.array(
+      zod.object({
+        id: zod.string(),
+        label: zod.string(),
+        passed: zod.boolean(),
+        detail: zod.string().optional(),
+      }),
+    ),
+    reportedAt: zod.coerce.date(),
+    source: zod.enum(["env", "shell"]),
+  }),
+});
+
+/**
+ * @summary OS permissions required by Desktop Control + Voice
+ */
+export const ListDistributionPermissionsQueryParams = zod.object({
+  platform: zod.enum(["darwin", "win32", "linux", "unknown"]).optional(),
+});
+
+export const ListDistributionPermissionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListDistributionPermissionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    platform: zod.enum(["darwin", "win32", "linux", "unknown"]),
+    permissions: zod.array(
+      zod.object({
+        id: zod.enum([
+          "screen_recording",
+          "accessibility",
+          "microphone",
+          "camera",
+          "screen_capture",
+          "automation",
+        ]),
+        label: zod.string(),
+        rationale: zod.string(),
+        feature: zod.string(),
+        systemSettingsDeeplink: zod.string().nullish(),
+        instructions: zod.array(zod.string()),
+        status: zod.enum([
+          "granted",
+          "denied",
+          "not_determined",
+          "restricted",
+          "unsupported",
+          "unknown",
+        ]),
+        reportedAt: zod.coerce.date(),
+        featureEnabled: zod.boolean(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Desktop shell reports the OS verdict for a permission
+ */
+export const ReportDistributionPermissionParams = zod.object({
+  id: zod.enum([
+    "screen_recording",
+    "accessibility",
+    "microphone",
+    "camera",
+    "screen_capture",
+    "automation",
+  ]),
+});
+
+export const ReportDistributionPermissionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ReportDistributionPermissionBody = zod.object({
+  status: zod.enum([
+    "granted",
+    "denied",
+    "not_determined",
+    "restricted",
+    "unsupported",
+    "unknown",
+  ]),
+  platform: zod.enum(["darwin", "win32", "linux", "unknown"]).optional(),
+});
+
+export const ReportDistributionPermissionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.enum([
+      "screen_recording",
+      "accessibility",
+      "microphone",
+      "camera",
+      "screen_capture",
+      "automation",
+    ]),
+    label: zod.string(),
+    rationale: zod.string(),
+    feature: zod.string(),
+    systemSettingsDeeplink: zod.string().nullish(),
+    instructions: zod.array(zod.string()),
+    status: zod.enum([
+      "granted",
+      "denied",
+      "not_determined",
+      "restricted",
+      "unsupported",
+      "unknown",
+    ]),
+    reportedAt: zod.coerce.date(),
+    featureEnabled: zod.boolean(),
+  }),
+});

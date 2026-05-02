@@ -50,6 +50,8 @@ import type {
   BrowserActionResponse,
   BrowserExtractRequest,
   BrowserScreenshotRequest,
+  BuildAttestationReportRequest,
+  BuildAttestationResponse,
   CalendarEventDeleteResponse,
   CalendarEventListResponse,
   CalendarEventResponse,
@@ -136,6 +138,7 @@ import type {
   ListCrashReportsParams,
   ListDesktopSessionStepsParams,
   ListDesktopSessionsParams,
+  ListDistributionPermissionsParams,
   ListEmailDraftsParams,
   ListEmailMessagesParams,
   ListFilesParams,
@@ -212,6 +215,9 @@ import type {
   OutreachSequenceListResponse,
   OutreachSequenceResponse,
   OutreachSequenceStatusRequest,
+  PermissionListResponse,
+  PermissionReportRequest,
+  PermissionViewResponse,
   PlaceVoipCallRequest,
   PrivacyEventListResponse,
   PrivacyEventResponse,
@@ -15702,3 +15708,432 @@ export function useGetTelemetrySummary<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Returns the signing + notarization status of the running desktop
+binary. Defaults are read from `OMNINITY_BUILD_*` env vars; the
+desktop shell can override per-tenant via `POST /distribution/build`.
+
+ * @summary Current build attestation (signing, notarization, checksum)
+ */
+export const getGetDistributionBuildUrl = () => {
+  return `/api/distribution/build`;
+};
+
+export const getDistributionBuild = async (
+  options?: RequestInit,
+): Promise<BuildAttestationResponse> => {
+  return customFetch<BuildAttestationResponse>(getGetDistributionBuildUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDistributionBuildQueryKey = () => {
+  return [`/api/distribution/build`] as const;
+};
+
+export const getGetDistributionBuildQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDistributionBuild>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDistributionBuild>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDistributionBuildQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDistributionBuild>>
+  > = ({ signal }) => getDistributionBuild({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDistributionBuild>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDistributionBuildQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDistributionBuild>>
+>;
+export type GetDistributionBuildQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Current build attestation (signing, notarization, checksum)
+ */
+
+export function useGetDistributionBuild<
+  TData = Awaited<ReturnType<typeof getDistributionBuild>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDistributionBuild>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDistributionBuildQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Desktop shell reports its installed build attestation
+ */
+export const getReportDistributionBuildUrl = () => {
+  return `/api/distribution/build`;
+};
+
+export const reportDistributionBuild = async (
+  buildAttestationReportRequest: BuildAttestationReportRequest,
+  options?: RequestInit,
+): Promise<BuildAttestationResponse> => {
+  return customFetch<BuildAttestationResponse>(
+    getReportDistributionBuildUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(buildAttestationReportRequest),
+    },
+  );
+};
+
+export const getReportDistributionBuildMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportDistributionBuild>>,
+    TError,
+    { data: BodyType<BuildAttestationReportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reportDistributionBuild>>,
+  TError,
+  { data: BodyType<BuildAttestationReportRequest> },
+  TContext
+> => {
+  const mutationKey = ["reportDistributionBuild"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reportDistributionBuild>>,
+    { data: BodyType<BuildAttestationReportRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return reportDistributionBuild(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReportDistributionBuildMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reportDistributionBuild>>
+>;
+export type ReportDistributionBuildMutationBody =
+  BodyType<BuildAttestationReportRequest>;
+export type ReportDistributionBuildMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Desktop shell reports its installed build attestation
+ */
+export const useReportDistributionBuild = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportDistributionBuild>>,
+    TError,
+    { data: BodyType<BuildAttestationReportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reportDistributionBuild>>,
+  TError,
+  { data: BodyType<BuildAttestationReportRequest> },
+  TContext
+> => {
+  return useMutation(getReportDistributionBuildMutationOptions(options));
+};
+
+/**
+ * @summary OS permissions required by Desktop Control + Voice
+ */
+export const getListDistributionPermissionsUrl = (
+  params?: ListDistributionPermissionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/distribution/permissions?${stringifiedParams}`
+    : `/api/distribution/permissions`;
+};
+
+export const listDistributionPermissions = async (
+  params?: ListDistributionPermissionsParams,
+  options?: RequestInit,
+): Promise<PermissionListResponse> => {
+  return customFetch<PermissionListResponse>(
+    getListDistributionPermissionsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDistributionPermissionsQueryKey = (
+  params?: ListDistributionPermissionsParams,
+) => {
+  return [
+    `/api/distribution/permissions`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListDistributionPermissionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDistributionPermissions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDistributionPermissionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDistributionPermissions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDistributionPermissionsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDistributionPermissions>>
+  > = ({ signal }) =>
+    listDistributionPermissions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDistributionPermissions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDistributionPermissionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDistributionPermissions>>
+>;
+export type ListDistributionPermissionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary OS permissions required by Desktop Control + Voice
+ */
+
+export function useListDistributionPermissions<
+  TData = Awaited<ReturnType<typeof listDistributionPermissions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDistributionPermissionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDistributionPermissions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDistributionPermissionsQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Desktop shell reports the OS verdict for a permission
+ */
+export const getReportDistributionPermissionUrl = (
+  id:
+    | "screen_recording"
+    | "accessibility"
+    | "microphone"
+    | "camera"
+    | "screen_capture"
+    | "automation",
+) => {
+  return `/api/distribution/permissions/${id}`;
+};
+
+export const reportDistributionPermission = async (
+  id:
+    | "screen_recording"
+    | "accessibility"
+    | "microphone"
+    | "camera"
+    | "screen_capture"
+    | "automation",
+  permissionReportRequest: PermissionReportRequest,
+  options?: RequestInit,
+): Promise<PermissionViewResponse> => {
+  return customFetch<PermissionViewResponse>(
+    getReportDistributionPermissionUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(permissionReportRequest),
+    },
+  );
+};
+
+export const getReportDistributionPermissionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportDistributionPermission>>,
+    TError,
+    {
+      id:
+        | "screen_recording"
+        | "accessibility"
+        | "microphone"
+        | "camera"
+        | "screen_capture"
+        | "automation";
+      data: BodyType<PermissionReportRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reportDistributionPermission>>,
+  TError,
+  {
+    id:
+      | "screen_recording"
+      | "accessibility"
+      | "microphone"
+      | "camera"
+      | "screen_capture"
+      | "automation";
+    data: BodyType<PermissionReportRequest>;
+  },
+  TContext
+> => {
+  const mutationKey = ["reportDistributionPermission"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reportDistributionPermission>>,
+    {
+      id:
+        | "screen_recording"
+        | "accessibility"
+        | "microphone"
+        | "camera"
+        | "screen_capture"
+        | "automation";
+      data: BodyType<PermissionReportRequest>;
+    }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return reportDistributionPermission(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReportDistributionPermissionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reportDistributionPermission>>
+>;
+export type ReportDistributionPermissionMutationBody =
+  BodyType<PermissionReportRequest>;
+export type ReportDistributionPermissionMutationError =
+  ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Desktop shell reports the OS verdict for a permission
+ */
+export const useReportDistributionPermission = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportDistributionPermission>>,
+    TError,
+    {
+      id:
+        | "screen_recording"
+        | "accessibility"
+        | "microphone"
+        | "camera"
+        | "screen_capture"
+        | "automation";
+      data: BodyType<PermissionReportRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reportDistributionPermission>>,
+  TError,
+  {
+    id:
+      | "screen_recording"
+      | "accessibility"
+      | "microphone"
+      | "camera"
+      | "screen_capture"
+      | "automation";
+    data: BodyType<PermissionReportRequest>;
+  },
+  TContext
+> => {
+  return useMutation(getReportDistributionPermissionMutationOptions(options));
+};

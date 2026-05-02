@@ -2594,6 +2594,184 @@ const cases: TestCase[] = [
       assert.equal(t?.status, "erased");
     },
   },
+  // ─── Distribution & code-signing (Task #27) ──────────────────────────────
+  {
+    name: "distribution: build attestation defaults to env-derived non-compliant",
+    run: async () => {
+      const { __resetDistributionForTests } = await import(
+        "./services/distribution.service"
+      );
+      __resetDistributionForTests();
+      const res = await request(app)
+        .get("/api/distribution/build")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.data.source, "env");
+      // Test env never sets OMNINITY_BUILD_*, so compliance must be false
+      // and at least one check must fail.
+      assert.equal(res.body.data.compliant, false);
+      assert.ok(Array.isArray(res.body.data.checks));
+      assert.ok(res.body.data.checks.some((c: { passed: boolean }) => !c.passed));
+    },
+  },
+  {
+    name: "distribution: shell can report a fully-compliant mac build",
+    run: async () => {
+      const { __resetDistributionForTests } = await import(
+        "./services/distribution.service"
+      );
+      __resetDistributionForTests();
+      const post = await request(app)
+        .post("/api/distribution/build")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          platform: "darwin",
+          arch: "arm64",
+          version: "1.2.3",
+          channel: "stable",
+          signed: true,
+          certificateSubject: "Developer ID Application: Omninity, Inc. (TEAMID1234)",
+          hardenedRuntime: true,
+          notarized: true,
+          notarizationTicket: "ticket-abc",
+          stapled: true,
+          privacyManifest: true,
+          sha256: "a".repeat(64),
+        });
+      assert.equal(post.status, 200);
+      assert.equal(post.body.data.compliant, true);
+      assert.equal(post.body.data.source, "shell");
+      const get = await request(app)
+        .get("/api/distribution/build")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(get.body.data.compliant, true);
+      assert.equal(get.body.data.platform, "darwin");
+      assert.equal(get.body.data.version, "1.2.3");
+    },
+  },
+  {
+    name: "distribution: build attestation rejects malformed sha256",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/distribution/build")
+        .set("X-Tenant-ID", TENANT)
+        .send({ platform: "darwin", sha256: "not-hex" });
+      assert.equal(res.status, 400);
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.error.code, "VALIDATION");
+    },
+  },
+  {
+    name: "distribution: build attestation is tenant-isolated",
+    run: async () => {
+      const { __resetDistributionForTests } = await import(
+        "./services/distribution.service"
+      );
+      __resetDistributionForTests();
+      await request(app)
+        .post("/api/distribution/build")
+        .set("X-Tenant-ID", TENANT)
+        .send({ platform: "darwin", version: "9.9.9" });
+      const other = await request(app)
+        .get("/api/distribution/build")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.notEqual(other.body.data.version, "9.9.9");
+      assert.equal(other.body.data.source, "env");
+    },
+  },
+  {
+    name: "distribution: list mac permissions includes screen recording + accessibility",
+    run: async () => {
+      const { __resetDistributionForTests } = await import(
+        "./services/distribution.service"
+      );
+      __resetDistributionForTests();
+      const res = await request(app)
+        .get("/api/distribution/permissions?platform=darwin")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.platform, "darwin");
+      const ids = res.body.data.permissions.map((p: { id: string }) => p.id);
+      assert.ok(ids.includes("screen_recording"));
+      assert.ok(ids.includes("accessibility"));
+      assert.ok(ids.includes("microphone"));
+      // Defaults: status `unknown`, featureEnabled false.
+      const sr = res.body.data.permissions.find(
+        (p: { id: string }) => p.id === "screen_recording",
+      );
+      assert.equal(sr.status, "unknown");
+      assert.equal(sr.featureEnabled, false);
+      assert.ok(Array.isArray(sr.instructions) && sr.instructions.length > 0);
+      assert.ok(sr.systemSettingsDeeplink && sr.systemSettingsDeeplink.startsWith("x-apple"));
+    },
+  },
+  {
+    name: "distribution: list windows permissions returns screen_capture not screen_recording",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/distribution/permissions?platform=win32")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      const ids = res.body.data.permissions.map((p: { id: string }) => p.id);
+      assert.ok(ids.includes("screen_capture"));
+      assert.ok(ids.includes("microphone"));
+      assert.ok(!ids.includes("screen_recording"));
+    },
+  },
+  {
+    name: "distribution: report permission status flips featureEnabled",
+    run: async () => {
+      const { __resetDistributionForTests, isFeatureGranted } = await import(
+        "./services/distribution.service"
+      );
+      __resetDistributionForTests();
+      const grant = await request(app)
+        .post("/api/distribution/permissions/microphone")
+        .set("X-Tenant-ID", TENANT)
+        .send({ status: "granted", platform: "darwin" });
+      assert.equal(grant.status, 200);
+      assert.equal(grant.body.data.status, "granted");
+      assert.equal(grant.body.data.featureEnabled, true);
+      assert.equal(isFeatureGranted(TENANT, "Voice Interface"), true);
+      const deny = await request(app)
+        .post("/api/distribution/permissions/microphone")
+        .set("X-Tenant-ID", TENANT)
+        .send({ status: "denied", platform: "darwin" });
+      assert.equal(deny.body.data.featureEnabled, false);
+      assert.equal(isFeatureGranted(TENANT, "Voice Interface"), false);
+    },
+  },
+  {
+    name: "distribution: unknown permission id returns 400 validation",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/distribution/permissions/wifi")
+        .set("X-Tenant-ID", TENANT)
+        .send({ status: "granted" });
+      assert.equal(res.status, 400);
+      assert.equal(res.body.error.code, "VALIDATION");
+    },
+  },
+  {
+    name: "distribution: invalid status payload returns 400",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/distribution/permissions/microphone")
+        .set("X-Tenant-ID", TENANT)
+        .send({ status: "ok-i-guess" });
+      assert.equal(res.status, 400);
+      assert.equal(res.body.error.code, "VALIDATION");
+    },
+  },
+  {
+    name: "distribution: requires X-Tenant-ID header",
+    run: async () => {
+      const res = await request(app).get("/api/distribution/build");
+      assert.equal(res.status, 401);
+      assert.equal(res.body.error.code, "UNAUTHENTICATED");
+    },
+  },
   {
     name: "30-day security report aggregates events",
     run: async () => {

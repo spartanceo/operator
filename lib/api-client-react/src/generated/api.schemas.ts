@@ -3232,6 +3232,192 @@ export interface TelemetrySummaryResponse {
   data: TelemetrySummary;
 }
 
+export interface BuildCheck {
+  id: string;
+  label: string;
+  passed: boolean;
+  detail?: string;
+}
+
+export type BuildAttestationPlatform =
+  (typeof BuildAttestationPlatform)[keyof typeof BuildAttestationPlatform];
+
+export const BuildAttestationPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+  unknown: "unknown",
+} as const;
+
+export type BuildAttestationChannel =
+  (typeof BuildAttestationChannel)[keyof typeof BuildAttestationChannel];
+
+export const BuildAttestationChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type BuildAttestationSource =
+  (typeof BuildAttestationSource)[keyof typeof BuildAttestationSource];
+
+export const BuildAttestationSource = {
+  env: "env",
+  shell: "shell",
+} as const;
+
+export interface BuildAttestation {
+  platform: BuildAttestationPlatform;
+  arch: string;
+  version: string;
+  channel: BuildAttestationChannel;
+  builtAt?: string | null;
+  signed: boolean;
+  certificateSubject?: string | null;
+  certificateThumbprint?: string | null;
+  hardenedRuntime: boolean;
+  notarized: boolean;
+  notarizationTicket?: string | null;
+  stapled: boolean;
+  sha256?: string | null;
+  privacyManifest: boolean;
+  compliant: boolean;
+  checks: BuildCheck[];
+  reportedAt: string;
+  source: BuildAttestationSource;
+}
+
+export interface BuildAttestationResponse {
+  success: boolean;
+  data: BuildAttestation;
+}
+
+export type BuildAttestationReportRequestPlatform =
+  (typeof BuildAttestationReportRequestPlatform)[keyof typeof BuildAttestationReportRequestPlatform];
+
+export const BuildAttestationReportRequestPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+  unknown: "unknown",
+} as const;
+
+export type BuildAttestationReportRequestChannel =
+  (typeof BuildAttestationReportRequestChannel)[keyof typeof BuildAttestationReportRequestChannel];
+
+export const BuildAttestationReportRequestChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export interface BuildAttestationReportRequest {
+  platform?: BuildAttestationReportRequestPlatform;
+  arch?: string;
+  version?: string;
+  channel?: BuildAttestationReportRequestChannel;
+  builtAt?: string | null;
+  signed?: boolean;
+  certificateSubject?: string | null;
+  certificateThumbprint?: string | null;
+  hardenedRuntime?: boolean;
+  notarized?: boolean;
+  notarizationTicket?: string | null;
+  stapled?: boolean;
+  sha256?: string | null;
+  privacyManifest?: boolean;
+}
+
+export type PermissionViewId =
+  (typeof PermissionViewId)[keyof typeof PermissionViewId];
+
+export const PermissionViewId = {
+  screen_recording: "screen_recording",
+  accessibility: "accessibility",
+  microphone: "microphone",
+  camera: "camera",
+  screen_capture: "screen_capture",
+  automation: "automation",
+} as const;
+
+export type PermissionViewStatus =
+  (typeof PermissionViewStatus)[keyof typeof PermissionViewStatus];
+
+export const PermissionViewStatus = {
+  granted: "granted",
+  denied: "denied",
+  not_determined: "not_determined",
+  restricted: "restricted",
+  unsupported: "unsupported",
+  unknown: "unknown",
+} as const;
+
+export interface PermissionView {
+  id: PermissionViewId;
+  label: string;
+  rationale: string;
+  feature: string;
+  systemSettingsDeeplink?: string | null;
+  instructions: string[];
+  status: PermissionViewStatus;
+  reportedAt: string;
+  featureEnabled: boolean;
+}
+
+export type PermissionListPlatform =
+  (typeof PermissionListPlatform)[keyof typeof PermissionListPlatform];
+
+export const PermissionListPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+  unknown: "unknown",
+} as const;
+
+export interface PermissionList {
+  platform: PermissionListPlatform;
+  permissions: PermissionView[];
+}
+
+export interface PermissionListResponse {
+  success: boolean;
+  data: PermissionList;
+}
+
+export type PermissionReportRequestStatus =
+  (typeof PermissionReportRequestStatus)[keyof typeof PermissionReportRequestStatus];
+
+export const PermissionReportRequestStatus = {
+  granted: "granted",
+  denied: "denied",
+  not_determined: "not_determined",
+  restricted: "restricted",
+  unsupported: "unsupported",
+  unknown: "unknown",
+} as const;
+
+export type PermissionReportRequestPlatform =
+  (typeof PermissionReportRequestPlatform)[keyof typeof PermissionReportRequestPlatform];
+
+export const PermissionReportRequestPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+  unknown: "unknown",
+} as const;
+
+export interface PermissionReportRequest {
+  status: PermissionReportRequestStatus;
+  platform?: PermissionReportRequestPlatform;
+}
+
+export interface PermissionViewResponse {
+  success: boolean;
+  data: PermissionView;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -3810,3 +3996,17 @@ export type ListCrashReportsParams = {
    */
   limit?: LimitParamParameter;
 };
+
+export type ListDistributionPermissionsParams = {
+  platform?: ListDistributionPermissionsPlatform;
+};
+
+export type ListDistributionPermissionsPlatform =
+  (typeof ListDistributionPermissionsPlatform)[keyof typeof ListDistributionPermissionsPlatform];
+
+export const ListDistributionPermissionsPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+  unknown: "unknown",
+} as const;

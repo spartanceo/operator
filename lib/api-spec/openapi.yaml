@@ -54,6 +54,8 @@ tags:
     description: Mobile Companion PWA — pairing, devices, push notifications, mobile dashboard
   - name: telemetry
     description: Opt-in analytics, performance metrics, crash reports, and the per-tenant dashboard
+  - name: distribution
+    description: Platform distribution — code-signing attestation and OS permission flows
 paths:
   /healthz:
     get:
@@ -3850,6 +3852,117 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TelemetrySummaryResponse"
+  /distribution/build:
+    get:
+      operationId: getDistributionBuild
+      tags:
+        - distribution
+      summary: Current build attestation (signing, notarization, checksum)
+      description: |
+        Returns the signing + notarization status of the running desktop
+        binary. Defaults are read from `OMNINITY_BUILD_*` env vars; the
+        desktop shell can override per-tenant via `POST /distribution/build`.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Build attestation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildAttestationResponse"
+    post:
+      operationId: reportDistributionBuild
+      tags:
+        - distribution
+      summary: Desktop shell reports its installed build attestation
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuildAttestationReportRequest"
+      responses:
+        "200":
+          description: Updated build attestation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildAttestationResponse"
+        "400":
+          description: Invalid attestation payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /distribution/permissions:
+    get:
+      operationId: listDistributionPermissions
+      tags:
+        - distribution
+      summary: OS permissions required by Desktop Control + Voice
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: platform
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [darwin, win32, linux, unknown]
+      responses:
+        "200":
+          description: Permission list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionListResponse"
+  /distribution/permissions/{id}:
+    post:
+      operationId: reportDistributionPermission
+      tags:
+        - distribution
+      summary: Desktop shell reports the OS verdict for a permission
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - screen_recording
+              - accessibility
+              - microphone
+              - camera
+              - screen_capture
+              - automation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionReportRequest"
+      responses:
+        "200":
+          description: Permission state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionViewResponse"
+        "400":
+          description: Invalid status payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Permission not supported on this platform
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
 components:
   parameters:
     TenantHeader:
@@ -10052,3 +10165,234 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/TelemetrySummary"
+    BuildCheck:
+      type: object
+      required:
+        - id
+        - label
+        - passed
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        passed:
+          type: boolean
+        detail:
+          type: string
+    BuildAttestation:
+      type: object
+      required:
+        - platform
+        - arch
+        - version
+        - channel
+        - signed
+        - hardenedRuntime
+        - notarized
+        - stapled
+        - privacyManifest
+        - compliant
+        - checks
+        - reportedAt
+        - source
+      properties:
+        platform:
+          type: string
+          enum: [darwin, win32, linux, unknown]
+        arch:
+          type: string
+        version:
+          type: string
+        channel:
+          type: string
+          enum: [stable, beta, canary, dev]
+        builtAt:
+          type: string
+          nullable: true
+        signed:
+          type: boolean
+        certificateSubject:
+          type: string
+          nullable: true
+        certificateThumbprint:
+          type: string
+          nullable: true
+        hardenedRuntime:
+          type: boolean
+        notarized:
+          type: boolean
+        notarizationTicket:
+          type: string
+          nullable: true
+        stapled:
+          type: boolean
+        sha256:
+          type: string
+          nullable: true
+        privacyManifest:
+          type: boolean
+        compliant:
+          type: boolean
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/BuildCheck"
+        reportedAt:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum: [env, shell]
+    BuildAttestationResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/BuildAttestation"
+    BuildAttestationReportRequest:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [darwin, win32, linux, unknown]
+        arch:
+          type: string
+        version:
+          type: string
+        channel:
+          type: string
+          enum: [stable, beta, canary, dev]
+        builtAt:
+          type: string
+          nullable: true
+        signed:
+          type: boolean
+        certificateSubject:
+          type: string
+          nullable: true
+        certificateThumbprint:
+          type: string
+          nullable: true
+        hardenedRuntime:
+          type: boolean
+        notarized:
+          type: boolean
+        notarizationTicket:
+          type: string
+          nullable: true
+        stapled:
+          type: boolean
+        sha256:
+          type: string
+          nullable: true
+        privacyManifest:
+          type: boolean
+    PermissionView:
+      type: object
+      required:
+        - id
+        - label
+        - rationale
+        - feature
+        - instructions
+        - status
+        - reportedAt
+        - featureEnabled
+      properties:
+        id:
+          type: string
+          enum:
+            - screen_recording
+            - accessibility
+            - microphone
+            - camera
+            - screen_capture
+            - automation
+        label:
+          type: string
+        rationale:
+          type: string
+        feature:
+          type: string
+        systemSettingsDeeplink:
+          type: string
+          nullable: true
+        instructions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum:
+            - granted
+            - denied
+            - not_determined
+            - restricted
+            - unsupported
+            - unknown
+        reportedAt:
+          type: string
+          format: date-time
+        featureEnabled:
+          type: boolean
+    PermissionList:
+      type: object
+      required:
+        - platform
+        - permissions
+      properties:
+        platform:
+          type: string
+          enum: [darwin, win32, linux, unknown]
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionView"
+    PermissionListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/PermissionList"
+    PermissionReportRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - granted
+            - denied
+            - not_determined
+            - restricted
+            - unsupported
+            - unknown
+        platform:
+          type: string
+          enum: [darwin, win32, linux, unknown]
+    PermissionViewResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/PermissionView"
