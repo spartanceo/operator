@@ -30,6 +30,7 @@
  */
 import type { Database as SqliteDatabase } from "better-sqlite3";
 
+import { ensureHistoryTableForBackground } from "./migrate";
 import {
   BACKGROUND_MIGRATIONS,
   type BackgroundMigration,
@@ -65,6 +66,11 @@ export class BackgroundMigrationRunner {
   ) {
     this.sqlite = sqlite;
     this.migrations = migrations;
+    // Make sure the history table exists with the composite (id, kind)
+    // primary key BEFORE we ever issue `INSERT OR REPLACE … kind='data'`.
+    // Without this, a runner instantiated against a legacy DB (single-col
+    // PK on id) could clobber a schema row of the same id.
+    ensureHistoryTableForBackground(sqlite);
   }
 
   status(): BackgroundJobStatus {

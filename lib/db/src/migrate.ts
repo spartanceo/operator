@@ -110,8 +110,65 @@ function checksum(sql: string): string {
   return createHash("sha256").update(normalised).digest("hex");
 }
 
+/**
+ * Ensure the `schema_migrations` table exists AND has the composite
+ * primary key `(id, kind)`. Earlier in-flight builds of this framework
+ * shipped with a single-column `PRIMARY KEY (id)` shape; databases
+ * created against those builds must be upgraded in place, otherwise a
+ * `kind='data'` row could clobber a `kind='schema'` row of the same id
+ * via `INSERT OR REPLACE`.
+ *
+ * Detection uses `PRAGMA table_info`: SQLite reports a non-zero `pk`
+ * column for every column participating in the primary key. A single
+ * `pk=1` on `id` (and zero on `kind`) is the legacy shape; we rebuild
+ * by copy + drop + rename inside one transaction.
+ */
+/**
+ * Public alias for use by `BackgroundMigrationRunner`. Kept as a named
+ * export rather than exposing `ensureHistoryTable` directly so the
+ * intent ("the background runner needs to repair the table too") is
+ * obvious at the callsite.
+ */
+export function ensureHistoryTableForBackground(sqlite: SqliteDatabase): void {
+  ensureHistoryTable(sqlite);
+}
+
 function ensureHistoryTable(sqlite: SqliteDatabase): void {
   sqlite.exec(HISTORY_DDL);
+  type ColInfo = { name: string; pk: number };
+  const cols = sqlite
+    .prepare(`PRAGMA table_info('schema_migrations')`)
+    .all() as ColInfo[];
+  if (cols.length === 0) return;
+  const pkCols = cols
+    .filter((c) => c.pk > 0)
+    .map((c) => c.name)
+    .sort();
+  const isComposite =
+    pkCols.length === 2 && pkCols[0] === "id" && pkCols[1] === "kind";
+  if (isComposite) return;
+  // Legacy single-column PK detected — rebuild the table.
+  const repair = sqlite.transaction(() => {
+    sqlite.exec(`
+      CREATE TABLE schema_migrations__new (
+        id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        kind TEXT NOT NULL DEFAULT 'schema',
+        checksum TEXT NOT NULL,
+        applied_at INTEGER NOT NULL,
+        duration_ms INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'applied',
+        PRIMARY KEY (id, kind)
+      );
+      INSERT INTO schema_migrations__new
+        (id, name, kind, checksum, applied_at, duration_ms, status)
+      SELECT id, name, kind, checksum, applied_at, duration_ms, status
+      FROM schema_migrations;
+      DROP TABLE schema_migrations;
+      ALTER TABLE schema_migrations__new RENAME TO schema_migrations;
+    `);
+  });
+  repair();
 }
 
 function readApplied(sqlite: SqliteDatabase): Map<number, AppliedMigrationRow> {

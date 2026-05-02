@@ -10,6 +10,7 @@
  * Run with `pnpm --filter @workspace/db run test`.
  */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -439,6 +440,91 @@ check("runMigrations ignores rows with kind='data' even when ids collide", () =>
   for (const row of status.applied) {
     assert.equal(row.kind, "schema");
   }
+  sqlite.close();
+});
+
+// ─── Legacy single-column PK is repaired in place on next run ───────────────
+check("ensureHistoryTable upgrades legacy single-column PK to composite", () => {
+  const sqlite = freshDb();
+  // Simulate a database created by an earlier in-flight build: history
+  // table with single-col PRIMARY KEY (id), seeded with one applied
+  // schema row matching baseline migration #1's checksum.
+  sqlite.exec(`CREATE TABLE schema_migrations (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'schema',
+    checksum TEXT NOT NULL,
+    applied_at INTEGER NOT NULL,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'applied'
+  )`);
+  // Apply the baseline DDL so the rest of the schema actually exists,
+  // then record it with the correct checksum so the schema runner
+  // treats it as already-applied (no checksum drift).
+  const baseline = SCHEMA_MIGRATIONS[0]!;
+  sqlite.exec(baseline.up);
+  const correctChecksum = createHash("sha256")
+    .update(baseline.up.replace(/\s+/g, " ").trim())
+    .digest("hex");
+  sqlite
+    .prepare(
+      `INSERT INTO schema_migrations (id, name, kind, checksum, applied_at, duration_ms, status)
+       VALUES (?, ?, 'schema', ?, ?, 0, 'applied')`,
+    )
+    .run(baseline.id, baseline.name, correctChecksum, Date.now());
+  // Sanity: legacy shape has only one PK column.
+  const legacyPk = (
+    sqlite.prepare(`PRAGMA table_info('schema_migrations')`).all() as Array<{
+      name: string;
+      pk: number;
+    }>
+  )
+    .filter((c) => c.pk > 0)
+    .map((c) => c.name);
+  assert.deepEqual(legacyPk, ["id"]);
+  // Run the migration framework — it must repair the table AND treat
+  // baseline as already-applied (skipped, not reapplied).
+  const result = runMigrations(sqlite);
+  assert.equal(result.success, true);
+  assert.equal(result.applied.length, 0);
+  assert.deepEqual(result.skipped, [baseline.id]);
+  // After repair, both id and kind must be PK columns.
+  const newPk = (
+    sqlite.prepare(`PRAGMA table_info('schema_migrations')`).all() as Array<{
+      name: string;
+      pk: number;
+    }>
+  )
+    .filter((c) => c.pk > 0)
+    .map((c) => c.name)
+    .sort();
+  assert.deepEqual(newPk, ["id", "kind"]);
+  // Inserting a colliding kind='data' row must NOT clobber the schema
+  // row (this is exactly the bug the upgrade prevents).
+  sqlite
+    .prepare(
+      `INSERT INTO schema_migrations (id, name, kind, checksum, applied_at, duration_ms, status)
+       VALUES (?, ?, 'data', 'POISONED', ?, 0, 'applied')`,
+    )
+    .run(baseline.id, "fake-data", Date.now());
+  const rows = sqlite
+    .prepare(
+      `SELECT id, name, kind, checksum FROM schema_migrations WHERE id = ? ORDER BY kind`,
+    )
+    .all(baseline.id) as Array<{
+    id: number;
+    name: string;
+    kind: string;
+    checksum: string;
+  }>;
+  assert.equal(rows.length, 2, "schema and data rows must coexist");
+  const schemaRow = rows.find((r) => r.kind === "schema");
+  const dataRow = rows.find((r) => r.kind === "data");
+  assert.ok(schemaRow);
+  assert.ok(dataRow);
+  assert.equal(schemaRow!.name, baseline.name);
+  assert.equal(schemaRow!.checksum, correctChecksum);
+  assert.equal(dataRow!.checksum, "POISONED");
   sqlite.close();
 });
 
