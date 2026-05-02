@@ -120,23 +120,29 @@ export class BackgroundMigrationRunner {
    */
   drainSync(): void {
     this.completed = this.readCompleted();
-    while (true) {
-      const next = this.pickNext();
-      if (!next) return;
-      this.current = next;
-      this.progress = next.init(this.sqlite);
+    try {
       while (true) {
-        const result = next.step(this.sqlite, this.progress!);
-        this.progress = result.progress;
-        if (result.done) {
-          this.recordComplete(next);
-          this.completed.push(next.id);
-          break;
+        const next = this.pickNext();
+        if (!next) return;
+        this.current = next;
+        this.progress = next.init(this.sqlite);
+        while (true) {
+          const result = next.step(this.sqlite, this.progress!);
+          this.progress = result.progress;
+          if (result.done) {
+            this.recordComplete(next);
+            this.completed.push(next.id);
+            break;
+          }
         }
       }
+    } finally {
+      // Always clear current/progress on exit (including the early
+      // `return` when there's nothing to drain) so a subsequent
+      // status() call doesn't report stale in-flight state.
+      this.current = null;
+      this.progress = null;
     }
-    this.current = null;
-    this.progress = null;
   }
 
   private scheduleNext(): void {

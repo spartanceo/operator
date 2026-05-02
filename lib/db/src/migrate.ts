@@ -26,7 +26,7 @@ import type { Database as SqliteDatabase } from "better-sqlite3";
 
 import { getRawSqlite } from "./index";
 import { SCHEMA_MIGRATIONS, type SchemaMigration } from "./migrations";
-import { setSafeMode } from "./safe-mode";
+import { clearSafeMode, setSafeMode } from "./safe-mode";
 
 /**
  * History table.
@@ -304,6 +304,11 @@ export function runMigrations(
     }
   }
 
+  // All schema migrations applied (or skipped) cleanly. Clear any stale
+  // safe-mode state from a previous failed boot — important for retry /
+  // long-lived process scenarios where the in-process flag survives
+  // across runMigrations calls.
+  clearSafeMode();
   return result;
 }
 
