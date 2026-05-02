@@ -17,6 +17,7 @@ export {
 } from "./catalogue";
 export { OLLAMA_LIBRARY } from "./library";
 export {
+  __clearAnalyticsMarkerForTests,
   isAnalyticsOptedIn,
   recordHardwareDetectionIfOptedIn,
   resetHardwareAnalyticsSinkForTests,
@@ -24,7 +25,7 @@ export {
   type HardwareAnalyticsEvent,
   type HardwareAnalyticsSink,
 } from "./analytics";
-export { detectHardware } from "./detector";
+export { detectHardware, probeGpu, type GpuInfo } from "./detector";
 export {
   __clearHardwareCacheMemoForTests,
   clearHardwareCache,

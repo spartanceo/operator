@@ -771,19 +771,24 @@ const cases: TestCase[] = [
     },
   },
   {
-    name: "hardware analytics: opt-in, single-shot per install",
+    name: "hardware analytics: opt-in, single-shot per install (survives redetect)",
     run: async () => {
       // Task #64 "Done looks like": "Hardware detection is logged once
       // on install for analytics (opt-in only, per the privacy rules)
       // and cached locally so subsequent launches don't re-probe."
-      // Verifies all three semantics: default-off, fires once on first
-      // detection, and never re-fires from disk-cache hydration.
+      // Verifies four semantics: default-off, fires once on first
+      // detection, never re-fires from disk-cache hydration, and never
+      // re-fires after a "Re-detect hardware" Settings action (which
+      // clearHardwareCache wipes the snapshot but the durable marker
+      // must survive).
       const fs = await import("node:fs");
       const {
         setHardwareAnalyticsSinkForTests,
         resetHardwareAnalyticsSinkForTests,
+        __clearAnalyticsMarkerForTests,
       } = await import("./services/hardware");
       const tmp = `/tmp/omninity-hw-analytics-${Date.now()}.json`;
+      const marker = tmp + ".analytics-emitted";
       const prevPath = process.env["OMNINITY_HARDWARE_CACHE_PATH"];
       const prevOpt = process.env["OMNINITY_ANALYTICS_OPT_IN"];
       process.env["OMNINITY_HARDWARE_CACHE_PATH"] = tmp;
@@ -798,6 +803,7 @@ const cases: TestCase[] = [
         // first-detection.
         delete process.env["OMNINITY_ANALYTICS_OPT_IN"];
         clearHardwareCache();
+        __clearAnalyticsMarkerForTests();
         if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
         getHardwareProfile();
         assert.equal(
@@ -805,11 +811,17 @@ const cases: TestCase[] = [
           0,
           "no analytics emission when OMNINITY_ANALYTICS_OPT_IN is unset",
         );
+        assert.equal(
+          fs.existsSync(marker),
+          false,
+          "marker must not be created when opt-in is off",
+        );
 
-        // (2) Opt-in ON + first detection (no snapshot present) → emit
-        // exactly once with the right shape.
+        // (2) Opt-in ON + first detection → emit exactly once and write
+        // the durable install marker.
         process.env["OMNINITY_ANALYTICS_OPT_IN"] = "true";
         clearHardwareCache();
+        __clearAnalyticsMarkerForTests();
         if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
         getHardwareProfile();
         assert.equal(events.length, 1, "first detection must emit");
@@ -817,6 +829,10 @@ const cases: TestCase[] = [
         assert.ok(
           ["low", "mid", "high", "pro"].includes(events[0]?.tier ?? ""),
           "event must include hardware tier",
+        );
+        assert.ok(
+          fs.existsSync(marker),
+          "install marker must be written after first emission",
         );
 
         // Same-process subsequent call hits the in-memory memo — must
@@ -828,9 +844,9 @@ const cases: TestCase[] = [
           "in-process cache hit must not re-emit",
         );
 
-        // (3) Simulated process restart: drop ONLY the in-memory memo so
-        // the next call re-hydrates from the on-disk snapshot. Single-
-        // shot semantics demand we still NOT emit again.
+        // (3) Simulated process restart: drop ONLY the in-memory memo
+        // so the next call re-hydrates from the on-disk snapshot.
+        // Single-shot semantics demand we still NOT emit again.
         __clearHardwareCacheMemoForTests();
         getHardwareProfile();
         assert.equal(
@@ -838,9 +854,31 @@ const cases: TestCase[] = [
           1,
           "re-hydration from disk must not re-emit (single-shot per install)",
         );
+
+        // (4) "Re-detect hardware" Settings action: clearHardwareCache
+        // wipes the snapshot, forcing a fresh detection — but the
+        // durable marker must keep us silent. This is the gap the
+        // round-7 fix closes.
+        clearHardwareCache();
+        assert.equal(
+          fs.existsSync(tmp),
+          false,
+          "clearHardwareCache must wipe the snapshot",
+        );
+        assert.ok(
+          fs.existsSync(marker),
+          "clearHardwareCache must NOT wipe the durable analytics marker",
+        );
+        getHardwareProfile();
+        assert.equal(
+          events.length,
+          1,
+          "redetect must not re-emit install-time analytics",
+        );
       } finally {
         resetHardwareAnalyticsSinkForTests();
         if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+        if (fs.existsSync(marker)) fs.unlinkSync(marker);
         if (prevPath === undefined) {
           delete process.env["OMNINITY_HARDWARE_CACHE_PATH"];
         } else {
@@ -850,6 +888,63 @@ const cases: TestCase[] = [
           delete process.env["OMNINITY_ANALYTICS_OPT_IN"];
         } else {
           process.env["OMNINITY_ANALYTICS_OPT_IN"] = prevOpt;
+        }
+        clearHardwareCache();
+      }
+    },
+  },
+  {
+    name: "hardware GPU probe: returns null or a well-formed GpuInfo",
+    run: async () => {
+      // The probe must never throw and must conform to the GpuInfo
+      // contract on success. We can't predict the host (CI may have no
+      // GPU at all, or a discrete NVIDIA, or Apple Silicon), so we
+      // assert structural invariants rather than a specific vendor.
+      // OMNINITY_HARDWARE_OVERRIDE pins the rest of the profile but
+      // probeGpu() reads `os.platform()` directly and is unaffected.
+      const { probeGpu } = await import("./services/hardware");
+      const gpu = probeGpu();
+      if (gpu === null) {
+        // Acceptable on hosts without lspci / a discrete GPU. Still a
+        // pass — null is the documented fallback.
+        return;
+      }
+      assert.equal(typeof gpu.vendor, "string", "vendor must be string");
+      assert.ok(gpu.vendor.length > 0, "vendor must be non-empty");
+      assert.equal(typeof gpu.kind, "string", "kind must be string");
+      assert.ok(gpu.kind.length > 0, "kind must be non-empty");
+      if (gpu.vramBytes !== undefined) {
+        assert.ok(
+          Number.isFinite(gpu.vramBytes) && gpu.vramBytes > 0,
+          "vramBytes must be a positive finite number when present",
+        );
+      }
+    },
+  },
+  {
+    name: "hardware detector: surfaces GPU info from override",
+    run: async () => {
+      // The /api/models/hardware route returns the gpu field; verify
+      // an override populates it end-to-end through detectHardware.
+      // The test-runner's global override pins gpu=null so we install
+      // a temporary override here and restore it.
+      const prev = process.env["OMNINITY_HARDWARE_OVERRIDE"];
+      try {
+        const parsed = prev ? JSON.parse(prev) : {};
+        process.env["OMNINITY_HARDWARE_OVERRIDE"] = JSON.stringify({
+          ...parsed,
+          gpu: { vendor: "NVIDIA", kind: "RTX 4090", vramBytes: 24 * 1024 ** 3 },
+        });
+        clearHardwareCache();
+        const profile = getHardwareProfile();
+        assert.ok(profile.gpu, "gpu must be populated from override");
+        assert.equal(profile.gpu?.vendor, "NVIDIA");
+        assert.equal(profile.gpu?.kind, "RTX 4090");
+      } finally {
+        if (prev === undefined) {
+          delete process.env["OMNINITY_HARDWARE_OVERRIDE"];
+        } else {
+          process.env["OMNINITY_HARDWARE_OVERRIDE"] = prev;
         }
         clearHardwareCache();
       }

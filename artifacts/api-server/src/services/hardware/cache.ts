@@ -146,21 +146,19 @@ export function getHardwareProfile(): HardwareProfile {
     cached = fromDisk;
     return cached;
   }
-  // First-detection path. Capture whether the snapshot file existed
-  // BEFORE we write so the analytics emit is exactly-once across the
-  // install lifetime (the file becomes the install marker).
-  const isFirstDetection =
-    shouldPersist() && !fs.existsSync(snapshotPath());
+  // First-detection path. The analytics helper enforces single-shot
+  // semantics via its own durable install marker (independent of the
+  // snapshot file), so a redetect after `clearHardwareCache()` never
+  // re-emits install-time telemetry.
   const fresh = detectHardware();
   cached = fresh;
   writeSnapshot(fresh);
-  if (isFirstDetection) {
-    // Per Task #64 "Done looks like": "Hardware detection is logged
-    // once on install for analytics (opt-in only, per the privacy
-    // rules)". The recordHardware…IfOptedIn helper short-circuits to
-    // a no-op unless OMNINITY_ANALYTICS_OPT_IN=true.
-    recordHardwareDetectionIfOptedIn(fresh);
-  }
+  // Per Task #64 "Done looks like": "Hardware detection is logged
+  // once on install for analytics (opt-in only, per the privacy
+  // rules)". The recordHardware…IfOptedIn helper short-circuits to
+  // a no-op unless OMNINITY_ANALYTICS_OPT_IN=true AND the durable
+  // install marker is absent.
+  recordHardwareDetectionIfOptedIn(fresh);
   return cached;
 }
 
