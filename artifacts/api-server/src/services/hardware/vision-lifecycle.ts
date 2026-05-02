@@ -1,10 +1,27 @@
 /**
- * Vision-companion lifecycle stub.
+ * Vision-companion lifecycle policy + state machine.
  *
- * Task #64 ships the policy + state machine; the actual `ollama load` /
- * `ollama unload` wiring lands in Task #30 (Vision Tool). Until then this
- * module is the single authority for "is the vision model resident?" and
- * for the idle-timer that frees its RAM after inactivity.
+ * Scope split with Task #30 (Model Runtime Abstraction Layer) is dictated
+ * by task-64.md itself:
+ *  - Sequencing section: "Task #30 … must support the on-demand load/unload
+ *    pattern for the vision model. … The on-demand load/unload requirement
+ *    is the most important coordination point with Task #30 — flag it early."
+ *  - Step 3 ("Vision model lifecycle"): "Coordinate with Task #30 to ensure
+ *    the runtime layer supports load-on-demand and idle-timeout unload …".
+ *
+ * Therefore Task #64's slice of the lifecycle is: the policy (mode →
+ * idle-timeout-ms tier defaults), the state machine (unloaded → loading →
+ * loaded → unloaded after idle), the configurable settings toggle, and the
+ * single-process authority for "is the vision model resident?". The
+ * `ollama load` / `ollama unload` HTTP calls themselves are intentionally
+ * Task #30's responsibility — wiring them here would duplicate the
+ * ModelRuntime interface that Task #30 owns.
+ *
+ * Until Task #30 lands, `touch()` flips the state machine straight to
+ * `loaded` (no real loader to await) so consumers and tests observe the
+ * full transition surface today. When Task #30 merges, the body of
+ * `touch()` and `unload()` will gain an awaited bridge to that runtime
+ * without changing the policy / config / observation API exported here.
  *
  * Modes:
  *  - `aggressive` — short idle timeout (low/mid tier). Frees RAM quickly.

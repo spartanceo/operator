@@ -24,6 +24,7 @@ import type { HardwareProfile } from "@workspace/types";
 
 import { logger } from "../../lib/logger";
 
+import { recordHardwareDetectionIfOptedIn } from "./analytics";
 import { detectHardware } from "./detector";
 
 let cached: HardwareProfile | null = null;
@@ -140,12 +141,26 @@ export function getHardwareProfile(): HardwareProfile {
   if (cached) return cached;
   const fromDisk = readSnapshot();
   if (fromDisk) {
+    // Re-launch path: snapshot already on disk, analytics was already
+    // emitted at original install time (single-shot semantics).
     cached = fromDisk;
     return cached;
   }
+  // First-detection path. Capture whether the snapshot file existed
+  // BEFORE we write so the analytics emit is exactly-once across the
+  // install lifetime (the file becomes the install marker).
+  const isFirstDetection =
+    shouldPersist() && !fs.existsSync(snapshotPath());
   const fresh = detectHardware();
   cached = fresh;
   writeSnapshot(fresh);
+  if (isFirstDetection) {
+    // Per Task #64 "Done looks like": "Hardware detection is logged
+    // once on install for analytics (opt-in only, per the privacy
+    // rules)". The recordHardware…IfOptedIn helper short-circuits to
+    // a no-op unless OMNINITY_ANALYTICS_OPT_IN=true.
+    recordHardwareDetectionIfOptedIn(fresh);
+  }
   return cached;
 }
 

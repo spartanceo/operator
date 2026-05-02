@@ -771,6 +771,91 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "hardware analytics: opt-in, single-shot per install",
+    run: async () => {
+      // Task #64 "Done looks like": "Hardware detection is logged once
+      // on install for analytics (opt-in only, per the privacy rules)
+      // and cached locally so subsequent launches don't re-probe."
+      // Verifies all three semantics: default-off, fires once on first
+      // detection, and never re-fires from disk-cache hydration.
+      const fs = await import("node:fs");
+      const {
+        setHardwareAnalyticsSinkForTests,
+        resetHardwareAnalyticsSinkForTests,
+      } = await import("./services/hardware");
+      const tmp = `/tmp/omninity-hw-analytics-${Date.now()}.json`;
+      const prevPath = process.env["OMNINITY_HARDWARE_CACHE_PATH"];
+      const prevOpt = process.env["OMNINITY_ANALYTICS_OPT_IN"];
+      process.env["OMNINITY_HARDWARE_CACHE_PATH"] = tmp;
+
+      const events: Array<{ event: string; tier: string }> = [];
+      setHardwareAnalyticsSinkForTests((e) =>
+        events.push({ event: e.event, tier: e.tier }),
+      );
+
+      try {
+        // (1) Default behaviour: opt-in OFF → no emit even on a fresh
+        // first-detection.
+        delete process.env["OMNINITY_ANALYTICS_OPT_IN"];
+        clearHardwareCache();
+        if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+        getHardwareProfile();
+        assert.equal(
+          events.length,
+          0,
+          "no analytics emission when OMNINITY_ANALYTICS_OPT_IN is unset",
+        );
+
+        // (2) Opt-in ON + first detection (no snapshot present) → emit
+        // exactly once with the right shape.
+        process.env["OMNINITY_ANALYTICS_OPT_IN"] = "true";
+        clearHardwareCache();
+        if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+        getHardwareProfile();
+        assert.equal(events.length, 1, "first detection must emit");
+        assert.equal(events[0]?.event, "hardware_detected");
+        assert.ok(
+          ["low", "mid", "high", "pro"].includes(events[0]?.tier ?? ""),
+          "event must include hardware tier",
+        );
+
+        // Same-process subsequent call hits the in-memory memo — must
+        // not re-emit.
+        getHardwareProfile();
+        assert.equal(
+          events.length,
+          1,
+          "in-process cache hit must not re-emit",
+        );
+
+        // (3) Simulated process restart: drop ONLY the in-memory memo so
+        // the next call re-hydrates from the on-disk snapshot. Single-
+        // shot semantics demand we still NOT emit again.
+        __clearHardwareCacheMemoForTests();
+        getHardwareProfile();
+        assert.equal(
+          events.length,
+          1,
+          "re-hydration from disk must not re-emit (single-shot per install)",
+        );
+      } finally {
+        resetHardwareAnalyticsSinkForTests();
+        if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+        if (prevPath === undefined) {
+          delete process.env["OMNINITY_HARDWARE_CACHE_PATH"];
+        } else {
+          process.env["OMNINITY_HARDWARE_CACHE_PATH"] = prevPath;
+        }
+        if (prevOpt === undefined) {
+          delete process.env["OMNINITY_ANALYTICS_OPT_IN"];
+        } else {
+          process.env["OMNINITY_ANALYTICS_OPT_IN"] = prevOpt;
+        }
+        clearHardwareCache();
+      }
+    },
+  },
+  {
     name: "hardware cache: persists snapshot to disk and re-hydrates without re-detecting",
     run: async () => {
       const fs = await import("node:fs");

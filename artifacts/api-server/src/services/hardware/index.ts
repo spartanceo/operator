@@ -16,6 +16,14 @@ export {
   tierForRam,
 } from "./catalogue";
 export { OLLAMA_LIBRARY } from "./library";
+export {
+  isAnalyticsOptedIn,
+  recordHardwareDetectionIfOptedIn,
+  resetHardwareAnalyticsSinkForTests,
+  setHardwareAnalyticsSinkForTests,
+  type HardwareAnalyticsEvent,
+  type HardwareAnalyticsSink,
+} from "./analytics";
 export { detectHardware } from "./detector";
 export {
   __clearHardwareCacheMemoForTests,
