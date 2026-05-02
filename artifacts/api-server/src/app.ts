@@ -26,6 +26,7 @@ import {
   errorHandler,
   notFoundHandler,
   requestId,
+  safeModeGuard,
   tenantContext,
 } from "./middlewares";
 import { sessionMiddleware } from "./middlewares/session";
@@ -100,6 +101,11 @@ app.use(sessionMiddleware());
 
 // 8. Populate AsyncLocalStorage tenant context from headers.
 app.use(tenantContext());
+
+// 8b. Safe-mode guard — when migrations have failed, reject any
+//     mutating request with 503 + SAFE_MODE error so the user can still
+//     read data and back things up.
+app.use(safeModeGuard());
 
 // 9. Application routes.
 app.use("/api", router);

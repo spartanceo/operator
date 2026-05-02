@@ -27,6 +27,7 @@ initApiClient();
 
 const queryClient = makeQueryClient();
 
+// tier-review: bounded — fixed enumeration of operator route paths, never written to.
 const OPERATOR_ROUTES = new Set([
   "/chat",
   "/agents",

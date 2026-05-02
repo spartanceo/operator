@@ -100,5 +100,34 @@ export const db: BetterSQLite3Database<Schema> = new Proxy({} as BetterSQLite3Da
 
 export * from "./schema";
 export * from "./helpers";
-export { runMigrations } from "./migrate";
+export {
+  getMigrationStatus,
+  MigrationError,
+  rollbackTo,
+  runMigrations,
+  type AppliedMigrationRow,
+  type MigrationFailure,
+  type MigrationResult,
+  type MigrationStatus,
+  type RunOptions,
+} from "./migrate";
+export {
+  BackgroundMigrationRunner,
+  type BackgroundJobStatus,
+  type BackgroundProgressListener,
+} from "./background-migration";
+export {
+  clearSafeMode,
+  getSafeMode,
+  setSafeMode,
+  type SafeModeState,
+} from "./safe-mode";
+export {
+  BACKGROUND_MIGRATIONS,
+  SCHEMA_MIGRATIONS,
+  type BackgroundMigration,
+  type BackgroundMigrationProgress,
+  type BackgroundMigrationStep,
+  type SchemaMigration,
+} from "./migrations";
 export type { PaginatedData, PaginatedEnvelope } from "@workspace/types";

@@ -5,12 +5,19 @@
  * Standard 12. The Replit preview proxy reaches the artifact via loopback
  * inside the same container, so `127.0.0.1` is correct in dev and prod.
  *
- * On startup we run idempotent migrations against whatever SQLite database
+ * On startup we apply versioned schema migrations against the SQLite database
  * `@workspace/db` resolves to (env-var override or `./data/omninity.db`).
- * `runMigrations()` is safe to call repeatedly — every CREATE TABLE / INDEX
- * uses IF NOT EXISTS.
+ * `runMigrations({ safeMode: true })` returns a result envelope: on failure
+ * it sets the global safe-mode flag and we boot anyway — the safe-mode
+ * middleware will reject mutating requests so the user can inspect data,
+ * back it up, or downgrade the app version.
  */
-import { getRawSqlite, runMigrations } from "@workspace/db";
+import {
+  getMigrationStatus,
+  getRawSqlite,
+  getSafeMode,
+  runMigrations,
+} from "@workspace/db";
 
 import app from "./app";
 import { logger } from "./lib/logger";
@@ -32,12 +39,31 @@ if (Number.isNaN(port) || port <= 0) {
 
 const host = bindHost();
 
-try {
-  runMigrations(getRawSqlite());
-  logger.info("Database migrations applied");
-} catch (e) {
-  logger.error({ err: e }, "Failed to run database migrations");
-  process.exit(1);
+const sqlite = getRawSqlite();
+const migrationResult = runMigrations(sqlite, { safeMode: true });
+const status = getMigrationStatus(sqlite);
+
+if (migrationResult.success) {
+  logger.info(
+    {
+      applied: migrationResult.applied,
+      skipped: migrationResult.skipped,
+      currentVersion: status.currentVersion,
+      latestVersion: status.latestVersion,
+    },
+    "Database migrations applied",
+  );
+} else {
+  const safe = getSafeMode();
+  logger.error(
+    {
+      failure: migrationResult.failure,
+      currentVersion: status.currentVersion,
+      latestVersion: status.latestVersion,
+      safeMode: safe,
+    },
+    "Database migration failed — booting in SAFE MODE (read-only). Mutating requests will return 503.",
+  );
 }
 
 app.listen(port, host, (err) => {

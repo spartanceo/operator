@@ -11,7 +11,7 @@
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
-    "test": "tsx ./src/helpers.test.ts"
+    "test": "tsx ./src/helpers.test.ts && tsx ./src/migrate.test.ts"
   },
   "dependencies": {
     "@workspace/types": "workspace:*",

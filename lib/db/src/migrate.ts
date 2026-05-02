@@ -1,208 +1,339 @@
 /**
- * Hand-rolled migration runner.
+ * Versioned migration runner.
  *
- * Drizzle-kit is configured for `drizzle-kit push` against a file-backed
- * database; in-memory test databases need a programmatic alternative because
- * push runs out-of-process and can't see the in-process handle.
+ * Replaces the Tier-1 idempotent CREATE TABLE IF NOT EXISTS approach with
+ * a real schema-version system:
  *
- * `runMigrations(sqlite)` is idempotent — every CREATE TABLE / CREATE INDEX
- * statement uses `IF NOT EXISTS` so it's safe to call on an already-migrated
- * database (production startup) and on a brand-new one (tests).
+ *   - `schema_migrations` history table tracks every applied migration
+ *     (id, name, kind, checksum, applied_at, duration_ms, status).
+ *   - Each migration runs in its own transaction; a failure rolls back
+ *     the partial DDL and the history row together.
+ *   - Checksum drift between an applied migration and its on-disk source
+ *     is treated as a hard error — silent edits to merged migrations would
+ *     leave production databases out of sync with the new app version.
+ *   - Optional safe-mode fallback: when called with `{ safeMode: true }`,
+ *     a failure sets the global safe-mode flag and returns a result
+ *     object instead of throwing, so the API server can still boot for
+ *     the user to inspect their data.
  *
- * The schema lives here as plain DDL strings rather than driving it through
- * drizzle's introspection because:
- *   1. Tests stay zero-dependency on drizzle-kit.
- *   2. The DDL is explicit and auditable in a single file.
- *   3. Schema drift between this file and the Drizzle table definitions is
- *      caught by tier-review Check #5 (required columns) on the .ts side.
+ * Down migrations: `rollbackTo(target)` walks applied migrations in
+ * reverse and applies their `down` SQL until the schema is at `target`.
+ * Used by app downgrade and the test suite.
  */
+import { createHash } from "node:crypto";
+
 import type { Database as SqliteDatabase } from "better-sqlite3";
 
 import { getRawSqlite } from "./index";
+import { SCHEMA_MIGRATIONS, type SchemaMigration } from "./migrations";
+import { setSafeMode } from "./safe-mode";
 
-const DDL = [
-  // tenants
-  `CREATE TABLE IF NOT EXISTS tenants (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL,
+/**
+ * History table.
+ *
+ * Composite primary key `(id, kind)` so schema migrations and background
+ * data migrations live in the same table without colliding when they
+ * happen to share a numeric id (they do not today, but the framework
+ * must not assume forever-disjoint id ranges). All reads in this file
+ * filter by `kind = 'schema'`; the background runner filters by
+ * `kind = 'data'`.
+ */
+const HISTORY_DDL = `
+  CREATE TABLE IF NOT EXISTS schema_migrations (
+    id INTEGER NOT NULL,
     name TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'active',
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    version INTEGER NOT NULL DEFAULT 1
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_tenants_tenant ON tenants(tenant_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenants(status)`,
+    kind TEXT NOT NULL DEFAULT 'schema',
+    checksum TEXT NOT NULL,
+    applied_at INTEGER NOT NULL,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'applied',
+    PRIMARY KEY (id, kind)
+  )
+`;
 
-  // workspaces
-  `CREATE TABLE IF NOT EXISTS workspaces (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL REFERENCES tenants(id),
-    name TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'active',
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    version INTEGER NOT NULL DEFAULT 1
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_workspaces_tenant ON workspaces(tenant_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_workspaces_tenant_status ON workspaces(tenant_id, status)`,
+export interface AppliedMigrationRow {
+  readonly id: number;
+  readonly name: string;
+  readonly kind: string;
+  readonly checksum: string;
+  readonly appliedAt: number;
+  readonly durationMs: number;
+  readonly status: string;
+}
 
-  // users
-  `CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL REFERENCES tenants(id),
-    email TEXT NOT NULL,
-    password_hash TEXT NOT NULL,
-    display_name TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'owner',
-    last_login_at INTEGER,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    version INTEGER NOT NULL DEFAULT 1
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id)`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_tenant_email ON users(tenant_id, email)`,
+export interface MigrationFailure {
+  readonly id: number;
+  readonly name: string;
+  readonly error: string;
+}
 
-  // sessions
-  `CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL REFERENCES tenants(id),
-    user_id TEXT NOT NULL REFERENCES users(id),
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    version INTEGER NOT NULL DEFAULT 1
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_sessions_tenant ON sessions(tenant_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)`,
+export interface MigrationResult {
+  readonly success: boolean;
+  readonly applied: readonly number[];
+  readonly skipped: readonly number[];
+  readonly failure: MigrationFailure | null;
+}
 
-  // agent_runs
-  `CREATE TABLE IF NOT EXISTS agent_runs (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL REFERENCES tenants(id),
-    workspace_id TEXT NOT NULL REFERENCES workspaces(id),
-    goal TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'queued',
-    plan TEXT,
-    summary TEXT,
-    error TEXT,
-    model_name TEXT,
-    started_at INTEGER,
-    completed_at INTEGER,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    version INTEGER NOT NULL DEFAULT 1
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_agent_runs_tenant ON agent_runs(tenant_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_agent_runs_workspace ON agent_runs(workspace_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_agent_runs_status ON agent_runs(tenant_id, status)`,
+export interface MigrationStatus {
+  readonly currentVersion: number;
+  readonly latestVersion: number;
+  readonly applied: readonly AppliedMigrationRow[];
+  readonly pending: readonly { id: number; name: string }[];
+}
 
-  // messages
-  `CREATE TABLE IF NOT EXISTS messages (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL REFERENCES tenants(id),
-    workspace_id TEXT NOT NULL REFERENCES workspaces(id),
-    run_id TEXT REFERENCES agent_runs(id),
-    role TEXT NOT NULL,
-    content TEXT NOT NULL,
-    tokens_in INTEGER,
-    tokens_out INTEGER,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    version INTEGER NOT NULL DEFAULT 1
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_messages_tenant ON messages(tenant_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_messages_workspace ON messages(workspace_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_messages_run ON messages(run_id)`,
+export interface RunOptions {
+  /**
+   * When true, a migration failure sets the global safe-mode flag and
+   * returns a result with `success: false` instead of throwing. The API
+   * server uses this so it can still boot for the user to inspect their
+   * data. Default `false` (throw on failure).
+   */
+  readonly safeMode?: boolean;
+}
 
-  // tool_calls
-  `CREATE TABLE IF NOT EXISTS tool_calls (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL REFERENCES tenants(id),
-    workspace_id TEXT NOT NULL REFERENCES workspaces(id),
-    run_id TEXT NOT NULL REFERENCES agent_runs(id),
-    tool_name TEXT NOT NULL,
-    risk_level TEXT NOT NULL DEFAULT 'low',
-    status TEXT NOT NULL DEFAULT 'pending',
-    input TEXT NOT NULL,
-    output TEXT,
-    error TEXT,
-    duration_ms INTEGER,
-    started_at INTEGER,
-    completed_at INTEGER,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    version INTEGER NOT NULL DEFAULT 1
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_tool_calls_tenant ON tool_calls(tenant_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_tool_calls_workspace ON tool_calls(workspace_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_tool_calls_run ON tool_calls(run_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_tool_calls_status ON tool_calls(tenant_id, status)`,
-
-  // memories
-  `CREATE TABLE IF NOT EXISTS memories (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL REFERENCES tenants(id),
-    workspace_id TEXT NOT NULL REFERENCES workspaces(id),
-    kind TEXT NOT NULL DEFAULT 'fact',
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    importance INTEGER NOT NULL DEFAULT 50,
-    source TEXT,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    version INTEGER NOT NULL DEFAULT 1
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_memories_tenant ON memories(tenant_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_memories_workspace ON memories(workspace_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_memories_kind ON memories(tenant_id, kind)`,
-
-  // privacy_events
-  `CREATE TABLE IF NOT EXISTS privacy_events (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL REFERENCES tenants(id),
-    workspace_id TEXT NOT NULL REFERENCES workspaces(id),
-    event_type TEXT NOT NULL,
-    actor TEXT NOT NULL,
-    target TEXT NOT NULL,
-    severity TEXT NOT NULL DEFAULT 'info',
-    detail TEXT,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_privacy_events_tenant ON privacy_events(tenant_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_privacy_events_workspace ON privacy_events(workspace_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_privacy_events_type ON privacy_events(tenant_id, event_type)`,
-  `CREATE INDEX IF NOT EXISTS idx_privacy_events_created ON privacy_events(tenant_id, created_at)`,
-
-  // approvals
-  `CREATE TABLE IF NOT EXISTS approvals (
-    id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL REFERENCES tenants(id),
-    workspace_id TEXT NOT NULL REFERENCES workspaces(id),
-    run_id TEXT NOT NULL REFERENCES agent_runs(id),
-    tool_call_id TEXT NOT NULL REFERENCES tool_calls(id),
-    reason TEXT NOT NULL,
-    summary TEXT NOT NULL,
-    decision TEXT NOT NULL DEFAULT 'pending',
-    decided_by TEXT,
-    decided_at INTEGER,
-    note TEXT,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    version INTEGER NOT NULL DEFAULT 1
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_approvals_tenant ON approvals(tenant_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_approvals_workspace ON approvals(workspace_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_approvals_run ON approvals(run_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_approvals_tool_call ON approvals(tool_call_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_approvals_decision ON approvals(tenant_id, decision)`,
-];
-
-export function runMigrations(sqlite?: SqliteDatabase): void {
-  const handle = sqlite ?? getRawSqlite();
-  for (const stmt of DDL) {
-    handle.exec(stmt);
+export class MigrationError extends Error {
+  override readonly name = "MigrationError";
+  constructor(
+    message: string,
+    readonly migrationId: number,
+    readonly cause?: unknown,
+  ) {
+    super(message);
   }
+}
+
+function checksum(sql: string): string {
+  // Normalise whitespace so cosmetic edits (re-indent, blank lines) don't
+  // trigger a drift error. Semantically meaningful changes — different
+  // column names, types, constraints — survive normalisation.
+  const normalised = sql.replace(/\s+/g, " ").trim();
+  return createHash("sha256").update(normalised).digest("hex");
+}
+
+function ensureHistoryTable(sqlite: SqliteDatabase): void {
+  sqlite.exec(HISTORY_DDL);
+}
+
+function readApplied(sqlite: SqliteDatabase): Map<number, AppliedMigrationRow> {
+  type Row = {
+    id: number;
+    name: string;
+    kind: string;
+    checksum: string;
+    applied_at: number;
+    duration_ms: number;
+    status: string;
+  };
+  const rows = sqlite
+    .prepare(
+      `SELECT id, name, kind, checksum, applied_at, duration_ms, status
+       FROM schema_migrations
+       WHERE status = 'applied' AND kind = 'schema'
+       ORDER BY id`,
+    )
+    .all() as Row[];
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      {
+        id: r.id,
+        name: r.name,
+        kind: r.kind,
+        checksum: r.checksum,
+        appliedAt: r.applied_at,
+        durationMs: r.duration_ms,
+        status: r.status,
+      },
+    ]),
+  );
+}
+
+function assertSequential(migrations: readonly SchemaMigration[]): void {
+  for (let i = 0; i < migrations.length; i++) {
+    const expected = i + 1;
+    if (migrations[i]!.id !== expected) {
+      throw new Error(
+        `Migration registry is not sequential: position ${i} has id ${migrations[i]!.id}, expected ${expected}`,
+      );
+    }
+  }
+}
+
+/**
+ * Apply every pending schema migration. Each migration runs in its own
+ * transaction; a failure rolls back the DDL and the history row together.
+ *
+ * With `{ safeMode: true }`, a failure sets the global safe-mode flag and
+ * returns `success: false` instead of throwing — used by the API server
+ * so it can still boot for inspection. Default behaviour (used by tests
+ * and CLI) throws a MigrationError on failure.
+ */
+export function runMigrations(
+  sqlite?: SqliteDatabase,
+  options: RunOptions = {},
+): MigrationResult {
+  const handle = sqlite ?? getRawSqlite();
+  assertSequential(SCHEMA_MIGRATIONS);
+  ensureHistoryTable(handle);
+
+  const applied = readApplied(handle);
+  const result: {
+    success: boolean;
+    applied: number[];
+    skipped: number[];
+    failure: MigrationFailure | null;
+  } = { success: true, applied: [], skipped: [], failure: null };
+
+  for (const migration of SCHEMA_MIGRATIONS) {
+    const existing = applied.get(migration.id);
+    if (existing) {
+      const expected = checksum(migration.up);
+      if (existing.checksum !== expected) {
+        const msg = `Migration ${migration.id} (${migration.name}) checksum mismatch: applied database differs from current source. This usually means a merged migration was edited — create a new migration instead.`;
+        result.success = false;
+        result.failure = { id: migration.id, name: migration.name, error: msg };
+        if (options.safeMode) {
+          setSafeMode({ reason: msg, failedMigrationId: migration.id });
+          return result;
+        }
+        throw new MigrationError(msg, migration.id);
+      }
+      result.skipped.push(migration.id);
+      continue;
+    }
+
+    const start = Date.now();
+    const insert = handle.prepare(
+      `INSERT INTO schema_migrations
+         (id, name, kind, checksum, applied_at, duration_ms, status)
+       VALUES (?, ?, 'schema', ?, ?, ?, 'applied')`,
+    );
+    const upChecksum = checksum(migration.up);
+    const apply = handle.transaction(() => {
+      handle.exec(migration.up);
+      insert.run(
+        migration.id,
+        migration.name,
+        upChecksum,
+        Date.now(),
+        Date.now() - start,
+      );
+    });
+
+    try {
+      apply();
+      result.applied.push(migration.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const failure: MigrationFailure = {
+        id: migration.id,
+        name: migration.name,
+        error: msg,
+      };
+      result.success = false;
+      result.failure = failure;
+      if (options.safeMode) {
+        setSafeMode({
+          reason: `Migration ${migration.id} (${migration.name}) failed: ${msg}`,
+          failedMigrationId: migration.id,
+        });
+        return result;
+      }
+      throw new MigrationError(
+        `Migration ${migration.id} (${migration.name}) failed: ${msg}`,
+        migration.id,
+        err,
+      );
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Roll the database back to a target schema version by executing the
+ * `down` SQL of every migration with `id > target` in reverse order.
+ *
+ * `target = 0` tears the schema down completely (used by the test suite).
+ * Each rollback runs in its own transaction with the history-row delete.
+ *
+ * Throws `MigrationError` on failure — there is no safe-mode here because
+ * rollback is an explicit operation, never invoked at startup.
+ */
+export function rollbackTo(target: number, sqlite?: SqliteDatabase): MigrationResult {
+  const handle = sqlite ?? getRawSqlite();
+  ensureHistoryTable(handle);
+  if (target < 0) {
+    throw new Error(`rollbackTo: target version must be >= 0, got ${target}`);
+  }
+
+  const applied = readApplied(handle);
+  const toRollback = SCHEMA_MIGRATIONS.filter(
+    (m) => m.id > target && applied.has(m.id),
+  )
+    .slice()
+    .sort((a, b) => b.id - a.id);
+
+  const result: {
+    success: boolean;
+    applied: number[];
+    skipped: number[];
+    failure: MigrationFailure | null;
+  } = { success: true, applied: [], skipped: [], failure: null };
+
+  const del = handle.prepare(
+    `DELETE FROM schema_migrations WHERE id = ? AND kind = 'schema'`,
+  );
+
+  for (const migration of toRollback) {
+    const apply = handle.transaction(() => {
+      handle.exec(migration.down);
+      del.run(migration.id);
+    });
+    try {
+      apply();
+      result.applied.push(migration.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      result.success = false;
+      result.failure = {
+        id: migration.id,
+        name: migration.name,
+        error: msg,
+      };
+      throw new MigrationError(
+        `Rollback of migration ${migration.id} (${migration.name}) failed: ${msg}`,
+        migration.id,
+        err,
+      );
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Snapshot of migration state. Used by the admin UI and tests to show
+ * what's applied and what's pending without mutating anything.
+ */
+export function getMigrationStatus(sqlite?: SqliteDatabase): MigrationStatus {
+  const handle = sqlite ?? getRawSqlite();
+  ensureHistoryTable(handle);
+  const applied = readApplied(handle);
+  const appliedList = [...applied.values()].sort((a, b) => a.id - b.id);
+  const currentVersion = appliedList.length > 0
+    ? appliedList[appliedList.length - 1]!.id
+    : 0;
+  const latestVersion = SCHEMA_MIGRATIONS.length > 0
+    ? SCHEMA_MIGRATIONS[SCHEMA_MIGRATIONS.length - 1]!.id
+    : 0;
+  const pending = SCHEMA_MIGRATIONS
+    .filter((m) => !applied.has(m.id))
+    .map((m) => ({ id: m.id, name: m.name }));
+  return {
+    currentVersion,
+    latestVersion,
+    applied: appliedList,
+    pending,
+  };
 }

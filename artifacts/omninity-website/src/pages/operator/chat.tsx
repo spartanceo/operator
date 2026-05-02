@@ -35,6 +35,7 @@ import { ExecutionTimeline } from "@/components/operator/timeline";
 import { useSettings } from "@/contexts/settings-context";
 import { cn } from "@/lib/utils";
 
+// tier-review: bounded — fixed 3-element constant set of terminal run statuses.
 const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
 
 interface LocalChatTurn {
