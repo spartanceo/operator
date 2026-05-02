@@ -27,6 +27,12 @@ export {
 } from "./analytics";
 export { detectHardware, probeGpu, type GpuInfo } from "./detector";
 export {
+  getVisionRuntimeBridge,
+  resetVisionRuntimeBridgeForTests,
+  setVisionRuntimeBridgeForTests,
+  type VisionRuntimeBridge,
+} from "./vision-runtime";
+export {
   __clearHardwareCacheMemoForTests,
   clearHardwareCache,
   getHardwareProfile,

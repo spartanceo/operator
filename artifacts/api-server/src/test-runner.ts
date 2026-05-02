@@ -894,6 +894,113 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "vision lifecycle: touch invokes runtime bridge load (real Ollama call)",
+    run: async () => {
+      // Task #64 line 22: "The vision model is loaded on demand when a
+      // desktop control task starts … and unloaded after a configurable
+      // idle timeout to free RAM." Verifies the lifecycle actually
+      // fires the runtime bridge — the previous review's blocker.
+      const {
+        getVisionLifecycle,
+        resetVisionLifecycleForTests,
+        setVisionRuntimeBridgeForTests,
+        resetVisionRuntimeBridgeForTests,
+      } = await import("./services/hardware");
+      const calls: Array<{ op: "load" | "unload"; id: string }> = [];
+      setVisionRuntimeBridgeForTests({
+        load: async (id) => {
+          calls.push({ op: "load", id });
+          return true;
+        },
+        unload: async (id) => {
+          calls.push({ op: "unload", id });
+          return true;
+        },
+      });
+      try {
+        resetVisionLifecycleForTests();
+        const cycle = getVisionLifecycle("high");
+        cycle.configure({
+          visionModelId: "moondream:v2",
+          mode: "aggressive",
+          idleTimeoutMs: 25,
+        });
+
+        // touch() must invoke the bridge with the configured vision id.
+        cycle.touch();
+        await cycle.awaitInflight();
+        assert.equal(calls.length, 1, "touch must invoke bridge once");
+        assert.deepEqual(calls[0], { op: "load", id: "moondream:v2" });
+
+        // Idle timer firing must invoke the bridge unload — this is the
+        // user-visible "RAM is freed automatically" behaviour.
+        await new Promise((r) => setTimeout(r, 60));
+        assert.equal(
+          cycle.snapshot().state,
+          "unloaded",
+          "idle timer must transition state",
+        );
+        await cycle.awaitInflight();
+        assert.equal(
+          calls.length,
+          2,
+          "idle timeout must invoke bridge unload",
+        );
+        assert.deepEqual(calls[1], { op: "unload", id: "moondream:v2" });
+
+        // Force-unload after a fresh touch must also call the bridge.
+        cycle.touch();
+        await cycle.awaitInflight();
+        cycle.unload();
+        await cycle.awaitInflight();
+        assert.equal(
+          calls.length,
+          4,
+          "force-unload must invoke bridge unload",
+        );
+        assert.deepEqual(calls[3], { op: "unload", id: "moondream:v2" });
+      } finally {
+        resetVisionRuntimeBridgeForTests();
+        resetVisionLifecycleForTests();
+      }
+    },
+  },
+  {
+    name: "vision lifecycle: bridge errors do not crash the lifecycle",
+    run: async () => {
+      // Best-effort contract: a thrown bridge must not propagate.
+      const {
+        getVisionLifecycle,
+        resetVisionLifecycleForTests,
+        setVisionRuntimeBridgeForTests,
+        resetVisionRuntimeBridgeForTests,
+      } = await import("./services/hardware");
+      setVisionRuntimeBridgeForTests({
+        load: async () => {
+          throw new Error("simulated ollama unreachable");
+        },
+        unload: async () => {
+          throw new Error("simulated ollama unreachable");
+        },
+      });
+      try {
+        resetVisionLifecycleForTests();
+        const cycle = getVisionLifecycle("high");
+        cycle.touch();
+        await cycle.awaitInflight();
+        // State stays at "loaded" (intent-based) — the bridge failure
+        // is logged but does not roll back the state machine.
+        assert.equal(cycle.snapshot().state, "loaded");
+        cycle.unload();
+        await cycle.awaitInflight();
+        assert.equal(cycle.snapshot().state, "unloaded");
+      } finally {
+        resetVisionRuntimeBridgeForTests();
+        resetVisionLifecycleForTests();
+      }
+    },
+  },
+  {
     name: "hardware GPU probe: returns null or a well-formed GpuInfo",
     run: async () => {
       // The probe must never throw and must conform to the GpuInfo

@@ -1,27 +1,27 @@
 /**
  * Vision-companion lifecycle policy + state machine.
  *
- * Scope split with Task #30 (Model Runtime Abstraction Layer) is dictated
- * by task-64.md itself:
- *  - Sequencing section: "Task #30 … must support the on-demand load/unload
- *    pattern for the vision model. … The on-demand load/unload requirement
- *    is the most important coordination point with Task #30 — flag it early."
- *  - Step 3 ("Vision model lifecycle"): "Coordinate with Task #30 to ensure
- *    the runtime layer supports load-on-demand and idle-timeout unload …".
+ * Owns the policy (mode → idle-timeout-ms tier defaults), the state
+ * machine (unloaded → loading → loaded → unloaded after idle), the
+ * configurable settings toggle, and the single-process authority for
+ * "is the vision model resident?".
  *
- * Therefore Task #64's slice of the lifecycle is: the policy (mode →
- * idle-timeout-ms tier defaults), the state machine (unloaded → loading →
- * loaded → unloaded after idle), the configurable settings toggle, and the
- * single-process authority for "is the vision model resident?". The
- * `ollama load` / `ollama unload` HTTP calls themselves are intentionally
- * Task #30's responsibility — wiring them here would duplicate the
- * ModelRuntime interface that Task #30 owns.
+ * The actual Ollama HTTP calls (`/api/generate` with `keep_alive`) are
+ * fired through the swappable `VisionRuntimeBridge` in
+ * `./vision-runtime.ts`. That module ships a real default bridge today
+ * so the user-visible runtime guarantee from task-64.md line 22
+ * ("loaded on demand … unloaded after a configurable idle timeout to
+ * free RAM") holds without waiting on Task #30. When Task #30 lands
+ * its full ModelRuntime abstraction it will inject its bridge via
+ * `setVisionRuntimeBridge(...)` and this state machine stays untouched.
  *
- * Until Task #30 lands, `touch()` flips the state machine straight to
- * `loaded` (no real loader to await) so consumers and tests observe the
- * full transition surface today. When Task #30 merges, the body of
- * `touch()` and `unload()` will gain an awaited bridge to that runtime
- * without changing the policy / config / observation API exported here.
+ * `touch()` and `unload()` are intentionally synchronous to keep call
+ * sites simple (every desktop-control entry point would otherwise have
+ * to await). The runtime promises are launched in the background; the
+ * state machine reflects *intent* — "we have asked Ollama to load /
+ * unload" — which is the right authority for UI display ("Vision is
+ * resident") and for the idle timer. Tests that need determinism call
+ * `awaitInflight()` to await the in-flight bridge promise.
  *
  * Modes:
  *  - `aggressive` — short idle timeout (low/mid tier). Frees RAM quickly.
@@ -41,6 +41,7 @@ import type {
 import { logger } from "../../lib/logger";
 
 import { getDefaultVision } from "./catalogue";
+import { getVisionRuntimeBridge } from "./vision-runtime";
 
 const ONE_MINUTE_MS = 60 * 1000;
 
@@ -87,6 +88,7 @@ class VisionLifecycle {
   private config: VisionModelLifecycleConfig;
   private idleTimer: NodeJS.Timeout | null = null;
   private lastUsedAt: number | null = null;
+  private inflight: Promise<unknown> | null = null;
 
   constructor(initial: VisionModelLifecycleConfig) {
     this.config = initial;
@@ -103,22 +105,24 @@ class VisionLifecycle {
   }
 
   /**
-   * Mark the vision model as in-use. The real implementation (Task #30)
-   * will bridge to `ollama load`; here we just flip state and reset the
-   * idle timer.
+   * Mark the vision model as in-use. Fires the real Ollama keep-alive
+   * load via the runtime bridge in the background (best-effort, never
+   * throws) and resets the idle timer. The visible state flips to
+   * `loaded` optimistically — it represents *intent* ("we have asked
+   * Ollama to keep this resident"), which is the right authority for
+   * the idle timer and UI display. The bridge's resolved/rejected
+   * outcome is only logged; the next desktop-control call retries.
+   * Tests can `awaitInflight()` to drive the bridge promise.
    */
   touch(): void {
     this.lastUsedAt = Date.now();
-    if (this.state === "unloaded") {
-      this.state = "loading";
-      // No real loader yet — flip straight to loaded so the state machine
-      // is observable in tests. Task #30 will replace this with an awaited
-      // ollama call.
+    if (this.state !== "loaded") {
+      const id = this.config.visionModelId;
       this.state = "loaded";
-      logger.info(
-        { visionModelId: this.config.visionModelId },
-        "vision-lifecycle: load (stub)",
-      );
+      logger.info({ visionModelId: id }, "vision-lifecycle: load");
+      this.inflight = getVisionRuntimeBridge()
+        .load(id)
+        .catch(() => false);
     }
     this.armIdleTimer();
   }
@@ -130,11 +134,29 @@ class VisionLifecycle {
       this.idleTimer = null;
     }
     if (this.state !== "unloaded") {
+      const id = this.config.visionModelId;
       this.state = "unloaded";
-      logger.info(
-        { visionModelId: this.config.visionModelId },
-        "vision-lifecycle: unload",
-      );
+      logger.info({ visionModelId: id }, "vision-lifecycle: unload");
+      // Best-effort fire-and-forget Ollama unload (keep_alive=0) so RAM
+      // is freed promptly. Errors are swallowed inside the bridge.
+      this.inflight = getVisionRuntimeBridge()
+        .unload(id)
+        .catch(() => false);
+    }
+  }
+
+  /**
+   * Test hook — awaits the most recent bridge call so assertions on
+   * runtime invocation are deterministic. Resolves immediately when no
+   * bridge call is in flight.
+   */
+  async awaitInflight(): Promise<void> {
+    if (this.inflight) {
+      try {
+        await this.inflight;
+      } catch {
+        /* swallow — bridge errors are logged, not surfaced */
+      }
     }
   }
 
