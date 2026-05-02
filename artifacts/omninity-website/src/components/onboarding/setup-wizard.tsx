@@ -208,7 +208,12 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
     // block onboarding completion (the recommendation is regenerated on
     // every launch from hardware), but a successful select makes the chat
     // header reflect the chosen model immediately.
-    if (finalModelId) {
+    //
+    // Skip when the hardware-aware feature is disabled — /select returns
+    // 404 FEATURE_DISABLED in that mode, producing avoidable error noise
+    // in logs without changing user-visible behavior (the legacy
+    // recommendation persists via the upsert.mutate call below).
+    if (finalModelId && !featureDisabled) {
       selectModel.mutate({
         data: {
           primaryModel: finalModelId,
