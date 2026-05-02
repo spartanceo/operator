@@ -216,15 +216,20 @@ export default function CreatorsPage() {
                 }}
               >
                 <Card className="flex h-full flex-col p-7">
-                  <div className="flex items-center gap-4">
+                  <Link
+                    href={`/creators/${c.slug}`}
+                    className="flex items-center gap-4"
+                  >
                     <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background text-sm font-medium text-foreground">
                       {c.initials}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-base font-medium text-foreground">{c.name}</div>
+                      <div className="text-base font-medium text-foreground underline-offset-4 hover:underline">
+                        {c.name}
+                      </div>
                       <div className="text-xs text-muted-foreground">{c.handle}</div>
                     </div>
-                  </div>
+                  </Link>
                   <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{c.bio}</p>
                   <div className="mt-6 grid grid-cols-2 gap-3 border-t border-border/60 pt-5">
                     <div>
@@ -241,12 +246,19 @@ export default function CreatorsPage() {
                       </div>
                       <Link
                         href={`/marketplace/${c.topSkillSlug}`}
-                        className="hover-elevate -mx-1 mt-1 block rounded-md px-1 text-sm text-foreground"
+                        className="mt-1 block text-sm text-foreground underline-offset-4 hover:underline"
                       >
                         {c.topSkill}
                       </Link>
                     </div>
                   </div>
+                  <Link
+                    href={`/creators/${c.slug}`}
+                    className="mt-5 inline-flex items-center gap-1 text-xs text-primary underline-offset-4 hover:underline"
+                  >
+                    View profile
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
                 </Card>
               </motion.div>
             ))}

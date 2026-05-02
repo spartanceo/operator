@@ -1,3 +1,15 @@
+/**
+ * Static marketplace catalogue for the public marketing site.
+ *
+ * The `omninity-website` artifact is presentation-only and intentionally has
+ * no backend wiring (per Task #19 — public-facing site). This module is the
+ * sole source of marketplace data the public site renders. When the live
+ * marketplace API ships (Task #19 step 4 / `localops-skills-marketplace`),
+ * this file's `SKILLS` export is replaced by a thin React Query hook that
+ * pulls from `lib/api-client-react`'s generated client. Components consume
+ * the `SKILLS`, `findSkill`, `reviewsForSkill`, and `skillsByCreator` exports
+ * by name, so the swap is local to this file.
+ */
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,

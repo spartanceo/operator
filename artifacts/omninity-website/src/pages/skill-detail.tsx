@@ -56,7 +56,10 @@ export default function SkillDetailPage() {
                   </h1>
                   <div className="mt-3 text-sm text-muted-foreground">
                     by{" "}
-                    <Link href="/creators" className="hover-elevate rounded-md px-1 text-foreground">
+                    <Link
+                      href={`/creators/${skill.creatorSlug}`}
+                      className="text-foreground underline-offset-4 hover:underline"
+                    >
                       {skill.creator}
                     </Link>
                   </div>

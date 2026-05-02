@@ -11,9 +11,12 @@ const CHECKSUMS = {
   win: "b1f0c4af3d5a91c70c9f3e8a2b8d2c1ef02d9a5c1b6f7d3e8d4f1c0b2a9e7f3a",
 };
 
+const DOWNLOAD_BASE_URL = "https://downloads.omninity.app";
+
 interface DownloadCardProps {
   os: "Mac" | "Windows";
   fileLabel: string;
+  href: string;
   size: string;
   arch: string;
   checksum: string;
@@ -67,9 +70,11 @@ function DownloadCard(props: DownloadCardProps) {
             {props.checksum}
           </div>
         </div>
-        <Button className="w-full gap-2" size="lg">
-          <ArrowDownToLine className="h-4 w-4" />
-          Download for {props.os}
+        <Button asChild className="w-full gap-2" size="lg">
+          <a href={props.href} download={props.fileLabel}>
+            <ArrowDownToLine className="h-4 w-4" />
+            Download for {props.os}
+          </a>
         </Button>
       </div>
     </Card>
@@ -103,6 +108,7 @@ export default function DownloadPage() {
           <DownloadCard
             os="Mac"
             fileLabel={`Omninity-Operator-${CURRENT_RELEASE.version}.dmg`}
+            href={`${DOWNLOAD_BASE_URL}/v${CURRENT_RELEASE.version}/Omninity-Operator-${CURRENT_RELEASE.version}.dmg`}
             size="96.4 MB · macOS 12+"
             arch="Universal · Apple Silicon and Intel"
             checksum={CHECKSUMS.mac}
@@ -111,6 +117,7 @@ export default function DownloadPage() {
           <DownloadCard
             os="Windows"
             fileLabel={`Omninity-Operator-Setup-${CURRENT_RELEASE.version}.exe`}
+            href={`${DOWNLOAD_BASE_URL}/v${CURRENT_RELEASE.version}/Omninity-Operator-Setup-${CURRENT_RELEASE.version}.exe`}
             size="103.7 MB · Windows 10/11"
             arch="x64 and ARM64"
             checksum={CHECKSUMS.win}
@@ -162,13 +169,27 @@ export default function DownloadPage() {
                     <div className="font-mono text-sm text-foreground">v{r.version}</div>
                     <div className="text-xs text-muted-foreground">{r.date}</div>
                   </div>
-                  <ul className="space-y-1.5 md:col-span-9">
+                  <ul className="space-y-1.5 md:col-span-7">
                     {r.highlights.map((h) => (
                       <li key={h} className="text-sm text-muted-foreground">
                         — {h}
                       </li>
                     ))}
                   </ul>
+                  <div className="flex flex-col gap-1.5 md:col-span-2 md:items-end">
+                    <a
+                      href={`${DOWNLOAD_BASE_URL}/v${r.version}/Omninity-Operator-${r.version}.dmg`}
+                      className="text-xs text-primary underline-offset-4 hover:underline"
+                    >
+                      Mac (.dmg)
+                    </a>
+                    <a
+                      href={`${DOWNLOAD_BASE_URL}/v${r.version}/Omninity-Operator-Setup-${r.version}.exe`}
+                      className="text-xs text-primary underline-offset-4 hover:underline"
+                    >
+                      Windows (.exe)
+                    </a>
+                  </div>
                 </div>
               ))}
             </Card>

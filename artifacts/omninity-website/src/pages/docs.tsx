@@ -1,8 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, BookOpen, Info, AlertTriangle } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Code2,
+  Info,
+  Search,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { SEO } from "@/components/seo";
 import { DOCS, type DocBlock } from "@/lib/site-data";
 import { cn } from "@/lib/utils";
@@ -96,15 +105,51 @@ function Block({ block }: { block: DocBlock }) {
   return null;
 }
 
+function pageMatchesQuery(
+  page: { title: string; body: DocBlock[] },
+  q: string,
+): boolean {
+  if (!q) return true;
+  const needle = q.toLowerCase();
+  if (page.title.toLowerCase().includes(needle)) return true;
+  return page.body.some((block) => {
+    if (block.kind === "p" || block.kind === "h" || block.kind === "code") {
+      return block.text.toLowerCase().includes(needle);
+    }
+    if (block.kind === "ul") {
+      return block.items.some((i) => i.toLowerCase().includes(needle));
+    }
+    if (block.kind === "callout") {
+      return block.text.toLowerCase().includes(needle);
+    }
+    if (block.kind === "table") {
+      return (
+        block.headers.some((h) => h.toLowerCase().includes(needle)) ||
+        block.rows.some((r) => r.some((c) => c.toLowerCase().includes(needle)))
+      );
+    }
+    return false;
+  });
+}
+
 export default function DocsPage() {
   const params = useParams();
   const [, navigate] = useLocation();
+  const [query, setQuery] = useState("");
   const route = resolve(
     (params as { section?: string }).section,
     (params as { page?: string }).page,
   );
   const section = DOCS.find((s) => s.slug === route.sectionSlug)!;
   const page = section.pages.find((p) => p.slug === route.pageSlug)!;
+
+  const filteredSections = useMemo(() => {
+    if (!query.trim()) return DOCS;
+    return DOCS.map((sec) => ({
+      ...sec,
+      pages: sec.pages.filter((pg) => pageMatchesQuery(pg, query.trim())),
+    })).filter((sec) => sec.pages.length > 0);
+  }, [query]);
 
   const { prev, next } = useMemo(() => {
     const flat: { sectionSlug: string; pageSlug: string; title: string }[] = [];
@@ -143,8 +188,30 @@ export default function DocsPage() {
               <BookOpen className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-foreground">Documentation</span>
             </div>
+            <div className="relative mt-5">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search docs"
+                aria-label="Search documentation"
+                className="h-9 rounded-md pl-8 text-sm"
+              />
+            </div>
+            <Link
+              href="/docs/api-reference"
+              className="hover-elevate -mx-2 mt-5 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground"
+            >
+              <Code2 className="h-4 w-4 text-primary" />
+              API reference
+            </Link>
             <nav className="mt-6 space-y-7">
-              {DOCS.map((sec) => (
+              {filteredSections.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No matches for &ldquo;{query}&rdquo;.
+                </p>
+              ) : null}
+              {filteredSections.map((sec) => (
                 <div key={sec.slug}>
                   <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {sec.title}

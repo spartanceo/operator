@@ -7,7 +7,9 @@ import PricingPage from "@/pages/pricing";
 import MarketplacePage from "@/pages/marketplace";
 import SkillDetailPage from "@/pages/skill-detail";
 import CreatorsPage from "@/pages/creators";
+import CreatorDetailPage from "@/pages/creator-detail";
 import DocsPage from "@/pages/docs";
+import ApiReferencePage from "@/pages/api-reference";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +22,8 @@ function Router() {
         <Route path="/marketplace" component={MarketplacePage} />
         <Route path="/marketplace/:slug" component={SkillDetailPage} />
         <Route path="/creators" component={CreatorsPage} />
+        <Route path="/creators/:slug" component={CreatorDetailPage} />
+        <Route path="/docs/api-reference" component={ApiReferencePage} />
         <Route path="/docs" component={DocsPage} />
         <Route path="/docs/:section" component={DocsPage} />
         <Route path="/docs/:section/:page" component={DocsPage} />

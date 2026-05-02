@@ -42,6 +42,7 @@ const DEFAULTS = {
   jitter: 0.2,
 } as const;
 
+// tier-review: bounded — finite enum of DomainError.domain values, never grows at runtime
 const NON_RETRYABLE_DOMAINS = new Set([
   "validation",
   "auth",
