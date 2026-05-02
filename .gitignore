@@ -51,3 +51,4 @@ Thumbs.db
 # SQLite runtime state
 artifacts/api-server/data/*.db-shm
 artifacts/api-server/data/*.db-wal
+data/
