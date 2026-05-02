@@ -8,6 +8,8 @@ import {
   useListAgentRunApprovals,
   useCancelAgentRun,
   useListModels,
+  useGetOnboardingProfile,
+  useUpsertOnboardingProfile,
   type ChatMessage,
   type Approval,
   type Message,
@@ -32,11 +34,18 @@ import { EmptyState } from "@/components/operator/empty-state";
 import { PlanCard } from "@/components/operator/plan-card";
 import { ApprovalModal } from "@/components/operator/approval-modal";
 import { ExecutionTimeline } from "@/components/operator/timeline";
+import { StarterChips } from "@/components/onboarding/starter-chips";
+import { SuccessSparkle } from "@/components/onboarding/success-sparkle";
 import { useSettings } from "@/contexts/settings-context";
 import { cn } from "@/lib/utils";
 
-// tier-review: bounded — fixed 3-element constant set of terminal run statuses.
+// tier-review: bounded — fixed status enum, never mutated at runtime
 const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
+// Only celebrate successful runs — failed / cancelled runs should not flip
+// the first-task flag, otherwise a user whose very first attempt errored
+// would never see the welcome animation on their next attempt.
+// tier-review: bounded — single-element status enum
+const COMPLETED_STATUSES = new Set(["succeeded"]);
 
 interface LocalChatTurn {
   id: string;
@@ -54,7 +63,17 @@ export default function ChatPage() {
   const [activeApproval, setActiveApproval] = useState<Approval | null>(null);
   const [chatTurns, setChatTurns] = useState<LocalChatTurn[]>([]);
   const [model, setModel] = useState<string>(settings.defaultModel);
+  const [showSparkle, setShowSparkle] = useState(false);
+  const sparkleFiredFor = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const profileQuery = useGetOnboardingProfile();
+  const profile = profileQuery.data?.data.profile ?? null;
+  const showFirstApprovalTooltip = profile?.approvalTooltipSeen === false;
+  const firstTaskCompleted = profile?.firstTaskCompleted === true;
+  const markFirstTask = useUpsertOnboardingProfile({
+    mutation: { onSuccess: () => void qc.invalidateQueries() },
+  });
 
   const modelsQuery = useListModels();
   const availableModels = modelsQuery.data?.data.items ?? [];
@@ -178,6 +197,21 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatTurns.length, runMessages.length]);
 
+  // Fire the success sparkle exactly once when the user's first agent run
+  // reaches a completed state. The ref guard keeps the toast from re-firing
+  // while the run query is still polling its terminal payload, and the
+  // server's monotonic `firstTaskCompleted` flag prevents replays across
+  // sessions even if the local ref is reset by a refresh.
+  useEffect(() => {
+    if (!run || !activeRunId) return;
+    if (firstTaskCompleted) return;
+    if (!COMPLETED_STATUSES.has(run.status)) return;
+    if (sparkleFiredFor.current === activeRunId) return;
+    sparkleFiredFor.current = activeRunId;
+    setShowSparkle(true);
+    markFirstTask.mutate({ data: { firstTaskCompleted: true } });
+  }, [run, activeRunId, firstTaskCompleted, markFirstTask]);
+
   const submit = () => {
     const text = input.trim();
     if (!text) return;
@@ -292,6 +326,12 @@ export default function ChatPage() {
 
           <div className="border-t border-border bg-background/95 px-6 py-4">
             <ErrorBanner error={chatMutation.error ?? createRun.error ?? null} className="mb-3" />
+            {(agentMode ? !activeRunId : chatTurns.length === 0) ? (
+              <StarterChips
+                className="mb-3"
+                onPick={(prompt) => setInput(prompt)}
+              />
+            ) : null}
             <div className="flex items-end gap-2">
               <Textarea
                 data-testid="input-chat"
@@ -401,6 +441,7 @@ export default function ChatPage() {
         onOpenChange={(open) => {
           if (!open) setActiveApproval(null);
         }}
+        showFirstApprovalTooltip={showFirstApprovalTooltip}
         riskLevel={
           activeApproval
             ? toolCalls.find((c) => c.id === activeApproval.toolCallId)?.riskLevel
@@ -416,6 +457,11 @@ export default function ChatPage() {
             ? toolCalls.find((c) => c.id === activeApproval.toolCallId)?.input
             : undefined
         }
+      />
+
+      <SuccessSparkle
+        show={showSparkle}
+        onDone={() => setShowSparkle(false)}
       />
     </OperatorLayout>
   );

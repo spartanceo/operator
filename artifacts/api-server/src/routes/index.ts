@@ -13,8 +13,10 @@ import filesRouter from "./files";
 import healthRouter from "./health";
 import memoryRouter from "./memory";
 import modelsRouter from "./models";
+import onboardingRouter from "./onboarding";
 import privacyRouter from "./privacy";
 import toolsRouter from "./tools";
+import updatesRouter from "./updates";
 
 const router: IRouter = Router();
 
@@ -29,5 +31,7 @@ router.use("/privacy", privacyRouter);
 router.use("/memory", memoryRouter);
 router.use("/files", filesRouter);
 router.use("/browser", browserRouter);
+router.use("/onboarding", onboardingRouter);
+router.use("/updates", updatesRouter);
 
 export default router;

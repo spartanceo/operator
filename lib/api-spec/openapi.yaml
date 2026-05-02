@@ -39,6 +39,10 @@ tags:
     description: Workspace-sandboxed file operations
   - name: browser
     description: Local browser automation (Tier 1 stubs)
+  - name: onboarding
+    description: First-run setup wizard, hardware probe, and starter-task suggestions
+  - name: updates
+    description: Desktop application update channel
 
 paths:
   /healthz:
@@ -695,6 +699,115 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileDeleteResponse"
+
+  /onboarding/profile:
+    get:
+      operationId: getOnboardingProfile
+      tags: [onboarding]
+      summary: Fetch the tenant's onboarding profile (singleton)
+      description: |
+        Returns the persisted setup-wizard answers, completion flags, and
+        hardware snapshot for the requesting tenant. The frontend uses this
+        on every cold start to decide whether to render the wizard or drop
+        the user straight into chat.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Onboarding profile (or absent envelope when wizard not started)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingProfileResponse"
+    put:
+      operationId: upsertOnboardingProfile
+      tags: [onboarding]
+      summary: Create or update the wizard answers for the requesting tenant
+      description: |
+        Idempotent upsert keyed on tenant. Wizard step transitions PATCH a
+        subset of fields here; the server never overwrites a flag that has
+        already flipped to `true` (e.g. `firstTaskCompleted` is monotonic).
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertOnboardingProfileRequest"
+      responses:
+        "200":
+          description: Profile saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingProfileResponse"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /onboarding/hardware:
+    get:
+      operationId: getOnboardingHardware
+      tags: [onboarding]
+      summary: Detect host hardware and recommend a model
+      description: |
+        Probes the host's RAM, CPU architecture, OS, core count, and
+        Apple-Silicon flag, then returns the best-fit Ollama model from a
+        data-driven catalogue. Honours `OMNINITY_HARDWARE_OVERRIDE` for
+        deterministic tests.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Hardware probe + recommendation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingHardwareResponse"
+
+  /onboarding/starter-tasks:
+    get:
+      operationId: getOnboardingStarterTasks
+      tags: [onboarding]
+      summary: Personalised starter-task chips for the chat surface
+      description: |
+        Returns three suggested first tasks tailored to the use case the
+        user picked during onboarding. Falls back to a generic productivity
+        bundle when no profile exists.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Starter-task chips
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingStarterTaskResponse"
+
+  /updates/check:
+    get:
+      operationId: checkForUpdates
+      tags: [updates]
+      summary: Compare the running build to the published latest version
+      description: |
+        Local-first: the desktop shell calls this on launch and the chat
+        header polls it. The endpoint is read-only and never blocks user
+        work. The latest-version channel is configured via
+        `OMNINITY_LATEST_VERSION` until the dedicated update server (Task
+        "Desktop App Auto-Update System") replaces it.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Update status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateCheckResponse"
 
   /browser/screenshot:
     post:
@@ -1674,6 +1787,232 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/FileDeleteResult"
+
+    OnboardingProfile:
+      type: object
+      required:
+        - tenantId
+        - completed
+        - firstTaskCompleted
+        - approvalTooltipSeen
+        - createdAt
+        - updatedAt
+      properties:
+        tenantId:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        userType:
+          type: string
+          nullable: true
+          description: One of `personal` / `business` / `developer`.
+        useCase:
+          type: string
+          nullable: true
+          description: One of `productivity` / `sales` / `creative` / `coding` / `research`.
+        recommendedModel:
+          type: string
+          nullable: true
+        completed:
+          type: boolean
+        firstTaskCompleted:
+          type: boolean
+        approvalTooltipSeen:
+          type: boolean
+        hardwareSnapshot:
+          $ref: "#/components/schemas/HardwareProfile"
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OnboardingProfileResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [profile]
+          properties:
+            profile:
+              $ref: "#/components/schemas/OnboardingProfile"
+              nullable: true
+
+    UpsertOnboardingProfileRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        userType:
+          type: string
+          enum: [personal, business, developer]
+        useCase:
+          type: string
+          enum: [productivity, sales, creative, coding, research]
+        recommendedModel:
+          type: string
+          minLength: 1
+          maxLength: 200
+        completed:
+          type: boolean
+        firstTaskCompleted:
+          type: boolean
+        approvalTooltipSeen:
+          type: boolean
+        hardwareSnapshot:
+          $ref: "#/components/schemas/HardwareProfile"
+
+    HardwareProfile:
+      type: object
+      required:
+        - platform
+        - arch
+        - cpuCount
+        - totalRamBytes
+        - freeRamBytes
+        - appleSilicon
+        - tier
+        - detectedAt
+      properties:
+        platform:
+          type: string
+          description: Node `os.platform()` — e.g. `darwin`, `win32`, `linux`.
+        arch:
+          type: string
+          description: Node `os.arch()` — e.g. `arm64`, `x64`.
+        cpuCount:
+          type: integer
+        cpuModel:
+          type: string
+          nullable: true
+        totalRamBytes:
+          type: integer
+        freeRamBytes:
+          type: integer
+        appleSilicon:
+          type: boolean
+        tier:
+          type: string
+          enum: [low, mid, high, pro]
+          description: |
+            Coarse hardware bucket the recommendation engine maps to a model.
+            `low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.
+        detectedAt:
+          type: string
+          format: date-time
+
+    ModelRecommendation:
+      type: object
+      required: [model, reason, sizeBytes, tier]
+      properties:
+        model:
+          type: string
+          description: Ollama tag (e.g. `llama3.1:8b`).
+        reason:
+          type: string
+        sizeBytes:
+          type: integer
+        tier:
+          type: string
+
+    OnboardingHardware:
+      type: object
+      required: [hardware, recommendation]
+      properties:
+        hardware:
+          $ref: "#/components/schemas/HardwareProfile"
+        recommendation:
+          $ref: "#/components/schemas/ModelRecommendation"
+
+    OnboardingHardwareResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/OnboardingHardware"
+
+    StarterTask:
+      type: object
+      required: [id, title, prompt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        prompt:
+          type: string
+        category:
+          type: string
+
+    OnboardingStarterTaskList:
+      type: object
+      required: [items, useCase]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/StarterTask"
+        useCase:
+          type: string
+
+    OnboardingStarterTaskResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/OnboardingStarterTaskList"
+
+    UpdateCheck:
+      type: object
+      required: [currentVersion, latestVersion, updateAvailable, channel, checkedAt]
+      properties:
+        currentVersion:
+          type: string
+        latestVersion:
+          type: string
+        updateAvailable:
+          type: boolean
+        channel:
+          type: string
+          description: Release channel — `stable`, `beta`, etc.
+        downloadUrl:
+          type: string
+          nullable: true
+        releaseNotes:
+          type: string
+          nullable: true
+        checkedAt:
+          type: string
+          format: date-time
+
+    UpdateCheckResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/UpdateCheck"
 
     BrowserScreenshotRequest:
       type: object

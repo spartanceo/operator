@@ -1,5 +1,7 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useGetOnboardingProfile } from "@workspace/api-client-react";
+import { Loader2 } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout/layout";
 import { ThemeProvider } from "@/contexts/theme-context";
@@ -22,12 +24,13 @@ import ToolsPage from "@/pages/operator/tools";
 import PrivacyPage from "@/pages/operator/privacy";
 import MemoryPage from "@/pages/operator/memory";
 import SettingsPage from "@/pages/operator/settings";
+import OnboardingPage from "@/pages/operator/onboarding";
 
 initApiClient();
 
 const queryClient = makeQueryClient();
 
-// tier-review: bounded — fixed enumeration of operator route paths, never written to.
+// tier-review: bounded — fixed-size route allow-list, never mutated at runtime
 const OPERATOR_ROUTES = new Set([
   "/chat",
   "/agents",
@@ -64,7 +67,44 @@ function MarketingShell() {
   );
 }
 
+/**
+ * Operator shell — gated by the onboarding profile.
+ *
+ * The first visit hits `/api/onboarding/profile` and renders the wizard
+ * when no completed profile exists. On wizard completion we invalidate the
+ * profile query so the gate flips without a hard reload. The intermediate
+ * loading state is intentionally minimal — a flash of the wizard for
+ * sub-second profile fetches is much better UX than a flash of chat.
+ */
 function OperatorShell() {
+  const profileQuery = useGetOnboardingProfile();
+  const qc = useQueryClient();
+
+  if (profileQuery.isLoading) {
+    return (
+      <div
+        className="grid min-h-screen w-full place-items-center bg-background text-foreground"
+        data-testid="operator-loading"
+      >
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const profile = profileQuery.data?.data.profile ?? null;
+  const completed = profile?.completed === true;
+
+  if (!completed) {
+    return (
+      <OnboardingPage
+        initialProfile={profile}
+        onComplete={() => {
+          void qc.invalidateQueries();
+        }}
+      />
+    );
+  }
+
   return (
     <Switch>
       <Route path="/chat" component={ChatPage} />

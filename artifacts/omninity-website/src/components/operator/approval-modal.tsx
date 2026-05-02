@@ -13,8 +13,11 @@ import {
   type Approval,
   ApprovalDecisionRequestDecision,
   useDecideApproval,
+  useUpsertOnboardingProfile,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { RiskBadge } from "./risk-badge";
 import { ErrorBanner } from "./error-banner";
 
@@ -26,6 +29,13 @@ interface ApprovalModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDecided?: (approval: Approval) => void;
+  /**
+   * When true, render the one-time "this is an approval gate" tooltip
+   * card above the action buttons. The host (chat page) clears this flag
+   * by PUTting `approvalTooltipSeen=true` to the onboarding profile, so
+   * the tooltip never reappears.
+   */
+  showFirstApprovalTooltip?: boolean;
 }
 
 export function ApprovalModal({
@@ -36,9 +46,11 @@ export function ApprovalModal({
   open,
   onOpenChange,
   onDecided,
+  showFirstApprovalTooltip = false,
 }: ApprovalModalProps) {
   const [note, setNote] = useState("");
   const qc = useQueryClient();
+  const markTooltipSeen = useUpsertOnboardingProfile();
   const decide = useDecideApproval({
     mutation: {
       onSuccess: (resp) => {
@@ -46,6 +58,9 @@ export function ApprovalModal({
         onDecided?.(resp.data);
         setNote("");
         onOpenChange(false);
+        if (showFirstApprovalTooltip) {
+          markTooltipSeen.mutate({ data: { approvalTooltipSeen: true } });
+        }
       },
     },
   });
@@ -125,6 +140,23 @@ export function ApprovalModal({
               className="mt-1 min-h-[72px]"
             />
           </div>
+
+          {showFirstApprovalTooltip ? (
+            <div
+              className={cn(
+                "flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-foreground",
+              )}
+              data-testid="first-approval-tooltip"
+            >
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span>
+                <strong className="font-medium">Approval gates</strong> appear
+                whenever a step writes outside your machine, spends money, or
+                sends data over the network. Approve to continue, deny to stop
+                the agent. Your choice is logged in Privacy.
+              </span>
+            </div>
+          ) : null}
 
           <ErrorBanner error={decide.error} />
         </div>

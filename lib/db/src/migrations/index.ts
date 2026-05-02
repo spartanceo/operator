@@ -12,6 +12,7 @@
  * relevant array. Never reorder or renumber existing entries.
  */
 import { migration as m0001 } from "./0001_baseline";
+import { migration as m0002 } from "./0002_onboarding_profiles";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -22,6 +23,6 @@ export type {
   SchemaMigration,
 } from "./types";
 
-export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [m0001];
+export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [m0001, m0002];
 
 export const BACKGROUND_MIGRATIONS: readonly BackgroundMigration[] = [];

@@ -27,7 +27,8 @@ The system is built on a pnpm workspace monorepo, utilizing Node.js 24 and TypeS
 - **Privacy Logging**: Every outbound `fetch()` is bracketed by `logPrivacyEvent()`.
 - **Filesystem Sandboxing**: `lib/sandbox.ts` restricts file operations to a dedicated workspace-specific directory, preventing path traversal and symlink attacks, and capping read/write sizes.
 - **Authentication**: `bcryptjs`, `express-session`, and a DB-backed `sessions` table manage user authentication.
-- **Database Schema**: SQLite with 10 tenant-scoped tables, including `tenants`, `workspaces`, `users`, `sessions`, `memories`, `agent_runs`, `messages`, `tool_calls`, `approvals`, and `privacy_events`.
+- **Database Schema**: SQLite with 11 tenant-scoped tables, including `tenants`, `workspaces`, `users`, `sessions`, `memories`, `agent_runs`, `messages`, `tool_calls`, `approvals`, `privacy_events`, and `onboarding_profiles` (singleton-per-tenant with monotonic completion flags).
+- **Onboarding & Updates**: `/api/onboarding/{profile,hardware,starter-tasks}` powers a 4-step wizard rendered at the operator shell when no completed profile exists. Hardware is probed via `os.*` with an `OMNINITY_HARDWARE_OVERRIDE` env seam for tests; the recommendation engine maps RAM/Apple-Silicon tier to a static MODEL_CATALOGUE. `/api/updates/check` compares `npm_package_version` to `OMNINITY_LATEST_VERSION` (env-driven seam for the future update server). The chat surface ships starter-task chips, a one-time first-approval tooltip, and a success-sparkle on first agent completion.
 - **UI/UX**: `chart.tsx` uses hardcoded hex colors and `dangerouslySetInnerHTML`, which is slated for refactoring in Task #2 (Design System).
 
 # External Dependencies

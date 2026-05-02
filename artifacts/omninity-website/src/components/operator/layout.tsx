@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { OperatorSidebar } from "./sidebar";
 import { OperatorHeader } from "./header";
+import { UpdateBanner } from "@/components/onboarding/update-banner";
 
 interface OperatorLayoutProps {
   title: string;
@@ -19,6 +20,7 @@ export function OperatorLayout({
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <OperatorSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
+        <UpdateBanner />
         <OperatorHeader
           title={title}
           {...(description !== undefined ? { description } : {})}

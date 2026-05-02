@@ -1062,6 +1062,289 @@ export const DeleteFileResponse = zod.object({
 });
 
 /**
+ * Returns the persisted setup-wizard answers, completion flags, and
+hardware snapshot for the requesting tenant. The frontend uses this
+on every cold start to decide whether to render the wizard or drop
+the user straight into chat.
+
+ * @summary Fetch the tenant's onboarding profile (singleton)
+ */
+export const GetOnboardingProfileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetOnboardingProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    profile: zod
+      .object({
+        tenantId: zod.string(),
+        displayName: zod.string().nullish(),
+        userType: zod
+          .string()
+          .nullish()
+          .describe("One of `personal` \/ `business` \/ `developer`."),
+        useCase: zod
+          .string()
+          .nullish()
+          .describe(
+            "One of `productivity` \/ `sales` \/ `creative` \/ `coding` \/ `research`.",
+          ),
+        recommendedModel: zod.string().nullish(),
+        completed: zod.boolean(),
+        firstTaskCompleted: zod.boolean(),
+        approvalTooltipSeen: zod.boolean(),
+        hardwareSnapshot: zod
+          .object({
+            platform: zod
+              .string()
+              .describe(
+                "Node `os.platform()` — e.g. `darwin`, `win32`, `linux`.",
+              ),
+            arch: zod
+              .string()
+              .describe("Node `os.arch()` — e.g. `arm64`, `x64`."),
+            cpuCount: zod.number(),
+            cpuModel: zod.string().nullish(),
+            totalRamBytes: zod.number(),
+            freeRamBytes: zod.number(),
+            appleSilicon: zod.boolean(),
+            tier: zod
+              .enum(["low", "mid", "high", "pro"])
+              .describe(
+                "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
+              ),
+            detectedAt: zod.coerce.date(),
+          })
+          .nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * Idempotent upsert keyed on tenant. Wizard step transitions PATCH a
+subset of fields here; the server never overwrites a flag that has
+already flipped to `true` (e.g. `firstTaskCompleted` is monotonic).
+
+ * @summary Create or update the wizard answers for the requesting tenant
+ */
+export const UpsertOnboardingProfileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const upsertOnboardingProfileBodyDisplayNameMax = 120;
+
+export const upsertOnboardingProfileBodyRecommendedModelMax = 200;
+
+export const UpsertOnboardingProfileBody = zod.object({
+  displayName: zod
+    .string()
+    .min(1)
+    .max(upsertOnboardingProfileBodyDisplayNameMax)
+    .optional(),
+  userType: zod.enum(["personal", "business", "developer"]).optional(),
+  useCase: zod
+    .enum(["productivity", "sales", "creative", "coding", "research"])
+    .optional(),
+  recommendedModel: zod
+    .string()
+    .min(1)
+    .max(upsertOnboardingProfileBodyRecommendedModelMax)
+    .optional(),
+  completed: zod.boolean().optional(),
+  firstTaskCompleted: zod.boolean().optional(),
+  approvalTooltipSeen: zod.boolean().optional(),
+  hardwareSnapshot: zod
+    .object({
+      platform: zod
+        .string()
+        .describe("Node `os.platform()` — e.g. `darwin`, `win32`, `linux`."),
+      arch: zod.string().describe("Node `os.arch()` — e.g. `arm64`, `x64`."),
+      cpuCount: zod.number(),
+      cpuModel: zod.string().nullish(),
+      totalRamBytes: zod.number(),
+      freeRamBytes: zod.number(),
+      appleSilicon: zod.boolean(),
+      tier: zod
+        .enum(["low", "mid", "high", "pro"])
+        .describe(
+          "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
+        ),
+      detectedAt: zod.coerce.date(),
+    })
+    .optional(),
+});
+
+export const UpsertOnboardingProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    profile: zod
+      .object({
+        tenantId: zod.string(),
+        displayName: zod.string().nullish(),
+        userType: zod
+          .string()
+          .nullish()
+          .describe("One of `personal` \/ `business` \/ `developer`."),
+        useCase: zod
+          .string()
+          .nullish()
+          .describe(
+            "One of `productivity` \/ `sales` \/ `creative` \/ `coding` \/ `research`.",
+          ),
+        recommendedModel: zod.string().nullish(),
+        completed: zod.boolean(),
+        firstTaskCompleted: zod.boolean(),
+        approvalTooltipSeen: zod.boolean(),
+        hardwareSnapshot: zod
+          .object({
+            platform: zod
+              .string()
+              .describe(
+                "Node `os.platform()` — e.g. `darwin`, `win32`, `linux`.",
+              ),
+            arch: zod
+              .string()
+              .describe("Node `os.arch()` — e.g. `arm64`, `x64`."),
+            cpuCount: zod.number(),
+            cpuModel: zod.string().nullish(),
+            totalRamBytes: zod.number(),
+            freeRamBytes: zod.number(),
+            appleSilicon: zod.boolean(),
+            tier: zod
+              .enum(["low", "mid", "high", "pro"])
+              .describe(
+                "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
+              ),
+            detectedAt: zod.coerce.date(),
+          })
+          .nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * Probes the host's RAM, CPU architecture, OS, core count, and
+Apple-Silicon flag, then returns the best-fit Ollama model from a
+data-driven catalogue. Honours `OMNINITY_HARDWARE_OVERRIDE` for
+deterministic tests.
+
+ * @summary Detect host hardware and recommend a model
+ */
+export const GetOnboardingHardwareHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetOnboardingHardwareResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    hardware: zod.object({
+      platform: zod
+        .string()
+        .describe("Node `os.platform()` — e.g. `darwin`, `win32`, `linux`."),
+      arch: zod.string().describe("Node `os.arch()` — e.g. `arm64`, `x64`."),
+      cpuCount: zod.number(),
+      cpuModel: zod.string().nullish(),
+      totalRamBytes: zod.number(),
+      freeRamBytes: zod.number(),
+      appleSilicon: zod.boolean(),
+      tier: zod
+        .enum(["low", "mid", "high", "pro"])
+        .describe(
+          "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
+        ),
+      detectedAt: zod.coerce.date(),
+    }),
+    recommendation: zod.object({
+      model: zod.string().describe("Ollama tag (e.g. `llama3.1:8b`)."),
+      reason: zod.string(),
+      sizeBytes: zod.number(),
+      tier: zod.string(),
+    }),
+  }),
+});
+
+/**
+ * Returns three suggested first tasks tailored to the use case the
+user picked during onboarding. Falls back to a generic productivity
+bundle when no profile exists.
+
+ * @summary Personalised starter-task chips for the chat surface
+ */
+export const GetOnboardingStarterTasksHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetOnboardingStarterTasksResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        title: zod.string(),
+        prompt: zod.string(),
+        category: zod.string().optional(),
+      }),
+    ),
+    useCase: zod.string(),
+  }),
+});
+
+/**
+ * Local-first: the desktop shell calls this on launch and the chat
+header polls it. The endpoint is read-only and never blocks user
+work. The latest-version channel is configured via
+`OMNINITY_LATEST_VERSION` until the dedicated update server (Task
+"Desktop App Auto-Update System") replaces it.
+
+ * @summary Compare the running build to the published latest version
+ */
+export const CheckForUpdatesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CheckForUpdatesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    currentVersion: zod.string(),
+    latestVersion: zod.string(),
+    updateAvailable: zod.boolean(),
+    channel: zod.string().describe("Release channel — `stable`, `beta`, etc."),
+    downloadUrl: zod.string().nullish(),
+    releaseNotes: zod.string().nullish(),
+    checkedAt: zod.coerce.date(),
+  }),
+});
+
+/**
  * @summary Capture a screenshot via the local browser tool (Tier 1 stub)
  */
 export const BrowserScreenshotHeader = zod.object({

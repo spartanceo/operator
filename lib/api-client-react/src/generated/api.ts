@@ -68,6 +68,9 @@ import type {
   ModelListResponse,
   ModelPullRequest,
   ModelPullResponse,
+  OnboardingHardwareResponse,
+  OnboardingProfileResponse,
+  OnboardingStarterTaskResponse,
   PrivacyEventListResponse,
   PrivacyEventResponse,
   RegisterRequest,
@@ -77,6 +80,8 @@ import type {
   ToolInvokeRequest,
   ToolInvokeResponse,
   ToolListResponse,
+  UpdateCheckResponse,
+  UpsertOnboardingProfileRequest,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2937,6 +2942,427 @@ export const useDeleteFile = <
 > => {
   return useMutation(getDeleteFileMutationOptions(options));
 };
+
+/**
+ * Returns the persisted setup-wizard answers, completion flags, and
+hardware snapshot for the requesting tenant. The frontend uses this
+on every cold start to decide whether to render the wizard or drop
+the user straight into chat.
+
+ * @summary Fetch the tenant's onboarding profile (singleton)
+ */
+export const getGetOnboardingProfileUrl = () => {
+  return `/api/onboarding/profile`;
+};
+
+export const getOnboardingProfile = async (
+  options?: RequestInit,
+): Promise<OnboardingProfileResponse> => {
+  return customFetch<OnboardingProfileResponse>(getGetOnboardingProfileUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetOnboardingProfileQueryKey = () => {
+  return [`/api/onboarding/profile`] as const;
+};
+
+export const getGetOnboardingProfileQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOnboardingProfile>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingProfile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOnboardingProfileQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOnboardingProfile>>
+  > = ({ signal }) => getOnboardingProfile({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingProfile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOnboardingProfileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOnboardingProfile>>
+>;
+export type GetOnboardingProfileQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fetch the tenant's onboarding profile (singleton)
+ */
+
+export function useGetOnboardingProfile<
+  TData = Awaited<ReturnType<typeof getOnboardingProfile>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingProfile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOnboardingProfileQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Idempotent upsert keyed on tenant. Wizard step transitions PATCH a
+subset of fields here; the server never overwrites a flag that has
+already flipped to `true` (e.g. `firstTaskCompleted` is monotonic).
+
+ * @summary Create or update the wizard answers for the requesting tenant
+ */
+export const getUpsertOnboardingProfileUrl = () => {
+  return `/api/onboarding/profile`;
+};
+
+export const upsertOnboardingProfile = async (
+  upsertOnboardingProfileRequest: UpsertOnboardingProfileRequest,
+  options?: RequestInit,
+): Promise<OnboardingProfileResponse> => {
+  return customFetch<OnboardingProfileResponse>(
+    getUpsertOnboardingProfileUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(upsertOnboardingProfileRequest),
+    },
+  );
+};
+
+export const getUpsertOnboardingProfileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertOnboardingProfile>>,
+    TError,
+    { data: BodyType<UpsertOnboardingProfileRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertOnboardingProfile>>,
+  TError,
+  { data: BodyType<UpsertOnboardingProfileRequest> },
+  TContext
+> => {
+  const mutationKey = ["upsertOnboardingProfile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertOnboardingProfile>>,
+    { data: BodyType<UpsertOnboardingProfileRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return upsertOnboardingProfile(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertOnboardingProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertOnboardingProfile>>
+>;
+export type UpsertOnboardingProfileMutationBody =
+  BodyType<UpsertOnboardingProfileRequest>;
+export type UpsertOnboardingProfileMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Create or update the wizard answers for the requesting tenant
+ */
+export const useUpsertOnboardingProfile = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertOnboardingProfile>>,
+    TError,
+    { data: BodyType<UpsertOnboardingProfileRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertOnboardingProfile>>,
+  TError,
+  { data: BodyType<UpsertOnboardingProfileRequest> },
+  TContext
+> => {
+  return useMutation(getUpsertOnboardingProfileMutationOptions(options));
+};
+
+/**
+ * Probes the host's RAM, CPU architecture, OS, core count, and
+Apple-Silicon flag, then returns the best-fit Ollama model from a
+data-driven catalogue. Honours `OMNINITY_HARDWARE_OVERRIDE` for
+deterministic tests.
+
+ * @summary Detect host hardware and recommend a model
+ */
+export const getGetOnboardingHardwareUrl = () => {
+  return `/api/onboarding/hardware`;
+};
+
+export const getOnboardingHardware = async (
+  options?: RequestInit,
+): Promise<OnboardingHardwareResponse> => {
+  return customFetch<OnboardingHardwareResponse>(
+    getGetOnboardingHardwareUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetOnboardingHardwareQueryKey = () => {
+  return [`/api/onboarding/hardware`] as const;
+};
+
+export const getGetOnboardingHardwareQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOnboardingHardware>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingHardware>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOnboardingHardwareQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOnboardingHardware>>
+  > = ({ signal }) => getOnboardingHardware({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingHardware>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOnboardingHardwareQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOnboardingHardware>>
+>;
+export type GetOnboardingHardwareQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Detect host hardware and recommend a model
+ */
+
+export function useGetOnboardingHardware<
+  TData = Awaited<ReturnType<typeof getOnboardingHardware>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingHardware>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOnboardingHardwareQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns three suggested first tasks tailored to the use case the
+user picked during onboarding. Falls back to a generic productivity
+bundle when no profile exists.
+
+ * @summary Personalised starter-task chips for the chat surface
+ */
+export const getGetOnboardingStarterTasksUrl = () => {
+  return `/api/onboarding/starter-tasks`;
+};
+
+export const getOnboardingStarterTasks = async (
+  options?: RequestInit,
+): Promise<OnboardingStarterTaskResponse> => {
+  return customFetch<OnboardingStarterTaskResponse>(
+    getGetOnboardingStarterTasksUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetOnboardingStarterTasksQueryKey = () => {
+  return [`/api/onboarding/starter-tasks`] as const;
+};
+
+export const getGetOnboardingStarterTasksQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOnboardingStarterTasks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingStarterTasks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetOnboardingStarterTasksQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOnboardingStarterTasks>>
+  > = ({ signal }) => getOnboardingStarterTasks({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingStarterTasks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOnboardingStarterTasksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOnboardingStarterTasks>>
+>;
+export type GetOnboardingStarterTasksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Personalised starter-task chips for the chat surface
+ */
+
+export function useGetOnboardingStarterTasks<
+  TData = Awaited<ReturnType<typeof getOnboardingStarterTasks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingStarterTasks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOnboardingStarterTasksQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Local-first: the desktop shell calls this on launch and the chat
+header polls it. The endpoint is read-only and never blocks user
+work. The latest-version channel is configured via
+`OMNINITY_LATEST_VERSION` until the dedicated update server (Task
+"Desktop App Auto-Update System") replaces it.
+
+ * @summary Compare the running build to the published latest version
+ */
+export const getCheckForUpdatesUrl = () => {
+  return `/api/updates/check`;
+};
+
+export const checkForUpdates = async (
+  options?: RequestInit,
+): Promise<UpdateCheckResponse> => {
+  return customFetch<UpdateCheckResponse>(getCheckForUpdatesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCheckForUpdatesQueryKey = () => {
+  return [`/api/updates/check`] as const;
+};
+
+export const getCheckForUpdatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof checkForUpdates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof checkForUpdates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCheckForUpdatesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof checkForUpdates>>> = ({
+    signal,
+  }) => checkForUpdates({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof checkForUpdates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CheckForUpdatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof checkForUpdates>>
+>;
+export type CheckForUpdatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Compare the running build to the published latest version
+ */
+
+export function useCheckForUpdates<
+  TData = Awaited<ReturnType<typeof checkForUpdates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof checkForUpdates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCheckForUpdatesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Capture a screenshot via the local browser tool (Tier 1 stub)

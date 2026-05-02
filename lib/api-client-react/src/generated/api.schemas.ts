@@ -496,6 +496,154 @@ export interface FileDeleteResponse {
   data: FileDeleteResult;
 }
 
+/**
+ * Coarse hardware bucket the recommendation engine maps to a model.
+`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.
+
+ */
+export type HardwareProfileTier =
+  (typeof HardwareProfileTier)[keyof typeof HardwareProfileTier];
+
+export const HardwareProfileTier = {
+  low: "low",
+  mid: "mid",
+  high: "high",
+  pro: "pro",
+} as const;
+
+export interface HardwareProfile {
+  /** Node `os.platform()` — e.g. `darwin`, `win32`, `linux`. */
+  platform: string;
+  /** Node `os.arch()` — e.g. `arm64`, `x64`. */
+  arch: string;
+  cpuCount: number;
+  cpuModel?: string | null;
+  totalRamBytes: number;
+  freeRamBytes: number;
+  appleSilicon: boolean;
+  /** Coarse hardware bucket the recommendation engine maps to a model.
+`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.
+ */
+  tier: HardwareProfileTier;
+  detectedAt: string;
+}
+
+export interface OnboardingProfile {
+  tenantId: string;
+  displayName?: string | null;
+  /** One of `personal` / `business` / `developer`. */
+  userType?: string | null;
+  /** One of `productivity` / `sales` / `creative` / `coding` / `research`. */
+  useCase?: string | null;
+  recommendedModel?: string | null;
+  completed: boolean;
+  firstTaskCompleted: boolean;
+  approvalTooltipSeen: boolean;
+  hardwareSnapshot?: HardwareProfile | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type OnboardingProfileResponseData = {
+  profile: OnboardingProfile | null;
+};
+
+export interface OnboardingProfileResponse {
+  success: boolean;
+  data: OnboardingProfileResponseData;
+}
+
+export type UpsertOnboardingProfileRequestUserType =
+  (typeof UpsertOnboardingProfileRequestUserType)[keyof typeof UpsertOnboardingProfileRequestUserType];
+
+export const UpsertOnboardingProfileRequestUserType = {
+  personal: "personal",
+  business: "business",
+  developer: "developer",
+} as const;
+
+export type UpsertOnboardingProfileRequestUseCase =
+  (typeof UpsertOnboardingProfileRequestUseCase)[keyof typeof UpsertOnboardingProfileRequestUseCase];
+
+export const UpsertOnboardingProfileRequestUseCase = {
+  productivity: "productivity",
+  sales: "sales",
+  creative: "creative",
+  coding: "coding",
+  research: "research",
+} as const;
+
+export interface UpsertOnboardingProfileRequest {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  displayName?: string;
+  userType?: UpsertOnboardingProfileRequestUserType;
+  useCase?: UpsertOnboardingProfileRequestUseCase;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  recommendedModel?: string;
+  completed?: boolean;
+  firstTaskCompleted?: boolean;
+  approvalTooltipSeen?: boolean;
+  hardwareSnapshot?: HardwareProfile;
+}
+
+export interface ModelRecommendation {
+  /** Ollama tag (e.g. `llama3.1:8b`). */
+  model: string;
+  reason: string;
+  sizeBytes: number;
+  tier: string;
+}
+
+export interface OnboardingHardware {
+  hardware: HardwareProfile;
+  recommendation: ModelRecommendation;
+}
+
+export interface OnboardingHardwareResponse {
+  success: boolean;
+  data: OnboardingHardware;
+}
+
+export interface StarterTask {
+  id: string;
+  title: string;
+  prompt: string;
+  category?: string;
+}
+
+export interface OnboardingStarterTaskList {
+  items: StarterTask[];
+  useCase: string;
+}
+
+export interface OnboardingStarterTaskResponse {
+  success: boolean;
+  data: OnboardingStarterTaskList;
+}
+
+export interface UpdateCheck {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  /** Release channel — `stable`, `beta`, etc. */
+  channel: string;
+  downloadUrl?: string | null;
+  releaseNotes?: string | null;
+  checkedAt: string;
+}
+
+export interface UpdateCheckResponse {
+  success: boolean;
+  data: UpdateCheck;
+}
+
 export interface BrowserScreenshotRequest {
   url: string;
   viewport?: string;
