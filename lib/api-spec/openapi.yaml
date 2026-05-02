@@ -52,6 +52,8 @@ tags:
     description: Connected accounts, email, calendar, VoIP, contacts, outreach
   - name: mobile
     description: Mobile Companion PWA — pairing, devices, push notifications, mobile dashboard
+  - name: telemetry
+    description: Opt-in analytics, performance metrics, crash reports, and the per-tenant dashboard
 paths:
   /healthz:
     get:
@@ -3649,6 +3651,205 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+
+  /telemetry/consent:
+    get:
+      operationId: getTelemetryConsent
+      tags: [telemetry]
+      summary: Read the tenant's opt-in consent flags
+      description: |
+        Returns the singleton consent row for the requesting tenant. If
+        the user has not interacted with the consent UI yet, every flag
+        is `false` (default-OFF) and `consentGivenAt` is `null`.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Current consent state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptInTelemetryConsentResponse"
+    put:
+      operationId: updateTelemetryConsent
+      tags: [telemetry]
+      summary: Update opt-in flags for the requesting tenant
+      description: |
+        Idempotent upsert. Each flag may be omitted (left unchanged), set
+        to `true` (opt in), or set to `false` (opt out). Pass
+        `revokeAll: true` to force every flag off and stamp
+        `consentRevokedAt`.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTelemetryConsentRequest"
+      responses:
+        "200":
+          description: Consent saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptInTelemetryConsentResponse"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /telemetry/data:
+    delete:
+      operationId: eraseTelemetryData
+      tags: [telemetry]
+      summary: Hard-delete every telemetry artefact owned by this tenant
+      description: |
+        Removes the consent row, every recorded event, and every crash
+        report for the requesting tenant. Idempotent — safe to call
+        repeatedly. Used by the "Delete my telemetry data" button in the
+        Settings UI and by the wider GDPR erasure flow.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Erasure receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryErasureResponse"
+
+  /telemetry/events:
+    get:
+      operationId: listTelemetryEvents
+      tags: [telemetry]
+      summary: Paginated list of recorded telemetry events
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [feature_usage, performance, onboarding, marketplace]
+      responses:
+        "200":
+          description: Telemetry events page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryEventListResponse"
+    post:
+      operationId: recordTelemetryEvents
+      tags: [telemetry]
+      summary: Submit a batch of telemetry events
+      description: |
+        Each event in the batch is independently validated against the
+        per-category opt-in flag and the privacy enforcement layer. Events
+        that fail either gate appear in the `rejections` array of the
+        response — the call as a whole returns 200 even when some events
+        were rejected so a client batch is never silently dropped.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordTelemetryEventsRequest"
+      responses:
+        "200":
+          description: Batch result (mix of accepted + rejected)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecordTelemetryEventsResponse"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /telemetry/crashes:
+    get:
+      operationId: listCrashReports
+      tags: [telemetry]
+      summary: Paginated list of submitted crash reports
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Crash reports page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrashReportListResponse"
+    post:
+      operationId: submitCrashReport
+      tags: [telemetry]
+      summary: Submit one user-reviewed crash report
+      description: |
+        The user reviews the locally generated crash report and only then
+        does the desktop app POST it here. Returns `403
+        TELEMETRY_CONSENT_DENIED` when crash reporting is not opted-in.
+        Stack traces and breadcrumbs are scrubbed of file paths, email
+        addresses, URL credentials, and token-like blobs server-side.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitCrashReportRequest"
+      responses:
+        "200":
+          description: Crash report stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrashReportResponse"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Crash reporting opt-in is disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /telemetry/summary:
+    get:
+      operationId: getTelemetrySummary
+      tags: [telemetry]
+      summary: Per-tenant analytics summary for the OP team dashboard
+      description: |
+        Aggregates the tenant's recorded telemetry events and crash
+        reports into the metrics the dashboard surfaces — totals, unique
+        anonymous IDs (proxy for active users), category counts,
+        top-N event names, hardware tier distribution, and the onboarding
+        funnel by named step. Cross-tenant aggregation is gated behind
+        the privileged admin role that lands in Task #7.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Aggregated dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetrySummaryResponse"
 components:
   parameters:
     TenantHeader:
@@ -9400,3 +9601,454 @@ components:
         data:
           $ref: "#/components/schemas/MobileQuickTaskPage"
 
+
+
+
+
+    OptInTelemetryConsent:
+      type: object
+      required:
+        - optInUsage
+        - optInPerformance
+        - optInCrashes
+        - optInOnboarding
+        - optInMarketplace
+        - anonymousId
+        - updatedAt
+      properties:
+        optInUsage:
+          type: boolean
+          description: Feature-usage analytics (page visits, tool invocations, skill installs).
+        optInPerformance:
+          type: boolean
+          description: App startup, agent latency, model inference, memory usage.
+        optInCrashes:
+          type: boolean
+          description: Crash reports submitted on unexpected app exit (after user review).
+        optInOnboarding:
+          type: boolean
+          description: Onboarding funnel — which wizard step was reached.
+        optInMarketplace:
+          type: boolean
+          description: Skill marketplace browse / install / rate events.
+        anonymousId:
+          type: string
+          description: |
+            Random per-tenant identifier used for funnel grouping. NEVER
+            linked to user identity, email, or workspace name.
+        consentGivenAt:
+          type: string
+          format: date-time
+          nullable: true
+        consentRevokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+
+    OptInTelemetryConsentEnvelope:
+      type: object
+      required: [consent, categories]
+      properties:
+        consent:
+          $ref: "#/components/schemas/OptInTelemetryConsent"
+        categories:
+          type: array
+          items:
+            type: string
+            enum: [feature_usage, performance, onboarding, marketplace]
+
+    OptInTelemetryConsentResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/OptInTelemetryConsentEnvelope"
+
+    UpdateTelemetryConsentRequest:
+      type: object
+      properties:
+        optInUsage:
+          type: boolean
+        optInPerformance:
+          type: boolean
+        optInCrashes:
+          type: boolean
+        optInOnboarding:
+          type: boolean
+        optInMarketplace:
+          type: boolean
+        revokeAll:
+          type: boolean
+          description: Force every flag to false and stamp `consentRevokedAt`.
+
+    TelemetryEventInput:
+      type: object
+      required: [category, eventName]
+      properties:
+        category:
+          type: string
+          enum: [feature_usage, performance, onboarding, marketplace]
+        eventName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        payload:
+          type: object
+          additionalProperties: true
+          description: |
+            Structured event metadata. Server-side privacy enforcement
+            rejects forbidden keys (password / token / email / path /
+            content / prompt / response / etc.) and PII-shaped string
+            values (email addresses, file paths, URL credentials,
+            token-like blobs).
+        opVersion:
+          type: string
+        osPlatform:
+          type: string
+        hardwareTier:
+          type: string
+        durationMs:
+          type: integer
+          minimum: 0
+
+    RecordTelemetryEventsRequest:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/TelemetryEventInput"
+
+    TelemetryEvent:
+      type: object
+      required:
+        - id
+        - category
+        - eventName
+        - payload
+        - opVersion
+        - anonymousId
+        - createdAt
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        eventName:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        opVersion:
+          type: string
+        osPlatform:
+          type: string
+          nullable: true
+        hardwareTier:
+          type: string
+          nullable: true
+        durationMs:
+          type: integer
+          nullable: true
+        anonymousId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    TelemetryRejection:
+      type: object
+      required: [index, reason]
+      properties:
+        index:
+          type: integer
+        reason:
+          type: string
+
+    TelemetryRecordResult:
+      type: object
+      required: [accepted, rejected, rejections, records]
+      properties:
+        accepted:
+          type: integer
+        rejected:
+          type: integer
+        rejections:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetryRejection"
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetryEvent"
+
+    RecordTelemetryEventsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/TelemetryRecordResult"
+
+    TelemetryEventListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetryEvent"
+        nextCursor:
+          type: string
+          nullable: true
+
+    TelemetryEventListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/TelemetryEventListPage"
+
+    SubmitCrashReportRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 500
+        stackTrace:
+          type: string
+          maxLength: 8000
+        breadcrumbs:
+          type: string
+          maxLength: 8000
+        fingerprint:
+          type: string
+          minLength: 1
+          maxLength: 120
+        opVersion:
+          type: string
+        osPlatform:
+          type: string
+        osVersion:
+          type: string
+        hardwareTier:
+          type: string
+
+    CrashReport:
+      type: object
+      required:
+        - id
+        - fingerprint
+        - message
+        - opVersion
+        - anonymousId
+        - createdAt
+      properties:
+        id:
+          type: string
+        fingerprint:
+          type: string
+        message:
+          type: string
+        stackTrace:
+          type: string
+          nullable: true
+        breadcrumbs:
+          type: string
+          nullable: true
+        opVersion:
+          type: string
+        osPlatform:
+          type: string
+          nullable: true
+        osVersion:
+          type: string
+          nullable: true
+        hardwareTier:
+          type: string
+          nullable: true
+        anonymousId:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        githubIssueUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CrashReportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/CrashReport"
+
+    CrashReportListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CrashReport"
+        nextCursor:
+          type: string
+          nullable: true
+
+    CrashReportListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/CrashReportListPage"
+
+    TelemetryErasureReceipt:
+      type: object
+      required: [eventsDeleted, crashesDeleted, settingsCleared, scheduledAt]
+      properties:
+        eventsDeleted:
+          type: integer
+        crashesDeleted:
+          type: integer
+        settingsCleared:
+          type: boolean
+        scheduledAt:
+          type: string
+          format: date-time
+
+    TelemetryErasureResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/TelemetryErasureReceipt"
+
+    TelemetryCategoryCount:
+      type: object
+      required: [category, count]
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+
+    TelemetryEventNameCount:
+      type: object
+      required: [eventName, count]
+      properties:
+        eventName:
+          type: string
+        count:
+          type: integer
+
+    TelemetryHardwareTierCount:
+      type: object
+      required: [tier, count]
+      properties:
+        tier:
+          type: string
+        count:
+          type: integer
+
+    TelemetryFunnelStep:
+      type: object
+      required: [step, count]
+      properties:
+        step:
+          type: string
+        count:
+          type: integer
+
+    CrashFingerprintCount:
+      type: object
+      required: [fingerprint, count, lastSeenAt]
+      properties:
+        fingerprint:
+          type: string
+        count:
+          type: integer
+        lastSeenAt:
+          type: string
+          format: date-time
+
+    TelemetrySummary:
+      type: object
+      required:
+        - totalEvents
+        - totalCrashes
+        - uniqueAnonymousIds
+        - categoryCounts
+        - topEventNames
+        - hardwareTierCounts
+        - onboardingFunnel
+        - topCrashFingerprints
+        - generatedAt
+      properties:
+        totalEvents:
+          type: integer
+        totalCrashes:
+          type: integer
+        uniqueAnonymousIds:
+          type: integer
+        categoryCounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetryCategoryCount"
+        topEventNames:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetryEventNameCount"
+        hardwareTierCounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetryHardwareTierCount"
+        onboardingFunnel:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetryFunnelStep"
+        topCrashFingerprints:
+          type: array
+          items:
+            $ref: "#/components/schemas/CrashFingerprintCount"
+        generatedAt:
+          type: string
+          format: date-time
+
+    TelemetrySummaryResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/TelemetrySummary"

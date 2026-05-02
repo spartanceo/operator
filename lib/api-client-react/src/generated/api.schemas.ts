@@ -2984,6 +2984,254 @@ export interface MobileQuickTaskListResponse {
   data: MobileQuickTaskPage;
 }
 
+export interface OptInTelemetryConsent {
+  /** Feature-usage analytics (page visits, tool invocations, skill installs). */
+  optInUsage: boolean;
+  /** App startup, agent latency, model inference, memory usage. */
+  optInPerformance: boolean;
+  /** Crash reports submitted on unexpected app exit (after user review). */
+  optInCrashes: boolean;
+  /** Onboarding funnel — which wizard step was reached. */
+  optInOnboarding: boolean;
+  /** Skill marketplace browse / install / rate events. */
+  optInMarketplace: boolean;
+  /** Random per-tenant identifier used for funnel grouping. NEVER
+linked to user identity, email, or workspace name.
+ */
+  anonymousId: string;
+  consentGivenAt?: string | null;
+  consentRevokedAt?: string | null;
+  updatedAt: string;
+}
+
+export type OptInTelemetryConsentEnvelopeCategoriesItem =
+  (typeof OptInTelemetryConsentEnvelopeCategoriesItem)[keyof typeof OptInTelemetryConsentEnvelopeCategoriesItem];
+
+export const OptInTelemetryConsentEnvelopeCategoriesItem = {
+  feature_usage: "feature_usage",
+  performance: "performance",
+  onboarding: "onboarding",
+  marketplace: "marketplace",
+} as const;
+
+export interface OptInTelemetryConsentEnvelope {
+  consent: OptInTelemetryConsent;
+  categories: OptInTelemetryConsentEnvelopeCategoriesItem[];
+}
+
+export interface OptInTelemetryConsentResponse {
+  success: boolean;
+  data: OptInTelemetryConsentEnvelope;
+}
+
+export interface UpdateTelemetryConsentRequest {
+  optInUsage?: boolean;
+  optInPerformance?: boolean;
+  optInCrashes?: boolean;
+  optInOnboarding?: boolean;
+  optInMarketplace?: boolean;
+  /** Force every flag to false and stamp `consentRevokedAt`. */
+  revokeAll?: boolean;
+}
+
+export type TelemetryEventInputCategory =
+  (typeof TelemetryEventInputCategory)[keyof typeof TelemetryEventInputCategory];
+
+export const TelemetryEventInputCategory = {
+  feature_usage: "feature_usage",
+  performance: "performance",
+  onboarding: "onboarding",
+  marketplace: "marketplace",
+} as const;
+
+/**
+ * Structured event metadata. Server-side privacy enforcement
+rejects forbidden keys (password / token / email / path /
+content / prompt / response / etc.) and PII-shaped string
+values (email addresses, file paths, URL credentials,
+token-like blobs).
+
+ */
+export type TelemetryEventInputPayload = { [key: string]: unknown };
+
+export interface TelemetryEventInput {
+  category: TelemetryEventInputCategory;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  eventName: string;
+  /** Structured event metadata. Server-side privacy enforcement
+rejects forbidden keys (password / token / email / path /
+content / prompt / response / etc.) and PII-shaped string
+values (email addresses, file paths, URL credentials,
+token-like blobs).
+ */
+  payload?: TelemetryEventInputPayload;
+  opVersion?: string;
+  osPlatform?: string;
+  hardwareTier?: string;
+  /** @minimum 0 */
+  durationMs?: number;
+}
+
+export interface RecordTelemetryEventsRequest {
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  events: TelemetryEventInput[];
+}
+
+export type TelemetryEventPayload = { [key: string]: unknown };
+
+export interface TelemetryEvent {
+  id: string;
+  category: string;
+  eventName: string;
+  payload: TelemetryEventPayload;
+  opVersion: string;
+  osPlatform?: string | null;
+  hardwareTier?: string | null;
+  durationMs?: number | null;
+  anonymousId: string;
+  createdAt: string;
+}
+
+export interface TelemetryRejection {
+  index: number;
+  reason: string;
+}
+
+export interface TelemetryRecordResult {
+  accepted: number;
+  rejected: number;
+  rejections: TelemetryRejection[];
+  records: TelemetryEvent[];
+}
+
+export interface RecordTelemetryEventsResponse {
+  success: boolean;
+  data: TelemetryRecordResult;
+}
+
+export interface TelemetryEventListPage {
+  items: TelemetryEvent[];
+  nextCursor: string | null;
+}
+
+export interface TelemetryEventListResponse {
+  success: boolean;
+  data: TelemetryEventListPage;
+}
+
+export interface SubmitCrashReportRequest {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  message: string;
+  /** @maxLength 8000 */
+  stackTrace?: string;
+  /** @maxLength 8000 */
+  breadcrumbs?: string;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  fingerprint?: string;
+  opVersion?: string;
+  osPlatform?: string;
+  osVersion?: string;
+  hardwareTier?: string;
+}
+
+export interface CrashReport {
+  id: string;
+  fingerprint: string;
+  message: string;
+  stackTrace?: string | null;
+  breadcrumbs?: string | null;
+  opVersion: string;
+  osPlatform?: string | null;
+  osVersion?: string | null;
+  hardwareTier?: string | null;
+  anonymousId: string;
+  submittedAt?: string | null;
+  githubIssueUrl?: string | null;
+  createdAt: string;
+}
+
+export interface CrashReportResponse {
+  success: boolean;
+  data: CrashReport;
+}
+
+export interface CrashReportListPage {
+  items: CrashReport[];
+  nextCursor: string | null;
+}
+
+export interface CrashReportListResponse {
+  success: boolean;
+  data: CrashReportListPage;
+}
+
+export interface TelemetryErasureReceipt {
+  eventsDeleted: number;
+  crashesDeleted: number;
+  settingsCleared: boolean;
+  scheduledAt: string;
+}
+
+export interface TelemetryErasureResponse {
+  success: boolean;
+  data: TelemetryErasureReceipt;
+}
+
+export interface TelemetryCategoryCount {
+  category: string;
+  count: number;
+}
+
+export interface TelemetryEventNameCount {
+  eventName: string;
+  count: number;
+}
+
+export interface TelemetryHardwareTierCount {
+  tier: string;
+  count: number;
+}
+
+export interface TelemetryFunnelStep {
+  step: string;
+  count: number;
+}
+
+export interface CrashFingerprintCount {
+  fingerprint: string;
+  count: number;
+  lastSeenAt: string;
+}
+
+export interface TelemetrySummary {
+  totalEvents: number;
+  totalCrashes: number;
+  uniqueAnonymousIds: number;
+  categoryCounts: TelemetryCategoryCount[];
+  topEventNames: TelemetryEventNameCount[];
+  hardwareTierCounts: TelemetryHardwareTierCount[];
+  onboardingFunnel: TelemetryFunnelStep[];
+  topCrashFingerprints: CrashFingerprintCount[];
+  generatedAt: string;
+}
+
+export interface TelemetrySummaryResponse {
+  success: boolean;
+  data: TelemetrySummary;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -3514,6 +3762,43 @@ export type ListMobileActivityParams = {
 };
 
 export type ListMobileQuickTasksParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListTelemetryEventsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  category?: ListTelemetryEventsCategory;
+};
+
+export type ListTelemetryEventsCategory =
+  (typeof ListTelemetryEventsCategory)[keyof typeof ListTelemetryEventsCategory];
+
+export const ListTelemetryEventsCategory = {
+  feature_usage: "feature_usage",
+  performance: "performance",
+  onboarding: "onboarding",
+  marketplace: "marketplace",
+} as const;
+
+export type ListCrashReportsParams = {
   /**
    * Opaque cursor returned by the previous page.
    */

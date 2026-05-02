@@ -6619,3 +6619,452 @@ export const CreateMobileQuickTaskResponse = zod.object({
     deliveredAt: zod.coerce.date().nullish(),
   }),
 });
+
+/**
+ * Returns the singleton consent row for the requesting tenant. If
+the user has not interacted with the consent UI yet, every flag
+is `false` (default-OFF) and `consentGivenAt` is `null`.
+
+ * @summary Read the tenant's opt-in consent flags
+ */
+export const GetTelemetryConsentHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetTelemetryConsentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    consent: zod.object({
+      optInUsage: zod
+        .boolean()
+        .describe(
+          "Feature-usage analytics (page visits, tool invocations, skill installs).",
+        ),
+      optInPerformance: zod
+        .boolean()
+        .describe("App startup, agent latency, model inference, memory usage."),
+      optInCrashes: zod
+        .boolean()
+        .describe(
+          "Crash reports submitted on unexpected app exit (after user review).",
+        ),
+      optInOnboarding: zod
+        .boolean()
+        .describe("Onboarding funnel — which wizard step was reached."),
+      optInMarketplace: zod
+        .boolean()
+        .describe("Skill marketplace browse \/ install \/ rate events."),
+      anonymousId: zod
+        .string()
+        .describe(
+          "Random per-tenant identifier used for funnel grouping. NEVER\nlinked to user identity, email, or workspace name.\n",
+        ),
+      consentGivenAt: zod.coerce.date().nullish(),
+      consentRevokedAt: zod.coerce.date().nullish(),
+      updatedAt: zod.coerce.date(),
+    }),
+    categories: zod.array(
+      zod.enum(["feature_usage", "performance", "onboarding", "marketplace"]),
+    ),
+  }),
+});
+
+/**
+ * Idempotent upsert. Each flag may be omitted (left unchanged), set
+to `true` (opt in), or set to `false` (opt out). Pass
+`revokeAll: true` to force every flag off and stamp
+`consentRevokedAt`.
+
+ * @summary Update opt-in flags for the requesting tenant
+ */
+export const UpdateTelemetryConsentHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateTelemetryConsentBody = zod.object({
+  optInUsage: zod.boolean().optional(),
+  optInPerformance: zod.boolean().optional(),
+  optInCrashes: zod.boolean().optional(),
+  optInOnboarding: zod.boolean().optional(),
+  optInMarketplace: zod.boolean().optional(),
+  revokeAll: zod
+    .boolean()
+    .optional()
+    .describe("Force every flag to false and stamp `consentRevokedAt`."),
+});
+
+export const UpdateTelemetryConsentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    consent: zod.object({
+      optInUsage: zod
+        .boolean()
+        .describe(
+          "Feature-usage analytics (page visits, tool invocations, skill installs).",
+        ),
+      optInPerformance: zod
+        .boolean()
+        .describe("App startup, agent latency, model inference, memory usage."),
+      optInCrashes: zod
+        .boolean()
+        .describe(
+          "Crash reports submitted on unexpected app exit (after user review).",
+        ),
+      optInOnboarding: zod
+        .boolean()
+        .describe("Onboarding funnel — which wizard step was reached."),
+      optInMarketplace: zod
+        .boolean()
+        .describe("Skill marketplace browse \/ install \/ rate events."),
+      anonymousId: zod
+        .string()
+        .describe(
+          "Random per-tenant identifier used for funnel grouping. NEVER\nlinked to user identity, email, or workspace name.\n",
+        ),
+      consentGivenAt: zod.coerce.date().nullish(),
+      consentRevokedAt: zod.coerce.date().nullish(),
+      updatedAt: zod.coerce.date(),
+    }),
+    categories: zod.array(
+      zod.enum(["feature_usage", "performance", "onboarding", "marketplace"]),
+    ),
+  }),
+});
+
+/**
+ * Removes the consent row, every recorded event, and every crash
+report for the requesting tenant. Idempotent — safe to call
+repeatedly. Used by the "Delete my telemetry data" button in the
+Settings UI and by the wider GDPR erasure flow.
+
+ * @summary Hard-delete every telemetry artefact owned by this tenant
+ */
+export const EraseTelemetryDataHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const EraseTelemetryDataResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    eventsDeleted: zod.number(),
+    crashesDeleted: zod.number(),
+    settingsCleared: zod.boolean(),
+    scheduledAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Paginated list of recorded telemetry events
+ */
+export const listTelemetryEventsQueryLimitDefault = 20;
+export const listTelemetryEventsQueryLimitMax = 100;
+
+export const ListTelemetryEventsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listTelemetryEventsQueryLimitMax)
+    .default(listTelemetryEventsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  category: zod
+    .enum(["feature_usage", "performance", "onboarding", "marketplace"])
+    .optional(),
+});
+
+export const ListTelemetryEventsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListTelemetryEventsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        category: zod.string(),
+        eventName: zod.string(),
+        payload: zod.record(zod.string(), zod.unknown()),
+        opVersion: zod.string(),
+        osPlatform: zod.string().nullish(),
+        hardwareTier: zod.string().nullish(),
+        durationMs: zod.number().nullish(),
+        anonymousId: zod.string(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * Each event in the batch is independently validated against the
+per-category opt-in flag and the privacy enforcement layer. Events
+that fail either gate appear in the `rejections` array of the
+response — the call as a whole returns 200 even when some events
+were rejected so a client batch is never silently dropped.
+
+ * @summary Submit a batch of telemetry events
+ */
+export const RecordTelemetryEventsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const recordTelemetryEventsBodyEventsItemEventNameMax = 120;
+
+export const recordTelemetryEventsBodyEventsItemDurationMsMin = 0;
+
+export const recordTelemetryEventsBodyEventsMax = 50;
+
+export const RecordTelemetryEventsBody = zod.object({
+  events: zod
+    .array(
+      zod.object({
+        category: zod.enum([
+          "feature_usage",
+          "performance",
+          "onboarding",
+          "marketplace",
+        ]),
+        eventName: zod
+          .string()
+          .min(1)
+          .max(recordTelemetryEventsBodyEventsItemEventNameMax),
+        payload: zod
+          .record(zod.string(), zod.unknown())
+          .optional()
+          .describe(
+            "Structured event metadata. Server-side privacy enforcement\nrejects forbidden keys (password \/ token \/ email \/ path \/\ncontent \/ prompt \/ response \/ etc.) and PII-shaped string\nvalues (email addresses, file paths, URL credentials,\ntoken-like blobs).\n",
+          ),
+        opVersion: zod.string().optional(),
+        osPlatform: zod.string().optional(),
+        hardwareTier: zod.string().optional(),
+        durationMs: zod
+          .number()
+          .min(recordTelemetryEventsBodyEventsItemDurationMsMin)
+          .optional(),
+      }),
+    )
+    .min(1)
+    .max(recordTelemetryEventsBodyEventsMax),
+});
+
+export const RecordTelemetryEventsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    accepted: zod.number(),
+    rejected: zod.number(),
+    rejections: zod.array(
+      zod.object({
+        index: zod.number(),
+        reason: zod.string(),
+      }),
+    ),
+    records: zod.array(
+      zod.object({
+        id: zod.string(),
+        category: zod.string(),
+        eventName: zod.string(),
+        payload: zod.record(zod.string(), zod.unknown()),
+        opVersion: zod.string(),
+        osPlatform: zod.string().nullish(),
+        hardwareTier: zod.string().nullish(),
+        durationMs: zod.number().nullish(),
+        anonymousId: zod.string(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Paginated list of submitted crash reports
+ */
+export const listCrashReportsQueryLimitDefault = 20;
+export const listCrashReportsQueryLimitMax = 100;
+
+export const ListCrashReportsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listCrashReportsQueryLimitMax)
+    .default(listCrashReportsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListCrashReportsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListCrashReportsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        fingerprint: zod.string(),
+        message: zod.string(),
+        stackTrace: zod.string().nullish(),
+        breadcrumbs: zod.string().nullish(),
+        opVersion: zod.string(),
+        osPlatform: zod.string().nullish(),
+        osVersion: zod.string().nullish(),
+        hardwareTier: zod.string().nullish(),
+        anonymousId: zod.string(),
+        submittedAt: zod.coerce.date().nullish(),
+        githubIssueUrl: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * The user reviews the locally generated crash report and only then
+does the desktop app POST it here. Returns `403
+TELEMETRY_CONSENT_DENIED` when crash reporting is not opted-in.
+Stack traces and breadcrumbs are scrubbed of file paths, email
+addresses, URL credentials, and token-like blobs server-side.
+
+ * @summary Submit one user-reviewed crash report
+ */
+export const SubmitCrashReportHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const submitCrashReportBodyMessageMax = 500;
+
+export const submitCrashReportBodyStackTraceMax = 8000;
+
+export const submitCrashReportBodyBreadcrumbsMax = 8000;
+
+export const submitCrashReportBodyFingerprintMax = 120;
+
+export const SubmitCrashReportBody = zod.object({
+  message: zod.string().min(1).max(submitCrashReportBodyMessageMax),
+  stackTrace: zod.string().max(submitCrashReportBodyStackTraceMax).optional(),
+  breadcrumbs: zod.string().max(submitCrashReportBodyBreadcrumbsMax).optional(),
+  fingerprint: zod
+    .string()
+    .min(1)
+    .max(submitCrashReportBodyFingerprintMax)
+    .optional(),
+  opVersion: zod.string().optional(),
+  osPlatform: zod.string().optional(),
+  osVersion: zod.string().optional(),
+  hardwareTier: zod.string().optional(),
+});
+
+export const SubmitCrashReportResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    fingerprint: zod.string(),
+    message: zod.string(),
+    stackTrace: zod.string().nullish(),
+    breadcrumbs: zod.string().nullish(),
+    opVersion: zod.string(),
+    osPlatform: zod.string().nullish(),
+    osVersion: zod.string().nullish(),
+    hardwareTier: zod.string().nullish(),
+    anonymousId: zod.string(),
+    submittedAt: zod.coerce.date().nullish(),
+    githubIssueUrl: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * Aggregates the tenant's recorded telemetry events and crash
+reports into the metrics the dashboard surfaces — totals, unique
+anonymous IDs (proxy for active users), category counts,
+top-N event names, hardware tier distribution, and the onboarding
+funnel by named step. Cross-tenant aggregation is gated behind
+the privileged admin role that lands in Task #7.
+
+ * @summary Per-tenant analytics summary for the OP team dashboard
+ */
+export const GetTelemetrySummaryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetTelemetrySummaryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    totalEvents: zod.number(),
+    totalCrashes: zod.number(),
+    uniqueAnonymousIds: zod.number(),
+    categoryCounts: zod.array(
+      zod.object({
+        category: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    topEventNames: zod.array(
+      zod.object({
+        eventName: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    hardwareTierCounts: zod.array(
+      zod.object({
+        tier: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    onboardingFunnel: zod.array(
+      zod.object({
+        step: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    topCrashFingerprints: zod.array(
+      zod.object({
+        fingerprint: zod.string(),
+        count: zod.number(),
+        lastSeenAt: zod.coerce.date(),
+      }),
+    ),
+    generatedAt: zod.coerce.date(),
+  }),
+});

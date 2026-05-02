@@ -2615,6 +2615,207 @@ const cases: TestCase[] = [
       assert.equal(report.chain.intact, true);
     },
   },
+  {
+    name: "telemetry: default consent is OFF and recording is rejected",
+    run: async () => {
+      const consent = await request(app)
+        .get("/api/telemetry/consent")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(consent.status, 200);
+      assert.equal(consent.body.success, true);
+      assert.equal(consent.body.data.consent.optInUsage, false);
+      assert.equal(consent.body.data.consent.optInPerformance, false);
+      assert.equal(consent.body.data.consent.optInCrashes, false);
+      assert.equal(consent.body.data.consent.optInOnboarding, false);
+      assert.equal(consent.body.data.consent.optInMarketplace, false);
+      assert.equal(consent.body.data.consent.consentGivenAt, null);
+
+      const rec = await request(app)
+        .post("/api/telemetry/events")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          events: [
+            { category: "feature_usage", eventName: "settings.viewed" },
+            { category: "performance", eventName: "agent.latency", durationMs: 1200 },
+          ],
+        });
+      assert.equal(rec.status, 200);
+      assert.equal(rec.body.data.accepted, 0);
+      assert.equal(rec.body.data.rejected, 2);
+      assert.match(rec.body.data.rejections[0].reason, /consent denied/);
+    },
+  },
+  {
+    name: "telemetry: opt-in flips consentGivenAt and accepts events",
+    run: async () => {
+      const upd = await request(app)
+        .put("/api/telemetry/consent")
+        .set("X-Tenant-ID", TENANT)
+        .send({ optInUsage: true, optInPerformance: true });
+      assert.equal(upd.status, 200);
+      assert.equal(upd.body.data.consent.optInUsage, true);
+      assert.equal(upd.body.data.consent.optInPerformance, true);
+      assert.ok(upd.body.data.consent.consentGivenAt, "consentGivenAt should be set");
+
+      const rec = await request(app)
+        .post("/api/telemetry/events")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          events: [
+            {
+              category: "feature_usage",
+              eventName: "tool.invoked",
+              payload: { tool: "memory.list", count: 4 },
+              hardwareTier: "high",
+              opVersion: "0.1.0",
+            },
+          ],
+        });
+      assert.equal(rec.status, 200);
+      assert.equal(rec.body.data.accepted, 1);
+      assert.equal(rec.body.data.rejected, 0);
+      assert.equal(rec.body.data.records[0].payload.tool, "memory.list");
+    },
+  },
+  {
+    name: "telemetry: privacy enforcement strips PII payloads",
+    run: async () => {
+      const rec = await request(app)
+        .post("/api/telemetry/events")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          events: [
+            {
+              category: "feature_usage",
+              eventName: "leak.attempt",
+              payload: { email: "alice@example.com" },
+            },
+            {
+              category: "feature_usage",
+              eventName: "leak.attempt",
+              payload: { description: "User opened /Users/alice/secrets/notes.txt" },
+            },
+            {
+              category: "feature_usage",
+              eventName: "leak.attempt",
+              payload: { url: "https://user:hunter2@api.example.com/v1" },
+            },
+            {
+              category: "feature_usage",
+              eventName: "clean.event",
+              payload: { count: 3, tier: "mid" },
+            },
+          ],
+        });
+      assert.equal(rec.status, 200);
+      assert.equal(rec.body.data.accepted, 1);
+      assert.equal(rec.body.data.rejected, 3);
+      const reasons = rec.body.data.rejections.map((r: { reason: string }) => r.reason);
+      assert.ok(reasons.some((r: string) => /forbidden key/.test(r)), "forbidden-key reason");
+      assert.ok(reasons.some((r: string) => /file path/.test(r)), "path reason");
+      assert.ok(
+        reasons.some((r: string) => /URL contains credentials/.test(r)),
+        "url cred reason",
+      );
+    },
+  },
+  {
+    name: "telemetry: tenant isolation on event listing",
+    run: async () => {
+      const list1 = await request(app)
+        .get("/api/telemetry/events")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(list1.status, 200);
+      assert.ok(list1.body.data.items.length >= 2);
+
+      const list2 = await request(app)
+        .get("/api/telemetry/events")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(list2.status, 200);
+      assert.equal(list2.body.data.items.length, 0);
+    },
+  },
+  {
+    name: "telemetry: crash report rejected when opt-in is off",
+    run: async () => {
+      const denied = await request(app)
+        .post("/api/telemetry/crashes")
+        .set("X-Tenant-ID", TENANT)
+        .send({ message: "boom" });
+      assert.equal(denied.status, 403);
+      assert.equal(denied.body.success, false);
+      assert.equal(denied.body.error.code, "TELEMETRY_CONSENT_DENIED");
+
+      await request(app)
+        .put("/api/telemetry/consent")
+        .set("X-Tenant-ID", TENANT)
+        .send({ optInCrashes: true });
+
+      const ok = await request(app)
+        .post("/api/telemetry/crashes")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          message: "TypeError reading /home/alice/code/app.ts",
+          stackTrace:
+            "Error\n  at handler (/home/alice/code/app.ts:42)\n  user=alice@example.com",
+          opVersion: "0.1.0",
+          hardwareTier: "high",
+        });
+      assert.equal(ok.status, 200);
+      // Path + email should be redacted in the stored stack and message.
+      assert.doesNotMatch(ok.body.data.message, /alice@example\.com/);
+      assert.doesNotMatch(ok.body.data.stackTrace, /alice@example\.com/);
+      assert.doesNotMatch(ok.body.data.stackTrace, /\/home\/alice/);
+      assert.match(ok.body.data.fingerprint, /^crash_/);
+    },
+  },
+  {
+    name: "telemetry: dashboard summary aggregates per-tenant",
+    run: async () => {
+      const summary = await request(app)
+        .get("/api/telemetry/summary")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(summary.status, 200);
+      assert.ok(summary.body.data.totalEvents >= 1);
+      assert.ok(summary.body.data.totalCrashes >= 1);
+      assert.ok(summary.body.data.uniqueAnonymousIds >= 1);
+      assert.ok(Array.isArray(summary.body.data.categoryCounts));
+      assert.ok(Array.isArray(summary.body.data.onboardingFunnel));
+      assert.equal(summary.body.data.onboardingFunnel.length, 6);
+
+      // Tenant 2 should see an empty summary.
+      const empty = await request(app)
+        .get("/api/telemetry/summary")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(empty.status, 200);
+      assert.equal(empty.body.data.totalEvents, 0);
+      assert.equal(empty.body.data.totalCrashes, 0);
+    },
+  },
+  {
+    name: "telemetry: erase wipes consent + events + crashes",
+    run: async () => {
+      const erase = await request(app)
+        .delete("/api/telemetry/data")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(erase.status, 200);
+      assert.ok(erase.body.data.eventsDeleted >= 1);
+      assert.ok(erase.body.data.crashesDeleted >= 1);
+      assert.equal(erase.body.data.settingsCleared, true);
+
+      const after = await request(app)
+        .get("/api/telemetry/consent")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(after.body.data.consent.optInUsage, false);
+      assert.equal(after.body.data.consent.optInCrashes, false);
+      assert.equal(after.body.data.consent.consentGivenAt, null);
+
+      const events = await request(app)
+        .get("/api/telemetry/events")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(events.body.data.items.length, 0);
+    },
+  },
 ];
 
 async function main() {

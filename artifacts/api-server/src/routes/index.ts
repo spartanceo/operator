@@ -23,6 +23,7 @@ import notificationsRouter from "./notifications";
 import onboardingRouter from "./onboarding";
 import privacyRouter from "./privacy";
 import securityRouter from "./security";
+import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
 import updatesRouter from "./updates";
 
@@ -49,5 +50,6 @@ router.use("/comm", commRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/activity", activityRouter);
 router.use("/mobile", mobileRouter);
+router.use("/telemetry", telemetryRouter);
 
 export default router;

@@ -18,6 +18,7 @@ import {
   useGetCurrentUser,
 } from "@workspace/api-client-react";
 import { HardwareModelSettings } from "@/components/operator/hardware-model-settings";
+import { TelemetryCard } from "@/components/operator/telemetry-card";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettings } from "@/contexts/settings-context";
 import { useTheme } from "@/contexts/theme-context";
@@ -231,6 +232,8 @@ export default function SettingsPage() {
         </Card>
 
         <HardwareModelSettings />
+
+        <TelemetryCard />
 
         <Card className="lg:col-span-2">
           <CardHeader>

@@ -13,6 +13,8 @@
 import { db, tenantScope, tenants, workspaces } from "@workspace/db";
 import type { TenantContext } from "@workspace/types";
 
+import { eraseTelemetryData } from "./telemetry.service";
+
 export interface TenantDataSnapshot {
   tenant: {
     id: string;
@@ -87,6 +89,13 @@ export async function eraseTenantData(
   if (!tenant) return null;
 
   const nowMs = Date.now();
+  // Hard-delete every telemetry artefact this tenant produced. The
+  // telemetry tables are intentionally outside the soft-delete contract
+  // because the consent semantics are stricter than the per-table erasure
+  // grace period — when the user requests GDPR erasure, every event,
+  // crash report, and consent row goes immediately.
+  await eraseTelemetryData(ctx);
+
   await db
     .update(tenants)
     .set({ status: "erased", updatedAt: nowMs })

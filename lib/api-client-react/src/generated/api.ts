@@ -63,6 +63,8 @@ import type {
   ContactDeleteResponse,
   ContactListResponse,
   ContactResponse,
+  CrashReportListResponse,
+  CrashReportResponse,
   CreateActivityEventRequest,
   CreateAgentRunRequest,
   CreateCalendarEventRequest,
@@ -131,6 +133,7 @@ import type {
   ListCommAccountsParams,
   ListContactInteractionsParams,
   ListContactsParams,
+  ListCrashReportsParams,
   ListDesktopSessionStepsParams,
   ListDesktopSessionsParams,
   ListEmailDraftsParams,
@@ -149,6 +152,7 @@ import type {
   ListOutreachEnrolmentsParams,
   ListOutreachSequencesParams,
   ListPrivacyEventsParams,
+  ListTelemetryEventsParams,
   ListToolsParams,
   ListVoipCallsParams,
   LoginRequest,
@@ -200,6 +204,7 @@ import type {
   OnboardingHardwareResponse,
   OnboardingProfileResponse,
   OnboardingStarterTaskResponse,
+  OptInTelemetryConsentResponse,
   OutreachEnrolmentListResponse,
   OutreachEnrolmentResponse,
   OutreachRunRequest,
@@ -210,6 +215,8 @@ import type {
   PlaceVoipCallRequest,
   PrivacyEventListResponse,
   PrivacyEventResponse,
+  RecordTelemetryEventsRequest,
+  RecordTelemetryEventsResponse,
   RecordVoipCallRequest,
   RegisterRequest,
   ScanSkillRequest,
@@ -222,8 +229,12 @@ import type {
   SecurityReportResponse,
   SecurityWebhookSecretsListParams,
   SelectModelRequest,
+  SubmitCrashReportRequest,
   TelemetryConsentResponse,
   TelemetryConsentUpdateRequest,
+  TelemetryErasureResponse,
+  TelemetryEventListResponse,
+  TelemetrySummaryResponse,
   TenantDataExportResponse,
   TenantErasureResponse,
   ToolCallListResponse,
@@ -233,6 +244,7 @@ import type {
   UpdateCalendarEventRequest,
   UpdateCheckResponse,
   UpdateContactRequest,
+  UpdateTelemetryConsentRequest,
   UpdateVoipCallStatusRequest,
   UpscaleImageRequest,
   UpsertOnboardingProfileRequest,
@@ -14957,3 +14969,736 @@ export const useCreateMobileQuickTask = <
 > => {
   return useMutation(getCreateMobileQuickTaskMutationOptions(options));
 };
+
+/**
+ * Returns the singleton consent row for the requesting tenant. If
+the user has not interacted with the consent UI yet, every flag
+is `false` (default-OFF) and `consentGivenAt` is `null`.
+
+ * @summary Read the tenant's opt-in consent flags
+ */
+export const getGetTelemetryConsentUrl = () => {
+  return `/api/telemetry/consent`;
+};
+
+export const getTelemetryConsent = async (
+  options?: RequestInit,
+): Promise<OptInTelemetryConsentResponse> => {
+  return customFetch<OptInTelemetryConsentResponse>(
+    getGetTelemetryConsentUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetTelemetryConsentQueryKey = () => {
+  return [`/api/telemetry/consent`] as const;
+};
+
+export const getGetTelemetryConsentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTelemetryConsent>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTelemetryConsent>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTelemetryConsentQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTelemetryConsent>>
+  > = ({ signal }) => getTelemetryConsent({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTelemetryConsent>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTelemetryConsentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTelemetryConsent>>
+>;
+export type GetTelemetryConsentQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Read the tenant's opt-in consent flags
+ */
+
+export function useGetTelemetryConsent<
+  TData = Awaited<ReturnType<typeof getTelemetryConsent>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTelemetryConsent>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTelemetryConsentQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Idempotent upsert. Each flag may be omitted (left unchanged), set
+to `true` (opt in), or set to `false` (opt out). Pass
+`revokeAll: true` to force every flag off and stamp
+`consentRevokedAt`.
+
+ * @summary Update opt-in flags for the requesting tenant
+ */
+export const getUpdateTelemetryConsentUrl = () => {
+  return `/api/telemetry/consent`;
+};
+
+export const updateTelemetryConsent = async (
+  updateTelemetryConsentRequest: UpdateTelemetryConsentRequest,
+  options?: RequestInit,
+): Promise<OptInTelemetryConsentResponse> => {
+  return customFetch<OptInTelemetryConsentResponse>(
+    getUpdateTelemetryConsentUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateTelemetryConsentRequest),
+    },
+  );
+};
+
+export const getUpdateTelemetryConsentMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTelemetryConsent>>,
+    TError,
+    { data: BodyType<UpdateTelemetryConsentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTelemetryConsent>>,
+  TError,
+  { data: BodyType<UpdateTelemetryConsentRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateTelemetryConsent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTelemetryConsent>>,
+    { data: BodyType<UpdateTelemetryConsentRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateTelemetryConsent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTelemetryConsentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTelemetryConsent>>
+>;
+export type UpdateTelemetryConsentMutationBody =
+  BodyType<UpdateTelemetryConsentRequest>;
+export type UpdateTelemetryConsentMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Update opt-in flags for the requesting tenant
+ */
+export const useUpdateTelemetryConsent = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTelemetryConsent>>,
+    TError,
+    { data: BodyType<UpdateTelemetryConsentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateTelemetryConsent>>,
+  TError,
+  { data: BodyType<UpdateTelemetryConsentRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateTelemetryConsentMutationOptions(options));
+};
+
+/**
+ * Removes the consent row, every recorded event, and every crash
+report for the requesting tenant. Idempotent — safe to call
+repeatedly. Used by the "Delete my telemetry data" button in the
+Settings UI and by the wider GDPR erasure flow.
+
+ * @summary Hard-delete every telemetry artefact owned by this tenant
+ */
+export const getEraseTelemetryDataUrl = () => {
+  return `/api/telemetry/data`;
+};
+
+export const eraseTelemetryData = async (
+  options?: RequestInit,
+): Promise<TelemetryErasureResponse> => {
+  return customFetch<TelemetryErasureResponse>(getEraseTelemetryDataUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getEraseTelemetryDataMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof eraseTelemetryData>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof eraseTelemetryData>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["eraseTelemetryData"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof eraseTelemetryData>>,
+    void
+  > = () => {
+    return eraseTelemetryData(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EraseTelemetryDataMutationResult = NonNullable<
+  Awaited<ReturnType<typeof eraseTelemetryData>>
+>;
+
+export type EraseTelemetryDataMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Hard-delete every telemetry artefact owned by this tenant
+ */
+export const useEraseTelemetryData = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof eraseTelemetryData>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof eraseTelemetryData>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getEraseTelemetryDataMutationOptions(options));
+};
+
+/**
+ * @summary Paginated list of recorded telemetry events
+ */
+export const getListTelemetryEventsUrl = (
+  params?: ListTelemetryEventsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/telemetry/events?${stringifiedParams}`
+    : `/api/telemetry/events`;
+};
+
+export const listTelemetryEvents = async (
+  params?: ListTelemetryEventsParams,
+  options?: RequestInit,
+): Promise<TelemetryEventListResponse> => {
+  return customFetch<TelemetryEventListResponse>(
+    getListTelemetryEventsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListTelemetryEventsQueryKey = (
+  params?: ListTelemetryEventsParams,
+) => {
+  return [`/api/telemetry/events`, ...(params ? [params] : [])] as const;
+};
+
+export const getListTelemetryEventsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTelemetryEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListTelemetryEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTelemetryEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTelemetryEventsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTelemetryEvents>>
+  > = ({ signal }) =>
+    listTelemetryEvents(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTelemetryEvents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTelemetryEventsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTelemetryEvents>>
+>;
+export type ListTelemetryEventsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Paginated list of recorded telemetry events
+ */
+
+export function useListTelemetryEvents<
+  TData = Awaited<ReturnType<typeof listTelemetryEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListTelemetryEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTelemetryEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTelemetryEventsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Each event in the batch is independently validated against the
+per-category opt-in flag and the privacy enforcement layer. Events
+that fail either gate appear in the `rejections` array of the
+response — the call as a whole returns 200 even when some events
+were rejected so a client batch is never silently dropped.
+
+ * @summary Submit a batch of telemetry events
+ */
+export const getRecordTelemetryEventsUrl = () => {
+  return `/api/telemetry/events`;
+};
+
+export const recordTelemetryEvents = async (
+  recordTelemetryEventsRequest: RecordTelemetryEventsRequest,
+  options?: RequestInit,
+): Promise<RecordTelemetryEventsResponse> => {
+  return customFetch<RecordTelemetryEventsResponse>(
+    getRecordTelemetryEventsUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(recordTelemetryEventsRequest),
+    },
+  );
+};
+
+export const getRecordTelemetryEventsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordTelemetryEvents>>,
+    TError,
+    { data: BodyType<RecordTelemetryEventsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordTelemetryEvents>>,
+  TError,
+  { data: BodyType<RecordTelemetryEventsRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordTelemetryEvents"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordTelemetryEvents>>,
+    { data: BodyType<RecordTelemetryEventsRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordTelemetryEvents(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordTelemetryEventsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordTelemetryEvents>>
+>;
+export type RecordTelemetryEventsMutationBody =
+  BodyType<RecordTelemetryEventsRequest>;
+export type RecordTelemetryEventsMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Submit a batch of telemetry events
+ */
+export const useRecordTelemetryEvents = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordTelemetryEvents>>,
+    TError,
+    { data: BodyType<RecordTelemetryEventsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordTelemetryEvents>>,
+  TError,
+  { data: BodyType<RecordTelemetryEventsRequest> },
+  TContext
+> => {
+  return useMutation(getRecordTelemetryEventsMutationOptions(options));
+};
+
+/**
+ * @summary Paginated list of submitted crash reports
+ */
+export const getListCrashReportsUrl = (params?: ListCrashReportsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/telemetry/crashes?${stringifiedParams}`
+    : `/api/telemetry/crashes`;
+};
+
+export const listCrashReports = async (
+  params?: ListCrashReportsParams,
+  options?: RequestInit,
+): Promise<CrashReportListResponse> => {
+  return customFetch<CrashReportListResponse>(getListCrashReportsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCrashReportsQueryKey = (
+  params?: ListCrashReportsParams,
+) => {
+  return [`/api/telemetry/crashes`, ...(params ? [params] : [])] as const;
+};
+
+export const getListCrashReportsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCrashReports>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCrashReportsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCrashReports>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCrashReportsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCrashReports>>
+  > = ({ signal }) => listCrashReports(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCrashReports>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCrashReportsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCrashReports>>
+>;
+export type ListCrashReportsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Paginated list of submitted crash reports
+ */
+
+export function useListCrashReports<
+  TData = Awaited<ReturnType<typeof listCrashReports>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCrashReportsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCrashReports>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCrashReportsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * The user reviews the locally generated crash report and only then
+does the desktop app POST it here. Returns `403
+TELEMETRY_CONSENT_DENIED` when crash reporting is not opted-in.
+Stack traces and breadcrumbs are scrubbed of file paths, email
+addresses, URL credentials, and token-like blobs server-side.
+
+ * @summary Submit one user-reviewed crash report
+ */
+export const getSubmitCrashReportUrl = () => {
+  return `/api/telemetry/crashes`;
+};
+
+export const submitCrashReport = async (
+  submitCrashReportRequest: SubmitCrashReportRequest,
+  options?: RequestInit,
+): Promise<CrashReportResponse> => {
+  return customFetch<CrashReportResponse>(getSubmitCrashReportUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(submitCrashReportRequest),
+  });
+};
+
+export const getSubmitCrashReportMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitCrashReport>>,
+    TError,
+    { data: BodyType<SubmitCrashReportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitCrashReport>>,
+  TError,
+  { data: BodyType<SubmitCrashReportRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitCrashReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitCrashReport>>,
+    { data: BodyType<SubmitCrashReportRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitCrashReport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitCrashReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitCrashReport>>
+>;
+export type SubmitCrashReportMutationBody = BodyType<SubmitCrashReportRequest>;
+export type SubmitCrashReportMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Submit one user-reviewed crash report
+ */
+export const useSubmitCrashReport = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitCrashReport>>,
+    TError,
+    { data: BodyType<SubmitCrashReportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitCrashReport>>,
+  TError,
+  { data: BodyType<SubmitCrashReportRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitCrashReportMutationOptions(options));
+};
+
+/**
+ * Aggregates the tenant's recorded telemetry events and crash
+reports into the metrics the dashboard surfaces — totals, unique
+anonymous IDs (proxy for active users), category counts,
+top-N event names, hardware tier distribution, and the onboarding
+funnel by named step. Cross-tenant aggregation is gated behind
+the privileged admin role that lands in Task #7.
+
+ * @summary Per-tenant analytics summary for the OP team dashboard
+ */
+export const getGetTelemetrySummaryUrl = () => {
+  return `/api/telemetry/summary`;
+};
+
+export const getTelemetrySummary = async (
+  options?: RequestInit,
+): Promise<TelemetrySummaryResponse> => {
+  return customFetch<TelemetrySummaryResponse>(getGetTelemetrySummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTelemetrySummaryQueryKey = () => {
+  return [`/api/telemetry/summary`] as const;
+};
+
+export const getGetTelemetrySummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTelemetrySummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTelemetrySummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTelemetrySummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTelemetrySummary>>
+  > = ({ signal }) => getTelemetrySummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTelemetrySummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTelemetrySummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTelemetrySummary>>
+>;
+export type GetTelemetrySummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Per-tenant analytics summary for the OP team dashboard
+ */
+
+export function useGetTelemetrySummary<
+  TData = Awaited<ReturnType<typeof getTelemetrySummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTelemetrySummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTelemetrySummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

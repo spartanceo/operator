@@ -53,3 +53,6 @@ export * from "./pairing-tokens";
 export * from "./mobile-push-subscriptions";
 export * from "./mobile-notification-prefs";
 export * from "./mobile-quick-tasks";
+export * from "./telemetry-settings";
+export * from "./telemetry-events";
+export * from "./crash-reports";
