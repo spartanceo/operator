@@ -21,6 +21,7 @@ import { migration as m0007 } from "./0007_media_assets";
 import { migration as m0008 } from "./0008_communication_hub";
 import { migration as m0009 } from "./0009_security_hardening";
 import { migration as m0010 } from "./0010_notifications_activity";
+import { migration as m0011 } from "./0011_mobile_companion";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -42,6 +43,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0008,
   m0009,
   m0010,
+  m0011,
 ];
 
 /**

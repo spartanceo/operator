@@ -38,6 +38,7 @@ import ActivityPage from "@/pages/operator/activity";
 import ApprovalsPage from "@/pages/operator/approvals";
 import SettingsPage from "@/pages/operator/settings";
 import OnboardingPage from "@/pages/operator/onboarding";
+import MobilePage from "@/pages/mobile";
 
 initApiClient();
 
@@ -146,7 +147,11 @@ function Router() {
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   const relativePath = base && path.startsWith(base) ? path.slice(base.length) || "/" : path;
-  const isOperator = isOperatorPath(relativePath);
+  const isMobile = relativePath === "/mobile" || relativePath.startsWith("/mobile/");
+  const isOperator = !isMobile && isOperatorPath(relativePath);
+  if (isMobile) {
+    return <MobilePage />;
+  }
   return (
     <>
       {isOperator ? <OperatorShell /> : <MarketingShell />}

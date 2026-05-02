@@ -48,3 +48,8 @@ export * from "./admin-2fa-secrets";
 export * from "./refresh-tokens";
 export * from "./notifications";
 export * from "./activity-events";
+export * from "./paired-devices";
+export * from "./pairing-tokens";
+export * from "./mobile-push-subscriptions";
+export * from "./mobile-notification-prefs";
+export * from "./mobile-quick-tasks";

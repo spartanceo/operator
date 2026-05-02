@@ -29,6 +29,7 @@ import {
 } from "@/lib/api-config";
 import { ErrorBanner } from "@/components/operator/error-banner";
 import { JsonView } from "@/components/operator/json-view";
+import { RemoteAccessCard } from "@/components/operator/remote-access-card";
 
 export default function SettingsPage() {
   const { settings, update, reset } = useSettings();
@@ -296,6 +297,10 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="lg:col-span-2">
+          <RemoteAccessCard />
+        </div>
 
         <Card className="lg:col-span-2">
           <CardHeader>

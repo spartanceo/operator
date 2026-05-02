@@ -6127,3 +6127,495 @@ export const SecurityNukeResponse = zod.object({
     completedAt: zod.coerce.date(),
   }),
 });
+
+/**
+ * @summary Generate a fresh QR pairing code for the Mobile Companion PWA
+ */
+export const StartMobilePairingHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const StartMobilePairingResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    code: zod
+      .string()
+      .describe("Short pairing code embedded in the QR payload."),
+    expiresAt: zod.coerce.date(),
+    createdAt: zod.coerce.date(),
+    relayToken: zod
+      .string()
+      .optional()
+      .describe(
+        "Cleartext relay token returned only on creation. The desktop UI\nembeds this in the QR payload; the PWA then presents it during\n\/pairing\/claim. Never exposed again.\n",
+      ),
+    qrPayload: zod
+      .string()
+      .optional()
+      .describe("JSON payload to encode into the QR code."),
+  }),
+});
+
+/**
+ * @summary Claim a pairing code from the PWA after scanning the QR
+ */
+export const ClaimMobilePairingHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const claimMobilePairingBodyCodeMin = 4;
+export const claimMobilePairingBodyCodeMax = 64;
+
+export const claimMobilePairingBodyRelayTokenMin = 8;
+export const claimMobilePairingBodyRelayTokenMax = 200;
+
+export const claimMobilePairingBodyLabelMax = 200;
+
+export const claimMobilePairingBodyPlatformDefault = `web`;
+export const claimMobilePairingBodyUserAgentMax = 500;
+
+export const ClaimMobilePairingBody = zod.object({
+  code: zod
+    .string()
+    .min(claimMobilePairingBodyCodeMin)
+    .max(claimMobilePairingBodyCodeMax),
+  relayToken: zod
+    .string()
+    .min(claimMobilePairingBodyRelayTokenMin)
+    .max(claimMobilePairingBodyRelayTokenMax),
+  label: zod.string().min(1).max(claimMobilePairingBodyLabelMax),
+  platform: zod
+    .enum(["ios", "android", "web"])
+    .default(claimMobilePairingBodyPlatformDefault),
+  userAgent: zod.string().max(claimMobilePairingBodyUserAgentMax).optional(),
+});
+
+export const ClaimMobilePairingResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    device: zod.object({
+      id: zod.string(),
+      label: zod.string(),
+      platform: zod.string(),
+      userAgent: zod.string().nullish(),
+      status: zod.enum(["active", "revoked"]),
+      pairedAt: zod.coerce.date(),
+      lastSeenAt: zod.coerce.date().nullish(),
+      revokedAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+    relayToken: zod.string(),
+  }),
+});
+
+/**
+ * @summary List paired mobile devices
+ */
+export const listMobileDevicesQueryLimitDefault = 20;
+export const listMobileDevicesQueryLimitMax = 100;
+
+export const ListMobileDevicesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listMobileDevicesQueryLimitMax)
+    .default(listMobileDevicesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListMobileDevicesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListMobileDevicesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        label: zod.string(),
+        platform: zod.string(),
+        userAgent: zod.string().nullish(),
+        status: zod.enum(["active", "revoked"]),
+        pairedAt: zod.coerce.date(),
+        lastSeenAt: zod.coerce.date().nullish(),
+        revokedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Fetch a paired device
+ */
+export const GetMobileDeviceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMobileDeviceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMobileDeviceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    label: zod.string(),
+    platform: zod.string(),
+    userAgent: zod.string().nullish(),
+    status: zod.enum(["active", "revoked"]),
+    pairedAt: zod.coerce.date(),
+    lastSeenAt: zod.coerce.date().nullish(),
+    revokedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Revoke a paired device
+ */
+export const RevokeMobileDeviceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RevokeMobileDeviceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RevokeMobileDeviceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    revoked: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Update last-seen timestamp for the calling device
+ */
+export const HeartbeatMobileDeviceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const HeartbeatMobileDeviceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const HeartbeatMobileDeviceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    label: zod.string(),
+    platform: zod.string(),
+    userAgent: zod.string().nullish(),
+    status: zod.enum(["active", "revoked"]),
+    pairedAt: zod.coerce.date(),
+    lastSeenAt: zod.coerce.date().nullish(),
+    revokedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Register a Web Push subscription for the device
+ */
+export const RegisterMobilePushSubscriptionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RegisterMobilePushSubscriptionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const registerMobilePushSubscriptionBodyEndpointMax = 2048;
+
+export const registerMobilePushSubscriptionBodyP256dhMax = 512;
+
+export const registerMobilePushSubscriptionBodyAuthMax = 512;
+
+export const RegisterMobilePushSubscriptionBody = zod.object({
+  endpoint: zod.string().max(registerMobilePushSubscriptionBodyEndpointMax),
+  p256dh: zod.string().max(registerMobilePushSubscriptionBodyP256dhMax),
+  auth: zod.string().max(registerMobilePushSubscriptionBodyAuthMax),
+});
+
+export const RegisterMobilePushSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deviceId: zod.string(),
+    endpoint: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Get per-workspace notification preferences
+ */
+export const GetMobileNotificationPrefsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMobileNotificationPrefsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    taskCompleted: zod.boolean(),
+    approvalNeeded: zod.boolean(),
+    taskFailed: zod.boolean(),
+    longTaskProgress: zod.boolean(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Update notification preferences
+ */
+export const SetMobileNotificationPrefsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetMobileNotificationPrefsBody = zod.object({
+  taskCompleted: zod.boolean().optional(),
+  approvalNeeded: zod.boolean().optional(),
+  taskFailed: zod.boolean().optional(),
+  longTaskProgress: zod.boolean().optional(),
+});
+
+export const SetMobileNotificationPrefsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    taskCompleted: zod.boolean(),
+    approvalNeeded: zod.boolean(),
+    taskFailed: zod.boolean(),
+    longTaskProgress: zod.boolean(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Live status card for the Mobile Companion dashboard
+ */
+export const GetMobileStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMobileStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    connection: zod.enum(["online", "idle", "offline"]),
+    lastSeenAt: zod.coerce.date().nullable(),
+    activeRun: zod
+      .object({
+        id: zod.string(),
+        title: zod.string(),
+        status: zod.string(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+    pendingApprovalCount: zod.number(),
+    pairedDeviceCount: zod.number(),
+  }),
+});
+
+/**
+ * @summary List pending approvals waiting for a mobile decision
+ */
+export const listMobileApprovalsQueryLimitDefault = 20;
+export const listMobileApprovalsQueryLimitMax = 100;
+
+export const ListMobileApprovalsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listMobileApprovalsQueryLimitMax)
+    .default(listMobileApprovalsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListMobileApprovalsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListMobileApprovalsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        runId: zod.string(),
+        toolCallId: zod.string(),
+        reason: zod.string(),
+        summary: zod.string(),
+        decision: zod.string(),
+        createdAt: zod.coerce.date(),
+        riskLevel: zod.enum(["low", "medium", "high", "critical"]),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Recent agent activity feed for the mobile dashboard
+ */
+export const listMobileActivityQueryLimitDefault = 20;
+export const listMobileActivityQueryLimitMax = 50;
+
+export const ListMobileActivityQueryParams = zod.object({
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listMobileActivityQueryLimitMax)
+    .default(listMobileActivityQueryLimitDefault),
+});
+
+export const ListMobileActivityHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListMobileActivityResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      kind: zod.enum(["run", "approval"]),
+      title: zod.string(),
+      status: zod.string(),
+      at: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary List quick tasks dictated from the mobile PWA
+ */
+export const listMobileQuickTasksQueryLimitDefault = 20;
+export const listMobileQuickTasksQueryLimitMax = 100;
+
+export const ListMobileQuickTasksQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listMobileQuickTasksQueryLimitMax)
+    .default(listMobileQuickTasksQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListMobileQuickTasksHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListMobileQuickTasksResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        body: zod.string(),
+        status: zod.string(),
+        createdAt: zod.coerce.date(),
+        deliveredAt: zod.coerce.date().nullish(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Queue a new task from a paired mobile device
+ */
+export const CreateMobileQuickTaskHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const createMobileQuickTaskBodyBodyMax = 4000;
+
+export const createMobileQuickTaskBodyDeviceIdMax = 200;
+
+export const CreateMobileQuickTaskBody = zod.object({
+  body: zod.string().min(1).max(createMobileQuickTaskBodyBodyMax),
+  deviceId: zod.string().min(1).max(createMobileQuickTaskBodyDeviceIdMax),
+});
+
+export const CreateMobileQuickTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    body: zod.string(),
+    status: zod.string(),
+    createdAt: zod.coerce.date(),
+    deliveredAt: zod.coerce.date().nullish(),
+  }),
+});

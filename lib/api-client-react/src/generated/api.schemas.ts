@@ -2720,6 +2720,270 @@ export interface ApprovalBatchDecideResponse {
   data: ApprovalBatchDecideResult;
 }
 
+export interface MobilePairingToken {
+  id: string;
+  /** Short pairing code embedded in the QR payload. */
+  code: string;
+  expiresAt: string;
+  createdAt: string;
+  /** Cleartext relay token returned only on creation. The desktop UI
+embeds this in the QR payload; the PWA then presents it during
+/pairing/claim. Never exposed again.
+ */
+  relayToken?: string;
+  /** JSON payload to encode into the QR code. */
+  qrPayload?: string;
+}
+
+export interface MobilePairingTokenResponse {
+  success: boolean;
+  data: MobilePairingToken;
+}
+
+export type MobileClaimPairingRequestPlatform =
+  (typeof MobileClaimPairingRequestPlatform)[keyof typeof MobileClaimPairingRequestPlatform];
+
+export const MobileClaimPairingRequestPlatform = {
+  ios: "ios",
+  android: "android",
+  web: "web",
+} as const;
+
+export interface MobileClaimPairingRequest {
+  /**
+   * @minLength 4
+   * @maxLength 64
+   */
+  code: string;
+  /**
+   * @minLength 8
+   * @maxLength 200
+   */
+  relayToken: string;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  label: string;
+  platform?: MobileClaimPairingRequestPlatform;
+  /** @maxLength 500 */
+  userAgent?: string;
+}
+
+export type MobileDeviceStatus =
+  (typeof MobileDeviceStatus)[keyof typeof MobileDeviceStatus];
+
+export const MobileDeviceStatus = {
+  active: "active",
+  revoked: "revoked",
+} as const;
+
+export interface MobileDevice {
+  id: string;
+  label: string;
+  platform: string;
+  userAgent?: string | null;
+  status: MobileDeviceStatus;
+  pairedAt: string;
+  lastSeenAt?: string | null;
+  revokedAt?: string | null;
+  createdAt: string;
+}
+
+export interface MobileClaimPairingData {
+  device: MobileDevice;
+  relayToken: string;
+}
+
+export interface MobileClaimPairingResponse {
+  success: boolean;
+  data: MobileClaimPairingData;
+}
+
+export interface MobileDeviceResponse {
+  success: boolean;
+  data: MobileDevice;
+}
+
+export interface MobileDevicePage {
+  items: MobileDevice[];
+  nextCursor: string | null;
+}
+
+export interface MobileDeviceListResponse {
+  success: boolean;
+  data: MobileDevicePage;
+}
+
+export interface MobileDeviceRevokeReceipt {
+  id: string;
+  revoked: boolean;
+}
+
+export interface MobileDeviceRevokeResponse {
+  success: boolean;
+  data: MobileDeviceRevokeReceipt;
+}
+
+export interface MobilePushSubscriptionRequest {
+  /** @maxLength 2048 */
+  endpoint: string;
+  /** @maxLength 512 */
+  p256dh: string;
+  /** @maxLength 512 */
+  auth: string;
+}
+
+export interface MobilePushSubscription {
+  id: string;
+  deviceId: string;
+  endpoint: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MobilePushSubscriptionResponse {
+  success: boolean;
+  data: MobilePushSubscription;
+}
+
+export interface MobileNotificationPrefs {
+  taskCompleted: boolean;
+  approvalNeeded: boolean;
+  taskFailed: boolean;
+  longTaskProgress: boolean;
+  updatedAt: string;
+}
+
+export interface MobileNotificationPrefsRequest {
+  taskCompleted?: boolean;
+  approvalNeeded?: boolean;
+  taskFailed?: boolean;
+  longTaskProgress?: boolean;
+}
+
+export interface MobileNotificationPrefsResponse {
+  success: boolean;
+  data: MobileNotificationPrefs;
+}
+
+export interface MobileStatusActiveRun {
+  id: string;
+  title: string;
+  status: string;
+  updatedAt: string;
+}
+
+export type MobileStatusCardConnection =
+  (typeof MobileStatusCardConnection)[keyof typeof MobileStatusCardConnection];
+
+export const MobileStatusCardConnection = {
+  online: "online",
+  idle: "idle",
+  offline: "offline",
+} as const;
+
+export interface MobileStatusCard {
+  connection: MobileStatusCardConnection;
+  lastSeenAt: string | null;
+  activeRun: MobileStatusActiveRun | null;
+  pendingApprovalCount: number;
+  pairedDeviceCount: number;
+}
+
+export interface MobileStatusResponse {
+  success: boolean;
+  data: MobileStatusCard;
+}
+
+export type MobileApprovalItemRiskLevel =
+  (typeof MobileApprovalItemRiskLevel)[keyof typeof MobileApprovalItemRiskLevel];
+
+export const MobileApprovalItemRiskLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export interface MobileApprovalItem {
+  id: string;
+  runId: string;
+  toolCallId: string;
+  reason: string;
+  summary: string;
+  decision: string;
+  createdAt: string;
+  riskLevel: MobileApprovalItemRiskLevel;
+}
+
+export interface MobileApprovalPage {
+  items: MobileApprovalItem[];
+  nextCursor: string | null;
+}
+
+export interface MobileApprovalListResponse {
+  success: boolean;
+  data: MobileApprovalPage;
+}
+
+export type MobileActivityItemKind =
+  (typeof MobileActivityItemKind)[keyof typeof MobileActivityItemKind];
+
+export const MobileActivityItemKind = {
+  run: "run",
+  approval: "approval",
+} as const;
+
+export interface MobileActivityItem {
+  id: string;
+  kind: MobileActivityItemKind;
+  title: string;
+  status: string;
+  at: string;
+}
+
+export interface MobileActivityResponse {
+  success: boolean;
+  data: MobileActivityItem[];
+}
+
+export interface MobileQuickTaskRequest {
+  /**
+   * @minLength 1
+   * @maxLength 4000
+   */
+  body: string;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  deviceId: string;
+}
+
+export interface MobileQuickTask {
+  id: string;
+  body: string;
+  status: string;
+  createdAt: string;
+  deliveredAt?: string | null;
+}
+
+export interface MobileQuickTaskResponse {
+  success: boolean;
+  data: MobileQuickTask;
+}
+
+export interface MobileQuickTaskPage {
+  items: MobileQuickTask[];
+  nextCursor: string | null;
+}
+
+export interface MobileQuickTaskListResponse {
+  success: boolean;
+  data: MobileQuickTaskPage;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -3203,6 +3467,53 @@ export type SecurityEventsListParams = {
 };
 
 export type SecurityWebhookSecretsListParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListMobileDevicesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListMobileApprovalsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListMobileActivityParams = {
+  /**
+   * @minimum 1
+   * @maximum 50
+   */
+  limit?: number;
+};
+
+export type ListMobileQuickTasksParams = {
   /**
    * Opaque cursor returned by the previous page.
    */

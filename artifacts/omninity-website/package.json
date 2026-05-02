@@ -75,6 +75,8 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@fontsource/inter": "^5.2.8"
+    "@fontsource/inter": "^5.2.8",
+    "@types/dompurify": "^3.2.0",
+    "dompurify": "^3.4.2"
   }
 }

@@ -17,6 +17,7 @@ import healthRouter from "./health";
 import knowledgeRouter from "./knowledge";
 import mediaRouter from "./media";
 import memoryRouter from "./memory";
+import mobileRouter from "./mobile";
 import modelsRouter from "./models";
 import notificationsRouter from "./notifications";
 import onboardingRouter from "./onboarding";
@@ -47,5 +48,6 @@ router.use("/media", mediaRouter);
 router.use("/comm", commRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/activity", activityRouter);
+router.use("/mobile", mobileRouter);
 
 export default router;

@@ -50,6 +50,8 @@ tags:
     description: Local media generation (image / audio / video) — Tier 1 deterministic stubs
   - name: comm
     description: Connected accounts, email, calendar, VoIP, contacts, outreach
+  - name: mobile
+    description: Mobile Companion PWA — pairing, devices, push notifications, mobile dashboard
 paths:
   /healthz:
     get:
@@ -3358,6 +3360,295 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SecurityNukeResponse"
+  /mobile/pairing:
+    post:
+      operationId: startMobilePairing
+      tags:
+        - mobile
+      summary: Generate a fresh QR pairing code for the Mobile Companion PWA
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Pairing token + QR payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobilePairingTokenResponse"
+  /mobile/pairing/claim:
+    post:
+      operationId: claimMobilePairing
+      tags:
+        - mobile
+      summary: Claim a pairing code from the PWA after scanning the QR
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MobileClaimPairingRequest"
+      responses:
+        "200":
+          description: Device paired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileClaimPairingResponse"
+        "400":
+          description: Invalid or expired pairing code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /mobile/devices:
+    get:
+      operationId: listMobileDevices
+      tags:
+        - mobile
+      summary: List paired mobile devices
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Devices page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileDeviceListResponse"
+  /mobile/devices/{id}:
+    get:
+      operationId: getMobileDevice
+      tags:
+        - mobile
+      summary: Fetch a paired device
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileDeviceResponse"
+        "404":
+          description: Unknown device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: revokeMobileDevice
+      tags:
+        - mobile
+      summary: Revoke a paired device
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revocation receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileDeviceRevokeResponse"
+  /mobile/devices/{id}/heartbeat:
+    post:
+      operationId: heartbeatMobileDevice
+      tags:
+        - mobile
+      summary: Update last-seen timestamp for the calling device
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileDeviceResponse"
+        "404":
+          description: Unknown device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /mobile/devices/{id}/push:
+    post:
+      operationId: registerMobilePushSubscription
+      tags:
+        - mobile
+      summary: Register a Web Push subscription for the device
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MobilePushSubscriptionRequest"
+      responses:
+        "200":
+          description: Subscription stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobilePushSubscriptionResponse"
+  /mobile/notifications/prefs:
+    get:
+      operationId: getMobileNotificationPrefs
+      tags:
+        - mobile
+      summary: Get per-workspace notification preferences
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Current preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileNotificationPrefsResponse"
+    post:
+      operationId: setMobileNotificationPrefs
+      tags:
+        - mobile
+      summary: Update notification preferences
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MobileNotificationPrefsRequest"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileNotificationPrefsResponse"
+  /mobile/status:
+    get:
+      operationId: getMobileStatus
+      tags:
+        - mobile
+      summary: Live status card for the Mobile Companion dashboard
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Status card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileStatusResponse"
+  /mobile/approvals:
+    get:
+      operationId: listMobileApprovals
+      tags:
+        - mobile
+      summary: List pending approvals waiting for a mobile decision
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Approvals page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileApprovalListResponse"
+  /mobile/activity:
+    get:
+      operationId: listMobileActivity
+      tags:
+        - mobile
+      summary: Recent agent activity feed for the mobile dashboard
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: Activity items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileActivityResponse"
+  /mobile/quick-tasks:
+    get:
+      operationId: listMobileQuickTasks
+      tags:
+        - mobile
+      summary: List quick tasks dictated from the mobile PWA
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Quick tasks page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileQuickTaskListResponse"
+    post:
+      operationId: createMobileQuickTask
+      tags:
+        - mobile
+      summary: Queue a new task from a paired mobile device
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MobileQuickTaskRequest"
+      responses:
+        "200":
+          description: Task queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileQuickTaskResponse"
+        "400":
+          description: Device unknown or revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
 components:
   parameters:
     TenantHeader:
@@ -8604,3 +8895,508 @@ components:
             - true
         data:
           $ref: "#/components/schemas/ApprovalBatchDecideResult"
+    MobilePairingToken:
+      type: object
+      required:
+        - id
+        - code
+        - expiresAt
+        - createdAt
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+          description: Short pairing code embedded in the QR payload.
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        relayToken:
+          type: string
+          description: |
+            Cleartext relay token returned only on creation. The desktop UI
+            embeds this in the QR payload; the PWA then presents it during
+            /pairing/claim. Never exposed again.
+        qrPayload:
+          type: string
+          description: JSON payload to encode into the QR code.
+    MobilePairingTokenResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobilePairingToken"
+    MobileClaimPairingRequest:
+      type: object
+      required:
+        - code
+        - relayToken
+        - label
+      properties:
+        code:
+          type: string
+          minLength: 4
+          maxLength: 64
+        relayToken:
+          type: string
+          minLength: 8
+          maxLength: 200
+        label:
+          type: string
+          minLength: 1
+          maxLength: 200
+        platform:
+          type: string
+          enum:
+            - ios
+            - android
+            - web
+          default: web
+        userAgent:
+          type: string
+          maxLength: 500
+    MobileDevice:
+      type: object
+      required:
+        - id
+        - label
+        - platform
+        - status
+        - pairedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        platform:
+          type: string
+        userAgent:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - active
+            - revoked
+        pairedAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    MobileClaimPairingData:
+      type: object
+      required:
+        - device
+        - relayToken
+      properties:
+        device:
+          $ref: "#/components/schemas/MobileDevice"
+        relayToken:
+          type: string
+    MobileClaimPairingResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobileClaimPairingData"
+    MobileDeviceResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobileDevice"
+    MobileDevicePage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MobileDevice"
+        nextCursor:
+          type: string
+          nullable: true
+    MobileDeviceListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobileDevicePage"
+    MobileDeviceRevokeReceipt:
+      type: object
+      required:
+        - id
+        - revoked
+      properties:
+        id:
+          type: string
+        revoked:
+          type: boolean
+    MobileDeviceRevokeResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobileDeviceRevokeReceipt"
+    MobilePushSubscriptionRequest:
+      type: object
+      required:
+        - endpoint
+        - p256dh
+        - auth
+      properties:
+        endpoint:
+          type: string
+          maxLength: 2048
+        p256dh:
+          type: string
+          maxLength: 512
+        auth:
+          type: string
+          maxLength: 512
+    MobilePushSubscription:
+      type: object
+      required:
+        - id
+        - deviceId
+        - endpoint
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        deviceId:
+          type: string
+        endpoint:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    MobilePushSubscriptionResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobilePushSubscription"
+    MobileNotificationPrefs:
+      type: object
+      required:
+        - taskCompleted
+        - approvalNeeded
+        - taskFailed
+        - longTaskProgress
+        - updatedAt
+      properties:
+        taskCompleted:
+          type: boolean
+        approvalNeeded:
+          type: boolean
+        taskFailed:
+          type: boolean
+        longTaskProgress:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+    MobileNotificationPrefsRequest:
+      type: object
+      properties:
+        taskCompleted:
+          type: boolean
+        approvalNeeded:
+          type: boolean
+        taskFailed:
+          type: boolean
+        longTaskProgress:
+          type: boolean
+    MobileNotificationPrefsResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobileNotificationPrefs"
+    MobileStatusActiveRun:
+      type: object
+      required:
+        - id
+        - title
+        - status
+        - updatedAt
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    MobileStatusCard:
+      type: object
+      required:
+        - connection
+        - lastSeenAt
+        - activeRun
+        - pendingApprovalCount
+        - pairedDeviceCount
+      properties:
+        connection:
+          type: string
+          enum:
+            - online
+            - idle
+            - offline
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        activeRun:
+          allOf:
+            - $ref: "#/components/schemas/MobileStatusActiveRun"
+          nullable: true
+        pendingApprovalCount:
+          type: integer
+        pairedDeviceCount:
+          type: integer
+    MobileStatusResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobileStatusCard"
+    MobileApprovalItem:
+      type: object
+      required:
+        - id
+        - runId
+        - toolCallId
+        - reason
+        - summary
+        - decision
+        - createdAt
+        - riskLevel
+      properties:
+        id:
+          type: string
+        runId:
+          type: string
+        toolCallId:
+          type: string
+        reason:
+          type: string
+        summary:
+          type: string
+        decision:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        riskLevel:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+    MobileApprovalPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MobileApprovalItem"
+        nextCursor:
+          type: string
+          nullable: true
+    MobileApprovalListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobileApprovalPage"
+    MobileActivityItem:
+      type: object
+      required:
+        - id
+        - kind
+        - title
+        - status
+        - at
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum:
+            - run
+            - approval
+        title:
+          type: string
+        status:
+          type: string
+        at:
+          type: string
+          format: date-time
+    MobileActivityResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/MobileActivityItem"
+    MobileQuickTaskRequest:
+      type: object
+      required:
+        - body
+        - deviceId
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        deviceId:
+          type: string
+          minLength: 1
+          maxLength: 200
+    MobileQuickTask:
+      type: object
+      required:
+        - id
+        - body
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+        body:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+    MobileQuickTaskResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobileQuickTask"
+    MobileQuickTaskPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MobileQuickTask"
+        nextCursor:
+          type: string
+          nullable: true
+    MobileQuickTaskListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MobileQuickTaskPage"
+

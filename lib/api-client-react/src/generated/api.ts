@@ -140,6 +140,10 @@ import type {
   ListKnowledgeDocumentsParams,
   ListMediaAssetsParams,
   ListMemoriesParams,
+  ListMobileActivityParams,
+  ListMobileApprovalsParams,
+  ListMobileDevicesParams,
+  ListMobileQuickTasksParams,
   ListModelsParams,
   ListNotificationsParams,
   ListOutreachEnrolmentsParams,
@@ -159,6 +163,22 @@ import type {
   MemoryListResponse,
   MemoryResponse,
   MessageListResponse,
+  MobileActivityResponse,
+  MobileApprovalListResponse,
+  MobileClaimPairingRequest,
+  MobileClaimPairingResponse,
+  MobileDeviceListResponse,
+  MobileDeviceResponse,
+  MobileDeviceRevokeResponse,
+  MobileNotificationPrefsRequest,
+  MobileNotificationPrefsResponse,
+  MobilePairingTokenResponse,
+  MobilePushSubscriptionRequest,
+  MobilePushSubscriptionResponse,
+  MobileQuickTaskListResponse,
+  MobileQuickTaskRequest,
+  MobileQuickTaskResponse,
+  MobileStatusResponse,
   ModelCatalogueResponse,
   ModelGetResponse,
   ModelHardwareResponse,
@@ -13688,4 +13708,1252 @@ export const useSecurityNuke = <
   TContext
 > => {
   return useMutation(getSecurityNukeMutationOptions(options));
+};
+
+/**
+ * @summary Generate a fresh QR pairing code for the Mobile Companion PWA
+ */
+export const getStartMobilePairingUrl = () => {
+  return `/api/mobile/pairing`;
+};
+
+export const startMobilePairing = async (
+  options?: RequestInit,
+): Promise<MobilePairingTokenResponse> => {
+  return customFetch<MobilePairingTokenResponse>(getStartMobilePairingUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStartMobilePairingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startMobilePairing>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startMobilePairing>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["startMobilePairing"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startMobilePairing>>,
+    void
+  > = () => {
+    return startMobilePairing(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartMobilePairingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startMobilePairing>>
+>;
+
+export type StartMobilePairingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate a fresh QR pairing code for the Mobile Companion PWA
+ */
+export const useStartMobilePairing = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startMobilePairing>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startMobilePairing>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getStartMobilePairingMutationOptions(options));
+};
+
+/**
+ * @summary Claim a pairing code from the PWA after scanning the QR
+ */
+export const getClaimMobilePairingUrl = () => {
+  return `/api/mobile/pairing/claim`;
+};
+
+export const claimMobilePairing = async (
+  mobileClaimPairingRequest: MobileClaimPairingRequest,
+  options?: RequestInit,
+): Promise<MobileClaimPairingResponse> => {
+  return customFetch<MobileClaimPairingResponse>(getClaimMobilePairingUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(mobileClaimPairingRequest),
+  });
+};
+
+export const getClaimMobilePairingMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof claimMobilePairing>>,
+    TError,
+    { data: BodyType<MobileClaimPairingRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof claimMobilePairing>>,
+  TError,
+  { data: BodyType<MobileClaimPairingRequest> },
+  TContext
+> => {
+  const mutationKey = ["claimMobilePairing"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof claimMobilePairing>>,
+    { data: BodyType<MobileClaimPairingRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return claimMobilePairing(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClaimMobilePairingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof claimMobilePairing>>
+>;
+export type ClaimMobilePairingMutationBody =
+  BodyType<MobileClaimPairingRequest>;
+export type ClaimMobilePairingMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Claim a pairing code from the PWA after scanning the QR
+ */
+export const useClaimMobilePairing = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof claimMobilePairing>>,
+    TError,
+    { data: BodyType<MobileClaimPairingRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof claimMobilePairing>>,
+  TError,
+  { data: BodyType<MobileClaimPairingRequest> },
+  TContext
+> => {
+  return useMutation(getClaimMobilePairingMutationOptions(options));
+};
+
+/**
+ * @summary List paired mobile devices
+ */
+export const getListMobileDevicesUrl = (params?: ListMobileDevicesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/mobile/devices?${stringifiedParams}`
+    : `/api/mobile/devices`;
+};
+
+export const listMobileDevices = async (
+  params?: ListMobileDevicesParams,
+  options?: RequestInit,
+): Promise<MobileDeviceListResponse> => {
+  return customFetch<MobileDeviceListResponse>(
+    getListMobileDevicesUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListMobileDevicesQueryKey = (
+  params?: ListMobileDevicesParams,
+) => {
+  return [`/api/mobile/devices`, ...(params ? [params] : [])] as const;
+};
+
+export const getListMobileDevicesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMobileDevices>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMobileDevicesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMobileDevices>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListMobileDevicesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMobileDevices>>
+  > = ({ signal }) => listMobileDevices(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMobileDevices>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMobileDevicesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMobileDevices>>
+>;
+export type ListMobileDevicesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List paired mobile devices
+ */
+
+export function useListMobileDevices<
+  TData = Awaited<ReturnType<typeof listMobileDevices>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMobileDevicesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMobileDevices>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMobileDevicesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch a paired device
+ */
+export const getGetMobileDeviceUrl = (id: string) => {
+  return `/api/mobile/devices/${id}`;
+};
+
+export const getMobileDevice = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MobileDeviceResponse> => {
+  return customFetch<MobileDeviceResponse>(getGetMobileDeviceUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMobileDeviceQueryKey = (id: string) => {
+  return [`/api/mobile/devices/${id}`] as const;
+};
+
+export const getGetMobileDeviceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMobileDevice>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMobileDevice>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMobileDeviceQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMobileDevice>>> = ({
+    signal,
+  }) => getMobileDevice(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileDevice>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMobileDeviceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMobileDevice>>
+>;
+export type GetMobileDeviceQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch a paired device
+ */
+
+export function useGetMobileDevice<
+  TData = Awaited<ReturnType<typeof getMobileDevice>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMobileDevice>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMobileDeviceQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Revoke a paired device
+ */
+export const getRevokeMobileDeviceUrl = (id: string) => {
+  return `/api/mobile/devices/${id}`;
+};
+
+export const revokeMobileDevice = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MobileDeviceRevokeResponse> => {
+  return customFetch<MobileDeviceRevokeResponse>(getRevokeMobileDeviceUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getRevokeMobileDeviceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeMobileDevice>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof revokeMobileDevice>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["revokeMobileDevice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof revokeMobileDevice>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return revokeMobileDevice(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RevokeMobileDeviceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof revokeMobileDevice>>
+>;
+
+export type RevokeMobileDeviceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Revoke a paired device
+ */
+export const useRevokeMobileDevice = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeMobileDevice>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof revokeMobileDevice>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getRevokeMobileDeviceMutationOptions(options));
+};
+
+/**
+ * @summary Update last-seen timestamp for the calling device
+ */
+export const getHeartbeatMobileDeviceUrl = (id: string) => {
+  return `/api/mobile/devices/${id}/heartbeat`;
+};
+
+export const heartbeatMobileDevice = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MobileDeviceResponse> => {
+  return customFetch<MobileDeviceResponse>(getHeartbeatMobileDeviceUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getHeartbeatMobileDeviceMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof heartbeatMobileDevice>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof heartbeatMobileDevice>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["heartbeatMobileDevice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof heartbeatMobileDevice>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return heartbeatMobileDevice(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type HeartbeatMobileDeviceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof heartbeatMobileDevice>>
+>;
+
+export type HeartbeatMobileDeviceMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Update last-seen timestamp for the calling device
+ */
+export const useHeartbeatMobileDevice = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof heartbeatMobileDevice>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof heartbeatMobileDevice>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getHeartbeatMobileDeviceMutationOptions(options));
+};
+
+/**
+ * @summary Register a Web Push subscription for the device
+ */
+export const getRegisterMobilePushSubscriptionUrl = (id: string) => {
+  return `/api/mobile/devices/${id}/push`;
+};
+
+export const registerMobilePushSubscription = async (
+  id: string,
+  mobilePushSubscriptionRequest: MobilePushSubscriptionRequest,
+  options?: RequestInit,
+): Promise<MobilePushSubscriptionResponse> => {
+  return customFetch<MobilePushSubscriptionResponse>(
+    getRegisterMobilePushSubscriptionUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(mobilePushSubscriptionRequest),
+    },
+  );
+};
+
+export const getRegisterMobilePushSubscriptionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerMobilePushSubscription>>,
+    TError,
+    { id: string; data: BodyType<MobilePushSubscriptionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerMobilePushSubscription>>,
+  TError,
+  { id: string; data: BodyType<MobilePushSubscriptionRequest> },
+  TContext
+> => {
+  const mutationKey = ["registerMobilePushSubscription"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerMobilePushSubscription>>,
+    { id: string; data: BodyType<MobilePushSubscriptionRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return registerMobilePushSubscription(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterMobilePushSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerMobilePushSubscription>>
+>;
+export type RegisterMobilePushSubscriptionMutationBody =
+  BodyType<MobilePushSubscriptionRequest>;
+export type RegisterMobilePushSubscriptionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Register a Web Push subscription for the device
+ */
+export const useRegisterMobilePushSubscription = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerMobilePushSubscription>>,
+    TError,
+    { id: string; data: BodyType<MobilePushSubscriptionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerMobilePushSubscription>>,
+  TError,
+  { id: string; data: BodyType<MobilePushSubscriptionRequest> },
+  TContext
+> => {
+  return useMutation(getRegisterMobilePushSubscriptionMutationOptions(options));
+};
+
+/**
+ * @summary Get per-workspace notification preferences
+ */
+export const getGetMobileNotificationPrefsUrl = () => {
+  return `/api/mobile/notifications/prefs`;
+};
+
+export const getMobileNotificationPrefs = async (
+  options?: RequestInit,
+): Promise<MobileNotificationPrefsResponse> => {
+  return customFetch<MobileNotificationPrefsResponse>(
+    getGetMobileNotificationPrefsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetMobileNotificationPrefsQueryKey = () => {
+  return [`/api/mobile/notifications/prefs`] as const;
+};
+
+export const getGetMobileNotificationPrefsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMobileNotificationPrefs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileNotificationPrefs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMobileNotificationPrefsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMobileNotificationPrefs>>
+  > = ({ signal }) => getMobileNotificationPrefs({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileNotificationPrefs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMobileNotificationPrefsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMobileNotificationPrefs>>
+>;
+export type GetMobileNotificationPrefsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get per-workspace notification preferences
+ */
+
+export function useGetMobileNotificationPrefs<
+  TData = Awaited<ReturnType<typeof getMobileNotificationPrefs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileNotificationPrefs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMobileNotificationPrefsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update notification preferences
+ */
+export const getSetMobileNotificationPrefsUrl = () => {
+  return `/api/mobile/notifications/prefs`;
+};
+
+export const setMobileNotificationPrefs = async (
+  mobileNotificationPrefsRequest: MobileNotificationPrefsRequest,
+  options?: RequestInit,
+): Promise<MobileNotificationPrefsResponse> => {
+  return customFetch<MobileNotificationPrefsResponse>(
+    getSetMobileNotificationPrefsUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(mobileNotificationPrefsRequest),
+    },
+  );
+};
+
+export const getSetMobileNotificationPrefsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setMobileNotificationPrefs>>,
+    TError,
+    { data: BodyType<MobileNotificationPrefsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setMobileNotificationPrefs>>,
+  TError,
+  { data: BodyType<MobileNotificationPrefsRequest> },
+  TContext
+> => {
+  const mutationKey = ["setMobileNotificationPrefs"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setMobileNotificationPrefs>>,
+    { data: BodyType<MobileNotificationPrefsRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setMobileNotificationPrefs(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetMobileNotificationPrefsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setMobileNotificationPrefs>>
+>;
+export type SetMobileNotificationPrefsMutationBody =
+  BodyType<MobileNotificationPrefsRequest>;
+export type SetMobileNotificationPrefsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update notification preferences
+ */
+export const useSetMobileNotificationPrefs = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setMobileNotificationPrefs>>,
+    TError,
+    { data: BodyType<MobileNotificationPrefsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setMobileNotificationPrefs>>,
+  TError,
+  { data: BodyType<MobileNotificationPrefsRequest> },
+  TContext
+> => {
+  return useMutation(getSetMobileNotificationPrefsMutationOptions(options));
+};
+
+/**
+ * @summary Live status card for the Mobile Companion dashboard
+ */
+export const getGetMobileStatusUrl = () => {
+  return `/api/mobile/status`;
+};
+
+export const getMobileStatus = async (
+  options?: RequestInit,
+): Promise<MobileStatusResponse> => {
+  return customFetch<MobileStatusResponse>(getGetMobileStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMobileStatusQueryKey = () => {
+  return [`/api/mobile/status`] as const;
+};
+
+export const getGetMobileStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMobileStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMobileStatusQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMobileStatus>>> = ({
+    signal,
+  }) => getMobileStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMobileStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMobileStatus>>
+>;
+export type GetMobileStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Live status card for the Mobile Companion dashboard
+ */
+
+export function useGetMobileStatus<
+  TData = Awaited<ReturnType<typeof getMobileStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMobileStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List pending approvals waiting for a mobile decision
+ */
+export const getListMobileApprovalsUrl = (
+  params?: ListMobileApprovalsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/mobile/approvals?${stringifiedParams}`
+    : `/api/mobile/approvals`;
+};
+
+export const listMobileApprovals = async (
+  params?: ListMobileApprovalsParams,
+  options?: RequestInit,
+): Promise<MobileApprovalListResponse> => {
+  return customFetch<MobileApprovalListResponse>(
+    getListMobileApprovalsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListMobileApprovalsQueryKey = (
+  params?: ListMobileApprovalsParams,
+) => {
+  return [`/api/mobile/approvals`, ...(params ? [params] : [])] as const;
+};
+
+export const getListMobileApprovalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMobileApprovals>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMobileApprovalsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMobileApprovals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListMobileApprovalsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMobileApprovals>>
+  > = ({ signal }) =>
+    listMobileApprovals(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMobileApprovals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMobileApprovalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMobileApprovals>>
+>;
+export type ListMobileApprovalsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List pending approvals waiting for a mobile decision
+ */
+
+export function useListMobileApprovals<
+  TData = Awaited<ReturnType<typeof listMobileApprovals>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMobileApprovalsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMobileApprovals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMobileApprovalsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Recent agent activity feed for the mobile dashboard
+ */
+export const getListMobileActivityUrl = (params?: ListMobileActivityParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/mobile/activity?${stringifiedParams}`
+    : `/api/mobile/activity`;
+};
+
+export const listMobileActivity = async (
+  params?: ListMobileActivityParams,
+  options?: RequestInit,
+): Promise<MobileActivityResponse> => {
+  return customFetch<MobileActivityResponse>(getListMobileActivityUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMobileActivityQueryKey = (
+  params?: ListMobileActivityParams,
+) => {
+  return [`/api/mobile/activity`, ...(params ? [params] : [])] as const;
+};
+
+export const getListMobileActivityQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMobileActivity>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMobileActivityParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMobileActivity>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListMobileActivityQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMobileActivity>>
+  > = ({ signal }) => listMobileActivity(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMobileActivity>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMobileActivityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMobileActivity>>
+>;
+export type ListMobileActivityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Recent agent activity feed for the mobile dashboard
+ */
+
+export function useListMobileActivity<
+  TData = Awaited<ReturnType<typeof listMobileActivity>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMobileActivityParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMobileActivity>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMobileActivityQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List quick tasks dictated from the mobile PWA
+ */
+export const getListMobileQuickTasksUrl = (
+  params?: ListMobileQuickTasksParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/mobile/quick-tasks?${stringifiedParams}`
+    : `/api/mobile/quick-tasks`;
+};
+
+export const listMobileQuickTasks = async (
+  params?: ListMobileQuickTasksParams,
+  options?: RequestInit,
+): Promise<MobileQuickTaskListResponse> => {
+  return customFetch<MobileQuickTaskListResponse>(
+    getListMobileQuickTasksUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListMobileQuickTasksQueryKey = (
+  params?: ListMobileQuickTasksParams,
+) => {
+  return [`/api/mobile/quick-tasks`, ...(params ? [params] : [])] as const;
+};
+
+export const getListMobileQuickTasksQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMobileQuickTasks>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMobileQuickTasksParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMobileQuickTasks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListMobileQuickTasksQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMobileQuickTasks>>
+  > = ({ signal }) =>
+    listMobileQuickTasks(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMobileQuickTasks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMobileQuickTasksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMobileQuickTasks>>
+>;
+export type ListMobileQuickTasksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List quick tasks dictated from the mobile PWA
+ */
+
+export function useListMobileQuickTasks<
+  TData = Awaited<ReturnType<typeof listMobileQuickTasks>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMobileQuickTasksParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMobileQuickTasks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMobileQuickTasksQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Queue a new task from a paired mobile device
+ */
+export const getCreateMobileQuickTaskUrl = () => {
+  return `/api/mobile/quick-tasks`;
+};
+
+export const createMobileQuickTask = async (
+  mobileQuickTaskRequest: MobileQuickTaskRequest,
+  options?: RequestInit,
+): Promise<MobileQuickTaskResponse> => {
+  return customFetch<MobileQuickTaskResponse>(getCreateMobileQuickTaskUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(mobileQuickTaskRequest),
+  });
+};
+
+export const getCreateMobileQuickTaskMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMobileQuickTask>>,
+    TError,
+    { data: BodyType<MobileQuickTaskRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMobileQuickTask>>,
+  TError,
+  { data: BodyType<MobileQuickTaskRequest> },
+  TContext
+> => {
+  const mutationKey = ["createMobileQuickTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMobileQuickTask>>,
+    { data: BodyType<MobileQuickTaskRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createMobileQuickTask(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMobileQuickTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMobileQuickTask>>
+>;
+export type CreateMobileQuickTaskMutationBody =
+  BodyType<MobileQuickTaskRequest>;
+export type CreateMobileQuickTaskMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Queue a new task from a paired mobile device
+ */
+export const useCreateMobileQuickTask = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMobileQuickTask>>,
+    TError,
+    { data: BodyType<MobileQuickTaskRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createMobileQuickTask>>,
+  TError,
+  { data: BodyType<MobileQuickTaskRequest> },
+  TContext
+> => {
+  return useMutation(getCreateMobileQuickTaskMutationOptions(options));
 };
