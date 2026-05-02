@@ -9,6 +9,7 @@ import agentRouter from "./agent";
 import authRouter from "./auth";
 import browserRouter from "./browser";
 import chatRouter from "./chat";
+import commRouter from "./comm";
 import desktopRouter from "./desktop";
 import filesRouter from "./files";
 import healthRouter from "./health";
@@ -39,5 +40,6 @@ router.use("/onboarding", onboardingRouter);
 router.use("/updates", updatesRouter);
 router.use("/desktop", desktopRouter);
 router.use("/media", mediaRouter);
+router.use("/comm", commRouter);
 
 export default router;

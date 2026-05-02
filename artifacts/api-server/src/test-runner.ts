@@ -516,6 +516,7 @@ const cases: TestCase[] = [
     },
   },
 
+
   {
     name: "onboarding profile starts as null then upserts idempotently",
     run: async () => {
@@ -2077,6 +2078,210 @@ const cases: TestCase[] = [
           m.role === "system" && m.content.includes("Knowledge base context"),
       );
       assert.ok(!hasKbClean, "useKnowledgeBase=false must skip the KB message");
+    },
+  },
+  {
+    name: "comm: connect account → list → disconnect round-trip",
+    run: async () => {
+      const conn = await request(app)
+        .post("/api/comm/accounts")
+        .set("X-Tenant-ID", TENANT)
+        .send({ provider: "gmail", label: "owner@example.com" });
+      assert.equal(conn.status, 200, JSON.stringify(conn.body));
+      assert.equal(conn.body.data.provider, "gmail");
+      assert.equal(conn.body.data.kind, "email");
+      const id = conn.body.data.id;
+
+      const list = await request(app)
+        .get("/api/comm/accounts?limit=10")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(list.status, 200);
+      assert.ok(list.body.data.items.some((a: { id: string }) => a.id === id));
+      assert.ok("nextCursor" in list.body.data);
+
+      const disc = await request(app)
+        .delete(`/api/comm/accounts/${id}`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(disc.status, 200);
+      assert.equal(disc.body.data.disconnected, true);
+    },
+  },
+  {
+    name: "comm email: ingest → draft → send mirrors into sent folder",
+    run: async () => {
+      const acc = await request(app)
+        .post("/api/comm/accounts")
+        .set("X-Tenant-ID", TENANT)
+        .send({ provider: "gmail", label: "alice@example.com" });
+      assert.equal(acc.status, 200);
+      const accountId = acc.body.data.id;
+
+      const ingest = await request(app)
+        .post("/api/comm/email/messages")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          accountId,
+          fromAddress: "bob@example.com",
+          toAddresses: ["alice@example.com"],
+          subject: "Hello",
+          body: "Just checking in.",
+        });
+      assert.equal(ingest.status, 200, JSON.stringify(ingest.body));
+      assert.equal(ingest.body.data.folder, "inbox");
+
+      const draft = await request(app)
+        .post("/api/comm/email/drafts")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          accountId,
+          toAddresses: ["bob@example.com"],
+          subject: "Re: Hello",
+          body: "Thanks Bob!",
+        });
+      assert.equal(draft.status, 200, JSON.stringify(draft.body));
+      assert.equal(draft.body.data.decision, "pending");
+
+      const sent = await request(app)
+        .post(`/api/comm/email/drafts/${draft.body.data.id}/send`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(sent.status, 200, JSON.stringify(sent.body));
+      assert.equal(sent.body.data.direction, "outbound");
+      assert.equal(sent.body.data.folder, "sent");
+
+      const sentList = await request(app)
+        .get(`/api/comm/email/messages?accountId=${accountId}&folder=sent`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(sentList.status, 200);
+      assert.ok(sentList.body.data.items.length >= 1);
+    },
+  },
+  {
+    name: "comm calendar: create event → list → free-slots returns gaps",
+    run: async () => {
+      const acc = await request(app)
+        .post("/api/comm/accounts")
+        .set("X-Tenant-ID", TENANT)
+        .send({ provider: "google_calendar", label: "owner@example.com" });
+      assert.equal(acc.status, 200);
+      const accountId = acc.body.data.id;
+
+      const base = Date.UTC(2026, 5, 1, 14, 0, 0);
+      const ev = await request(app)
+        .post("/api/comm/calendar/events")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          accountId,
+          title: "Standup",
+          startsAt: base,
+          endsAt: base + 30 * 60 * 1000,
+        });
+      assert.equal(ev.status, 200, JSON.stringify(ev.body));
+      const evId = ev.body.data.id;
+
+      const list = await request(app)
+        .get("/api/comm/calendar/events?limit=10")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(list.status, 200);
+      assert.ok(list.body.data.items.some((e: { id: string }) => e.id === evId));
+
+      const dayStart = Date.UTC(2026, 5, 1, 9, 0, 0);
+      const dayEnd = Date.UTC(2026, 5, 1, 17, 0, 0);
+      const slots = await request(app)
+        .get(
+          `/api/comm/calendar/free-slots?from=${dayStart}&to=${dayEnd}&durationMinutes=30`,
+        )
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(slots.status, 200, JSON.stringify(slots.body));
+      assert.ok(Array.isArray(slots.body.data.slots));
+      assert.ok(slots.body.data.slots.length >= 1);
+    },
+  },
+  {
+    name: "comm voip: place call appears in list with queued status",
+    run: async () => {
+      const acc = await request(app)
+        .post("/api/comm/accounts")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          provider: "twilio",
+          label: "+15550000000",
+          metadata: { phoneNumber: "+15550000000" },
+        });
+      assert.equal(acc.status, 200);
+      const accountId = acc.body.data.id;
+
+      const placed = await request(app)
+        .post("/api/comm/voip/calls")
+        .set("X-Tenant-ID", TENANT)
+        .send({ accountId, toNumber: "+15551112222" });
+      assert.equal(placed.status, 200, JSON.stringify(placed.body));
+      assert.equal(placed.body.data.direction, "outbound");
+      assert.equal(placed.body.data.status, "queued");
+
+      const list = await request(app)
+        .get(`/api/comm/voip/calls?accountId=${accountId}`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(list.status, 200);
+      assert.ok(list.body.data.items.some((c: { id: string }) => c.id === placed.body.data.id));
+    },
+  },
+  {
+    name: "comm contacts: create → list → interactions paginate",
+    run: async () => {
+      const c = await request(app)
+        .post("/api/comm/contacts")
+        .set("X-Tenant-ID", TENANT)
+        .send({ displayName: "Carol Carter", email: "carol@example.com" });
+      assert.equal(c.status, 200, JSON.stringify(c.body));
+      const id = c.body.data.id;
+
+      const list = await request(app)
+        .get("/api/comm/contacts?limit=10")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(list.status, 200);
+      assert.ok(list.body.data.items.some((x: { id: string }) => x.id === id));
+
+      const inter = await request(app)
+        .get(`/api/comm/contacts/${id}/interactions?limit=10`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(inter.status, 200);
+      assert.ok(Array.isArray(inter.body.data.items));
+      assert.ok("nextCursor" in inter.body.data);
+    },
+  },
+  {
+    name: "comm tenant isolation: tenant 2 cannot see tenant 1 accounts",
+    run: async () => {
+      const acc = await request(app)
+        .post("/api/comm/accounts")
+        .set("X-Tenant-ID", TENANT)
+        .send({ provider: "gmail", label: "private@example.com" });
+      assert.equal(acc.status, 200);
+      const id = acc.body.data.id;
+
+      const cross = await request(app)
+        .get(`/api/comm/accounts/${id}`)
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(cross.status, 404);
+      assert.equal(cross.body.success, false);
+    },
+  },
+  {
+    name: "comm tools registry exposes email/calendar/voip with correct risk",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/tools?limit=100")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      const byName = new Map<string, { riskLevel: string }>(
+        res.body.data.items.map((t: { name: string; riskLevel: string }) => [
+          t.name,
+          t,
+        ]),
+      );
+      assert.equal(byName.get("comm.email.send")?.riskLevel, "medium");
+      assert.equal(byName.get("comm.calendar.create_event")?.riskLevel, "medium");
+      assert.equal(byName.get("comm.voip.call")?.riskLevel, "high");
     },
   },
 ];

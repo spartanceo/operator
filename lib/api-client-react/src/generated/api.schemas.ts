@@ -1446,6 +1446,702 @@ export interface HardwareCapabilitiesResponse {
   data: HardwareCapabilities;
 }
 
+export type CommAccountProvider =
+  (typeof CommAccountProvider)[keyof typeof CommAccountProvider];
+
+export const CommAccountProvider = {
+  gmail: "gmail",
+  outlook: "outlook",
+  google_calendar: "google_calendar",
+  apple_calendar: "apple_calendar",
+  twilio: "twilio",
+} as const;
+
+export type CommAccountKind =
+  (typeof CommAccountKind)[keyof typeof CommAccountKind];
+
+export const CommAccountKind = {
+  email: "email",
+  calendar: "calendar",
+  voip: "voip",
+} as const;
+
+export type CommAccountStatus =
+  (typeof CommAccountStatus)[keyof typeof CommAccountStatus];
+
+export const CommAccountStatus = {
+  active: "active",
+  disconnected: "disconnected",
+  error: "error",
+} as const;
+
+export type CommAccountMetadata = { [key: string]: unknown } | null;
+
+export interface CommAccount {
+  id: string;
+  provider: CommAccountProvider;
+  kind: CommAccountKind;
+  label: string;
+  status: CommAccountStatus;
+  metadata?: CommAccountMetadata;
+  tokenExpiresAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommAccountListPage {
+  items: CommAccount[];
+  nextCursor: string | null;
+}
+
+export interface CommAccountListResponse {
+  success: boolean;
+  data: CommAccountListPage;
+}
+
+export interface CommAccountResponse {
+  success: boolean;
+  data: CommAccount;
+}
+
+export type ConnectCommAccountRequestProvider =
+  (typeof ConnectCommAccountRequestProvider)[keyof typeof ConnectCommAccountRequestProvider];
+
+export const ConnectCommAccountRequestProvider = {
+  gmail: "gmail",
+  outlook: "outlook",
+  google_calendar: "google_calendar",
+  apple_calendar: "apple_calendar",
+  twilio: "twilio",
+} as const;
+
+export type ConnectCommAccountRequestMetadata = { [key: string]: unknown };
+
+export interface ConnectCommAccountRequest {
+  provider: ConnectCommAccountRequestProvider;
+  label: string;
+  accessToken?: string;
+  refreshToken?: string;
+  tokenExpiresAt?: number;
+  metadata?: ConnectCommAccountRequestMetadata;
+}
+
+export interface CommAccountDisconnectReceipt {
+  id: string;
+  disconnected: boolean;
+}
+
+export interface CommAccountDisconnectResponse {
+  success: boolean;
+  data: CommAccountDisconnectReceipt;
+}
+
+export type EmailMessageDirection =
+  (typeof EmailMessageDirection)[keyof typeof EmailMessageDirection];
+
+export const EmailMessageDirection = {
+  inbound: "inbound",
+  outbound: "outbound",
+} as const;
+
+export type EmailMessageFolder =
+  (typeof EmailMessageFolder)[keyof typeof EmailMessageFolder];
+
+export const EmailMessageFolder = {
+  inbox: "inbox",
+  sent: "sent",
+  archived: "archived",
+  spam: "spam",
+  trash: "trash",
+} as const;
+
+export type EmailMessageStatus =
+  (typeof EmailMessageStatus)[keyof typeof EmailMessageStatus];
+
+export const EmailMessageStatus = {
+  unread: "unread",
+  read: "read",
+  replied: "replied",
+  archived: "archived",
+} as const;
+
+export interface EmailMessage {
+  id: string;
+  accountId: string;
+  providerMessageId?: string | null;
+  threadId?: string | null;
+  direction: EmailMessageDirection;
+  fromAddress: string;
+  toAddresses: string[];
+  subject: string;
+  snippet: string;
+  body: string;
+  folder: EmailMessageFolder;
+  status: EmailMessageStatus;
+  category?: string | null;
+  receivedAt: string;
+  createdAt: string;
+}
+
+export interface EmailMessageListPage {
+  items: EmailMessage[];
+  nextCursor: string | null;
+}
+
+export interface EmailMessageListResponse {
+  success: boolean;
+  data: EmailMessageListPage;
+}
+
+export interface EmailMessageResponse {
+  success: boolean;
+  data: EmailMessage;
+}
+
+export type IngestEmailMessageRequestDirection =
+  (typeof IngestEmailMessageRequestDirection)[keyof typeof IngestEmailMessageRequestDirection];
+
+export const IngestEmailMessageRequestDirection = {
+  inbound: "inbound",
+  outbound: "outbound",
+} as const;
+
+export type IngestEmailMessageRequestFolder =
+  (typeof IngestEmailMessageRequestFolder)[keyof typeof IngestEmailMessageRequestFolder];
+
+export const IngestEmailMessageRequestFolder = {
+  inbox: "inbox",
+  sent: "sent",
+  archived: "archived",
+  spam: "spam",
+  trash: "trash",
+} as const;
+
+export interface IngestEmailMessageRequest {
+  accountId: string;
+  providerMessageId?: string;
+  threadId?: string;
+  direction?: IngestEmailMessageRequestDirection;
+  fromAddress: string;
+  toAddresses: string[];
+  subject: string;
+  body: string;
+  snippet?: string;
+  folder?: IngestEmailMessageRequestFolder;
+  category?: string;
+  receivedAt?: number;
+}
+
+export type EmailStatusRequestStatus =
+  (typeof EmailStatusRequestStatus)[keyof typeof EmailStatusRequestStatus];
+
+export const EmailStatusRequestStatus = {
+  unread: "unread",
+  read: "read",
+  replied: "replied",
+  archived: "archived",
+} as const;
+
+export interface EmailStatusRequest {
+  status: EmailStatusRequestStatus;
+}
+
+export interface EmailCategoryRequest {
+  category: string;
+}
+
+export type EmailDraftDecision =
+  (typeof EmailDraftDecision)[keyof typeof EmailDraftDecision];
+
+export const EmailDraftDecision = {
+  pending: "pending",
+  approved: "approved",
+  denied: "denied",
+  sent: "sent",
+} as const;
+
+export interface EmailDraft {
+  id: string;
+  accountId: string;
+  replyToMessageId?: string | null;
+  sequenceId?: string | null;
+  enrolmentId?: string | null;
+  toAddresses: string[];
+  subject: string;
+  body: string;
+  decision: EmailDraftDecision;
+  decidedAt?: string | null;
+  sentAt?: string | null;
+  providerMessageId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailDraftListPage {
+  items: EmailDraft[];
+  nextCursor: string | null;
+}
+
+export interface EmailDraftListResponse {
+  success: boolean;
+  data: EmailDraftListPage;
+}
+
+export interface EmailDraftResponse {
+  success: boolean;
+  data: EmailDraft;
+}
+
+export interface CreateEmailDraftRequest {
+  accountId: string;
+  toAddresses: string[];
+  subject: string;
+  body: string;
+  replyToMessageId?: string;
+  sequenceId?: string;
+  enrolmentId?: string;
+}
+
+export type CalendarAttendeeResponse =
+  (typeof CalendarAttendeeResponse)[keyof typeof CalendarAttendeeResponse];
+
+export const CalendarAttendeeResponse = {
+  accepted: "accepted",
+  declined: "declined",
+  tentative: "tentative",
+  needs_action: "needs_action",
+} as const;
+
+export interface CalendarAttendee {
+  email: string;
+  name?: string;
+  response?: CalendarAttendeeResponse;
+}
+
+export type CalendarEventStatus =
+  (typeof CalendarEventStatus)[keyof typeof CalendarEventStatus];
+
+export const CalendarEventStatus = {
+  confirmed: "confirmed",
+  tentative: "tentative",
+  cancelled: "cancelled",
+} as const;
+
+export interface CalendarEvent {
+  id: string;
+  accountId: string;
+  providerEventId?: string | null;
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  attendees: CalendarAttendee[];
+  startsAt: string;
+  endsAt: string;
+  status: CalendarEventStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CalendarEventListPage {
+  items: CalendarEvent[];
+  nextCursor: string | null;
+}
+
+export interface CalendarEventListResponse {
+  success: boolean;
+  data: CalendarEventListPage;
+}
+
+export interface CalendarEventResponse {
+  success: boolean;
+  data: CalendarEvent;
+}
+
+export interface CreateCalendarEventRequest {
+  accountId: string;
+  title: string;
+  startsAt: number;
+  endsAt: number;
+  description?: string;
+  location?: string;
+  attendees?: CalendarAttendee[];
+}
+
+export type UpdateCalendarEventRequestStatus =
+  (typeof UpdateCalendarEventRequestStatus)[keyof typeof UpdateCalendarEventRequestStatus];
+
+export const UpdateCalendarEventRequestStatus = {
+  confirmed: "confirmed",
+  tentative: "tentative",
+  cancelled: "cancelled",
+} as const;
+
+export interface UpdateCalendarEventRequest {
+  title?: string;
+  description?: string | null;
+  location?: string | null;
+  attendees?: CalendarAttendee[];
+  startsAt?: number;
+  endsAt?: number;
+  status?: UpdateCalendarEventRequestStatus;
+}
+
+export interface CalendarEventDeleteReceipt {
+  id: string;
+  deleted: boolean;
+}
+
+export interface CalendarEventDeleteResponse {
+  success: boolean;
+  data: CalendarEventDeleteReceipt;
+}
+
+export interface CalendarFreeSlot {
+  startsAt: string;
+  endsAt: string;
+}
+
+export interface CalendarFreeSlotsResult {
+  slots: CalendarFreeSlot[];
+}
+
+export interface CalendarFreeSlotsResponse {
+  success: boolean;
+  data: CalendarFreeSlotsResult;
+}
+
+export type VoipCallDirection =
+  (typeof VoipCallDirection)[keyof typeof VoipCallDirection];
+
+export const VoipCallDirection = {
+  inbound: "inbound",
+  outbound: "outbound",
+} as const;
+
+export type VoipCallStatus =
+  (typeof VoipCallStatus)[keyof typeof VoipCallStatus];
+
+export const VoipCallStatus = {
+  queued: "queued",
+  ringing: "ringing",
+  in_progress: "in_progress",
+  completed: "completed",
+  failed: "failed",
+  no_answer: "no_answer",
+} as const;
+
+export interface VoipCall {
+  id: string;
+  accountId: string;
+  contactId?: string | null;
+  providerCallId?: string | null;
+  direction: VoipCallDirection;
+  fromNumber: string;
+  toNumber: string;
+  status: VoipCallStatus;
+  durationSeconds?: number | null;
+  transcript?: string | null;
+  summary?: string | null;
+  recordingPath?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VoipCallListPage {
+  items: VoipCall[];
+  nextCursor: string | null;
+}
+
+export interface VoipCallListResponse {
+  success: boolean;
+  data: VoipCallListPage;
+}
+
+export interface VoipCallResponse {
+  success: boolean;
+  data: VoipCall;
+}
+
+export interface PlaceVoipCallRequest {
+  accountId: string;
+  toNumber: string;
+  contactId?: string;
+}
+
+export type RecordVoipCallRequestDirection =
+  (typeof RecordVoipCallRequestDirection)[keyof typeof RecordVoipCallRequestDirection];
+
+export const RecordVoipCallRequestDirection = {
+  inbound: "inbound",
+  outbound: "outbound",
+} as const;
+
+export type RecordVoipCallRequestStatus =
+  (typeof RecordVoipCallRequestStatus)[keyof typeof RecordVoipCallRequestStatus];
+
+export const RecordVoipCallRequestStatus = {
+  queued: "queued",
+  ringing: "ringing",
+  in_progress: "in_progress",
+  completed: "completed",
+  failed: "failed",
+  no_answer: "no_answer",
+} as const;
+
+export interface RecordVoipCallRequest {
+  accountId: string;
+  direction: RecordVoipCallRequestDirection;
+  fromNumber: string;
+  toNumber: string;
+  status?: RecordVoipCallRequestStatus;
+  durationSeconds?: number;
+  startedAt?: number;
+  completedAt?: number;
+  recordingPath?: string;
+  transcript?: string;
+  summary?: string;
+  contactId?: string;
+}
+
+export type UpdateVoipCallStatusRequestStatus =
+  (typeof UpdateVoipCallStatusRequestStatus)[keyof typeof UpdateVoipCallStatusRequestStatus];
+
+export const UpdateVoipCallStatusRequestStatus = {
+  queued: "queued",
+  ringing: "ringing",
+  in_progress: "in_progress",
+  completed: "completed",
+  failed: "failed",
+  no_answer: "no_answer",
+} as const;
+
+export interface UpdateVoipCallStatusRequest {
+  status?: UpdateVoipCallStatusRequestStatus;
+  durationSeconds?: number;
+  completedAt?: number;
+  recordingPath?: string;
+}
+
+export interface VoipTranscribeRequest {
+  transcript: string;
+}
+
+export interface VoipSummariseRequest {
+  summary: string;
+}
+
+export interface OutreachStep {
+  subject: string;
+  body: string;
+  delayDays: number;
+}
+
+export type OutreachSequenceStatus =
+  (typeof OutreachSequenceStatus)[keyof typeof OutreachSequenceStatus];
+
+export const OutreachSequenceStatus = {
+  active: "active",
+  paused: "paused",
+  archived: "archived",
+} as const;
+
+export interface OutreachSequence {
+  id: string;
+  accountId: string;
+  name: string;
+  description?: string | null;
+  steps: OutreachStep[];
+  status: OutreachSequenceStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OutreachSequenceListPage {
+  items: OutreachSequence[];
+  nextCursor: string | null;
+}
+
+export interface OutreachSequenceListResponse {
+  success: boolean;
+  data: OutreachSequenceListPage;
+}
+
+export interface OutreachSequenceResponse {
+  success: boolean;
+  data: OutreachSequence;
+}
+
+export interface CreateOutreachSequenceRequest {
+  accountId: string;
+  name: string;
+  description?: string;
+  steps: OutreachStep[];
+}
+
+export type OutreachSequenceStatusRequestStatus =
+  (typeof OutreachSequenceStatusRequestStatus)[keyof typeof OutreachSequenceStatusRequestStatus];
+
+export const OutreachSequenceStatusRequestStatus = {
+  active: "active",
+  paused: "paused",
+  archived: "archived",
+} as const;
+
+export interface OutreachSequenceStatusRequest {
+  status: OutreachSequenceStatusRequestStatus;
+}
+
+export type OutreachEnrolmentStatus =
+  (typeof OutreachEnrolmentStatus)[keyof typeof OutreachEnrolmentStatus];
+
+export const OutreachEnrolmentStatus = {
+  active: "active",
+  completed: "completed",
+  replied: "replied",
+  paused: "paused",
+  stopped: "stopped",
+} as const;
+
+export interface OutreachEnrolment {
+  id: string;
+  sequenceId: string;
+  contactId: string;
+  status: OutreachEnrolmentStatus;
+  currentStep: number;
+  nextSendAt?: string | null;
+  lastSentAt?: string | null;
+  repliedAt?: string | null;
+  threadId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OutreachEnrolmentListPage {
+  items: OutreachEnrolment[];
+  nextCursor: string | null;
+}
+
+export interface OutreachEnrolmentListResponse {
+  success: boolean;
+  data: OutreachEnrolmentListPage;
+}
+
+export interface OutreachEnrolmentResponse {
+  success: boolean;
+  data: OutreachEnrolment;
+}
+
+export interface EnrolOutreachContactRequest {
+  sequenceId: string;
+  contactId: string;
+  startAt?: number;
+}
+
+export interface OutreachRunRequest {
+  now?: number;
+}
+
+export interface OutreachRunResult {
+  enrolmentsScanned: number;
+  stepsSent: number;
+  repliesDetected: number;
+  completed: number;
+}
+
+export interface OutreachRunResponse {
+  success: boolean;
+  data: OutreachRunResult;
+}
+
+export interface Contact {
+  id: string;
+  displayName: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+  notes?: string | null;
+  lastInteractionAt?: string | null;
+  followUpAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContactListPage {
+  items: Contact[];
+  nextCursor: string | null;
+}
+
+export interface ContactListResponse {
+  success: boolean;
+  data: ContactListPage;
+}
+
+export interface ContactResponse {
+  success: boolean;
+  data: Contact;
+}
+
+export interface CreateContactRequest {
+  displayName: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  notes?: string;
+  followUpAt?: number;
+}
+
+export interface UpdateContactRequest {
+  displayName?: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+  notes?: string | null;
+  followUpAt?: number | null;
+}
+
+export interface ContactDeleteReceipt {
+  id: string;
+  deleted: boolean;
+}
+
+export interface ContactDeleteResponse {
+  success: boolean;
+  data: ContactDeleteReceipt;
+}
+
+export type InteractionKind =
+  (typeof InteractionKind)[keyof typeof InteractionKind];
+
+export const InteractionKind = {
+  email_in: "email_in",
+  email_out: "email_out",
+  call_in: "call_in",
+  call_out: "call_out",
+  meeting: "meeting",
+} as const;
+
+export interface Interaction {
+  id: string;
+  contactId: string;
+  kind: InteractionKind;
+  referenceId?: string | null;
+  summary: string;
+  occurredAt: string;
+  createdAt: string;
+}
+
+export interface InteractionListPage {
+  items: Interaction[];
+  nextCursor: string | null;
+}
+
+export interface InteractionListResponse {
+  success: boolean;
+  data: InteractionListPage;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -1659,3 +2355,190 @@ export const ListMediaAssetsKind = {
   audio: "audio",
   video: "video",
 } as const;
+
+export type ListCommAccountsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListEmailMessagesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  accountId?: string;
+  folder?: ListEmailMessagesFolder;
+};
+
+export type ListEmailMessagesFolder =
+  (typeof ListEmailMessagesFolder)[keyof typeof ListEmailMessagesFolder];
+
+export const ListEmailMessagesFolder = {
+  inbox: "inbox",
+  sent: "sent",
+  archived: "archived",
+  spam: "spam",
+  trash: "trash",
+} as const;
+
+export type ListEmailDraftsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  decision?: ListEmailDraftsDecision;
+};
+
+export type ListEmailDraftsDecision =
+  (typeof ListEmailDraftsDecision)[keyof typeof ListEmailDraftsDecision];
+
+export const ListEmailDraftsDecision = {
+  pending: "pending",
+  approved: "approved",
+  denied: "denied",
+  sent: "sent",
+} as const;
+
+export type ListCalendarEventsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  accountId?: string;
+  from?: number;
+  to?: number;
+};
+
+export type FindCalendarFreeSlotsParams = {
+  from: number;
+  to: number;
+  durationMinutes: number;
+  workStartHour?: number;
+  workEndHour?: number;
+  maxResults?: number;
+  accountId?: string;
+};
+
+export type ListVoipCallsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  accountId?: string;
+  direction?: ListVoipCallsDirection;
+};
+
+export type ListVoipCallsDirection =
+  (typeof ListVoipCallsDirection)[keyof typeof ListVoipCallsDirection];
+
+export const ListVoipCallsDirection = {
+  inbound: "inbound",
+  outbound: "outbound",
+} as const;
+
+export type ListOutreachSequencesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  status?: ListOutreachSequencesStatus;
+};
+
+export type ListOutreachSequencesStatus =
+  (typeof ListOutreachSequencesStatus)[keyof typeof ListOutreachSequencesStatus];
+
+export const ListOutreachSequencesStatus = {
+  active: "active",
+  paused: "paused",
+  archived: "archived",
+} as const;
+
+export type ListOutreachEnrolmentsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  sequenceId?: string;
+  status?: ListOutreachEnrolmentsStatus;
+};
+
+export type ListOutreachEnrolmentsStatus =
+  (typeof ListOutreachEnrolmentsStatus)[keyof typeof ListOutreachEnrolmentsStatus];
+
+export const ListOutreachEnrolmentsStatus = {
+  active: "active",
+  completed: "completed",
+  replied: "replied",
+  paused: "paused",
+  stopped: "stopped",
+} as const;
+
+export type ListContactsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListContactInteractionsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};

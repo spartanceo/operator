@@ -489,9 +489,9 @@ check("ensureHistoryTable upgrades legacy single-column PK to composite", () => 
   // baseline still skipped.
   const result = runMigrations(sqlite);
   assert.equal(result.success, true);
-  const expectedApplied = SCHEMA_MIGRATIONS.slice(1).map((m) => m.id);
-  assert.deepEqual(result.applied, expectedApplied);
   assert.deepEqual(result.skipped, [baseline.id]);
+  const expectedApplied = SCHEMA_MIGRATIONS.slice(1).map((m) => m.id);
+  assert.deepEqual([...result.applied], expectedApplied);
   // After repair, both id and kind must be PK columns.
   const newPk = (
     sqlite.prepare(`PRAGMA table_info('schema_migrations')`).all() as Array<{

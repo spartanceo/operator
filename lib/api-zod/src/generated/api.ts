@@ -3158,3 +3158,1783 @@ export const GetMediaHardwareCapabilitiesResponse = zod.object({
     ),
   }),
 });
+
+/**
+ * @summary List connected communication accounts
+ */
+export const listCommAccountsQueryLimitDefault = 20;
+export const listCommAccountsQueryLimitMax = 100;
+
+export const ListCommAccountsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listCommAccountsQueryLimitMax)
+    .default(listCommAccountsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListCommAccountsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListCommAccountsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        provider: zod.enum([
+          "gmail",
+          "outlook",
+          "google_calendar",
+          "apple_calendar",
+          "twilio",
+        ]),
+        kind: zod.enum(["email", "calendar", "voip"]),
+        label: zod.string(),
+        status: zod.enum(["active", "disconnected", "error"]),
+        metadata: zod.record(zod.string(), zod.unknown()).nullish(),
+        tokenExpiresAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Connect a Gmail / Outlook / Calendar / Twilio account
+ */
+export const ConnectCommAccountHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ConnectCommAccountBody = zod.object({
+  provider: zod.enum([
+    "gmail",
+    "outlook",
+    "google_calendar",
+    "apple_calendar",
+    "twilio",
+  ]),
+  label: zod.string(),
+  accessToken: zod.string().optional(),
+  refreshToken: zod.string().optional(),
+  tokenExpiresAt: zod.number().optional(),
+  metadata: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+export const ConnectCommAccountResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    provider: zod.enum([
+      "gmail",
+      "outlook",
+      "google_calendar",
+      "apple_calendar",
+      "twilio",
+    ]),
+    kind: zod.enum(["email", "calendar", "voip"]),
+    label: zod.string(),
+    status: zod.enum(["active", "disconnected", "error"]),
+    metadata: zod.record(zod.string(), zod.unknown()).nullish(),
+    tokenExpiresAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch a connected account
+ */
+export const GetCommAccountParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetCommAccountHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetCommAccountResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    provider: zod.enum([
+      "gmail",
+      "outlook",
+      "google_calendar",
+      "apple_calendar",
+      "twilio",
+    ]),
+    kind: zod.enum(["email", "calendar", "voip"]),
+    label: zod.string(),
+    status: zod.enum(["active", "disconnected", "error"]),
+    metadata: zod.record(zod.string(), zod.unknown()).nullish(),
+    tokenExpiresAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Disconnect an account (clears tokens, marks disconnected)
+ */
+export const DisconnectCommAccountParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DisconnectCommAccountHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DisconnectCommAccountResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    disconnected: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary List mirrored email messages
+ */
+export const listEmailMessagesQueryLimitDefault = 20;
+export const listEmailMessagesQueryLimitMax = 100;
+
+export const ListEmailMessagesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listEmailMessagesQueryLimitMax)
+    .default(listEmailMessagesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  accountId: zod.coerce.string().optional(),
+  folder: zod.enum(["inbox", "sent", "archived", "spam", "trash"]).optional(),
+});
+
+export const ListEmailMessagesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListEmailMessagesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        accountId: zod.string(),
+        providerMessageId: zod.string().nullish(),
+        threadId: zod.string().nullish(),
+        direction: zod.enum(["inbound", "outbound"]),
+        fromAddress: zod.string(),
+        toAddresses: zod.array(zod.string()),
+        subject: zod.string(),
+        snippet: zod.string(),
+        body: zod.string(),
+        folder: zod.enum(["inbox", "sent", "archived", "spam", "trash"]),
+        status: zod.enum(["unread", "read", "replied", "archived"]),
+        category: zod.string().nullish(),
+        receivedAt: zod.coerce.date(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Mirror a message into the local store
+ */
+export const IngestEmailMessageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const IngestEmailMessageBody = zod.object({
+  accountId: zod.string(),
+  providerMessageId: zod.string().optional(),
+  threadId: zod.string().optional(),
+  direction: zod.enum(["inbound", "outbound"]).optional(),
+  fromAddress: zod.string(),
+  toAddresses: zod.array(zod.string()),
+  subject: zod.string(),
+  body: zod.string(),
+  snippet: zod.string().optional(),
+  folder: zod.enum(["inbox", "sent", "archived", "spam", "trash"]).optional(),
+  category: zod.string().optional(),
+  receivedAt: zod.number().optional(),
+});
+
+export const IngestEmailMessageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    providerMessageId: zod.string().nullish(),
+    threadId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromAddress: zod.string(),
+    toAddresses: zod.array(zod.string()),
+    subject: zod.string(),
+    snippet: zod.string(),
+    body: zod.string(),
+    folder: zod.enum(["inbox", "sent", "archived", "spam", "trash"]),
+    status: zod.enum(["unread", "read", "replied", "archived"]),
+    category: zod.string().nullish(),
+    receivedAt: zod.coerce.date(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one email message
+ */
+export const GetEmailMessageParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetEmailMessageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetEmailMessageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    providerMessageId: zod.string().nullish(),
+    threadId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromAddress: zod.string(),
+    toAddresses: zod.array(zod.string()),
+    subject: zod.string(),
+    snippet: zod.string(),
+    body: zod.string(),
+    folder: zod.enum(["inbox", "sent", "archived", "spam", "trash"]),
+    status: zod.enum(["unread", "read", "replied", "archived"]),
+    category: zod.string().nullish(),
+    receivedAt: zod.coerce.date(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Update read/replied/archived status
+ */
+export const SetEmailMessageStatusParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SetEmailMessageStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetEmailMessageStatusBody = zod.object({
+  status: zod.enum(["unread", "read", "replied", "archived"]),
+});
+
+export const SetEmailMessageStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    providerMessageId: zod.string().nullish(),
+    threadId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromAddress: zod.string(),
+    toAddresses: zod.array(zod.string()),
+    subject: zod.string(),
+    snippet: zod.string(),
+    body: zod.string(),
+    folder: zod.enum(["inbox", "sent", "archived", "spam", "trash"]),
+    status: zod.enum(["unread", "read", "replied", "archived"]),
+    category: zod.string().nullish(),
+    receivedAt: zod.coerce.date(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Set the AI-assigned category label
+ */
+export const SetEmailMessageCategoryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SetEmailMessageCategoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetEmailMessageCategoryBody = zod.object({
+  category: zod.string(),
+});
+
+export const SetEmailMessageCategoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    providerMessageId: zod.string().nullish(),
+    threadId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromAddress: zod.string(),
+    toAddresses: zod.array(zod.string()),
+    subject: zod.string(),
+    snippet: zod.string(),
+    body: zod.string(),
+    folder: zod.enum(["inbox", "sent", "archived", "spam", "trash"]),
+    status: zod.enum(["unread", "read", "replied", "archived"]),
+    category: zod.string().nullish(),
+    receivedAt: zod.coerce.date(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List outbound drafts (filterable by decision)
+ */
+export const listEmailDraftsQueryLimitDefault = 20;
+export const listEmailDraftsQueryLimitMax = 100;
+
+export const ListEmailDraftsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listEmailDraftsQueryLimitMax)
+    .default(listEmailDraftsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  decision: zod.enum(["pending", "approved", "denied", "sent"]).optional(),
+});
+
+export const ListEmailDraftsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListEmailDraftsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        accountId: zod.string(),
+        replyToMessageId: zod.string().nullish(),
+        sequenceId: zod.string().nullish(),
+        enrolmentId: zod.string().nullish(),
+        toAddresses: zod.array(zod.string()),
+        subject: zod.string(),
+        body: zod.string(),
+        decision: zod.enum(["pending", "approved", "denied", "sent"]),
+        decidedAt: zod.coerce.date().nullish(),
+        sentAt: zod.coerce.date().nullish(),
+        providerMessageId: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Compose a new outbound draft (pending approval)
+ */
+export const CreateEmailDraftHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateEmailDraftBody = zod.object({
+  accountId: zod.string(),
+  toAddresses: zod.array(zod.string()),
+  subject: zod.string(),
+  body: zod.string(),
+  replyToMessageId: zod.string().optional(),
+  sequenceId: zod.string().optional(),
+  enrolmentId: zod.string().optional(),
+});
+
+export const CreateEmailDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    replyToMessageId: zod.string().nullish(),
+    sequenceId: zod.string().nullish(),
+    enrolmentId: zod.string().nullish(),
+    toAddresses: zod.array(zod.string()),
+    subject: zod.string(),
+    body: zod.string(),
+    decision: zod.enum(["pending", "approved", "denied", "sent"]),
+    decidedAt: zod.coerce.date().nullish(),
+    sentAt: zod.coerce.date().nullish(),
+    providerMessageId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one draft
+ */
+export const GetEmailDraftParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetEmailDraftHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetEmailDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    replyToMessageId: zod.string().nullish(),
+    sequenceId: zod.string().nullish(),
+    enrolmentId: zod.string().nullish(),
+    toAddresses: zod.array(zod.string()),
+    subject: zod.string(),
+    body: zod.string(),
+    decision: zod.enum(["pending", "approved", "denied", "sent"]),
+    decidedAt: zod.coerce.date().nullish(),
+    sentAt: zod.coerce.date().nullish(),
+    providerMessageId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Send an approved draft (writes a privacy event)
+ */
+export const SendEmailDraftParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SendEmailDraftHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SendEmailDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    providerMessageId: zod.string().nullish(),
+    threadId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromAddress: zod.string(),
+    toAddresses: zod.array(zod.string()),
+    subject: zod.string(),
+    snippet: zod.string(),
+    body: zod.string(),
+    folder: zod.enum(["inbox", "sent", "archived", "spam", "trash"]),
+    status: zod.enum(["unread", "read", "replied", "archived"]),
+    category: zod.string().nullish(),
+    receivedAt: zod.coerce.date(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Mark a draft denied (approval flow)
+ */
+export const DenyEmailDraftParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DenyEmailDraftHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DenyEmailDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    replyToMessageId: zod.string().nullish(),
+    sequenceId: zod.string().nullish(),
+    enrolmentId: zod.string().nullish(),
+    toAddresses: zod.array(zod.string()),
+    subject: zod.string(),
+    body: zod.string(),
+    decision: zod.enum(["pending", "approved", "denied", "sent"]),
+    decidedAt: zod.coerce.date().nullish(),
+    sentAt: zod.coerce.date().nullish(),
+    providerMessageId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List calendar events (mirrored from Google / Apple)
+ */
+export const listCalendarEventsQueryLimitDefault = 20;
+export const listCalendarEventsQueryLimitMax = 100;
+
+export const ListCalendarEventsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listCalendarEventsQueryLimitMax)
+    .default(listCalendarEventsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  accountId: zod.coerce.string().optional(),
+  from: zod.coerce.number().optional(),
+  to: zod.coerce.number().optional(),
+});
+
+export const ListCalendarEventsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListCalendarEventsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        accountId: zod.string(),
+        providerEventId: zod.string().nullish(),
+        title: zod.string(),
+        description: zod.string().nullish(),
+        location: zod.string().nullish(),
+        attendees: zod.array(
+          zod.object({
+            email: zod.string(),
+            name: zod.string().optional(),
+            response: zod
+              .enum(["accepted", "declined", "tentative", "needs_action"])
+              .optional(),
+          }),
+        ),
+        startsAt: zod.coerce.date(),
+        endsAt: zod.coerce.date(),
+        status: zod.enum(["confirmed", "tentative", "cancelled"]),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a calendar event
+ */
+export const CreateCalendarEventHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateCalendarEventBody = zod.object({
+  accountId: zod.string(),
+  title: zod.string(),
+  startsAt: zod.number(),
+  endsAt: zod.number(),
+  description: zod.string().optional(),
+  location: zod.string().optional(),
+  attendees: zod
+    .array(
+      zod.object({
+        email: zod.string(),
+        name: zod.string().optional(),
+        response: zod
+          .enum(["accepted", "declined", "tentative", "needs_action"])
+          .optional(),
+      }),
+    )
+    .optional(),
+});
+
+export const CreateCalendarEventResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    providerEventId: zod.string().nullish(),
+    title: zod.string(),
+    description: zod.string().nullish(),
+    location: zod.string().nullish(),
+    attendees: zod.array(
+      zod.object({
+        email: zod.string(),
+        name: zod.string().optional(),
+        response: zod
+          .enum(["accepted", "declined", "tentative", "needs_action"])
+          .optional(),
+      }),
+    ),
+    startsAt: zod.coerce.date(),
+    endsAt: zod.coerce.date(),
+    status: zod.enum(["confirmed", "tentative", "cancelled"]),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one event
+ */
+export const GetCalendarEventParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetCalendarEventHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetCalendarEventResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    providerEventId: zod.string().nullish(),
+    title: zod.string(),
+    description: zod.string().nullish(),
+    location: zod.string().nullish(),
+    attendees: zod.array(
+      zod.object({
+        email: zod.string(),
+        name: zod.string().optional(),
+        response: zod
+          .enum(["accepted", "declined", "tentative", "needs_action"])
+          .optional(),
+      }),
+    ),
+    startsAt: zod.coerce.date(),
+    endsAt: zod.coerce.date(),
+    status: zod.enum(["confirmed", "tentative", "cancelled"]),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Update an event
+ */
+export const UpdateCalendarEventParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateCalendarEventHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateCalendarEventBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().nullish(),
+  location: zod.string().nullish(),
+  attendees: zod
+    .array(
+      zod.object({
+        email: zod.string(),
+        name: zod.string().optional(),
+        response: zod
+          .enum(["accepted", "declined", "tentative", "needs_action"])
+          .optional(),
+      }),
+    )
+    .optional(),
+  startsAt: zod.number().optional(),
+  endsAt: zod.number().optional(),
+  status: zod.enum(["confirmed", "tentative", "cancelled"]).optional(),
+});
+
+export const UpdateCalendarEventResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    providerEventId: zod.string().nullish(),
+    title: zod.string(),
+    description: zod.string().nullish(),
+    location: zod.string().nullish(),
+    attendees: zod.array(
+      zod.object({
+        email: zod.string(),
+        name: zod.string().optional(),
+        response: zod
+          .enum(["accepted", "declined", "tentative", "needs_action"])
+          .optional(),
+      }),
+    ),
+    startsAt: zod.coerce.date(),
+    endsAt: zod.coerce.date(),
+    status: zod.enum(["confirmed", "tentative", "cancelled"]),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Delete an event
+ */
+export const DeleteCalendarEventParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteCalendarEventHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteCalendarEventResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Find free time slots in a window
+ */
+export const FindCalendarFreeSlotsQueryParams = zod.object({
+  from: zod.coerce.number(),
+  to: zod.coerce.number(),
+  durationMinutes: zod.coerce.number(),
+  workStartHour: zod.coerce.number().optional(),
+  workEndHour: zod.coerce.number().optional(),
+  maxResults: zod.coerce.number().optional(),
+  accountId: zod.coerce.string().optional(),
+});
+
+export const FindCalendarFreeSlotsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const FindCalendarFreeSlotsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    slots: zod.array(
+      zod.object({
+        startsAt: zod.coerce.date(),
+        endsAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary List VoIP calls
+ */
+export const listVoipCallsQueryLimitDefault = 20;
+export const listVoipCallsQueryLimitMax = 100;
+
+export const ListVoipCallsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listVoipCallsQueryLimitMax)
+    .default(listVoipCallsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  accountId: zod.coerce.string().optional(),
+  direction: zod.enum(["inbound", "outbound"]).optional(),
+});
+
+export const ListVoipCallsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListVoipCallsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        accountId: zod.string(),
+        contactId: zod.string().nullish(),
+        providerCallId: zod.string().nullish(),
+        direction: zod.enum(["inbound", "outbound"]),
+        fromNumber: zod.string(),
+        toNumber: zod.string(),
+        status: zod.enum([
+          "queued",
+          "ringing",
+          "in_progress",
+          "completed",
+          "failed",
+          "no_answer",
+        ]),
+        durationSeconds: zod.number().nullish(),
+        transcript: zod.string().nullish(),
+        summary: zod.string().nullish(),
+        recordingPath: zod.string().nullish(),
+        startedAt: zod.coerce.date().nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Place an outbound call (Twilio stub)
+ */
+export const PlaceVoipCallHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PlaceVoipCallBody = zod.object({
+  accountId: zod.string(),
+  toNumber: zod.string(),
+  contactId: zod.string().optional(),
+});
+
+export const PlaceVoipCallResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    contactId: zod.string().nullish(),
+    providerCallId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromNumber: zod.string(),
+    toNumber: zod.string(),
+    status: zod.enum([
+      "queued",
+      "ringing",
+      "in_progress",
+      "completed",
+      "failed",
+      "no_answer",
+    ]),
+    durationSeconds: zod.number().nullish(),
+    transcript: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    recordingPath: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Record a completed call (webhook hook)
+ */
+export const RecordVoipCallHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RecordVoipCallBody = zod.object({
+  accountId: zod.string(),
+  direction: zod.enum(["inbound", "outbound"]),
+  fromNumber: zod.string(),
+  toNumber: zod.string(),
+  status: zod
+    .enum([
+      "queued",
+      "ringing",
+      "in_progress",
+      "completed",
+      "failed",
+      "no_answer",
+    ])
+    .optional(),
+  durationSeconds: zod.number().optional(),
+  startedAt: zod.number().optional(),
+  completedAt: zod.number().optional(),
+  recordingPath: zod.string().optional(),
+  transcript: zod.string().optional(),
+  summary: zod.string().optional(),
+  contactId: zod.string().optional(),
+});
+
+export const RecordVoipCallResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    contactId: zod.string().nullish(),
+    providerCallId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromNumber: zod.string(),
+    toNumber: zod.string(),
+    status: zod.enum([
+      "queued",
+      "ringing",
+      "in_progress",
+      "completed",
+      "failed",
+      "no_answer",
+    ]),
+    durationSeconds: zod.number().nullish(),
+    transcript: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    recordingPath: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one call
+ */
+export const GetVoipCallParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetVoipCallHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetVoipCallResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    contactId: zod.string().nullish(),
+    providerCallId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromNumber: zod.string(),
+    toNumber: zod.string(),
+    status: zod.enum([
+      "queued",
+      "ringing",
+      "in_progress",
+      "completed",
+      "failed",
+      "no_answer",
+    ]),
+    durationSeconds: zod.number().nullish(),
+    transcript: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    recordingPath: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Update call status (Twilio webhook)
+ */
+export const UpdateVoipCallStatusParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateVoipCallStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateVoipCallStatusBody = zod.object({
+  status: zod
+    .enum([
+      "queued",
+      "ringing",
+      "in_progress",
+      "completed",
+      "failed",
+      "no_answer",
+    ])
+    .optional(),
+  durationSeconds: zod.number().optional(),
+  completedAt: zod.number().optional(),
+  recordingPath: zod.string().optional(),
+});
+
+export const UpdateVoipCallStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    contactId: zod.string().nullish(),
+    providerCallId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromNumber: zod.string(),
+    toNumber: zod.string(),
+    status: zod.enum([
+      "queued",
+      "ringing",
+      "in_progress",
+      "completed",
+      "failed",
+      "no_answer",
+    ]),
+    durationSeconds: zod.number().nullish(),
+    transcript: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    recordingPath: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Attach a Whisper transcript to a call
+ */
+export const TranscribeVoipCallParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const TranscribeVoipCallHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const TranscribeVoipCallBody = zod.object({
+  transcript: zod.string(),
+});
+
+export const TranscribeVoipCallResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    contactId: zod.string().nullish(),
+    providerCallId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromNumber: zod.string(),
+    toNumber: zod.string(),
+    status: zod.enum([
+      "queued",
+      "ringing",
+      "in_progress",
+      "completed",
+      "failed",
+      "no_answer",
+    ]),
+    durationSeconds: zod.number().nullish(),
+    transcript: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    recordingPath: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Attach a post-call summary to a call
+ */
+export const SummariseVoipCallParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SummariseVoipCallHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SummariseVoipCallBody = zod.object({
+  summary: zod.string(),
+});
+
+export const SummariseVoipCallResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    contactId: zod.string().nullish(),
+    providerCallId: zod.string().nullish(),
+    direction: zod.enum(["inbound", "outbound"]),
+    fromNumber: zod.string(),
+    toNumber: zod.string(),
+    status: zod.enum([
+      "queued",
+      "ringing",
+      "in_progress",
+      "completed",
+      "failed",
+      "no_answer",
+    ]),
+    durationSeconds: zod.number().nullish(),
+    transcript: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    recordingPath: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List outreach sequences
+ */
+export const listOutreachSequencesQueryLimitDefault = 20;
+export const listOutreachSequencesQueryLimitMax = 100;
+
+export const ListOutreachSequencesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listOutreachSequencesQueryLimitMax)
+    .default(listOutreachSequencesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  status: zod.enum(["active", "paused", "archived"]).optional(),
+});
+
+export const ListOutreachSequencesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListOutreachSequencesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        accountId: zod.string(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        steps: zod.array(
+          zod.object({
+            subject: zod.string(),
+            body: zod.string(),
+            delayDays: zod.number(),
+          }),
+        ),
+        status: zod.enum(["active", "paused", "archived"]),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a multi-step outreach sequence
+ */
+export const CreateOutreachSequenceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateOutreachSequenceBody = zod.object({
+  accountId: zod.string(),
+  name: zod.string(),
+  description: zod.string().optional(),
+  steps: zod.array(
+    zod.object({
+      subject: zod.string(),
+      body: zod.string(),
+      delayDays: zod.number(),
+    }),
+  ),
+});
+
+export const CreateOutreachSequenceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    steps: zod.array(
+      zod.object({
+        subject: zod.string(),
+        body: zod.string(),
+        delayDays: zod.number(),
+      }),
+    ),
+    status: zod.enum(["active", "paused", "archived"]),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one sequence
+ */
+export const GetOutreachSequenceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetOutreachSequenceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetOutreachSequenceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    steps: zod.array(
+      zod.object({
+        subject: zod.string(),
+        body: zod.string(),
+        delayDays: zod.number(),
+      }),
+    ),
+    status: zod.enum(["active", "paused", "archived"]),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Pause / resume / archive a sequence
+ */
+export const SetOutreachSequenceStatusParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SetOutreachSequenceStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetOutreachSequenceStatusBody = zod.object({
+  status: zod.enum(["active", "paused", "archived"]),
+});
+
+export const SetOutreachSequenceStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    accountId: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    steps: zod.array(
+      zod.object({
+        subject: zod.string(),
+        body: zod.string(),
+        delayDays: zod.number(),
+      }),
+    ),
+    status: zod.enum(["active", "paused", "archived"]),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List enrolments
+ */
+export const listOutreachEnrolmentsQueryLimitDefault = 20;
+export const listOutreachEnrolmentsQueryLimitMax = 100;
+
+export const ListOutreachEnrolmentsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listOutreachEnrolmentsQueryLimitMax)
+    .default(listOutreachEnrolmentsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  sequenceId: zod.coerce.string().optional(),
+  status: zod
+    .enum(["active", "completed", "replied", "paused", "stopped"])
+    .optional(),
+});
+
+export const ListOutreachEnrolmentsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListOutreachEnrolmentsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        sequenceId: zod.string(),
+        contactId: zod.string(),
+        status: zod.enum([
+          "active",
+          "completed",
+          "replied",
+          "paused",
+          "stopped",
+        ]),
+        currentStep: zod.number(),
+        nextSendAt: zod.coerce.date().nullish(),
+        lastSentAt: zod.coerce.date().nullish(),
+        repliedAt: zod.coerce.date().nullish(),
+        threadId: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Enrol a contact in a sequence
+ */
+export const EnrolOutreachContactHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const EnrolOutreachContactBody = zod.object({
+  sequenceId: zod.string(),
+  contactId: zod.string(),
+  startAt: zod.number().optional(),
+});
+
+export const EnrolOutreachContactResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    sequenceId: zod.string(),
+    contactId: zod.string(),
+    status: zod.enum(["active", "completed", "replied", "paused", "stopped"]),
+    currentStep: zod.number(),
+    nextSendAt: zod.coerce.date().nullish(),
+    lastSentAt: zod.coerce.date().nullish(),
+    repliedAt: zod.coerce.date().nullish(),
+    threadId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one enrolment
+ */
+export const GetOutreachEnrolmentParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetOutreachEnrolmentHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetOutreachEnrolmentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    sequenceId: zod.string(),
+    contactId: zod.string(),
+    status: zod.enum(["active", "completed", "replied", "paused", "stopped"]),
+    currentStep: zod.number(),
+    nextSendAt: zod.coerce.date().nullish(),
+    lastSentAt: zod.coerce.date().nullish(),
+    repliedAt: zod.coerce.date().nullish(),
+    threadId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Process every active enrolment whose nextSendAt has passed
+ */
+export const RunOutreachStepsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RunOutreachStepsBody = zod.object({
+  now: zod.number().optional(),
+});
+
+export const RunOutreachStepsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    enrolmentsScanned: zod.number(),
+    stepsSent: zod.number(),
+    repliesDetected: zod.number(),
+    completed: zod.number(),
+  }),
+});
+
+/**
+ * @summary List CRM contacts
+ */
+export const listContactsQueryLimitDefault = 20;
+export const listContactsQueryLimitMax = 100;
+
+export const ListContactsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listContactsQueryLimitMax)
+    .default(listContactsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListContactsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListContactsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        displayName: zod.string(),
+        email: zod.string().nullish(),
+        phone: zod.string().nullish(),
+        company: zod.string().nullish(),
+        notes: zod.string().nullish(),
+        lastInteractionAt: zod.coerce.date().nullish(),
+        followUpAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a contact
+ */
+export const CreateContactHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateContactBody = zod.object({
+  displayName: zod.string(),
+  email: zod.string().optional(),
+  phone: zod.string().optional(),
+  company: zod.string().optional(),
+  notes: zod.string().optional(),
+  followUpAt: zod.number().optional(),
+});
+
+export const CreateContactResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    displayName: zod.string(),
+    email: zod.string().nullish(),
+    phone: zod.string().nullish(),
+    company: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    lastInteractionAt: zod.coerce.date().nullish(),
+    followUpAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one contact
+ */
+export const GetContactParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetContactHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetContactResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    displayName: zod.string(),
+    email: zod.string().nullish(),
+    phone: zod.string().nullish(),
+    company: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    lastInteractionAt: zod.coerce.date().nullish(),
+    followUpAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Update a contact
+ */
+export const UpdateContactParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateContactHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateContactBody = zod.object({
+  displayName: zod.string().optional(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  company: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  followUpAt: zod.number().nullish(),
+});
+
+export const UpdateContactResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    displayName: zod.string(),
+    email: zod.string().nullish(),
+    phone: zod.string().nullish(),
+    company: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    lastInteractionAt: zod.coerce.date().nullish(),
+    followUpAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Delete a contact
+ */
+export const DeleteContactParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteContactHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteContactResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary List interactions for one contact
+ */
+export const ListContactInteractionsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listContactInteractionsQueryLimitDefault = 20;
+export const listContactInteractionsQueryLimitMax = 100;
+
+export const ListContactInteractionsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listContactInteractionsQueryLimitMax)
+    .default(listContactInteractionsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListContactInteractionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListContactInteractionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        contactId: zod.string(),
+        kind: zod.enum([
+          "email_in",
+          "email_out",
+          "call_in",
+          "call_out",
+          "meeting",
+        ]),
+        referenceId: zod.string().nullish(),
+        summary: zod.string(),
+        occurredAt: zod.coerce.date(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});

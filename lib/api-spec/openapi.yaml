@@ -1,6 +1,5 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: |
@@ -49,12 +48,14 @@ tags:
     description: Personal knowledge base / second brain (collections, documents, semantic search, RAG)
   - name: media
     description: Local media generation (image / audio / video) — Tier 1 deterministic stubs
-
+  - name: comm
+    description: Connected accounts, email, calendar, VoIP, contacts, outreach
 paths:
   /healthz:
     get:
       operationId: healthCheckLegacy
-      tags: [health]
+      tags:
+        - health
       summary: Legacy health probe (kept for back-compat)
       responses:
         "200":
@@ -63,11 +64,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthCheckResponse"
-
   /health:
     get:
       operationId: healthCheck
-      tags: [health]
+      tags:
+        - health
       summary: Health probe
       description: |
         Returns server health status. Always responds 200; payload reports
@@ -80,11 +81,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthCheckResponse"
-
   /admin/tenant-data:
     get:
       operationId: exportTenantData
-      tags: [admin]
+      tags:
+        - admin
       summary: Export the requesting tenant's data (GDPR portability)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -103,7 +104,8 @@ paths:
                 $ref: "#/components/schemas/ApiErrorResponse"
     delete:
       operationId: eraseTenantData
-      tags: [admin]
+      tags:
+        - admin
       summary: Erase the requesting tenant's data (GDPR erasure)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -120,11 +122,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /auth/register:
     post:
       operationId: registerUser
-      tags: [auth]
+      tags:
+        - auth
       summary: Bootstrap a new tenant + owner user
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -141,11 +143,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthSessionResponse"
-
   /auth/login:
     post:
       operationId: loginUser
-      tags: [auth]
+      tags:
+        - auth
       summary: Sign in with email + password
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -168,11 +170,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /auth/logout:
     post:
       operationId: logoutUser
-      tags: [auth]
+      tags:
+        - auth
       summary: Destroy the current session
       responses:
         "200":
@@ -181,11 +183,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthLogoutResponse"
-
   /auth/me:
     get:
       operationId: getCurrentUser
-      tags: [auth]
+      tags:
+        - auth
       summary: Return the signed-in user (singleton)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -202,11 +204,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /models:
     get:
       operationId: listModels
-      tags: [models]
+      tags:
+        - models
       summary: List Ollama models known to this installation
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -219,11 +221,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ModelListResponse"
-
   /models/pull:
     post:
       operationId: pullModel
-      tags: [models]
+      tags:
+        - models
       summary: Schedule download of a named model
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -240,11 +242,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ModelPullResponse"
-
   /models/{name}:
     get:
       operationId: getModel
-      tags: [models]
+      tags:
+        - models
       summary: Fetch one model's status (singleton)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -266,11 +268,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /chat:
     post:
       operationId: chat
-      tags: [chat]
+      tags:
+        - chat
       summary: Single-turn chat completion via the local Ollama model
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -287,11 +289,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ChatResponse"
-
   /agent/runs:
     get:
       operationId: listAgentRuns
-      tags: [agent]
+      tags:
+        - agent
       summary: List recent agent runs in this workspace
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -306,7 +308,8 @@ paths:
                 $ref: "#/components/schemas/AgentRunListResponse"
     post:
       operationId: createAgentRun
-      tags: [agent]
+      tags:
+        - agent
       summary: Kick off a new deterministic agent run
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -323,11 +326,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AgentRunResponse"
-
   /agent/runs/{id}:
     get:
       operationId: getAgentRun
-      tags: [agent]
+      tags:
+        - agent
       summary: Fetch one agent run by id
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -349,11 +352,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /agent/runs/{id}/cancel:
     post:
       operationId: cancelAgentRun
-      tags: [agent]
+      tags:
+        - agent
       summary: Cancel a running agent
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -369,11 +372,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AgentRunResponse"
-
   /agent/runs/{id}/messages:
     get:
       operationId: listAgentRunMessages
-      tags: [agent]
+      tags:
+        - agent
       summary: Conversation messages for one run
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -391,11 +394,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageListResponse"
-
   /agent/runs/{id}/tool-calls:
     get:
       operationId: listAgentRunToolCalls
-      tags: [agent]
+      tags:
+        - agent
       summary: Tool calls executed inside one run
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -413,11 +416,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ToolCallListResponse"
-
   /agent/runs/{id}/approvals:
     get:
       operationId: listAgentRunApprovals
-      tags: [agent]
+      tags:
+        - agent
       summary: Approval gates for one run
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -435,11 +438,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApprovalListResponse"
-
   /agent/approvals/{id}/decide:
     post:
       operationId: decideApproval
-      tags: [agent]
+      tags:
+        - agent
       summary: Approve or deny a pending approval gate
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -461,11 +464,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApprovalResponse"
-
   /tools:
     get:
       operationId: listTools
-      tags: [tools]
+      tags:
+        - tools
       summary: List installed tools
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -478,11 +481,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ToolListResponse"
-
   /tools/{name}/invoke:
     post:
       operationId: invokeTool
-      tags: [tools]
+      tags:
+        - tools
       summary: Directly invoke a tool (outside an agent run)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -504,11 +507,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ToolInvokeResponse"
-
   /privacy/events:
     get:
       operationId: listPrivacyEvents
-      tags: [privacy]
+      tags:
+        - privacy
       summary: Browse the privacy-event audit log
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -523,7 +526,8 @@ paths:
                 $ref: "#/components/schemas/PrivacyEventListResponse"
     post:
       operationId: createPrivacyEvent
-      tags: [privacy]
+      tags:
+        - privacy
       summary: Manually log a privacy event
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -540,11 +544,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PrivacyEventResponse"
-
   /memory:
     get:
       operationId: listMemories
-      tags: [memory]
+      tags:
+        - memory
       summary: List long-lived user memories
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -559,7 +563,8 @@ paths:
                 $ref: "#/components/schemas/MemoryListResponse"
     post:
       operationId: createMemory
-      tags: [memory]
+      tags:
+        - memory
       summary: Create a memory entry
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -576,11 +581,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MemoryResponse"
-
   /memory/{id}:
     get:
       operationId: getMemory
-      tags: [memory]
+      tags:
+        - memory
       summary: Fetch one memory (singleton)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -604,7 +609,8 @@ paths:
                 $ref: "#/components/schemas/ApiErrorResponse"
     delete:
       operationId: deleteMemory
-      tags: [memory]
+      tags:
+        - memory
       summary: Delete a memory entry
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -620,11 +626,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MemoryDeleteResponse"
-
   /files/list:
     get:
       operationId: listFiles
-      tags: [files]
+      tags:
+        - files
       summary: List entries inside the workspace sandbox
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -642,11 +648,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileListResponse"
-
   /files/read:
     post:
       operationId: readFile
-      tags: [files]
+      tags:
+        - files
       summary: Read a sandboxed file
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -663,11 +669,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileReadResponse"
-
   /files/write:
     post:
       operationId: writeFile
-      tags: [files]
+      tags:
+        - files
       summary: Write a sandboxed file
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -684,11 +690,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileWriteResponse"
-
   /files/delete:
     post:
       operationId: deleteFile
-      tags: [files]
+      tags:
+        - files
       summary: Delete a sandboxed file
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -705,11 +711,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileDeleteResponse"
-
   /models/hardware:
     get:
       operationId: getModelsHardware
-      tags: [models]
+      tags:
+        - models
       summary: Detected host hardware + min-spec verdict
       description: |
         Returns the cached hardware probe alongside the recommendation
@@ -724,11 +730,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ModelHardwareResponse"
-
   /models/hardware/redetect:
     post:
       operationId: redetectHardware
-      tags: [models]
+      tags:
+        - models
       summary: Force re-detection of host hardware (clears the cache)
       description: |
         Drops the in-memory + on-disk hardware snapshot and re-runs detection.
@@ -751,11 +757,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /models/catalogue:
     get:
       operationId: getModelsCatalogue
-      tags: [models]
+      tags:
+        - models
       summary: Full catalogue of primary + vision models known to the runtime
       description: |
         Static, data-driven list backing the onboarding chooser and the
@@ -770,11 +776,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ModelCatalogueResponse"
-
   /models/recommended:
     get:
       operationId: getModelsRecommended
-      tags: [models]
+      tags:
+        - models
       summary: Recommendation plan + persisted user preferences
       description: |
         Hardware-aware recommendation: detected host, install plan (primary
@@ -790,11 +796,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ModelRecommendationResponse"
-
   /models/select:
     post:
       operationId: selectModel
-      tags: [models]
+      tags:
+        - models
       summary: Persist the user's primary model + optional vision lifecycle
       description: |
         Idempotent upsert of the per-tenant `model_preferences` row. The
@@ -822,11 +828,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /models/install:
     post:
       operationId: installModels
-      tags: [models]
+      tags:
+        - models
       summary: Kick off the bundled primary + vision install
       description: |
         Starts (or resumes) an install for the chosen primary model plus
@@ -857,11 +863,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /models/install/status:
     get:
       operationId: getModelsInstallStatus
-      tags: [models]
+      tags:
+        - models
       summary: Per-tenant install state for polling
       description: |
         Returns the current install state for the requesting tenant.
@@ -877,11 +883,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ModelInstallStateResponse"
-
   /onboarding/profile:
     get:
       operationId: getOnboardingProfile
-      tags: [onboarding]
+      tags:
+        - onboarding
       summary: Fetch the tenant's onboarding profile (singleton)
       description: |
         Returns the persisted setup-wizard answers, completion flags, and
@@ -899,7 +905,8 @@ paths:
                 $ref: "#/components/schemas/OnboardingProfileResponse"
     put:
       operationId: upsertOnboardingProfile
-      tags: [onboarding]
+      tags:
+        - onboarding
       summary: Create or update the wizard answers for the requesting tenant
       description: |
         Idempotent upsert keyed on tenant. Wizard step transitions PATCH a
@@ -926,11 +933,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /onboarding/hardware:
     get:
       operationId: getOnboardingHardware
-      tags: [onboarding]
+      tags:
+        - onboarding
       summary: Detect host hardware and recommend a model
       description: |
         Probes the host's RAM, CPU architecture, OS, core count, and
@@ -946,11 +953,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OnboardingHardwareResponse"
-
   /onboarding/starter-tasks:
     get:
       operationId: getOnboardingStarterTasks
-      tags: [onboarding]
+      tags:
+        - onboarding
       summary: Personalised starter-task chips for the chat surface
       description: |
         Returns three suggested first tasks tailored to the use case the
@@ -965,11 +972,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OnboardingStarterTaskResponse"
-
   /updates/check:
     get:
       operationId: checkForUpdates
-      tags: [updates]
+      tags:
+        - updates
       summary: Compare the running build to the published latest version
       description: |
         Local-first: the desktop shell calls this on launch and the chat
@@ -986,11 +993,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UpdateCheckResponse"
-
   /browser/screenshot:
     post:
       operationId: browserScreenshot
-      tags: [browser]
+      tags:
+        - browser
       summary: Capture a screenshot via the local browser tool (Tier 1 stub)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1007,11 +1014,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BrowserActionResponse"
-
   /browser/extract:
     post:
       operationId: browserExtract
-      tags: [browser]
+      tags:
+        - browser
       summary: Extract structured content from a page (Tier 1 stub)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1028,11 +1035,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BrowserActionResponse"
-
   /desktop/feature:
     get:
       operationId: getDesktopFeature
-      tags: [desktop]
+      tags:
+        - desktop
       summary: Report whether desktop control is enabled in this environment
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1043,11 +1050,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DesktopFeatureResponse"
-
   /desktop/sessions:
     get:
       operationId: listDesktopSessions
-      tags: [desktop]
+      tags:
+        - desktop
       summary: List recent desktop control sessions
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1062,7 +1069,8 @@ paths:
                 $ref: "#/components/schemas/DesktopSessionListResponse"
     post:
       operationId: createDesktopSession
-      tags: [desktop]
+      tags:
+        - desktop
       summary: Plan and execute a new desktop control session
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1085,11 +1093,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /desktop/sessions/{id}:
     get:
       operationId: getDesktopSession
-      tags: [desktop]
+      tags:
+        - desktop
       summary: Fetch one desktop session by id
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1111,11 +1119,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /desktop/sessions/{id}/stop:
     post:
       operationId: stopDesktopSession
-      tags: [desktop]
+      tags:
+        - desktop
       summary: Halt a running desktop session immediately
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1137,11 +1145,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /desktop/sessions/{id}/steps:
     get:
       operationId: listDesktopSessionSteps
-      tags: [desktop]
+      tags:
+        - desktop
       summary: Steps inside one desktop session (LAV cycle audit)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1159,11 +1167,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DesktopStepListResponse"
-
   /desktop/sessions/{id}/screen:
     get:
       operationId: getDesktopSessionScreen
-      tags: [desktop]
+      tags:
+        - desktop
       summary: Latest screen frame for the live panel
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1185,11 +1193,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /desktop/steps/{id}/execute:
     post:
       operationId: executeDesktopStep
-      tags: [desktop]
+      tags:
+        - desktop
       summary: Run an approved or pending desktop step (LAV cycle for one action)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1211,11 +1219,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
-
   /knowledge/collections:
     get:
       operationId: listKnowledgeCollections
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: List knowledge-base collections
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1230,7 +1238,8 @@ paths:
                 $ref: "#/components/schemas/KnowledgeCollectionListResponse"
     post:
       operationId: createKnowledgeCollection
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: Create a new collection
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1247,11 +1256,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeCollectionResponse"
-
   /knowledge/collections/{id}:
     delete:
       operationId: deleteKnowledgeCollection
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: Delete a collection (its documents are unlinked, not erased)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1267,11 +1276,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeDeleteResponse"
-
   /knowledge/documents:
     get:
       operationId: listKnowledgeDocuments
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: List ingested documents
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1289,11 +1298,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeDocumentListResponse"
-
   /knowledge/documents/ingest:
     post:
       operationId: ingestKnowledgeDocument
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: Ingest text, paste, URL, or YouTube content into the knowledge base
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1316,11 +1325,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/IngestKnowledgeDocumentResponse"
-
   /knowledge/documents/{id}:
     get:
       operationId: getKnowledgeDocument
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: Fetch one document with its body and chunk metadata
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1344,7 +1353,8 @@ paths:
                 $ref: "#/components/schemas/ApiErrorResponse"
     delete:
       operationId: deleteKnowledgeDocument
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: Delete a document and all its chunks
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1360,11 +1370,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeDeleteResponse"
-
   /knowledge/search:
     post:
       operationId: searchKnowledge
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: Hybrid semantic + full-text search across the knowledge base
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1381,11 +1391,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeSearchResponse"
-
   /knowledge/stats:
     get:
       operationId: getKnowledgeStats
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: Aggregate counts and sizes across the knowledge base
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1396,11 +1406,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeStatsResponse"
-
   /knowledge/export:
     get:
       operationId: exportKnowledge
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: Export the entire knowledge base (collections + documents) as JSON
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1411,11 +1421,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeExportResponse"
-
   /knowledge/import:
     post:
       operationId: importKnowledge
-      tags: [knowledge]
+      tags:
+        - knowledge
       summary: Import a knowledge-base snapshot produced by /knowledge/export
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1432,12 +1442,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeImportResponse"
-
-
   /media/assets:
     get:
       operationId: listMediaAssets
-      tags: [media]
+      tags:
+        - media
       summary: List media assets in the workspace library
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1448,7 +1457,10 @@ paths:
           description: Filter by asset kind
           schema:
             type: string
-            enum: [image, audio, video]
+            enum:
+              - image
+              - audio
+              - video
       responses:
         "200":
           description: Page of assets
@@ -1456,11 +1468,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaAssetListResponse"
-
   /media/assets/{id}:
     get:
       operationId: getMediaAsset
-      tags: [media]
+      tags:
+        - media
       summary: Fetch one media asset by id
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1478,7 +1490,8 @@ paths:
                 $ref: "#/components/schemas/MediaAssetResponse"
     delete:
       operationId: deleteMediaAsset
-      tags: [media]
+      tags:
+        - media
       summary: Delete a media asset (file + database row)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1494,11 +1507,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaAssetDeleteResponse"
-
   /media/assets/{id}/file:
     get:
       operationId: getMediaAssetFile
-      tags: [media]
+      tags:
+        - media
       summary: Stream the binary bytes of a media asset
       description: |
         Returns the raw file with its native `Content-Type`. Used by the UI
@@ -1519,11 +1532,11 @@ paths:
               schema:
                 type: string
                 format: binary
-
   /media/images/generate:
     post:
       operationId: generateImage
-      tags: [media]
+      tags:
+        - media
       summary: Generate an image from a text prompt (local stub)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1540,11 +1553,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaAssetResponse"
-
   /media/audio/generate:
     post:
       operationId: generateAudio
-      tags: [media]
+      tags:
+        - media
       summary: Generate audio (music or text-to-speech) from a prompt (local stub)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1561,11 +1574,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaAssetResponse"
-
   /media/video/generate:
     post:
       operationId: generateVideo
-      tags: [media]
+      tags:
+        - media
       summary: Generate a short animated video from a prompt (local stub)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1582,11 +1595,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaAssetResponse"
-
   /media/images/{id}/upscale:
     post:
       operationId: upscaleImage
-      tags: [media]
+      tags:
+        - media
       summary: Upscale an existing image asset (local stub)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1608,11 +1621,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaAssetResponse"
-
   /media/images/{id}/remove-background:
     post:
       operationId: removeImageBackground
-      tags: [media]
+      tags:
+        - media
       summary: Remove the background from an image asset (local stub)
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1628,11 +1641,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaAssetResponse"
-
   /media/hardware:
     get:
       operationId: getMediaHardwareCapabilities
-      tags: [media]
+      tags:
+        - media
       summary: Probe local hardware and recommend model tier
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
@@ -1643,8 +1656,1006 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HardwareCapabilitiesResponse"
-
-
+  /comm/accounts:
+    get:
+      operationId: listCommAccounts
+      tags:
+        - comm
+      summary: List connected communication accounts
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Accounts page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommAccountListResponse"
+    post:
+      operationId: connectCommAccount
+      tags:
+        - comm
+      summary: Connect a Gmail / Outlook / Calendar / Twilio account
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectCommAccountRequest"
+      responses:
+        "200":
+          description: Account connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommAccountResponse"
+  /comm/accounts/{id}:
+    get:
+      operationId: getCommAccount
+      tags:
+        - comm
+      summary: Fetch a connected account
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommAccountResponse"
+        "404":
+          description: Unknown account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: disconnectCommAccount
+      tags:
+        - comm
+      summary: Disconnect an account (clears tokens, marks disconnected)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Disconnect receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommAccountDisconnectResponse"
+  /comm/email/messages:
+    get:
+      operationId: listEmailMessages
+      tags:
+        - comm
+      summary: List mirrored email messages
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: accountId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: folder
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - inbox
+              - sent
+              - archived
+              - spam
+              - trash
+      responses:
+        "200":
+          description: Messages page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailMessageListResponse"
+    post:
+      operationId: ingestEmailMessage
+      tags:
+        - comm
+      summary: Mirror a message into the local store
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestEmailMessageRequest"
+      responses:
+        "200":
+          description: Message ingested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailMessageResponse"
+  /comm/email/messages/{id}:
+    get:
+      operationId: getEmailMessage
+      tags:
+        - comm
+      summary: Fetch one email message
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailMessageResponse"
+        "404":
+          description: Unknown message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /comm/email/messages/{id}/status:
+    post:
+      operationId: setEmailMessageStatus
+      tags:
+        - comm
+      summary: Update read/replied/archived status
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailStatusRequest"
+      responses:
+        "200":
+          description: Updated message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailMessageResponse"
+  /comm/email/messages/{id}/category:
+    post:
+      operationId: setEmailMessageCategory
+      tags:
+        - comm
+      summary: Set the AI-assigned category label
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailCategoryRequest"
+      responses:
+        "200":
+          description: Updated message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailMessageResponse"
+  /comm/email/drafts:
+    get:
+      operationId: listEmailDrafts
+      tags:
+        - comm
+      summary: List outbound drafts (filterable by decision)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: decision
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - pending
+              - approved
+              - denied
+              - sent
+      responses:
+        "200":
+          description: Drafts page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailDraftListResponse"
+    post:
+      operationId: createEmailDraft
+      tags:
+        - comm
+      summary: Compose a new outbound draft (pending approval)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEmailDraftRequest"
+      responses:
+        "200":
+          description: Draft created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailDraftResponse"
+  /comm/email/drafts/{id}:
+    get:
+      operationId: getEmailDraft
+      tags:
+        - comm
+      summary: Fetch one draft
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailDraftResponse"
+        "404":
+          description: Unknown draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /comm/email/drafts/{id}/send:
+    post:
+      operationId: sendEmailDraft
+      tags:
+        - comm
+      summary: Send an approved draft (writes a privacy event)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sent message row
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailMessageResponse"
+  /comm/email/drafts/{id}/deny:
+    post:
+      operationId: denyEmailDraft
+      tags:
+        - comm
+      summary: Mark a draft denied (approval flow)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailDraftResponse"
+  /comm/calendar/events:
+    get:
+      operationId: listCalendarEvents
+      tags:
+        - comm
+      summary: List calendar events (mirrored from Google / Apple)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: accountId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Events page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarEventListResponse"
+    post:
+      operationId: createCalendarEvent
+      tags:
+        - comm
+      summary: Create a calendar event
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCalendarEventRequest"
+      responses:
+        "200":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarEventResponse"
+  /comm/calendar/events/{id}:
+    get:
+      operationId: getCalendarEvent
+      tags:
+        - comm
+      summary: Fetch one event
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarEventResponse"
+        "404":
+          description: Unknown event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    patch:
+      operationId: updateCalendarEvent
+      tags:
+        - comm
+      summary: Update an event
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCalendarEventRequest"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarEventResponse"
+    delete:
+      operationId: deleteCalendarEvent
+      tags:
+        - comm
+      summary: Delete an event
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Delete receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarEventDeleteResponse"
+  /comm/calendar/free-slots:
+    get:
+      operationId: findCalendarFreeSlots
+      tags:
+        - comm
+      summary: Find free time slots in a window
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: durationMinutes
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: workStartHour
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: workEndHour
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: maxResults
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: accountId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Free-slot list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarFreeSlotsResponse"
+  /comm/voip/calls:
+    get:
+      operationId: listVoipCalls
+      tags:
+        - comm
+      summary: List VoIP calls
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: accountId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: direction
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - inbound
+              - outbound
+      responses:
+        "200":
+          description: Calls page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoipCallListResponse"
+    post:
+      operationId: placeVoipCall
+      tags:
+        - comm
+      summary: Place an outbound call (Twilio stub)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceVoipCallRequest"
+      responses:
+        "200":
+          description: Call queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoipCallResponse"
+  /comm/voip/calls/record:
+    post:
+      operationId: recordVoipCall
+      tags:
+        - comm
+      summary: Record a completed call (webhook hook)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordVoipCallRequest"
+      responses:
+        "200":
+          description: Call recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoipCallResponse"
+  /comm/voip/calls/{id}:
+    get:
+      operationId: getVoipCall
+      tags:
+        - comm
+      summary: Fetch one call
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Call
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoipCallResponse"
+        "404":
+          description: Unknown call
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /comm/voip/calls/{id}/status:
+    post:
+      operationId: updateVoipCallStatus
+      tags:
+        - comm
+      summary: Update call status (Twilio webhook)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVoipCallStatusRequest"
+      responses:
+        "200":
+          description: Updated call
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoipCallResponse"
+  /comm/voip/calls/{id}/transcribe:
+    post:
+      operationId: transcribeVoipCall
+      tags:
+        - comm
+      summary: Attach a Whisper transcript to a call
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoipTranscribeRequest"
+      responses:
+        "200":
+          description: Updated call
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoipCallResponse"
+  /comm/voip/calls/{id}/summarise:
+    post:
+      operationId: summariseVoipCall
+      tags:
+        - comm
+      summary: Attach a post-call summary to a call
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoipSummariseRequest"
+      responses:
+        "200":
+          description: Updated call
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoipCallResponse"
+  /comm/outreach/sequences:
+    get:
+      operationId: listOutreachSequences
+      tags:
+        - comm
+      summary: List outreach sequences
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - active
+              - paused
+              - archived
+      responses:
+        "200":
+          description: Sequences page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachSequenceListResponse"
+    post:
+      operationId: createOutreachSequence
+      tags:
+        - comm
+      summary: Create a multi-step outreach sequence
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOutreachSequenceRequest"
+      responses:
+        "200":
+          description: Sequence created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachSequenceResponse"
+  /comm/outreach/sequences/{id}:
+    get:
+      operationId: getOutreachSequence
+      tags:
+        - comm
+      summary: Fetch one sequence
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sequence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachSequenceResponse"
+        "404":
+          description: Unknown sequence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /comm/outreach/sequences/{id}/status:
+    post:
+      operationId: setOutreachSequenceStatus
+      tags:
+        - comm
+      summary: Pause / resume / archive a sequence
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OutreachSequenceStatusRequest"
+      responses:
+        "200":
+          description: Updated sequence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachSequenceResponse"
+  /comm/outreach/enrolments:
+    get:
+      operationId: listOutreachEnrolments
+      tags:
+        - comm
+      summary: List enrolments
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: sequenceId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - active
+              - completed
+              - replied
+              - paused
+              - stopped
+      responses:
+        "200":
+          description: Enrolments page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachEnrolmentListResponse"
+    post:
+      operationId: enrolOutreachContact
+      tags:
+        - comm
+      summary: Enrol a contact in a sequence
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrolOutreachContactRequest"
+      responses:
+        "200":
+          description: Enrolment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachEnrolmentResponse"
+  /comm/outreach/enrolments/{id}:
+    get:
+      operationId: getOutreachEnrolment
+      tags:
+        - comm
+      summary: Fetch one enrolment
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Enrolment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachEnrolmentResponse"
+        "404":
+          description: Unknown enrolment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /comm/outreach/run:
+    post:
+      operationId: runOutreachSteps
+      tags:
+        - comm
+      summary: Process every active enrolment whose nextSendAt has passed
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OutreachRunRequest"
+      responses:
+        "200":
+          description: Run report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachRunResponse"
+  /comm/contacts:
+    get:
+      operationId: listContacts
+      tags:
+        - comm
+      summary: List CRM contacts
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Contacts page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactListResponse"
+    post:
+      operationId: createContact
+      tags:
+        - comm
+      summary: Create a contact
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContactRequest"
+      responses:
+        "200":
+          description: Contact created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactResponse"
+  /comm/contacts/{id}:
+    get:
+      operationId: getContact
+      tags:
+        - comm
+      summary: Fetch one contact
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactResponse"
+        "404":
+          description: Unknown contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    patch:
+      operationId: updateContact
+      tags:
+        - comm
+      summary: Update a contact
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContactRequest"
+      responses:
+        "200":
+          description: Updated contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactResponse"
+    delete:
+      operationId: deleteContact
+      tags:
+        - comm
+      summary: Delete a contact
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Delete receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactDeleteResponse"
+  /comm/contacts/{id}/interactions:
+    get:
+      operationId: listContactInteractions
+      tags:
+        - comm
+      summary: List interactions for one contact
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Interactions page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InteractionListResponse"
 components:
   parameters:
     TenantHeader:
@@ -1673,34 +2684,40 @@ components:
         minimum: 1
         maximum: 100
         default: 20
-
   schemas:
     HealthStatus:
       type: object
-      required: [status, version, time]
+      required:
+        - status
+        - version
+        - time
       properties:
         status:
           type: string
-          enum: [ok]
+          enum:
+            - ok
         version:
           type: string
         time:
           type: string
           format: date-time
-
     HealthCheckResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/HealthStatus"
-
     ApiError:
       type: object
-      required: [code, message]
+      required:
+        - code
+        - message
       properties:
         code:
           type: string
@@ -1709,24 +2726,32 @@ components:
         details:
           type: object
           additionalProperties: true
-
     ApiErrorResponse:
       type: object
-      required: [success, error]
+      required:
+        - success
+        - error
       properties:
         success:
           type: boolean
-          enum: [false]
+          enum:
+            - false
         error:
           $ref: "#/components/schemas/ApiError"
-
     TenantDataExport:
       type: object
-      required: [tenant, workspaces, exportedAt]
+      required:
+        - tenant
+        - workspaces
+        - exportedAt
       properties:
         tenant:
           type: object
-          required: [id, name, status, createdAt]
+          required:
+            - id
+            - name
+            - status
+            - createdAt
           properties:
             id:
               type: string
@@ -1741,7 +2766,10 @@ components:
           type: array
           items:
             type: object
-            required: [id, name, createdAt]
+            required:
+              - id
+              - name
+              - createdAt
             properties:
               id:
                 type: string
@@ -1753,43 +2781,52 @@ components:
         exportedAt:
           type: string
           format: date-time
-
     TenantDataExportResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/TenantDataExport"
-
     TenantErasureReceipt:
       type: object
-      required: [tenantId, status, scheduledAt]
+      required:
+        - tenantId
+        - status
+        - scheduledAt
       properties:
         tenantId:
           type: string
         status:
           type: string
-          enum: [erased]
+          enum:
+            - erased
         scheduledAt:
           type: string
           format: date-time
-
     TenantErasureResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/TenantErasureReceipt"
-
     RegisterRequest:
       type: object
-      required: [email, password, displayName]
+      required:
+        - email
+        - password
+        - displayName
       properties:
         email:
           type: string
@@ -1799,20 +2836,24 @@ components:
           minLength: 12
         displayName:
           type: string
-
     LoginRequest:
       type: object
-      required: [email, password]
+      required:
+        - email
+        - password
       properties:
         email:
           type: string
           format: email
         password:
           type: string
-
     AuthUser:
       type: object
-      required: [id, email, displayName, role]
+      required:
+        - id
+        - email
+        - displayName
+        - role
       properties:
         id:
           type: string
@@ -1826,47 +2867,53 @@ components:
           type: string
           format: date-time
           nullable: true
-
     AuthSession:
       type: object
-      required: [user, expiresAt]
+      required:
+        - user
+        - expiresAt
       properties:
         user:
           $ref: "#/components/schemas/AuthUser"
         expiresAt:
           type: string
           format: date-time
-
     AuthSessionResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/AuthSession"
-
     AuthLogoutReceipt:
       type: object
-      required: [loggedOut]
+      required:
+        - loggedOut
       properties:
         loggedOut:
           type: boolean
-
     AuthLogoutResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/AuthLogoutReceipt"
-
     ModelEntry:
       type: object
-      required: [name, status]
+      required:
+        - name
+        - status
       properties:
         name:
           type: string
@@ -1882,10 +2929,11 @@ components:
           type: string
           format: date-time
           nullable: true
-
     ModelListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -1894,37 +2942,43 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     ModelListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ModelListPage"
-
     ModelGetResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ModelEntry"
-
     ModelPullRequest:
       type: object
-      required: [name]
+      required:
+        - name
       properties:
         name:
           type: string
-
     ModelPullReceipt:
       type: object
-      required: [name, status, scheduledAt]
+      required:
+        - name
+        - status
+        - scheduledAt
       properties:
         name:
           type: string
@@ -1933,30 +2987,37 @@ components:
         scheduledAt:
           type: string
           format: date-time
-
     ModelPullResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ModelPullReceipt"
-
     ChatMessage:
       type: object
-      required: [role, content]
+      required:
+        - role
+        - content
       properties:
         role:
           type: string
-          enum: [system, user, assistant, tool]
+          enum:
+            - system
+            - user
+            - assistant
+            - tool
         content:
           type: string
-
     ChatRequest:
       type: object
-      required: [messages]
+      required:
+        - messages
       properties:
         model:
           type: string
@@ -1968,10 +3029,11 @@ components:
           type: number
           minimum: 0
           maximum: 2
-
     ChatResult:
       type: object
-      required: [model, message]
+      required:
+        - model
+        - message
       properties:
         model:
           type: string
@@ -1983,20 +3045,26 @@ components:
         tokensOut:
           type: integer
           nullable: true
-
     ChatResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ChatResult"
-
     AgentRun:
       type: object
-      required: [id, goal, status, createdAt, updatedAt]
+      required:
+        - id
+        - goal
+        - status
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -2030,10 +3098,11 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     AgentRunListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -2042,39 +3111,46 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     AgentRunListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/AgentRunListPage"
-
     AgentRunResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/AgentRun"
-
     CreateAgentRunRequest:
       type: object
-      required: [goal]
+      required:
+        - goal
       properties:
         goal:
           type: string
         modelName:
           type: string
-
     Message:
       type: object
-      required: [id, role, content, createdAt]
+      required:
+        - id
+        - role
+        - content
+        - createdAt
       properties:
         id:
           type: string
@@ -2094,10 +3170,11 @@ components:
         createdAt:
           type: string
           format: date-time
-
     MessageListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -2106,20 +3183,27 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     MessageListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/MessageListPage"
-
     ToolCall:
       type: object
-      required: [id, runId, toolName, status, riskLevel, createdAt]
+      required:
+        - id
+        - runId
+        - toolName
+        - status
+        - riskLevel
+        - createdAt
       properties:
         id:
           type: string
@@ -2145,10 +3229,11 @@ components:
         createdAt:
           type: string
           format: date-time
-
     ToolCallListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -2157,20 +3242,28 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     ToolCallListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ToolCallListPage"
-
     Approval:
       type: object
-      required: [id, runId, toolCallId, reason, summary, decision, createdAt]
+      required:
+        - id
+        - runId
+        - toolCallId
+        - reason
+        - summary
+        - decision
+        - createdAt
       properties:
         id:
           type: string
@@ -2197,10 +3290,11 @@ components:
         createdAt:
           type: string
           format: date-time
-
     ApprovalListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -2209,40 +3303,48 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     ApprovalListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ApprovalListPage"
-
     ApprovalResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/Approval"
-
     ApprovalDecisionRequest:
       type: object
-      required: [decision]
+      required:
+        - decision
       properties:
         decision:
           type: string
-          enum: [approved, denied]
+          enum:
+            - approved
+            - denied
         note:
           type: string
-
     ToolEntry:
       type: object
-      required: [name, description, riskLevel]
+      required:
+        - name
+        - description
+        - riskLevel
       properties:
         name:
           type: string
@@ -2250,10 +3352,11 @@ components:
           type: string
         riskLevel:
           type: string
-
     ToolListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -2262,28 +3365,32 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     ToolListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ToolListPage"
-
     ToolInvokeRequest:
       type: object
-      required: [input]
+      required:
+        - input
       properties:
         input:
           type: object
           additionalProperties: true
-
     ToolInvokeResult:
       type: object
-      required: [toolName, output, durationMs]
+      required:
+        - toolName
+        - output
+        - durationMs
       properties:
         toolName:
           type: string
@@ -2292,20 +3399,27 @@ components:
           additionalProperties: true
         durationMs:
           type: integer
-
     ToolInvokeResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ToolInvokeResult"
-
     PrivacyEvent:
       type: object
-      required: [id, eventType, actor, target, severity, createdAt]
+      required:
+        - id
+        - eventType
+        - actor
+        - target
+        - severity
+        - createdAt
       properties:
         id:
           type: string
@@ -2323,10 +3437,11 @@ components:
         createdAt:
           type: string
           format: date-time
-
     PrivacyEventListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -2335,30 +3450,36 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     PrivacyEventListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/PrivacyEventListPage"
-
     PrivacyEventResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/PrivacyEvent"
-
     CreatePrivacyEventRequest:
       type: object
-      required: [eventType, actor, target]
+      required:
+        - eventType
+        - actor
+        - target
       properties:
         eventType:
           type: string
@@ -2370,10 +3491,16 @@ components:
           type: string
         detail:
           type: string
-
     Memory:
       type: object
-      required: [id, kind, title, content, importance, createdAt, updatedAt]
+      required:
+        - id
+        - kind
+        - title
+        - content
+        - importance
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -2394,10 +3521,11 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     MemoryListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -2406,30 +3534,35 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     MemoryListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/MemoryListPage"
-
     MemoryResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/Memory"
-
     CreateMemoryRequest:
       type: object
-      required: [title, content]
+      required:
+        - title
+        - content
       properties:
         kind:
           type: string
@@ -2443,29 +3576,34 @@ components:
           maximum: 100
         source:
           type: string
-
     MemoryDeleteReceipt:
       type: object
-      required: [id, deleted]
+      required:
+        - id
+        - deleted
       properties:
         id:
           type: string
         deleted:
           type: boolean
-
     MemoryDeleteResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/MemoryDeleteReceipt"
-
     FileEntry:
       type: object
-      required: [path, kind, size]
+      required:
+        - path
+        - kind
+        - size
       properties:
         path:
           type: string
@@ -2477,10 +3615,11 @@ components:
           type: string
           format: date-time
           nullable: true
-
     FileListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -2489,27 +3628,31 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     FileListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/FileListPage"
-
     FileReadRequest:
       type: object
-      required: [path]
+      required:
+        - path
       properties:
         path:
           type: string
-
     FileReadResult:
       type: object
-      required: [path, content, size]
+      required:
+        - path
+        - content
+        - size
       properties:
         path:
           type: string
@@ -2517,71 +3660,79 @@ components:
           type: string
         size:
           type: integer
-
     FileReadResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/FileReadResult"
-
     FileWriteRequest:
       type: object
-      required: [path, content]
+      required:
+        - path
+        - content
       properties:
         path:
           type: string
         content:
           type: string
-
     FileWriteResult:
       type: object
-      required: [path, size]
+      required:
+        - path
+        - size
       properties:
         path:
           type: string
         size:
           type: integer
-
     FileWriteResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/FileWriteResult"
-
     FileDeleteRequest:
       type: object
-      required: [path]
+      required:
+        - path
       properties:
         path:
           type: string
-
     FileDeleteResult:
       type: object
-      required: [path, deleted]
+      required:
+        - path
+        - deleted
       properties:
         path:
           type: string
         deleted:
           type: boolean
-
     FileDeleteResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/FileDeleteResult"
-
     OnboardingProfile:
       type: object
       required:
@@ -2627,22 +3778,24 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     OnboardingProfileResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           type: object
-          required: [profile]
+          required:
+            - profile
           properties:
             profile:
               $ref: "#/components/schemas/OnboardingProfile"
               nullable: true
-
     UpsertOnboardingProfileRequest:
       type: object
       properties:
@@ -2652,10 +3805,18 @@ components:
           maxLength: 120
         userType:
           type: string
-          enum: [personal, business, developer]
+          enum:
+            - personal
+            - business
+            - developer
         useCase:
           type: string
-          enum: [productivity, sales, creative, coding, research]
+          enum:
+            - productivity
+            - sales
+            - creative
+            - coding
+            - research
         recommendedModel:
           type: string
           minLength: 1
@@ -2668,7 +3829,6 @@ components:
           type: boolean
         hardwareSnapshot:
           $ref: "#/components/schemas/HardwareProfile"
-
     HardwareProfile:
       type: object
       required:
@@ -2700,7 +3860,11 @@ components:
           type: boolean
         tier:
           type: string
-          enum: [low, mid, high, pro]
+          enum:
+            - low
+            - mid
+            - high
+            - pro
           description: |
             Coarse hardware bucket the recommendation engine maps to a model.
             `low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.
@@ -2715,10 +3879,11 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/HardwareGpu"
-
     HardwareGpu:
       type: object
-      required: [vendor, kind]
+      required:
+        - vendor
+        - kind
       properties:
         vendor:
           type: string
@@ -2726,10 +3891,13 @@ components:
           type: string
         vramBytes:
           type: integer
-
     ModelRecommendation:
       type: object
-      required: [model, reason, sizeBytes, tier]
+      required:
+        - model
+        - reason
+        - sizeBytes
+        - tier
       properties:
         model:
           type: string
@@ -2740,7 +3908,6 @@ components:
           type: integer
         tier:
           type: string
-
     ModelCatalogueEntry:
       type: object
       required:
@@ -2762,14 +3929,21 @@ components:
           type: string
         role:
           type: string
-          enum: [primary, vision, embedding]
+          enum:
+            - primary
+            - vision
+            - embedding
         sizeBytes:
           type: integer
         ramRequiredBytes:
           type: integer
         minTier:
           type: string
-          enum: [low, mid, high, pro]
+          enum:
+            - low
+            - mid
+            - high
+            - pro
         capabilities:
           type: array
           items:
@@ -2778,11 +3952,18 @@ components:
           type: string
         useCaseAxis:
           type: string
-          enum: [writing, code, balanced]
-
+          enum:
+            - writing
+            - code
+            - balanced
     ModelInstallPlanEntry:
       type: object
-      required: [id, displayName, role, sizeBytes, ramRequiredBytes]
+      required:
+        - id
+        - displayName
+        - role
+        - sizeBytes
+        - ramRequiredBytes
       properties:
         id:
           type: string
@@ -2790,12 +3971,14 @@ components:
           type: string
         role:
           type: string
-          enum: [primary, vision, embedding]
+          enum:
+            - primary
+            - vision
+            - embedding
         sizeBytes:
           type: integer
         ramRequiredBytes:
           type: integer
-
     ModelInstallPlan:
       type: object
       required:
@@ -2822,17 +4005,24 @@ components:
           type: boolean
         tier:
           type: string
-          enum: [low, mid, high, pro]
+          enum:
+            - low
+            - mid
+            - high
+            - pro
         reason:
           type: string
         alternatives:
           type: array
           items:
             $ref: "#/components/schemas/ModelCatalogueEntry"
-
     MinimumSpecVerdict:
       type: object
-      required: [meetsMinimum, minimumRamBytes, detectedRamBytes, message]
+      required:
+        - meetsMinimum
+        - minimumRamBytes
+        - detectedRamBytes
+        - message
       properties:
         meetsMinimum:
           type: boolean
@@ -2842,22 +4032,29 @@ components:
           type: integer
         message:
           type: string
-
     VisionModelLifecycleConfig:
       type: object
-      required: [visionModelId, mode, idleTimeoutMs]
+      required:
+        - visionModelId
+        - mode
+        - idleTimeoutMs
       properties:
         visionModelId:
           type: string
         mode:
           type: string
-          enum: [aggressive, balanced, warm]
+          enum:
+            - aggressive
+            - balanced
+            - warm
         idleTimeoutMs:
           type: integer
-
     ModelHardwareSnapshot:
       type: object
-      required: [hardware, plan, minimumSpec]
+      required:
+        - hardware
+        - plan
+        - minimumSpec
       properties:
         hardware:
           $ref: "#/components/schemas/HardwareProfile"
@@ -2867,27 +4064,33 @@ components:
             - $ref: "#/components/schemas/ModelInstallPlan"
         minimumSpec:
           $ref: "#/components/schemas/MinimumSpecVerdict"
-
     ModelHardwareResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ModelHardwareSnapshot"
-
     ModelCatalogueResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           type: object
-          required: [items, library]
+          required:
+            - items
+            - library
           properties:
             items:
               description: |
@@ -2905,10 +4108,13 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ModelCatalogueEntry"
-
     ModelRecommendationView:
       type: object
-      required: [hardware, plan, minimumSpec, preferences]
+      required:
+        - hardware
+        - plan
+        - minimumSpec
+        - preferences
       properties:
         hardware:
           $ref: "#/components/schemas/HardwareProfile"
@@ -2920,17 +4126,18 @@ components:
           $ref: "#/components/schemas/MinimumSpecVerdict"
         preferences:
           $ref: "#/components/schemas/ModelPreferences"
-
     ModelRecommendationResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ModelRecommendationView"
-
     ModelPreferences:
       type: object
       required:
@@ -2956,20 +4163,22 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     ModelPreferencesResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ModelPreferences"
-
     InstallModelsRequest:
       type: object
-      required: [primaryModel]
+      required:
+        - primaryModel
       properties:
         primaryModel:
           type: string
@@ -2981,19 +4190,30 @@ components:
             When true (default) the bundled vision companion is pulled
             alongside the primary. Set to false only for power-user
             installs that opt out of vision.
-
     ModelInstallEntry:
       type: object
-      required: [modelId, role, status, percent, error]
+      required:
+        - modelId
+        - role
+        - status
+        - percent
+        - error
       properties:
         modelId:
           type: string
         role:
           type: string
-          enum: [primary, vision]
+          enum:
+            - primary
+            - vision
         status:
           type: string
-          enum: [pending, pulling, ready, failed, skipped]
+          enum:
+            - pending
+            - pulling
+            - ready
+            - failed
+            - skipped
         percent:
           type: integer
           minimum: 0
@@ -3001,14 +4221,21 @@ components:
         error:
           type: string
           nullable: true
-
     ModelInstallState:
       type: object
-      required: [status, models, startedAt, completedAt]
+      required:
+        - status
+        - models
+        - startedAt
+        - completedAt
       properties:
         status:
           type: string
-          enum: [idle, running, completed, failed]
+          enum:
+            - idle
+            - running
+            - completed
+            - failed
         startedAt:
           type: string
           nullable: true
@@ -3021,20 +4248,22 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ModelInstallEntry"
-
     ModelInstallStateResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/ModelInstallState"
-
     SelectModelRequest:
       type: object
-      required: [primaryModel]
+      required:
+        - primaryModel
       properties:
         primaryModel:
           type: string
@@ -3042,34 +4271,42 @@ components:
           maxLength: 200
         visionLifecycleMode:
           type: string
-          enum: [aggressive, balanced, warm]
+          enum:
+            - aggressive
+            - balanced
+            - warm
         visionIdleTimeoutMs:
           type: integer
           minimum: 0
           maximum: 86400000
-
     OnboardingHardware:
       type: object
-      required: [hardware, recommendation]
+      required:
+        - hardware
+        - recommendation
       properties:
         hardware:
           $ref: "#/components/schemas/HardwareProfile"
         recommendation:
           $ref: "#/components/schemas/ModelRecommendation"
-
     OnboardingHardwareResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/OnboardingHardware"
-
     StarterTask:
       type: object
-      required: [id, title, prompt]
+      required:
+        - id
+        - title
+        - prompt
       properties:
         id:
           type: string
@@ -3079,10 +4316,11 @@ components:
           type: string
         category:
           type: string
-
     OnboardingStarterTaskList:
       type: object
-      required: [items, useCase]
+      required:
+        - items
+        - useCase
       properties:
         items:
           type: array
@@ -3090,20 +4328,26 @@ components:
             $ref: "#/components/schemas/StarterTask"
         useCase:
           type: string
-
     OnboardingStarterTaskResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/OnboardingStarterTaskList"
-
     UpdateCheck:
       type: object
-      required: [currentVersion, latestVersion, updateAvailable, channel, checkedAt]
+      required:
+        - currentVersion
+        - latestVersion
+        - updateAvailable
+        - channel
+        - checkedAt
       properties:
         currentVersion:
           type: string
@@ -3123,40 +4367,44 @@ components:
         checkedAt:
           type: string
           format: date-time
-
     UpdateCheckResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/UpdateCheck"
-
     BrowserScreenshotRequest:
       type: object
-      required: [url]
+      required:
+        - url
       properties:
         url:
           type: string
           format: uri
         viewport:
           type: string
-
     BrowserExtractRequest:
       type: object
-      required: [url, selector]
+      required:
+        - url
+        - selector
       properties:
         url:
           type: string
           format: uri
         selector:
           type: string
-
     BrowserActionReceipt:
       type: object
-      required: [status, scheduledAt]
+      required:
+        - status
+        - scheduledAt
       properties:
         status:
           type: string
@@ -3165,20 +4413,24 @@ components:
           format: date-time
         detail:
           type: string
-
     BrowserActionResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/BrowserActionReceipt"
-
     DesktopFeatureStatus:
       type: object
-      required: [enabled, mode, reason]
+      required:
+        - enabled
+        - mode
+        - reason
       properties:
         enabled:
           type: boolean
@@ -3186,20 +4438,27 @@ components:
           type: string
         reason:
           type: string
-
     DesktopFeatureResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/DesktopFeatureStatus"
-
     DesktopSession:
       type: object
-      required: [id, goal, status, mode, createdAt, updatedAt]
+      required:
+        - id
+        - goal
+        - status
+        - mode
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -3242,10 +4501,11 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     DesktopSessionListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -3254,30 +4514,34 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     DesktopSessionListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/DesktopSessionListPage"
-
     DesktopSessionResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/DesktopSession"
-
     CreateDesktopSessionRequest:
       type: object
-      required: [goal]
+      required:
+        - goal
       properties:
         goal:
           type: string
@@ -3285,10 +4549,19 @@ components:
           type: string
         autoExecute:
           type: boolean
-
     DesktopStep:
       type: object
-      required: [id, sessionId, stepIndex, actionType, targetDescription, riskLevel, needsApproval, status, createdAt, updatedAt]
+      required:
+        - id
+        - sessionId
+        - stepIndex
+        - actionType
+        - targetDescription
+        - riskLevel
+        - needsApproval
+        - status
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -3346,10 +4619,11 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     DesktopStepListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -3358,30 +4632,40 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     DesktopStepListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/DesktopStepListPage"
-
     DesktopStepResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/DesktopStep"
-
     DesktopScreenFrame:
       type: object
-      required: [sessionId, capturedAt, mimeType, data, width, height, source]
+      required:
+        - sessionId
+        - capturedAt
+        - mimeType
+        - data
+        - width
+        - height
+        - source
       properties:
         sessionId:
           type: string
@@ -3399,20 +4683,27 @@ components:
           type: integer
         source:
           type: string
-          description: "live | stub | cached"
-
+          description: live | stub | cached
     DesktopScreenResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/DesktopScreenFrame"
     KnowledgeCollection:
       type: object
-      required: [id, name, documentCount, createdAt, updatedAt]
+      required:
+        - id
+        - name
+        - documentCount
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -3432,10 +4723,11 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     KnowledgeCollectionListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -3444,30 +4736,34 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     KnowledgeCollectionListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/KnowledgeCollectionListPage"
-
     KnowledgeCollectionResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/KnowledgeCollection"
-
     CreateKnowledgeCollectionRequest:
       type: object
-      required: [name]
+      required:
+        - name
       properties:
         name:
           type: string
@@ -3479,10 +4775,18 @@ components:
         color:
           type: string
           maxLength: 32
-
     KnowledgeDocument:
       type: object
-      required: [id, title, sourceType, contentHash, sizeBytes, chunkCount, tags, createdAt, updatedAt]
+      required:
+        - id
+        - title
+        - sourceType
+        - contentHash
+        - sizeBytes
+        - chunkCount
+        - tags
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -3518,10 +4822,11 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     KnowledgeDocumentListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -3530,20 +4835,25 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     KnowledgeDocumentListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/KnowledgeDocumentListPage"
-
     KnowledgeChunkSummary:
       type: object
-      required: [id, position, text, tokens]
+      required:
+        - id
+        - position
+        - text
+        - tokens
       properties:
         id:
           type: string
@@ -3553,10 +4863,12 @@ components:
           type: string
         tokens:
           type: integer
-
     KnowledgeDocumentDetail:
       type: object
-      required: [document, body, chunks]
+      required:
+        - document
+        - body
+        - chunks
       properties:
         document:
           $ref: "#/components/schemas/KnowledgeDocument"
@@ -3566,24 +4878,31 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/KnowledgeChunkSummary"
-
     KnowledgeDocumentDetailResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/KnowledgeDocumentDetail"
-
     IngestKnowledgeDocumentRequest:
       type: object
-      required: [sourceType, title]
+      required:
+        - sourceType
+        - title
       properties:
         sourceType:
           type: string
-          enum: [text, url, file, youtube]
+          enum:
+            - text
+            - url
+            - file
+            - youtube
         title:
           type: string
           minLength: 1
@@ -3607,10 +4926,11 @@ components:
         allowDuplicate:
           type: boolean
           description: When true, ingestion proceeds even if an existing document hash matches.
-
     IngestKnowledgeDocumentResult:
       type: object
-      required: [document, duplicate]
+      required:
+        - document
+        - duplicate
       properties:
         document:
           $ref: "#/components/schemas/KnowledgeDocument"
@@ -3619,20 +4939,22 @@ components:
         existingDocumentId:
           type: string
           nullable: true
-
     IngestKnowledgeDocumentResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/IngestKnowledgeDocumentResult"
-
     KnowledgeSearchRequest:
       type: object
-      required: [query]
+      required:
+        - query
       properties:
         query:
           type: string
@@ -3644,10 +4966,17 @@ components:
           maximum: 50
         collectionId:
           type: string
-
     KnowledgeSearchHit:
       type: object
-      required: [chunkId, documentId, documentTitle, position, snippet, score, vectorScore, textScore]
+      required:
+        - chunkId
+        - documentId
+        - documentTitle
+        - position
+        - snippet
+        - score
+        - vectorScore
+        - textScore
       properties:
         chunkId:
           type: string
@@ -3668,10 +4997,11 @@ components:
         sourceUri:
           type: string
           nullable: true
-
     KnowledgeSearchResult:
       type: object
-      required: [query, hits]
+      required:
+        - query
+        - hits
       properties:
         query:
           type: string
@@ -3679,20 +5009,26 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/KnowledgeSearchHit"
-
     KnowledgeSearchResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/KnowledgeSearchResult"
-
     KnowledgeStats:
       type: object
-      required: [documentCount, collectionCount, chunkCount, totalSizeBytes, lastUpdatedAt]
+      required:
+        - documentCount
+        - collectionCount
+        - chunkCount
+        - totalSizeBytes
+        - lastUpdatedAt
       properties:
         documentCount:
           type: integer
@@ -3706,39 +5042,50 @@ components:
           type: string
           format: date-time
           nullable: true
-
     KnowledgeStatsResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/KnowledgeStats"
-
     KnowledgeDeleteReceipt:
       type: object
-      required: [id, deleted]
+      required:
+        - id
+        - deleted
       properties:
         id:
           type: string
         deleted:
           type: boolean
-
     KnowledgeDeleteResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/KnowledgeDeleteReceipt"
-
     KnowledgeExportDocument:
       type: object
-      required: [id, title, sourceType, body, contentHash, tags, createdAt]
+      required:
+        - id
+        - title
+        - sourceType
+        - body
+        - contentHash
+        - tags
+        - createdAt
       properties:
         id:
           type: string
@@ -3769,10 +5116,13 @@ components:
         createdAt:
           type: string
           format: date-time
-
     KnowledgeExport:
       type: object
-      required: [exportedAt, version, collections, documents]
+      required:
+        - exportedAt
+        - version
+        - collections
+        - documents
       properties:
         exportedAt:
           type: string
@@ -3787,30 +5137,34 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/KnowledgeExportDocument"
-
     KnowledgeExportResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/KnowledgeExport"
-
     KnowledgeImportRequest:
       type: object
-      required: [snapshot]
+      required:
+        - snapshot
       properties:
         snapshot:
           $ref: "#/components/schemas/KnowledgeExport"
         replaceExisting:
           type: boolean
-
     KnowledgeImportReceipt:
       type: object
       required:
-        [collectionsImported, documentsImported, documentsSkipped, errors]
+        - collectionsImported
+        - documentsImported
+        - documentsSkipped
+        - errors
       properties:
         collectionsImported:
           type: integer
@@ -3822,10 +5176,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/KnowledgeImportError"
-
     KnowledgeImportError:
       type: object
-      required: [title, sourceDocumentId, message]
+      required:
+        - title
+        - sourceDocumentId
+        - message
       properties:
         title:
           type: string
@@ -3833,26 +5189,39 @@ components:
           type: string
         message:
           type: string
-
     KnowledgeImportResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/KnowledgeImportReceipt"
-
     MediaAsset:
       type: object
-      required: [id, kind, prompt, status, mimeType, sizeBytes, modelUsed, createdAt, updatedAt]
+      required:
+        - id
+        - kind
+        - prompt
+        - status
+        - mimeType
+        - sizeBytes
+        - modelUsed
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
         kind:
           type: string
-          enum: [image, audio, video]
+          enum:
+            - image
+            - audio
+            - video
         prompt:
           type: string
         style:
@@ -3860,7 +5229,10 @@ components:
           nullable: true
         status:
           type: string
-          enum: [pending, ready, failed]
+          enum:
+            - pending
+            - ready
+            - failed
         mimeType:
           type: string
         sizeBytes:
@@ -3891,10 +5263,11 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     MediaAssetListPage:
       type: object
-      required: [items, nextCursor]
+      required:
+        - items
+        - nextCursor
       properties:
         items:
           type: array
@@ -3903,49 +5276,56 @@ components:
         nextCursor:
           type: string
           nullable: true
-
     MediaAssetListResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/MediaAssetListPage"
-
     MediaAssetResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/MediaAsset"
-
     MediaAssetDeleteReceipt:
       type: object
-      required: [id, deleted]
+      required:
+        - id
+        - deleted
       properties:
         id:
           type: string
         deleted:
           type: boolean
-
     MediaAssetDeleteResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/MediaAssetDeleteReceipt"
-
     GenerateImageRequest:
       type: object
-      required: [prompt]
+      required:
+        - prompt
       properties:
         prompt:
           type: string
@@ -3953,7 +5333,13 @@ components:
           maxLength: 2000
         style:
           type: string
-          enum: [photorealistic, illustration, watercolor, pixel, neon, sketch]
+          enum:
+            - photorealistic
+            - illustration
+            - watercolor
+            - pixel
+            - neon
+            - sketch
         width:
           type: integer
           minimum: 64
@@ -3962,10 +5348,10 @@ components:
           type: integer
           minimum: 64
           maximum: 2048
-
     GenerateAudioRequest:
       type: object
-      required: [prompt]
+      required:
+        - prompt
       properties:
         prompt:
           type: string
@@ -3973,16 +5359,19 @@ components:
           maxLength: 2000
         kind:
           type: string
-          enum: [music, tts, sfx]
+          enum:
+            - music
+            - tts
+            - sfx
           description: music = MusicGen-style melody; tts = text-to-speech; sfx = short sound effect.
         durationMs:
           type: integer
           minimum: 250
           maximum: 30000
-
     GenerateVideoRequest:
       type: object
-      required: [prompt]
+      required:
+        - prompt
       properties:
         prompt:
           type: string
@@ -3995,18 +5384,26 @@ components:
         sourceAssetId:
           type: string
           description: Optional image asset to animate (image-to-video flow).
-
     UpscaleImageRequest:
       type: object
       properties:
         scale:
           type: integer
-          enum: [2, 4]
+          enum:
+            - 2
+            - 4
           description: Scale factor (2x or 4x). Defaults to 2.
-
     HardwareCapabilities:
       type: object
-      required: [cpuCount, totalRamMb, freeRamMb, recommendedTier, supportsImage, supportsAudio, supportsVideo, models]
+      required:
+        - cpuCount
+        - totalRamMb
+        - freeRamMb
+        - recommendedTier
+        - supportsImage
+        - supportsAudio
+        - supportsVideo
+        - models
       properties:
         cpuCount:
           type: integer
@@ -4018,7 +5415,10 @@ components:
           type: string
         recommendedTier:
           type: string
-          enum: [low, mid, high]
+          enum:
+            - low
+            - mid
+            - high
           description: |
             low = stub-only (≤4GB free RAM); mid = small diffusion models
             (4–12GB); high = SDXL / FLUX / AnimateDiff (12GB+).
@@ -4032,7 +5432,10 @@ components:
           type: array
           items:
             type: object
-            required: [name, kind, available]
+            required:
+              - name
+              - kind
+              - available
             properties:
               name:
                 type: string
@@ -4042,13 +5445,1265 @@ components:
                 type: boolean
               note:
                 type: string
-
     HardwareCapabilitiesResponse:
       type: object
-      required: [success, data]
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
-          enum: [true]
+          enum:
+            - true
         data:
           $ref: "#/components/schemas/HardwareCapabilities"
+    CommAccount:
+      type: object
+      required:
+        - id
+        - provider
+        - kind
+        - label
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+          enum:
+            - gmail
+            - outlook
+            - google_calendar
+            - apple_calendar
+            - twilio
+        kind:
+          type: string
+          enum:
+            - email
+            - calendar
+            - voip
+        label:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - disconnected
+            - error
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+        tokenExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CommAccountListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommAccount"
+        nextCursor:
+          type: string
+          nullable: true
+    CommAccountListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/CommAccountListPage"
+    CommAccountResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/CommAccount"
+    ConnectCommAccountRequest:
+      type: object
+      required:
+        - provider
+        - label
+      properties:
+        provider:
+          type: string
+          enum:
+            - gmail
+            - outlook
+            - google_calendar
+            - apple_calendar
+            - twilio
+        label:
+          type: string
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenExpiresAt:
+          type: integer
+        metadata:
+          type: object
+          additionalProperties: true
+    CommAccountDisconnectReceipt:
+      type: object
+      required:
+        - id
+        - disconnected
+      properties:
+        id:
+          type: string
+        disconnected:
+          type: boolean
+    CommAccountDisconnectResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/CommAccountDisconnectReceipt"
+    EmailMessage:
+      type: object
+      required:
+        - id
+        - accountId
+        - direction
+        - fromAddress
+        - toAddresses
+        - subject
+        - snippet
+        - body
+        - folder
+        - status
+        - receivedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        providerMessageId:
+          type: string
+          nullable: true
+        threadId:
+          type: string
+          nullable: true
+        direction:
+          type: string
+          enum:
+            - inbound
+            - outbound
+        fromAddress:
+          type: string
+        toAddresses:
+          type: array
+          items:
+            type: string
+        subject:
+          type: string
+        snippet:
+          type: string
+        body:
+          type: string
+        folder:
+          type: string
+          enum:
+            - inbox
+            - sent
+            - archived
+            - spam
+            - trash
+        status:
+          type: string
+          enum:
+            - unread
+            - read
+            - replied
+            - archived
+        category:
+          type: string
+          nullable: true
+        receivedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    EmailMessageListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailMessage"
+        nextCursor:
+          type: string
+          nullable: true
+    EmailMessageListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/EmailMessageListPage"
+    EmailMessageResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/EmailMessage"
+    IngestEmailMessageRequest:
+      type: object
+      required:
+        - accountId
+        - fromAddress
+        - toAddresses
+        - subject
+        - body
+      properties:
+        accountId:
+          type: string
+        providerMessageId:
+          type: string
+        threadId:
+          type: string
+        direction:
+          type: string
+          enum:
+            - inbound
+            - outbound
+        fromAddress:
+          type: string
+        toAddresses:
+          type: array
+          items:
+            type: string
+        subject:
+          type: string
+        body:
+          type: string
+        snippet:
+          type: string
+        folder:
+          type: string
+          enum:
+            - inbox
+            - sent
+            - archived
+            - spam
+            - trash
+        category:
+          type: string
+        receivedAt:
+          type: integer
+    EmailStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - unread
+            - read
+            - replied
+            - archived
+    EmailCategoryRequest:
+      type: object
+      required:
+        - category
+      properties:
+        category:
+          type: string
+    EmailDraft:
+      type: object
+      required:
+        - id
+        - accountId
+        - toAddresses
+        - subject
+        - body
+        - decision
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        replyToMessageId:
+          type: string
+          nullable: true
+        sequenceId:
+          type: string
+          nullable: true
+        enrolmentId:
+          type: string
+          nullable: true
+        toAddresses:
+          type: array
+          items:
+            type: string
+        subject:
+          type: string
+        body:
+          type: string
+        decision:
+          type: string
+          enum:
+            - pending
+            - approved
+            - denied
+            - sent
+        decidedAt:
+          type: string
+          format: date-time
+          nullable: true
+        sentAt:
+          type: string
+          format: date-time
+          nullable: true
+        providerMessageId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    EmailDraftListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailDraft"
+        nextCursor:
+          type: string
+          nullable: true
+    EmailDraftListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/EmailDraftListPage"
+    EmailDraftResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/EmailDraft"
+    CreateEmailDraftRequest:
+      type: object
+      required:
+        - accountId
+        - toAddresses
+        - subject
+        - body
+      properties:
+        accountId:
+          type: string
+        toAddresses:
+          type: array
+          items:
+            type: string
+        subject:
+          type: string
+        body:
+          type: string
+        replyToMessageId:
+          type: string
+        sequenceId:
+          type: string
+        enrolmentId:
+          type: string
+    CalendarAttendee:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        response:
+          type: string
+          enum:
+            - accepted
+            - declined
+            - tentative
+            - needs_action
+    CalendarEvent:
+      type: object
+      required:
+        - id
+        - accountId
+        - title
+        - attendees
+        - startsAt
+        - endsAt
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        providerEventId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        attendees:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarAttendee"
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - confirmed
+            - tentative
+            - cancelled
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CalendarEventListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarEvent"
+        nextCursor:
+          type: string
+          nullable: true
+    CalendarEventListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/CalendarEventListPage"
+    CalendarEventResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/CalendarEvent"
+    CreateCalendarEventRequest:
+      type: object
+      required:
+        - accountId
+        - title
+        - startsAt
+        - endsAt
+      properties:
+        accountId:
+          type: string
+        title:
+          type: string
+        startsAt:
+          type: integer
+        endsAt:
+          type: integer
+        description:
+          type: string
+        location:
+          type: string
+        attendees:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarAttendee"
+    UpdateCalendarEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        attendees:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarAttendee"
+        startsAt:
+          type: integer
+        endsAt:
+          type: integer
+        status:
+          type: string
+          enum:
+            - confirmed
+            - tentative
+            - cancelled
+    CalendarEventDeleteReceipt:
+      type: object
+      required:
+        - id
+        - deleted
+      properties:
+        id:
+          type: string
+        deleted:
+          type: boolean
+    CalendarEventDeleteResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/CalendarEventDeleteReceipt"
+    CalendarFreeSlot:
+      type: object
+      required:
+        - startsAt
+        - endsAt
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+    CalendarFreeSlotsResult:
+      type: object
+      required:
+        - slots
+      properties:
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarFreeSlot"
+    CalendarFreeSlotsResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/CalendarFreeSlotsResult"
+    VoipCall:
+      type: object
+      required:
+        - id
+        - accountId
+        - direction
+        - fromNumber
+        - toNumber
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        contactId:
+          type: string
+          nullable: true
+        providerCallId:
+          type: string
+          nullable: true
+        direction:
+          type: string
+          enum:
+            - inbound
+            - outbound
+        fromNumber:
+          type: string
+        toNumber:
+          type: string
+        status:
+          type: string
+          enum:
+            - queued
+            - ringing
+            - in_progress
+            - completed
+            - failed
+            - no_answer
+        durationSeconds:
+          type: integer
+          nullable: true
+        transcript:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        recordingPath:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    VoipCallListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VoipCall"
+        nextCursor:
+          type: string
+          nullable: true
+    VoipCallListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/VoipCallListPage"
+    VoipCallResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/VoipCall"
+    PlaceVoipCallRequest:
+      type: object
+      required:
+        - accountId
+        - toNumber
+      properties:
+        accountId:
+          type: string
+        toNumber:
+          type: string
+        contactId:
+          type: string
+    RecordVoipCallRequest:
+      type: object
+      required:
+        - accountId
+        - direction
+        - fromNumber
+        - toNumber
+      properties:
+        accountId:
+          type: string
+        direction:
+          type: string
+          enum:
+            - inbound
+            - outbound
+        fromNumber:
+          type: string
+        toNumber:
+          type: string
+        status:
+          type: string
+          enum:
+            - queued
+            - ringing
+            - in_progress
+            - completed
+            - failed
+            - no_answer
+        durationSeconds:
+          type: integer
+        startedAt:
+          type: integer
+        completedAt:
+          type: integer
+        recordingPath:
+          type: string
+        transcript:
+          type: string
+        summary:
+          type: string
+        contactId:
+          type: string
+    UpdateVoipCallStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - queued
+            - ringing
+            - in_progress
+            - completed
+            - failed
+            - no_answer
+        durationSeconds:
+          type: integer
+        completedAt:
+          type: integer
+        recordingPath:
+          type: string
+    VoipTranscribeRequest:
+      type: object
+      required:
+        - transcript
+      properties:
+        transcript:
+          type: string
+    VoipSummariseRequest:
+      type: object
+      required:
+        - summary
+      properties:
+        summary:
+          type: string
+    OutreachStep:
+      type: object
+      required:
+        - subject
+        - body
+        - delayDays
+      properties:
+        subject:
+          type: string
+        body:
+          type: string
+        delayDays:
+          type: integer
+    OutreachSequence:
+      type: object
+      required:
+        - id
+        - accountId
+        - name
+        - steps
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutreachStep"
+        status:
+          type: string
+          enum:
+            - active
+            - paused
+            - archived
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    OutreachSequenceListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutreachSequence"
+        nextCursor:
+          type: string
+          nullable: true
+    OutreachSequenceListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/OutreachSequenceListPage"
+    OutreachSequenceResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/OutreachSequence"
+    CreateOutreachSequenceRequest:
+      type: object
+      required:
+        - accountId
+        - name
+        - steps
+      properties:
+        accountId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutreachStep"
+    OutreachSequenceStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - active
+            - paused
+            - archived
+    OutreachEnrolment:
+      type: object
+      required:
+        - id
+        - sequenceId
+        - contactId
+        - status
+        - currentStep
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        sequenceId:
+          type: string
+        contactId:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - completed
+            - replied
+            - paused
+            - stopped
+        currentStep:
+          type: integer
+        nextSendAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastSentAt:
+          type: string
+          format: date-time
+          nullable: true
+        repliedAt:
+          type: string
+          format: date-time
+          nullable: true
+        threadId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    OutreachEnrolmentListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutreachEnrolment"
+        nextCursor:
+          type: string
+          nullable: true
+    OutreachEnrolmentListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/OutreachEnrolmentListPage"
+    OutreachEnrolmentResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/OutreachEnrolment"
+    EnrolOutreachContactRequest:
+      type: object
+      required:
+        - sequenceId
+        - contactId
+      properties:
+        sequenceId:
+          type: string
+        contactId:
+          type: string
+        startAt:
+          type: integer
+    OutreachRunRequest:
+      type: object
+      properties:
+        now:
+          type: integer
+    OutreachRunResult:
+      type: object
+      required:
+        - enrolmentsScanned
+        - stepsSent
+        - repliesDetected
+        - completed
+      properties:
+        enrolmentsScanned:
+          type: integer
+        stepsSent:
+          type: integer
+        repliesDetected:
+          type: integer
+        completed:
+          type: integer
+    OutreachRunResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/OutreachRunResult"
+    Contact:
+      type: object
+      required:
+        - id
+        - displayName
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        lastInteractionAt:
+          type: string
+          format: date-time
+          nullable: true
+        followUpAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ContactListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Contact"
+        nextCursor:
+          type: string
+          nullable: true
+    ContactListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ContactListPage"
+    ContactResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/Contact"
+    CreateContactRequest:
+      type: object
+      required:
+        - displayName
+      properties:
+        displayName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        company:
+          type: string
+        notes:
+          type: string
+        followUpAt:
+          type: integer
+    UpdateContactRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        followUpAt:
+          type: integer
+          nullable: true
+    ContactDeleteReceipt:
+      type: object
+      required:
+        - id
+        - deleted
+      properties:
+        id:
+          type: string
+        deleted:
+          type: boolean
+    ContactDeleteResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ContactDeleteReceipt"
+    Interaction:
+      type: object
+      required:
+        - id
+        - contactId
+        - kind
+        - summary
+        - occurredAt
+        - createdAt
+      properties:
+        id:
+          type: string
+        contactId:
+          type: string
+        kind:
+          type: string
+          enum:
+            - email_in
+            - email_out
+            - call_in
+            - call_out
+            - meeting
+        referenceId:
+          type: string
+          nullable: true
+        summary:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    InteractionListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Interaction"
+        nextCursor:
+          type: string
+          nullable: true
+    InteractionListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/InteractionListPage"

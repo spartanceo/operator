@@ -26,6 +26,9 @@ import {
 import type { TenantContext } from "@workspace/types";
 
 import * as browserService from "./browser.service";
+import { createEvent as createCalendarEvent } from "./comm/calendar.service";
+import { createDraft, sendDraft } from "./comm/email.service";
+import { placeCall as placeVoipCall } from "./comm/voip.service";
 import * as desktopInputService from "./desktop-input.service";
 import * as filesService from "./files.service";
 import * as mediaService from "./media.service";
@@ -440,6 +443,90 @@ const TOOLS: ToolEntry[] = [
         str(input["id"], "id"),
       );
       return { ...asset };
+    },
+  },
+  {
+    name: "comm.email.send",
+    description:
+      "Compose and send an email through a connected account. Creates a draft, then sends it (writes a privacy event).",
+    riskLevel: "medium",
+    handler: async (ctx, input) => {
+      const toRaw = input["to"];
+      const toAddresses = Array.isArray(toRaw)
+        ? toRaw
+            .filter((v): v is string => typeof v === "string" && v.length > 0)
+        : typeof toRaw === "string" && toRaw.length > 0
+          ? [toRaw]
+          : [];
+      if (toAddresses.length === 0) {
+        throw new ToolValidationError(`Field "to" must be a non-empty string or array`);
+      }
+      const draft = await createDraft(ctx, {
+        accountId: str(input["accountId"], "accountId"),
+        toAddresses,
+        subject: str(input["subject"], "subject"),
+        body: str(input["body"], "body"),
+        replyToMessageId:
+          typeof input["replyToMessageId"] === "string"
+            ? (input["replyToMessageId"] as string)
+            : undefined,
+      });
+      const sent = await sendDraft(ctx, draft.id);
+      return { draftId: draft.id, message: sent };
+    },
+  },
+  {
+    name: "comm.calendar.create_event",
+    description: "Create a calendar event on a connected calendar account.",
+    riskLevel: "medium",
+    handler: async (ctx, input) => {
+      const attendeesRaw = input["attendees"];
+      const attendees = Array.isArray(attendeesRaw)
+        ? (attendeesRaw as Array<Record<string, unknown>>)
+            .filter((a) => a && typeof a === "object" && typeof a["email"] === "string")
+            .map((a) => ({
+              email: a["email"] as string,
+              name: typeof a["name"] === "string" ? (a["name"] as string) : undefined,
+              response:
+                typeof a["response"] === "string"
+                  ? (a["response"] as
+                      | "accepted"
+                      | "declined"
+                      | "tentative"
+                      | "needs_action")
+                  : undefined,
+            }))
+        : [];
+      const event = await createCalendarEvent(ctx, {
+        accountId: str(input["accountId"], "accountId"),
+        title: str(input["title"], "title"),
+        startsAt: intOr(input["startsAt"], Date.now()),
+        endsAt: intOr(input["endsAt"], Date.now() + 30 * 60 * 1000),
+        description:
+          typeof input["description"] === "string"
+            ? (input["description"] as string)
+            : undefined,
+        location:
+          typeof input["location"] === "string" ? (input["location"] as string) : undefined,
+        attendees,
+      });
+      return { event };
+    },
+  },
+  {
+    name: "comm.voip.call",
+    description: "Place an outbound VoIP call through a connected Twilio account.",
+    riskLevel: "high",
+    handler: async (ctx, input) => {
+      const call = await placeVoipCall(ctx, {
+        accountId: str(input["accountId"], "accountId"),
+        toNumber: str(input["toNumber"], "toNumber"),
+        contactId:
+          typeof input["contactId"] === "string"
+            ? (input["contactId"] as string)
+            : undefined,
+      });
+      return { call };
     },
   },
 ];

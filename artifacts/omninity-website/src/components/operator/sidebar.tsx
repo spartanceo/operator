@@ -6,6 +6,7 @@ import {
   Shield,
   Brain,
   Library,
+  Inbox,
   Settings,
   ArrowLeft,
   Monitor,
@@ -30,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/privacy", label: "Privacy", icon: Shield },
   { href: "/memory", label: "Memory", icon: Brain },
   { href: "/knowledge", label: "Knowledge", icon: Library },
+  { href: "/communications", label: "Communications", icon: Inbox },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

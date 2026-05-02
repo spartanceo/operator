@@ -200,6 +200,7 @@ const VERSION_EXEMPT_KEYWORDS = [
   "migration",
   "junction",
   "membership",
+  "interaction",
 ];
 
 function checkDrizzleSchema(): CheckResult {
