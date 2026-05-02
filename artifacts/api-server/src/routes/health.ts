@@ -1,11 +1,28 @@
+/**
+ * /healthz — public health probe.
+ *
+ * Returns the canonical envelope (Standard 1). Reports the running version
+ * (from `npm_package_version` injected by pnpm at runtime, falling back to
+ * `0.0.0` for dev) and the current server time so callers can detect clock
+ * skew.
+ *
+ * This route is intentionally cheap — no DB hit. A deeper readiness probe
+ * that pings the DB and Ollama lives in Task #36 (Resource Governor).
+ */
 import { Router, type IRouter } from "express";
-import { HealthCheckResponse } from "@workspace/api-zod";
+
+import { ok } from "../lib/api-envelope";
 
 const router: IRouter = Router();
 
 router.get("/healthz", (_req, res) => {
-  const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json(data);
+  res.json(
+    ok({
+      status: "ok" as const,
+      version: process.env["npm_package_version"] ?? "0.0.0",
+      time: new Date().toISOString(),
+    }),
+  );
 });
 
 export default router;

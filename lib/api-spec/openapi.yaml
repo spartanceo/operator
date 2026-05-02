@@ -3,34 +3,213 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: |
+    Omninity Operator HTTP API.
+
+    Every 2xx response conforms to the canonical envelope shape defined in
+    `Standard 1` of the bug-prevention standards: `{ success, data, error }`.
+    Collection endpoints further wrap their payload in
+    `{ items, nextCursor }` per `Standard 13`.
+
+    Tenant context is supplied via the `X-Tenant-ID` header until the
+    authentication task lands; thereafter the JWT replaces the header.
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+    description: Health and readiness probes
+  - name: admin
+    description: Tenant-administration endpoints (GDPR data export / erasure)
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
+      description: |
+        Returns server health status. Always responds 200; payload reports
+        the running version and the current server time so callers can detect
+        clock skew.
       responses:
         "200":
           description: Healthy
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthStatus"
+                $ref: "#/components/schemas/HealthCheckResponse"
+
+  /admin/tenant-data:
+    get:
+      operationId: exportTenantData
+      tags: [admin]
+      summary: Export the requesting tenant's data (GDPR portability)
+      description: |
+        Returns a structured snapshot of every record the requesting tenant
+        owns. Synchronous in v1; switches to a job-based flow once datasets
+        grow past the inline budget.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Tenant data snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantDataExportResponse"
+        "404":
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: eraseTenantData
+      tags: [admin]
+      summary: Erase the requesting tenant's data (GDPR erasure)
+      description: |
+        Marks the tenant and every record it owns as `erased`. Soft-delete in
+        v1 so support can recover a mistakenly-erased tenant within 30 days;
+        a follow-up nightly job hard-deletes once the grace window expires.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Erasure scheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantErasureResponse"
+        "404":
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
 components:
+  parameters:
+    TenantHeader:
+      name: X-Tenant-ID
+      in: header
+      required: true
+      description: |
+        Tenant identifier. Replaced by JWT-derived context once auth lands
+        in Task #4 — until then this header is the request's tenant context.
+      schema:
+        type: string
+
   schemas:
     HealthStatus:
       type: object
+      required: [status, version, time]
       properties:
         status:
           type: string
-      required:
-        - status
+          enum: [ok]
+        version:
+          type: string
+          description: Running server version (semver).
+        time:
+          type: string
+          format: date-time
 
+    HealthCheckResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/HealthStatus"
+
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    ApiErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          $ref: "#/components/schemas/ApiError"
+
+    TenantDataExport:
+      type: object
+      required: [tenant, workspaces, exportedAt]
+      properties:
+        tenant:
+          type: object
+          required: [id, name, status, createdAt]
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            status:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+        workspaces:
+          type: array
+          items:
+            type: object
+            required: [id, name, createdAt]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+        exportedAt:
+          type: string
+          format: date-time
+
+    TenantDataExportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/TenantDataExport"
+
+    TenantErasureReceipt:
+      type: object
+      required: [tenantId, status, scheduledAt]
+      properties:
+        tenantId:
+          type: string
+        status:
+          type: string
+          enum: [erased]
+        scheduledAt:
+          type: string
+          format: date-time
+
+    TenantErasureResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/TenantErasureReceipt"

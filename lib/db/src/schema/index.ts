@@ -1,20 +1,14 @@
-// Export your models here. Add one export per file
-// export * from "./posts";
-//
-// Each model/table should ideally be split into different files.
-// Each model/table should define a Drizzle table, insert schema, and types:
-//
-//   import { pgTable, text, serial } from "drizzle-orm/pg-core";
-//   import { createInsertSchema } from "drizzle-zod";
-//   import { z } from "zod/v4";
-//
-//   export const postsTable = pgTable("posts", {
-//     id: serial("id").primaryKey(),
-//     title: text("title").notNull(),
-//   });
-//
-//   export const insertPostSchema = createInsertSchema(postsTable).omit({ id: true });
-//   export type InsertPost = z.infer<typeof insertPostSchema>;
-//   export type Post = typeof postsTable.$inferSelect;
-
-export {}
+/**
+ * Schema barrel — every table the database knows about is exported from here.
+ *
+ * Conventions enforced by the tier-review gate (Standard 6 / Check #5):
+ *  - Every table has columns: `id`, `tenantId`, `createdAt`, `updatedAt`.
+ *  - Mutable records also have a `version` column for optimistic concurrency.
+ *  - Every `tenant_id` / `workspace_id` / `.references(...)` column has a
+ *    matching `index(...)` entry inside the table's index callback
+ *    (Standard 13 / Check #17).
+ *
+ * See `../README.md` for the canonical pattern to copy when adding a table.
+ */
+export * from "./tenants";
+export * from "./workspaces";

@@ -1,14 +1,72 @@
-import express, { type Express } from "express";
+/**
+ * Express app composition.
+ *
+ * Middleware order (each layer is in this order for a reason):
+ *   1. helmet            — security headers BEFORE any handler runs.
+ *   2. cors              — explicit allowlist; never `*` (Standard 12).
+ *   3. requestId         — assign trace id used by every later log line.
+ *   4. pinoHttp          — structured request log with the trace id bound.
+ *   5. defaultLimiter    — coarse rate limit before parsing.
+ *   6. body parsers      — bounded sizes; reject oversize payloads early.
+ *   7. tenantContext     — populate AsyncLocalStorage from headers.
+ *   8. /api router       — application routes.
+ *   9. notFoundHandler   — final 404 in canonical envelope.
+ *  10. errorHandler      — catch-all error in canonical envelope.
+ */
 import cors from "cors";
+import express, { type Express } from "express";
+import helmet from "helmet";
 import pinoHttp from "pino-http";
-import router from "./routes";
+
 import { logger } from "./lib/logger";
+import { allowedOrigins, cspDirectives } from "./lib/security";
+import {
+  defaultLimiter,
+  errorHandler,
+  notFoundHandler,
+  requestId,
+  tenantContext,
+} from "./middlewares";
+import router from "./routes";
 
 const app: Express = express();
 
+// 1. Security headers + locked-down CSP.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: cspDirectives(),
+    },
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+
+// 2. CORS allowlist — Standard 12 forbids `*` / `true`.
+const origins = allowedOrigins();
+app.use(
+  cors({
+    origin: (incoming, cb) => {
+      // Same-origin (no Origin header) is always allowed.
+      if (!incoming) {
+        cb(null, true);
+        return;
+      }
+      cb(null, origins.includes(incoming));
+    },
+    credentials: true,
+  }),
+);
+
+// 3 + 4. Request id then structured logging — id is bound on res.locals
+// so the pino serializer can pick it up.
+app.use(requestId());
 app.use(
   pinoHttp({
     logger,
+    customProps: (_req, res) => ({
+      requestId: res.locals["requestId"],
+    }),
     serializers: {
       req(req) {
         return {
@@ -25,10 +83,22 @@ app.use(
     },
   }),
 );
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
+// 5. Coarse rate limit — auth + LLM routes layer their own limits later.
+app.use(defaultLimiter);
+
+// 6. Body parsers with explicit size caps (Standard 12 — bounded inputs).
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+// 7. Populate AsyncLocalStorage tenant context from headers.
+app.use(tenantContext());
+
+// 8. Application routes.
 app.use("/api", router);
+
+// 9 + 10. 404 + error envelope.
+app.use(notFoundHandler());
+app.use(errorHandler());
 
 export default app;

@@ -48,13 +48,26 @@ export default defineConfig({
       },
     },
     output: {
+      // NOTE: We deliberately do NOT set `schemas: { type: "typescript" }`
+      // here. Doing so causes orval to also emit TS interface declarations
+      // alongside the zod schemas — and to auto-rewrite `src/index.ts` to
+      // re-export both, which produces duplicate-name errors (e.g.
+      // `HealthCheckResponse` exists as both a `const` (zod schema) and an
+      // `interface`). Consumers needing TS types should either:
+      //   (a) `z.infer<typeof Schema>` on the zod schema (preferred), or
+      //   (b) import from `@workspace/api-client-react` (TS-only generated
+      //        client).
       workspace: apiZodSrc,
       client: "zod",
       target: "generated",
-      schemas: { path: "generated/types", type: "typescript" },
       mode: "split",
       clean: true,
       prettier: true,
+      // Prevent orval from auto-(re)writing `lib/api-zod/src/index.ts` on
+      // every codegen run. We curate that file by hand so the package
+      // re-exports only the zod schemas (the TS-types path lives in
+      // `@workspace/api-client-react`).
+      indexFiles: false,
       override: {
         zod: {
           coerce: {
