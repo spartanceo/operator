@@ -3028,6 +3028,93 @@ export function useGetModelsHardware<
 }
 
 /**
+ * Drops the in-memory + on-disk hardware snapshot and re-runs detection.
+Used by the Settings "Re-detect hardware" action after a user upgrades
+RAM, swaps machines, or otherwise changes their host. Returns the same
+payload shape as `GET /models/hardware` so the caller can re-render
+immediately without a follow-up request.
+
+ * @summary Force re-detection of host hardware (clears the cache)
+ */
+export const getRedetectHardwareUrl = () => {
+  return `/api/models/hardware/redetect`;
+};
+
+export const redetectHardware = async (
+  options?: RequestInit,
+): Promise<ModelHardwareResponse> => {
+  return customFetch<ModelHardwareResponse>(getRedetectHardwareUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRedetectHardwareMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof redetectHardware>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof redetectHardware>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["redetectHardware"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof redetectHardware>>,
+    void
+  > = () => {
+    return redetectHardware(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RedetectHardwareMutationResult = NonNullable<
+  Awaited<ReturnType<typeof redetectHardware>>
+>;
+
+export type RedetectHardwareMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Force re-detection of host hardware (clears the cache)
+ */
+export const useRedetectHardware = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof redetectHardware>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof redetectHardware>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRedetectHardwareMutationOptions(options));
+};
+
+/**
  * Static, data-driven list backing the onboarding chooser and the
 Settings model-swap UI. Adding a model is a one-entry edit in
 `services/hardware/catalogue.ts` (Standard 12 — config as data).

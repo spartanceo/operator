@@ -17,6 +17,7 @@ import {
   usePullModel,
   useGetCurrentUser,
 } from "@workspace/api-client-react";
+import { HardwareModelSettings } from "@/components/operator/hardware-model-settings";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettings } from "@/contexts/settings-context";
 import { useTheme } from "@/contexts/theme-context";
@@ -228,18 +229,21 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <HardwareModelSettings />
+
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Models</CardTitle>
+            <CardTitle className="text-base">Pull custom model</CardTitle>
             <CardDescription className="text-xs">
-              Local models reported by the API. Pull a new one by name.
+              All local models reported by Ollama, plus a manual `pull` for
+              models outside the curated catalogue (advanced).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <ErrorBanner error={modelsQuery.error} />
             <div>
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Available
+                Installed locally
               </p>
               <div
                 className="mt-2 flex flex-wrap gap-1"
@@ -264,7 +268,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Pull a model
+                Pull a model by name
               </label>
               <div className="mt-1 flex gap-2">
                 <Input

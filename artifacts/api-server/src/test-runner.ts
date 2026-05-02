@@ -603,6 +603,24 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "POST /api/models/hardware/redetect clears cache and returns fresh plan",
+    run: async () => {
+      // First call to /hardware populates the in-memory cache from the
+      // OMNINITY_HARDWARE_OVERRIDE profile; redetect must drop it and
+      // return a 200 with the same plan shape (still 16GB Apple Silicon
+      // because the override is set process-wide).
+      await request(app).get("/api/models/hardware").set("X-Tenant-ID", TENANT);
+      const res = await request(app)
+        .post("/api/models/hardware/redetect")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.data.hardware.tier, "high");
+      assert.ok(res.body.data.plan);
+      assert.equal(res.body.data.plan.primary.id, "llama3.1:8b");
+    },
+  },
+  {
     name: "feature flag off: hardware-aware routes return 404 FEATURE_DISABLED",
     run: async () => {
       const prev =
@@ -626,6 +644,11 @@ const cases: TestCase[] = [
           .send({ primaryModel: "phi3:mini" });
         assert.equal(sel.status, 404);
         assert.equal(sel.body.error.code, "FEATURE_DISABLED");
+        const re = await request(app)
+          .post("/api/models/hardware/redetect")
+          .set("X-Tenant-ID", TENANT);
+        assert.equal(re.status, 404);
+        assert.equal(re.body.error.code, "FEATURE_DISABLED");
       } finally {
         if (prev === undefined) {
           delete process.env["OMNINITY_FEATURE_HARDWARE_AWARE_RECOMMENDATION"];

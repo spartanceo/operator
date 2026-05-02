@@ -719,6 +719,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/ModelHardwareResponse"
 
+  /models/hardware/redetect:
+    post:
+      operationId: redetectHardware
+      tags: [models]
+      summary: Force re-detection of host hardware (clears the cache)
+      description: |
+        Drops the in-memory + on-disk hardware snapshot and re-runs detection.
+        Used by the Settings "Re-detect hardware" action after a user upgrades
+        RAM, swaps machines, or otherwise changes their host. Returns the same
+        payload shape as `GET /models/hardware` so the caller can re-render
+        immediately without a follow-up request.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Re-detected hardware + new plan + min-spec verdict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelHardwareResponse"
+        "404":
+          description: Feature disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
   /models/catalogue:
     get:
       operationId: getModelsCatalogue

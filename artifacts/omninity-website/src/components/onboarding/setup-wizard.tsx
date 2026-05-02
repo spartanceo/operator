@@ -9,8 +9,11 @@ import {
   Wand2,
   AlertTriangle,
   Eye,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import {
+  useGetModelsCatalogue,
   useGetModelsRecommended,
   useGetOnboardingHardware,
   useSelectModel,
@@ -24,6 +27,7 @@ import {
   type SelectModelRequestVisionLifecycleMode,
   type UpsertOnboardingProfileRequest,
 } from "@workspace/api-client-react";
+import { isFeatureDisabledError } from "@/lib/api-errors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -120,11 +124,24 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
   const [installProgress, setInstallProgress] = useState<number | null>(null);
 
   const hardwareQuery = useGetOnboardingHardware();
-  const recommendedQuery = useGetModelsRecommended();
+  const recommendedQuery = useGetModelsRecommended({
+    query: { retry: false } as never,
+  });
+  const catalogueQuery = useGetModelsCatalogue({
+    query: { retry: false } as never,
+  });
   const upsert = useUpsertOnboardingProfile();
   const selectModel = useSelectModel();
 
   const stepIndex = STEPS.indexOf(step);
+
+  // When the hardware-aware feature flag is off, the four /api/models/*
+  // routes return 404 FEATURE_DISABLED. Detect that explicitly so the
+  // wizard falls back to the legacy `/onboarding/hardware` recommendation
+  // path instead of surfacing the 404 as a generic error banner.
+  const featureDisabled =
+    isFeatureDisabledError(recommendedQuery.error) ||
+    isFeatureDisabledError(catalogueQuery.error);
 
   const hardware: HardwareProfile | null =
     hardwareQuery.data?.data.hardware ?? null;
@@ -135,6 +152,8 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
     recommendedQuery.data?.data.plan ?? null;
   const minimumSpec: MinimumSpecVerdict | null =
     recommendedQuery.data?.data.minimumSpec ?? null;
+  const catalogue: ReadonlyArray<ModelCatalogueEntry> =
+    catalogueQuery.data?.data.items ?? [];
 
   // Default chosen model to the recommended primary as soon as the plan
   // loads — keeps "Continue" enabled without forcing a click on the card.
@@ -260,11 +279,16 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
               recommendation={recommendation}
               plan={plan}
               minimumSpec={minimumSpec}
+              catalogue={catalogue}
+              featureDisabled={featureDisabled}
               chosenModel={chosenModel}
               onChooseModel={setChosenModel}
               visionMode={visionMode}
               onChangeVisionMode={setVisionMode}
-              loading={hardwareQuery.isLoading || recommendedQuery.isLoading}
+              loading={
+                hardwareQuery.isLoading ||
+                (!featureDisabled && recommendedQuery.isLoading)
+              }
               installProgress={installProgress}
               onStartInstall={() => setInstallProgress(0)}
             />
@@ -324,8 +348,12 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
                   hardwareQuery.isLoading ||
                   // Hard gate: when the host fails the minimum-spec check
                   // we refuse to complete onboarding so the user never
-                  // ends up on a broken install.
-                  (minimumSpec !== null && !minimumSpec.meetsMinimum)
+                  // ends up on a broken install. When the feature flag is
+                  // off there is no min-spec verdict — the legacy probe is
+                  // permissive and we let the user through.
+                  (!featureDisabled &&
+                    minimumSpec !== null &&
+                    !minimumSpec.meetsMinimum)
                 }
                 data-testid="button-wizard-finish"
               >
@@ -498,11 +526,100 @@ function UseCaseStep({
   );
 }
 
+/** Human-friendly axis labels used by the chooser headings. */
+const USE_CASE_AXIS_LABELS: Record<
+  NonNullable<ModelCatalogueEntry["useCaseAxis"]> | "balanced",
+  { title: string; description: string }
+> = {
+  writing: {
+    title: "Best for writing",
+    description: "Long-form drafting, editing, and conversational quality.",
+  },
+  code: {
+    title: "Best for code",
+    description: "Refactors, code review, tool-use, and structured output.",
+  },
+  balanced: {
+    title: "Best overall — balanced",
+    description: "Strong all-rounder for chat, agents, and everyday tasks.",
+  },
+};
+
+const AXIS_ORDER: ReadonlyArray<keyof typeof USE_CASE_AXIS_LABELS> = [
+  "balanced",
+  "writing",
+  "code",
+];
+
+/** Group catalogue entries by `useCaseAxis`, preferring the recommended
+ *  primary as the visible representative for its axis. */
+function groupChoicesByAxis(
+  choices: ReadonlyArray<ModelCatalogueEntry>,
+  recommendedId: string | null,
+): Array<{
+  axis: keyof typeof USE_CASE_AXIS_LABELS;
+  pick: ModelCatalogueEntry;
+  others: ReadonlyArray<ModelCatalogueEntry>;
+}> {
+  const byAxis = new Map<
+    keyof typeof USE_CASE_AXIS_LABELS,
+    Array<ModelCatalogueEntry>
+  >();
+  for (const m of choices) {
+    const axis = (m.useCaseAxis ?? "balanced") as keyof typeof USE_CASE_AXIS_LABELS;
+    const list = byAxis.get(axis) ?? [];
+    list.push(m);
+    byAxis.set(axis, list);
+  }
+  const out: Array<{
+    axis: keyof typeof USE_CASE_AXIS_LABELS;
+    pick: ModelCatalogueEntry;
+    others: ReadonlyArray<ModelCatalogueEntry>;
+  }> = [];
+  for (const axis of AXIS_ORDER) {
+    const list = byAxis.get(axis);
+    if (!list || list.length === 0) continue;
+    // Prefer the recommended primary as the visible representative when
+    // it lives in this axis; otherwise pick the smallest-RAM entry so the
+    // "writing" / "code" suggestions don't default to the heaviest model.
+    const sorted = [...list].sort(
+      (a, b) => a.ramRequiredBytes - b.ramRequiredBytes,
+    );
+    const recommended = sorted.find((m) => m.id === recommendedId);
+    const pick = recommended ?? sorted[0]!;
+    out.push({
+      axis,
+      pick,
+      others: sorted.filter((m) => m.id !== pick.id),
+    });
+  }
+  return out;
+}
+
+/** Headroom estimate the power-user catalogue uses to badge each model
+ *  as "fits" vs "needs more RAM". Mirrors the recommendation engine's
+ *  arithmetic (primary + vision + system reserve) without re-importing
+ *  server-only constants — the catalogue API already exposes vision RAM. */
+function estimateFits(
+  primary: ModelCatalogueEntry,
+  vision: ModelCatalogueEntry | null,
+  totalRamBytes: number,
+): boolean {
+  const SYSTEM_RESERVE = 2 * 1024 * 1024 * 1024;
+  const need =
+    primary.ramRequiredBytes +
+    (vision ? vision.ramRequiredBytes : 0) +
+    SYSTEM_RESERVE;
+  return need <= totalRamBytes;
+}
+
 function ModelStep({
   hardware,
   recommendation,
   plan,
   minimumSpec,
+  catalogue,
+  featureDisabled,
   chosenModel,
   onChooseModel,
   visionMode,
@@ -515,6 +632,8 @@ function ModelStep({
   recommendation: ModelRecommendation | null;
   plan: ModelInstallPlan | null;
   minimumSpec: MinimumSpecVerdict | null;
+  catalogue: ReadonlyArray<ModelCatalogueEntry>;
+  featureDisabled: boolean;
   chosenModel: string | null;
   onChooseModel: (id: string) => void;
   visionMode: SelectModelRequestVisionLifecycleMode;
@@ -532,6 +651,23 @@ function ModelStep({
     );
   }
 
+  // Feature-flag fallback: the new recommendation engine returned 404
+  // FEATURE_DISABLED. Render the legacy hardware probe + single-line
+  // recommendation so onboarding still finishes; the user just doesn't
+  // see the axis chooser, vision lifecycle controls, or power-user mode.
+  if (featureDisabled) {
+    return (
+      <LegacyModelFallback
+        hardware={hardware}
+        recommendation={recommendation}
+        chosenModel={chosenModel}
+        onChooseModel={onChooseModel}
+        installProgress={installProgress}
+        onStartInstall={onStartInstall}
+      />
+    );
+  }
+
   // Hard min-spec gate — no chooser, no install button. The wizard's
   // "Open Operator" CTA is disabled by `belowMinSpec` (see SetupWizard)
   // so the user can't push past this screen with a degraded install.
@@ -539,42 +675,18 @@ function ModelStep({
     return <MinSpecScreen hardware={hardware} minimumSpec={minimumSpec} />;
   }
 
-  // Build the unique chooser list from plan.primary + plan.alternatives.
+  const recommendedId = plan?.primary.id ?? null;
+  // Build the unique chooser list from plan.primary + plan.alternatives,
+  // then group by use-case axis so the user picks by intent rather than
+  // by raw model name (Task #64 "Done looks like": labelled options).
   const choices: ReadonlyArray<ModelCatalogueEntry> = plan
     ? [plan.primary, ...plan.alternatives]
     : [];
+  const groups = groupChoicesByAxis(choices, recommendedId);
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-md border border-border bg-card p-3">
-          <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-            <HardDrive className="h-3 w-3" /> Memory
-          </p>
-          <p className="mt-1 text-sm font-medium text-foreground">
-            {hardware ? formatBytes(hardware.totalRamBytes) : "—"} total
-          </p>
-          {hardware ? (
-            <p className="text-xs text-muted-foreground">
-              {formatBytes(hardware.freeRamBytes)} free
-            </p>
-          ) : null}
-        </div>
-        <div className="rounded-md border border-border bg-card p-3">
-          <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-            <Cpu className="h-3 w-3" /> CPU
-          </p>
-          <p className="mt-1 text-sm font-medium text-foreground">
-            {hardware ? `${hardware.cpuCount} cores` : "—"}
-          </p>
-          {hardware ? (
-            <p className="truncate text-xs text-muted-foreground">
-              {hardware.arch}
-              {hardware.appleSilicon ? " · Apple Silicon" : ""}
-            </p>
-          ) : null}
-        </div>
-      </div>
+      <HardwarePanels hardware={hardware} />
 
       {plan ? (
         <>
@@ -595,26 +707,30 @@ function ModelStep({
             <p className="mt-1 text-xs text-muted-foreground">{plan.reason}</p>
           </div>
 
-          <div className="space-y-2">
-            {choices.map((m) => {
-              const selected = chosenModel === m.id;
-              const isRecommended = m.id === plan.primary.id;
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Choose another
+            </p>
+            {groups.map(({ axis, pick }) => {
+              const selected = chosenModel === pick.id;
+              const isRecommended = pick.id === recommendedId;
+              const label = USE_CASE_AXIS_LABELS[axis];
               return (
                 <button
-                  key={m.id}
+                  key={axis}
                   type="button"
-                  onClick={() => onChooseModel(m.id)}
+                  onClick={() => onChooseModel(pick.id)}
                   className={cn(
                     "w-full rounded-md border p-3 text-left transition-colors",
                     selected
                       ? "border-primary bg-primary/5"
                       : "border-border hover:bg-muted/30",
                   )}
-                  data-testid={`button-choose-model-${m.id}`}
+                  data-testid={`button-choose-axis-${axis}`}
                 >
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-foreground">
-                      {m.displayName}
+                      {label.title}
                     </p>
                     {isRecommended ? (
                       <Badge
@@ -625,19 +741,34 @@ function ModelStep({
                       </Badge>
                     ) : null}
                     <span className="ml-auto text-xs text-muted-foreground">
-                      {formatBytes(m.sizeBytes)} · {formatBytes(m.ramRequiredBytes)} RAM
+                      {formatBytes(pick.sizeBytes)} ·{" "}
+                      {formatBytes(pick.ramRequiredBytes)} RAM
                     </span>
                     {selected ? (
                       <Check className="h-3.5 w-3.5 text-primary" />
                     ) : null}
                   </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {label.description}
+                  </p>
+                  <p className="mt-1 text-[11px] font-mono text-muted-foreground/80">
+                    {pick.displayName}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {m.tradeoff}
+                    {pick.tradeoff}
                   </p>
                 </button>
               );
             })}
           </div>
+
+          <PowerUserCatalogue
+            catalogue={catalogue}
+            hardware={hardware}
+            chosenModel={chosenModel}
+            recommendedId={recommendedId}
+            onChooseModel={onChooseModel}
+          />
 
           {plan.companions.length > 0 ? (
             <div className="rounded-md border border-border bg-card p-3">
@@ -714,6 +845,218 @@ function ModelStep({
         You can swap models any time from Settings. Skipping the pull is fine —
         you can install later.
       </p>
+    </div>
+  );
+}
+
+function HardwarePanels({ hardware }: { hardware: HardwareProfile | null }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="rounded-md border border-border bg-card p-3">
+        <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+          <HardDrive className="h-3 w-3" /> Memory
+        </p>
+        <p className="mt-1 text-sm font-medium text-foreground">
+          {hardware ? formatBytes(hardware.totalRamBytes) : "—"} total
+        </p>
+        {hardware ? (
+          <p className="text-xs text-muted-foreground">
+            {formatBytes(hardware.freeRamBytes)} free
+          </p>
+        ) : null}
+      </div>
+      <div className="rounded-md border border-border bg-card p-3">
+        <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+          <Cpu className="h-3 w-3" /> CPU
+        </p>
+        <p className="mt-1 text-sm font-medium text-foreground">
+          {hardware ? `${hardware.cpuCount} cores` : "—"}
+        </p>
+        {hardware ? (
+          <p className="truncate text-xs text-muted-foreground">
+            {hardware.arch}
+            {hardware.appleSilicon ? " · Apple Silicon" : ""}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function PowerUserCatalogue({
+  catalogue,
+  hardware,
+  chosenModel,
+  recommendedId,
+  onChooseModel,
+}: {
+  catalogue: ReadonlyArray<ModelCatalogueEntry>;
+  hardware: HardwareProfile | null;
+  chosenModel: string | null;
+  recommendedId: string | null;
+  onChooseModel: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const primaries = catalogue.filter((m) => m.role === "primary");
+  const vision = catalogue.find((m) => m.role === "vision") ?? null;
+  if (primaries.length === 0) return null;
+
+  return (
+    <div className="rounded-md border border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-muted/30"
+        data-testid="button-toggle-power-user"
+      >
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+        )}
+        Power user: see all models
+        <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+          {primaries.length} primaries · vision bundled
+        </span>
+      </button>
+      {open ? (
+        <div className="border-t border-border p-2">
+          <p className="px-1 pb-2 text-[11px] text-muted-foreground">
+            The bundled vision companion (
+            <span className="font-mono">{vision?.displayName ?? "—"}</span>) is
+            loaded on demand alongside whichever primary you pick. Models
+            below are tagged by whether they fit your detected hardware.
+          </p>
+          <div className="space-y-1.5">
+            {primaries.map((m) => {
+              const fits = hardware
+                ? estimateFits(m, vision, hardware.totalRamBytes)
+                : true;
+              const selected = chosenModel === m.id;
+              const isRecommended = m.id === recommendedId;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => onChooseModel(m.id)}
+                  className={cn(
+                    "w-full rounded-md border p-2.5 text-left text-xs transition-colors",
+                    selected
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/30",
+                  )}
+                  data-testid={`button-choose-model-${m.id}`}
+                >
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-mono text-foreground">{m.id}</span>
+                    {isRecommended ? (
+                      <Badge variant="secondary" className="text-[9px] uppercase">
+                        Recommended
+                      </Badge>
+                    ) : null}
+                    <Badge
+                      variant={fits ? "outline" : "destructive"}
+                      className="text-[9px] uppercase"
+                    >
+                      {fits ? "Fits" : "Needs more RAM"}
+                    </Badge>
+                    <span className="ml-auto text-[11px] text-muted-foreground">
+                      {formatBytes(m.sizeBytes)} ·{" "}
+                      {formatBytes(m.ramRequiredBytes)} RAM
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {m.displayName} · {m.capabilities.join(" · ")}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function LegacyModelFallback({
+  hardware,
+  recommendation,
+  chosenModel,
+  onChooseModel,
+  installProgress,
+  onStartInstall,
+}: {
+  hardware: HardwareProfile | null;
+  recommendation: ModelRecommendation | null;
+  chosenModel: string | null;
+  onChooseModel: (id: string) => void;
+  installProgress: number | null;
+  onStartInstall: () => void;
+}) {
+  // Auto-pick the legacy recommendation as the chosen model so "Open
+  // Operator" can complete the wizard even when the new chooser is off.
+  useEffect(() => {
+    if (chosenModel === null && recommendation) {
+      onChooseModel(recommendation.model);
+    }
+  }, [chosenModel, recommendation, onChooseModel]);
+
+  return (
+    <div className="space-y-4">
+      <HardwarePanels hardware={hardware} />
+      <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5" />
+        <p>
+          Hardware-aware recommendations are turned off on this server. Falling
+          back to the basic recommendation — you can swap models any time from
+          Settings.
+        </p>
+      </div>
+      {recommendation ? (
+        <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+          <div className="flex items-center gap-2">
+            <Wand2 className="h-4 w-4 text-primary" />
+            <p className="text-sm font-medium text-foreground">
+              Recommended model
+            </p>
+            <Badge variant="outline" className="ml-auto text-[10px] uppercase">
+              {recommendation.tier}
+            </Badge>
+          </div>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">
+            {recommendation.model} ·{" "}
+            {formatBytes(recommendation.sizeBytes)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {recommendation.reason}
+          </p>
+          {installProgress === null ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={onStartInstall}
+              data-testid="button-install-model"
+            >
+              <Download className="mr-2 h-3.5 w-3.5" />
+              Pull model
+            </Button>
+          ) : (
+            <div className="mt-3 space-y-1.5">
+              <Progress value={installProgress} className="h-1.5" />
+              <p className="text-xs text-muted-foreground">
+                {installProgress >= 100
+                  ? "Model ready."
+                  : `Pulling ${chosenModel ?? recommendation.model} — ${installProgress}%`}
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs italic text-muted-foreground">
+          Hardware probe still loading…
+        </p>
+      )}
     </div>
   );
 }

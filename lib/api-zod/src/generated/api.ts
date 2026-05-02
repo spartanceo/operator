@@ -1161,6 +1161,107 @@ export const GetModelsHardwareResponse = zod.object({
 });
 
 /**
+ * Drops the in-memory + on-disk hardware snapshot and re-runs detection.
+Used by the Settings "Re-detect hardware" action after a user upgrades
+RAM, swaps machines, or otherwise changes their host. Returns the same
+payload shape as `GET /models/hardware` so the caller can re-render
+immediately without a follow-up request.
+
+ * @summary Force re-detection of host hardware (clears the cache)
+ */
+export const RedetectHardwareHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RedetectHardwareResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    hardware: zod.object({
+      platform: zod
+        .string()
+        .describe("Node `os.platform()` — e.g. `darwin`, `win32`, `linux`."),
+      arch: zod.string().describe("Node `os.arch()` — e.g. `arm64`, `x64`."),
+      cpuCount: zod.number(),
+      cpuModel: zod.string().nullish(),
+      totalRamBytes: zod.number(),
+      freeRamBytes: zod.number(),
+      appleSilicon: zod.boolean(),
+      tier: zod
+        .enum(["low", "mid", "high", "pro"])
+        .describe(
+          "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
+        ),
+      detectedAt: zod.coerce.date(),
+      osVersion: zod
+        .string()
+        .nullish()
+        .describe("Node `os.release()` snapshot."),
+      gpu: zod
+        .object({
+          vendor: zod.string(),
+          kind: zod.string(),
+          vramBytes: zod.number().optional(),
+        })
+        .nullish(),
+    }),
+    plan: zod
+      .object({
+        primary: zod.object({
+          id: zod.string(),
+          displayName: zod.string(),
+          family: zod.string(),
+          role: zod.enum(["primary", "vision", "embedding"]),
+          sizeBytes: zod.number(),
+          ramRequiredBytes: zod.number(),
+          minTier: zod.enum(["low", "mid", "high", "pro"]),
+          capabilities: zod.array(zod.string()),
+          tradeoff: zod.string(),
+          useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
+        }),
+        companions: zod.array(
+          zod.object({
+            id: zod.string(),
+            displayName: zod.string(),
+            role: zod.enum(["primary", "vision", "embedding"]),
+            sizeBytes: zod.number(),
+            ramRequiredBytes: zod.number(),
+          }),
+        ),
+        totalDownloadBytes: zod.number(),
+        totalRamBytes: zod.number(),
+        fitsHardware: zod.boolean(),
+        tier: zod.enum(["low", "mid", "high", "pro"]),
+        reason: zod.string(),
+        alternatives: zod.array(
+          zod.object({
+            id: zod.string(),
+            displayName: zod.string(),
+            family: zod.string(),
+            role: zod.enum(["primary", "vision", "embedding"]),
+            sizeBytes: zod.number(),
+            ramRequiredBytes: zod.number(),
+            minTier: zod.enum(["low", "mid", "high", "pro"]),
+            capabilities: zod.array(zod.string()),
+            tradeoff: zod.string(),
+            useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
+          }),
+        ),
+      })
+      .nullable(),
+    minimumSpec: zod.object({
+      meetsMinimum: zod.boolean(),
+      minimumRamBytes: zod.number(),
+      detectedRamBytes: zod.number(),
+      message: zod.string(),
+    }),
+  }),
+});
+
+/**
  * Static, data-driven list backing the onboarding chooser and the
 Settings model-swap UI. Adding a model is a one-entry edit in
 `services/hardware/catalogue.ts` (Standard 12 — config as data).

@@ -21,6 +21,7 @@ import { requireTenantContext } from "../../lib/tenant-context";
 import { requireTenant } from "../../middlewares/tenant-context";
 import {
   buildModelInstallPlan,
+  clearHardwareCache,
   evaluateMinimumSpec,
   getEffectiveModelPreferences,
   getHardwareProfile,
@@ -106,6 +107,26 @@ router.get(
   requireTenant(),
   async (_req, res, next) => {
     try {
+      const hardware = getHardwareProfile();
+      const plan = buildModelInstallPlan(hardware);
+      const minimumSpec = evaluateMinimumSpec(hardware);
+      res.json(ok({ hardware, plan, minimumSpec }));
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
+router.post(
+  "/hardware/redetect",
+  requireHardwareAwareFlag,
+  requireTenant(),
+  async (_req, res, next) => {
+    try {
+      // Drop the cached snapshot (in-memory + on-disk) and probe again.
+      // Same response shape as GET /models/hardware so the Settings UI
+      // can swap the rendered hardware/plan without a follow-up request.
+      clearHardwareCache();
       const hardware = getHardwareProfile();
       const plan = buildModelInstallPlan(hardware);
       const minimumSpec = evaluateMinimumSpec(hardware);
