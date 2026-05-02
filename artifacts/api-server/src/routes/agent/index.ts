@@ -35,6 +35,8 @@ const router: IRouter = Router();
 const CreateRunSchema = z.object({
   goal: z.string().min(1).max(4000),
   modelName: z.string().min(1).max(200).optional(),
+  useKnowledgeBase: z.boolean().optional(),
+  knowledgeCollectionId: z.string().min(1).max(120).optional(),
 });
 
 const PageSchema = z.object({

@@ -1024,6 +1024,235 @@ export interface DesktopScreenResponse {
   data: DesktopScreenFrame;
 }
 
+export interface KnowledgeCollection {
+  id: string;
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  documentCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KnowledgeCollectionListPage {
+  items: KnowledgeCollection[];
+  nextCursor: string | null;
+}
+
+export interface KnowledgeCollectionListResponse {
+  success: boolean;
+  data: KnowledgeCollectionListPage;
+}
+
+export interface KnowledgeCollectionResponse {
+  success: boolean;
+  data: KnowledgeCollection;
+}
+
+export interface CreateKnowledgeCollectionRequest {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  name: string;
+  /** @maxLength 2000 */
+  description?: string;
+  /** @maxLength 32 */
+  color?: string;
+}
+
+export interface KnowledgeDocument {
+  id: string;
+  collectionId?: string | null;
+  title: string;
+  sourceType: string;
+  sourceUri?: string | null;
+  mimeType?: string | null;
+  contentHash: string;
+  sizeBytes: number;
+  chunkCount: number;
+  summary?: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KnowledgeDocumentListPage {
+  items: KnowledgeDocument[];
+  nextCursor: string | null;
+}
+
+export interface KnowledgeDocumentListResponse {
+  success: boolean;
+  data: KnowledgeDocumentListPage;
+}
+
+export interface KnowledgeChunkSummary {
+  id: string;
+  position: number;
+  text: string;
+  tokens: number;
+}
+
+export interface KnowledgeDocumentDetail {
+  document: KnowledgeDocument;
+  body: string;
+  chunks: KnowledgeChunkSummary[];
+}
+
+export interface KnowledgeDocumentDetailResponse {
+  success: boolean;
+  data: KnowledgeDocumentDetail;
+}
+
+export type IngestKnowledgeDocumentRequestSourceType =
+  (typeof IngestKnowledgeDocumentRequestSourceType)[keyof typeof IngestKnowledgeDocumentRequestSourceType];
+
+export const IngestKnowledgeDocumentRequestSourceType = {
+  text: "text",
+  url: "url",
+  file: "file",
+  youtube: "youtube",
+} as const;
+
+export interface IngestKnowledgeDocumentRequest {
+  sourceType: IngestKnowledgeDocumentRequestSourceType;
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  title: string;
+  /** Required for sourceType=text or sourceType=file (raw text content) */
+  body?: string;
+  /** Required for sourceType=url or sourceType=youtube */
+  url?: string;
+  mimeType?: string;
+  collectionId?: string;
+  /** @maxItems 20 */
+  tags?: string[];
+  /** When true, ingestion proceeds even if an existing document hash matches. */
+  allowDuplicate?: boolean;
+}
+
+export interface IngestKnowledgeDocumentResult {
+  document: KnowledgeDocument;
+  duplicate: boolean;
+  existingDocumentId?: string | null;
+}
+
+export interface IngestKnowledgeDocumentResponse {
+  success: boolean;
+  data: IngestKnowledgeDocumentResult;
+}
+
+export interface KnowledgeSearchRequest {
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  query: string;
+  /**
+   * @minimum 1
+   * @maximum 50
+   */
+  limit?: number;
+  collectionId?: string;
+}
+
+export interface KnowledgeSearchHit {
+  chunkId: string;
+  documentId: string;
+  documentTitle: string;
+  position: number;
+  snippet: string;
+  score: number;
+  vectorScore: number;
+  textScore: number;
+  sourceUri?: string | null;
+}
+
+export interface KnowledgeSearchResult {
+  query: string;
+  hits: KnowledgeSearchHit[];
+}
+
+export interface KnowledgeSearchResponse {
+  success: boolean;
+  data: KnowledgeSearchResult;
+}
+
+export interface KnowledgeStats {
+  documentCount: number;
+  collectionCount: number;
+  chunkCount: number;
+  totalSizeBytes: number;
+  lastUpdatedAt: string | null;
+}
+
+export interface KnowledgeStatsResponse {
+  success: boolean;
+  data: KnowledgeStats;
+}
+
+export interface KnowledgeDeleteReceipt {
+  id: string;
+  deleted: boolean;
+}
+
+export interface KnowledgeDeleteResponse {
+  success: boolean;
+  data: KnowledgeDeleteReceipt;
+}
+
+export interface KnowledgeExportDocument {
+  id: string;
+  collectionId?: string | null;
+  title: string;
+  sourceType: string;
+  sourceUri?: string | null;
+  mimeType?: string | null;
+  body: string;
+  contentHash: string;
+  tags: string[];
+  summary?: string | null;
+  createdAt: string;
+}
+
+export interface KnowledgeExport {
+  exportedAt: string;
+  version: string;
+  collections: KnowledgeCollection[];
+  documents: KnowledgeExportDocument[];
+}
+
+export interface KnowledgeExportResponse {
+  success: boolean;
+  data: KnowledgeExport;
+}
+
+export interface KnowledgeImportRequest {
+  snapshot: KnowledgeExport;
+  replaceExisting?: boolean;
+}
+
+export interface KnowledgeImportError {
+  title: string;
+  sourceDocumentId: string;
+  message: string;
+}
+
+export interface KnowledgeImportReceipt {
+  collectionsImported: number;
+  documentsImported: number;
+  documentsSkipped: number;
+  errors: KnowledgeImportError[];
+}
+
+export interface KnowledgeImportResponse {
+  success: boolean;
+  data: KnowledgeImportReceipt;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -1183,4 +1412,31 @@ export type ListDesktopSessionStepsParams = {
    * @maximum 100
    */
   limit?: LimitParamParameter;
+};
+
+export type ListKnowledgeCollectionsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListKnowledgeDocumentsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  collectionId?: string;
 };

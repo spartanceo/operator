@@ -2236,3 +2236,466 @@ export const ExecuteDesktopStepResponse = zod.object({
     updatedAt: zod.coerce.date(),
   }),
 });
+
+/**
+ * @summary List knowledge-base collections
+ */
+export const listKnowledgeCollectionsQueryLimitDefault = 20;
+export const listKnowledgeCollectionsQueryLimitMax = 100;
+
+export const ListKnowledgeCollectionsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listKnowledgeCollectionsQueryLimitMax)
+    .default(listKnowledgeCollectionsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListKnowledgeCollectionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListKnowledgeCollectionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        color: zod.string().nullish(),
+        documentCount: zod.number(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a new collection
+ */
+export const CreateKnowledgeCollectionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const createKnowledgeCollectionBodyNameMax = 200;
+
+export const createKnowledgeCollectionBodyDescriptionMax = 2000;
+
+export const createKnowledgeCollectionBodyColorMax = 32;
+
+export const CreateKnowledgeCollectionBody = zod.object({
+  name: zod.string().min(1).max(createKnowledgeCollectionBodyNameMax),
+  description: zod
+    .string()
+    .max(createKnowledgeCollectionBodyDescriptionMax)
+    .optional(),
+  color: zod.string().max(createKnowledgeCollectionBodyColorMax).optional(),
+});
+
+export const CreateKnowledgeCollectionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    color: zod.string().nullish(),
+    documentCount: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Delete a collection (its documents are unlinked, not erased)
+ */
+export const DeleteKnowledgeCollectionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteKnowledgeCollectionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteKnowledgeCollectionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary List ingested documents
+ */
+export const listKnowledgeDocumentsQueryLimitDefault = 20;
+export const listKnowledgeDocumentsQueryLimitMax = 100;
+
+export const ListKnowledgeDocumentsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listKnowledgeDocumentsQueryLimitMax)
+    .default(listKnowledgeDocumentsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  collectionId: zod.coerce.string().optional(),
+});
+
+export const ListKnowledgeDocumentsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListKnowledgeDocumentsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        collectionId: zod.string().nullish(),
+        title: zod.string(),
+        sourceType: zod.string(),
+        sourceUri: zod.string().nullish(),
+        mimeType: zod.string().nullish(),
+        contentHash: zod.string(),
+        sizeBytes: zod.number(),
+        chunkCount: zod.number(),
+        summary: zod.string().nullish(),
+        tags: zod.array(zod.string()),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Ingest text, paste, URL, or YouTube content into the knowledge base
+ */
+export const IngestKnowledgeDocumentHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ingestKnowledgeDocumentBodyTitleMax = 500;
+
+export const ingestKnowledgeDocumentBodyTagsItemMax = 80;
+
+export const ingestKnowledgeDocumentBodyTagsMax = 20;
+
+export const IngestKnowledgeDocumentBody = zod.object({
+  sourceType: zod.enum(["text", "url", "file", "youtube"]),
+  title: zod.string().min(1).max(ingestKnowledgeDocumentBodyTitleMax),
+  body: zod
+    .string()
+    .optional()
+    .describe(
+      "Required for sourceType=text or sourceType=file (raw text content)",
+    ),
+  url: zod
+    .string()
+    .optional()
+    .describe("Required for sourceType=url or sourceType=youtube"),
+  mimeType: zod.string().optional(),
+  collectionId: zod.string().optional(),
+  tags: zod
+    .array(zod.string().max(ingestKnowledgeDocumentBodyTagsItemMax))
+    .max(ingestKnowledgeDocumentBodyTagsMax)
+    .optional(),
+  allowDuplicate: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, ingestion proceeds even if an existing document hash matches.",
+    ),
+});
+
+export const IngestKnowledgeDocumentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    document: zod.object({
+      id: zod.string(),
+      collectionId: zod.string().nullish(),
+      title: zod.string(),
+      sourceType: zod.string(),
+      sourceUri: zod.string().nullish(),
+      mimeType: zod.string().nullish(),
+      contentHash: zod.string(),
+      sizeBytes: zod.number(),
+      chunkCount: zod.number(),
+      summary: zod.string().nullish(),
+      tags: zod.array(zod.string()),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    duplicate: zod.boolean(),
+    existingDocumentId: zod.string().nullish(),
+  }),
+});
+
+/**
+ * @summary Fetch one document with its body and chunk metadata
+ */
+export const GetKnowledgeDocumentParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetKnowledgeDocumentHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetKnowledgeDocumentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    document: zod.object({
+      id: zod.string(),
+      collectionId: zod.string().nullish(),
+      title: zod.string(),
+      sourceType: zod.string(),
+      sourceUri: zod.string().nullish(),
+      mimeType: zod.string().nullish(),
+      contentHash: zod.string(),
+      sizeBytes: zod.number(),
+      chunkCount: zod.number(),
+      summary: zod.string().nullish(),
+      tags: zod.array(zod.string()),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    body: zod.string(),
+    chunks: zod.array(
+      zod.object({
+        id: zod.string(),
+        position: zod.number(),
+        text: zod.string(),
+        tokens: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Delete a document and all its chunks
+ */
+export const DeleteKnowledgeDocumentParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteKnowledgeDocumentHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteKnowledgeDocumentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Hybrid semantic + full-text search across the knowledge base
+ */
+export const SearchKnowledgeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const searchKnowledgeBodyQueryMax = 2000;
+
+export const searchKnowledgeBodyLimitMax = 50;
+
+export const SearchKnowledgeBody = zod.object({
+  query: zod.string().min(1).max(searchKnowledgeBodyQueryMax),
+  limit: zod.number().min(1).max(searchKnowledgeBodyLimitMax).optional(),
+  collectionId: zod.string().optional(),
+});
+
+export const SearchKnowledgeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    query: zod.string(),
+    hits: zod.array(
+      zod.object({
+        chunkId: zod.string(),
+        documentId: zod.string(),
+        documentTitle: zod.string(),
+        position: zod.number(),
+        snippet: zod.string(),
+        score: zod.number(),
+        vectorScore: zod.number(),
+        textScore: zod.number(),
+        sourceUri: zod.string().nullish(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Aggregate counts and sizes across the knowledge base
+ */
+export const GetKnowledgeStatsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetKnowledgeStatsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    documentCount: zod.number(),
+    collectionCount: zod.number(),
+    chunkCount: zod.number(),
+    totalSizeBytes: zod.number(),
+    lastUpdatedAt: zod.coerce.date().nullable(),
+  }),
+});
+
+/**
+ * @summary Export the entire knowledge base (collections + documents) as JSON
+ */
+export const ExportKnowledgeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ExportKnowledgeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    exportedAt: zod.coerce.date(),
+    version: zod.string(),
+    collections: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        color: zod.string().nullish(),
+        documentCount: zod.number(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    documents: zod.array(
+      zod.object({
+        id: zod.string(),
+        collectionId: zod.string().nullish(),
+        title: zod.string(),
+        sourceType: zod.string(),
+        sourceUri: zod.string().nullish(),
+        mimeType: zod.string().nullish(),
+        body: zod.string(),
+        contentHash: zod.string(),
+        tags: zod.array(zod.string()),
+        summary: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Import a knowledge-base snapshot produced by /knowledge/export
+ */
+export const ImportKnowledgeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ImportKnowledgeBody = zod.object({
+  snapshot: zod.object({
+    exportedAt: zod.coerce.date(),
+    version: zod.string(),
+    collections: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        color: zod.string().nullish(),
+        documentCount: zod.number(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    documents: zod.array(
+      zod.object({
+        id: zod.string(),
+        collectionId: zod.string().nullish(),
+        title: zod.string(),
+        sourceType: zod.string(),
+        sourceUri: zod.string().nullish(),
+        mimeType: zod.string().nullish(),
+        body: zod.string(),
+        contentHash: zod.string(),
+        tags: zod.array(zod.string()),
+        summary: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+  replaceExisting: zod.boolean().optional(),
+});
+
+export const ImportKnowledgeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    collectionsImported: zod.number(),
+    documentsImported: zod.number(),
+    documentsSkipped: zod.number(),
+    errors: zod.array(
+      zod.object({
+        title: zod.string(),
+        sourceDocumentId: zod.string(),
+        message: zod.string(),
+      }),
+    ),
+  }),
+});

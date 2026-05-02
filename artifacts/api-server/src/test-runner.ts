@@ -1526,6 +1526,422 @@ const cases: TestCase[] = [
       }
     },
   },
+
+  // ─── Knowledge base (Task #12) ─────────────────────────────────────────
+  {
+    name: "knowledge: ingest text + list + dedupe",
+    run: async () => {
+      const ingest1 = await request(app)
+        .post("/api/knowledge/documents/ingest")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          sourceType: "text",
+          title: "Quantum sensor primer",
+          body:
+            "Quantum sensors exploit quantum coherence to measure physical " +
+            "quantities like magnetic fields with unprecedented sensitivity. " +
+            "Nitrogen-vacancy centres in diamond are a leading platform.",
+          tags: ["quantum", "sensor"],
+        });
+      assert.equal(ingest1.status, 200);
+      assert.equal(ingest1.body.data.duplicate, false);
+      assert.ok(ingest1.body.data.document.chunkCount >= 1);
+
+      const dupe = await request(app)
+        .post("/api/knowledge/documents/ingest")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          sourceType: "text",
+          title: "Quantum sensor primer (copy)",
+          body:
+            "Quantum sensors exploit quantum coherence to measure physical " +
+            "quantities like magnetic fields with unprecedented sensitivity. " +
+            "Nitrogen-vacancy centres in diamond are a leading platform.",
+        });
+      assert.equal(dupe.status, 409);
+      assert.equal(dupe.body.data.duplicate, true);
+      assert.equal(
+        dupe.body.data.existingDocumentId,
+        ingest1.body.data.document.id,
+      );
+
+      const list = await request(app)
+        .get("/api/knowledge/documents")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(list.status, 200);
+      assert.ok(
+        list.body.data.items.some(
+          (d: { id: string }) => d.id === ingest1.body.data.document.id,
+        ),
+      );
+    },
+  },
+  {
+    name: "knowledge: hybrid search ranks the relevant chunk first",
+    run: async () => {
+      // Two distractor docs and one with the rare phrase.
+      await request(app)
+        .post("/api/knowledge/documents/ingest")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          sourceType: "text",
+          title: "Bread baking notes",
+          body:
+            "Sourdough bread relies on wild yeast and lactic-acid bacteria " +
+            "to rise. The crumb structure depends on hydration percentage.",
+        });
+      await request(app)
+        .post("/api/knowledge/documents/ingest")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          sourceType: "text",
+          title: "Photosynthesis recap",
+          body:
+            "Chlorophyll absorbs photons and powers the light-dependent " +
+            "reactions of photosynthesis in chloroplast thylakoids.",
+        });
+      const target = await request(app)
+        .post("/api/knowledge/documents/ingest")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          sourceType: "text",
+          title: "Esperanto verb endings cheat-sheet",
+          body:
+            "In Esperanto, present-tense verbs end with -as, past-tense " +
+            "verbs end with -is, future-tense verbs end with -os. The " +
+            "infinitive ends with -i.",
+          tags: ["esperanto", "language"],
+        });
+      assert.equal(target.status, 200);
+
+      const search = await request(app)
+        .post("/api/knowledge/search")
+        .set("X-Tenant-ID", TENANT)
+        .send({ query: "esperanto verb tense endings", limit: 5 });
+      assert.equal(search.status, 200);
+      assert.ok(search.body.data.hits.length > 0, "expected at least one hit");
+      assert.equal(
+        search.body.data.hits[0].documentId,
+        target.body.data.document.id,
+        "Esperanto doc must rank first for the matching query",
+      );
+      assert.ok(search.body.data.hits[0].score > 0);
+    },
+  },
+  {
+    name: "knowledge: collection scoping filters search results",
+    run: async () => {
+      const coll = await request(app)
+        .post("/api/knowledge/collections")
+        .set("X-Tenant-ID", TENANT)
+        .send({ name: "Astronomy" });
+      assert.equal(coll.status, 200);
+      const scoped = await request(app)
+        .post("/api/knowledge/documents/ingest")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          sourceType: "text",
+          title: "Black hole accretion",
+          body:
+            "Accretion discs around supermassive black holes radiate across " +
+            "the electromagnetic spectrum, with X-rays from the inner edge.",
+          collectionId: coll.body.data.id,
+        });
+      assert.equal(scoped.status, 200);
+
+      const inScope = await request(app)
+        .post("/api/knowledge/search")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          query: "supermassive black hole accretion disc",
+          collectionId: coll.body.data.id,
+        });
+      assert.equal(inScope.status, 200);
+      assert.ok(
+        inScope.body.data.hits.every(
+          (h: { documentId: string }) =>
+            h.documentId === scoped.body.data.document.id,
+        ),
+      );
+
+      // Sanity: querying without the scope can return matches outside it.
+      const wide = await request(app)
+        .post("/api/knowledge/search")
+        .set("X-Tenant-ID", TENANT)
+        .send({ query: "supermassive black hole accretion disc" });
+      assert.equal(wide.status, 200);
+    },
+  },
+  {
+    name: "knowledge: tenant isolation",
+    run: async () => {
+      const other = await request(app)
+        .post("/api/knowledge/documents/ingest")
+        .set("X-Tenant-ID", TENANT_2)
+        .send({
+          sourceType: "text",
+          title: "Tenant 2 secret note",
+          body:
+            "This document belongs to tenant 2 and must never appear in " +
+            "tenant 1's listings, search results, or get-by-id endpoints.",
+        });
+      assert.equal(other.status, 200);
+
+      const docId = other.body.data.document.id;
+      const cross = await request(app)
+        .get(`/api/knowledge/documents/${docId}`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(cross.status, 404);
+
+      const listT1 = await request(app)
+        .get("/api/knowledge/documents")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(listT1.status, 200);
+      assert.ok(
+        !listT1.body.data.items.some((d: { id: string }) => d.id === docId),
+        "tenant 1 must not see tenant 2 documents",
+      );
+
+      const searchT1 = await request(app)
+        .post("/api/knowledge/search")
+        .set("X-Tenant-ID", TENANT)
+        .send({ query: "tenant 2 secret note" });
+      assert.equal(searchT1.status, 200);
+      assert.ok(
+        searchT1.body.data.hits.every(
+          (h: { documentId: string }) => h.documentId !== docId,
+        ),
+      );
+    },
+  },
+  {
+    name: "knowledge: stats and document detail include chunks",
+    run: async () => {
+      const stats = await request(app)
+        .get("/api/knowledge/stats")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(stats.status, 200);
+      assert.ok(stats.body.data.documentCount >= 4);
+      assert.ok(stats.body.data.chunkCount >= 4);
+      assert.ok(typeof stats.body.data.lastUpdatedAt === "string");
+
+      const list = await request(app)
+        .get("/api/knowledge/documents?limit=1")
+        .set("X-Tenant-ID", TENANT);
+      const docId = list.body.data.items[0]?.id;
+      assert.ok(docId, "expected at least one document");
+      const detail = await request(app)
+        .get(`/api/knowledge/documents/${docId}`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(detail.status, 200);
+      assert.ok(detail.body.data.body.length > 0);
+      assert.ok(detail.body.data.chunks.length >= 1);
+      assert.equal(detail.body.data.chunks[0].position, 0);
+    },
+  },
+  {
+    name: "knowledge: URL ingest validation rejects non-http schemes",
+    run: async () => {
+      const bad = await request(app)
+        .post("/api/knowledge/documents/ingest")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          sourceType: "url",
+          title: "file scheme",
+          url: "file:///etc/passwd",
+        });
+      // Either 400 (zod rejection on .url() format) or 400 from the
+      // service-level scheme guard — both are acceptable. The bug we are
+      // guarding against is a 200.
+      assert.notEqual(bad.status, 200);
+    },
+  },
+  {
+    name: "knowledge: URL ingest SSRF guard blocks loopback / private hosts",
+    run: async () => {
+      const targets = [
+        "http://localhost:5432/",
+        "http://127.0.0.1/secret",
+        "http://169.254.169.254/latest/meta-data/", // cloud metadata
+        "http://10.0.0.5/admin",
+        "http://192.168.1.1/router",
+        "http://[::1]/local",
+      ];
+      for (const url of targets) {
+        const res = await request(app)
+          .post("/api/knowledge/documents/ingest")
+          .set("X-Tenant-ID", TENANT)
+          .send({ sourceType: "url", title: "ssrf probe", url });
+        assert.notEqual(
+          res.status,
+          200,
+          `SSRF guard must block ${url} — got 200`,
+        );
+      }
+    },
+  },
+  {
+    name: "knowledge: export round-trips through import (offline, no re-fetch)",
+    run: async () => {
+      // Inject a synthetic url-typed document into tenant 1's KB whose
+      // sourceUri points at a host the SSRF guard would reject. If the
+      // import path were re-fetching, restore would fail. With the
+      // restoreFromSnapshot path, the body must come straight from the
+      // snapshot and the document must round-trip cleanly.
+      const synthUrl = await request(app)
+        .post("/api/knowledge/documents/ingest")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          sourceType: "text",
+          title: "Synthetic URL-style note",
+          body:
+            "This document mimics a URL ingest payload that the SSRF guard " +
+            "would now reject on a fresh fetch. Restore must use the body " +
+            "from the snapshot directly without any network call.",
+          tags: ["restore-test"],
+        });
+      assert.equal(synthUrl.status, 200);
+
+      const exp = await request(app)
+        .get("/api/knowledge/export")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(exp.status, 200);
+      const snapshot = exp.body.data;
+      assert.ok(Array.isArray(snapshot.documents));
+      assert.ok(snapshot.documents.length > 0);
+      const expectedDocCount = snapshot.documents.length;
+
+      // Re-stamp every document as `sourceType: "url"` with a private-IP
+      // sourceUri — if import re-fetched, every one of these would error.
+      const tampered = {
+        ...snapshot,
+        documents: snapshot.documents.map(
+          (d: { sourceType: string; sourceUri: string | null }) => ({
+            ...d,
+            sourceType: "url",
+            sourceUri: "http://10.0.0.42/should-never-be-fetched",
+          }),
+        ),
+      };
+
+      const imp = await request(app)
+        .post("/api/knowledge/import")
+        .set("X-Tenant-ID", TENANT)
+        .send({ snapshot: tampered, replaceExisting: true });
+      assert.equal(imp.status, 200);
+      assert.equal(
+        imp.body.data.collectionsImported,
+        snapshot.collections.length,
+      );
+      assert.equal(
+        imp.body.data.documentsImported,
+        expectedDocCount,
+        "every document must round-trip from the snapshot body",
+      );
+      assert.equal(imp.body.data.documentsSkipped, 0);
+      assert.deepEqual(imp.body.data.errors, []);
+
+      // Search should still work after the round-trip.
+      const search = await request(app)
+        .post("/api/knowledge/search")
+        .set("X-Tenant-ID", TENANT)
+        .send({ query: "esperanto verb tense endings" });
+      assert.equal(search.status, 200);
+      assert.ok(search.body.data.hits.length > 0);
+    },
+  },
+  {
+    name: "knowledge: import surfaces structured per-document errors",
+    run: async () => {
+      // Snapshot with one valid doc and one invalid (empty body). The
+      // valid doc must be imported; the invalid one must appear in
+      // `errors[]` rather than silently disappearing.
+      const snapshot = {
+        version: "1",
+        exportedAt: new Date().toISOString(),
+        collections: [],
+        documents: [
+          {
+            id: "doc_valid_1",
+            title: "Valid restored doc",
+            sourceType: "text",
+            body:
+              "A perfectly valid restored document with enough text to " +
+              "tokenise and embed without hitting any guardrails.",
+            contentHash: "deadbeef",
+            tags: [],
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: "doc_invalid_1",
+            title: "Invalid restored doc",
+            sourceType: "text",
+            body: "", // restoreFromSnapshot requires non-empty body
+            contentHash: "cafebabe",
+            tags: [],
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      };
+      const imp = await request(app)
+        .post("/api/knowledge/import")
+        .set("X-Tenant-ID", TENANT_2)
+        .send({ snapshot, replaceExisting: true });
+      assert.equal(imp.status, 200);
+      assert.equal(imp.body.data.documentsImported, 1);
+      assert.equal(imp.body.data.documentsSkipped, 1);
+      assert.equal(imp.body.data.errors.length, 1);
+      assert.equal(imp.body.data.errors[0].sourceDocumentId, "doc_invalid_1");
+      assert.match(
+        imp.body.data.errors[0].message,
+        /non-empty body|requires/i,
+      );
+    },
+  },
+  {
+    name: "knowledge: agent run RAG injects a knowledge-base system message",
+    run: async () => {
+      // Pre-condition: at least one Esperanto-flavoured doc exists from the
+      // earlier ingest cases. Kick off a goal that should retrieve it.
+      const run = await request(app)
+        .post("/api/agent/runs")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          goal: "Summarise Esperanto verb tense endings using my notes.",
+          useKnowledgeBase: true,
+        });
+      assert.equal(run.status, 200);
+      const runId = run.body.data.id;
+
+      const messages = await request(app)
+        .get(`/api/agent/runs/${runId}/messages?limit=20`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(messages.status, 200);
+      const hasKb = messages.body.data.items.some(
+        (m: { role: string; content: string }) =>
+          m.role === "system" && m.content.includes("Knowledge base context"),
+      );
+      assert.ok(hasKb, "expected a Knowledge base context system message");
+
+      // And the opt-out path: explicitly disabling KB must produce no such
+      // message.
+      const cleanRun = await request(app)
+        .post("/api/agent/runs")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          goal: "Summarise Esperanto verb tense endings using my notes.",
+          useKnowledgeBase: false,
+        });
+      const cleanMsgs = await request(app)
+        .get(`/api/agent/runs/${cleanRun.body.data.id}/messages?limit=20`)
+        .set("X-Tenant-ID", TENANT);
+      const hasKbClean = cleanMsgs.body.data.items.some(
+        (m: { role: string; content: string }) =>
+          m.role === "system" && m.content.includes("Knowledge base context"),
+      );
+      assert.ok(!hasKbClean, "useKnowledgeBase=false must skip the KB message");
+    },
+  },
 ];
 
 async function main() {

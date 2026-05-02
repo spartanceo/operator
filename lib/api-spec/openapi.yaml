@@ -45,6 +45,8 @@ tags:
     description: Desktop application update channel
   - name: desktop
     description: Desktop control agent — Look-Act-Verify with semantic targeting
+  - name: knowledge
+    description: Personal knowledge base / second brain (collections, documents, semantic search, RAG)
 
 paths:
   /healthz:
@@ -1207,6 +1209,228 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+
+  /knowledge/collections:
+    get:
+      operationId: listKnowledgeCollections
+      tags: [knowledge]
+      summary: List knowledge-base collections
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Collections page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeCollectionListResponse"
+    post:
+      operationId: createKnowledgeCollection
+      tags: [knowledge]
+      summary: Create a new collection
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateKnowledgeCollectionRequest"
+      responses:
+        "200":
+          description: Collection created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeCollectionResponse"
+
+  /knowledge/collections/{id}:
+    delete:
+      operationId: deleteKnowledgeCollection
+      tags: [knowledge]
+      summary: Delete a collection (its documents are unlinked, not erased)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deletion receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeDeleteResponse"
+
+  /knowledge/documents:
+    get:
+      operationId: listKnowledgeDocuments
+      tags: [knowledge]
+      summary: List ingested documents
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: collectionId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Documents page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeDocumentListResponse"
+
+  /knowledge/documents/ingest:
+    post:
+      operationId: ingestKnowledgeDocument
+      tags: [knowledge]
+      summary: Ingest text, paste, URL, or YouTube content into the knowledge base
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestKnowledgeDocumentRequest"
+      responses:
+        "200":
+          description: Document ingested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestKnowledgeDocumentResponse"
+        "409":
+          description: Duplicate content (existing document hash matches)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestKnowledgeDocumentResponse"
+
+  /knowledge/documents/{id}:
+    get:
+      operationId: getKnowledgeDocument
+      tags: [knowledge]
+      summary: Fetch one document with its body and chunk metadata
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeDocumentDetailResponse"
+        "404":
+          description: Unknown document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: deleteKnowledgeDocument
+      tags: [knowledge]
+      summary: Delete a document and all its chunks
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deletion receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeDeleteResponse"
+
+  /knowledge/search:
+    post:
+      operationId: searchKnowledge
+      tags: [knowledge]
+      summary: Hybrid semantic + full-text search across the knowledge base
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KnowledgeSearchRequest"
+      responses:
+        "200":
+          description: Search hits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeSearchResponse"
+
+  /knowledge/stats:
+    get:
+      operationId: getKnowledgeStats
+      tags: [knowledge]
+      summary: Aggregate counts and sizes across the knowledge base
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeStatsResponse"
+
+  /knowledge/export:
+    get:
+      operationId: exportKnowledge
+      tags: [knowledge]
+      summary: Export the entire knowledge base (collections + documents) as JSON
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Knowledge-base snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeExportResponse"
+
+  /knowledge/import:
+    post:
+      operationId: importKnowledge
+      tags: [knowledge]
+      summary: Import a knowledge-base snapshot produced by /knowledge/export
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KnowledgeImportRequest"
+      responses:
+        "200":
+          description: Import receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeImportResponse"
+
 
 components:
   parameters:
@@ -2973,3 +3197,437 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/DesktopScreenFrame"
+    KnowledgeCollection:
+      type: object
+      required: [id, name, documentCount, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        documentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    KnowledgeCollectionListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeCollection"
+        nextCursor:
+          type: string
+          nullable: true
+
+    KnowledgeCollectionListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/KnowledgeCollectionListPage"
+
+    KnowledgeCollectionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/KnowledgeCollection"
+
+    CreateKnowledgeCollectionRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        color:
+          type: string
+          maxLength: 32
+
+    KnowledgeDocument:
+      type: object
+      required: [id, title, sourceType, contentHash, sizeBytes, chunkCount, tags, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        collectionId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        sourceType:
+          type: string
+        sourceUri:
+          type: string
+          nullable: true
+        mimeType:
+          type: string
+          nullable: true
+        contentHash:
+          type: string
+        sizeBytes:
+          type: integer
+        chunkCount:
+          type: integer
+        summary:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    KnowledgeDocumentListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeDocument"
+        nextCursor:
+          type: string
+          nullable: true
+
+    KnowledgeDocumentListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/KnowledgeDocumentListPage"
+
+    KnowledgeChunkSummary:
+      type: object
+      required: [id, position, text, tokens]
+      properties:
+        id:
+          type: string
+        position:
+          type: integer
+        text:
+          type: string
+        tokens:
+          type: integer
+
+    KnowledgeDocumentDetail:
+      type: object
+      required: [document, body, chunks]
+      properties:
+        document:
+          $ref: "#/components/schemas/KnowledgeDocument"
+        body:
+          type: string
+        chunks:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeChunkSummary"
+
+    KnowledgeDocumentDetailResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/KnowledgeDocumentDetail"
+
+    IngestKnowledgeDocumentRequest:
+      type: object
+      required: [sourceType, title]
+      properties:
+        sourceType:
+          type: string
+          enum: [text, url, file, youtube]
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        body:
+          type: string
+          description: Required for sourceType=text or sourceType=file (raw text content)
+        url:
+          type: string
+          description: Required for sourceType=url or sourceType=youtube
+        mimeType:
+          type: string
+        collectionId:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 80
+          maxItems: 20
+        allowDuplicate:
+          type: boolean
+          description: When true, ingestion proceeds even if an existing document hash matches.
+
+    IngestKnowledgeDocumentResult:
+      type: object
+      required: [document, duplicate]
+      properties:
+        document:
+          $ref: "#/components/schemas/KnowledgeDocument"
+        duplicate:
+          type: boolean
+        existingDocumentId:
+          type: string
+          nullable: true
+
+    IngestKnowledgeDocumentResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/IngestKnowledgeDocumentResult"
+
+    KnowledgeSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+        collectionId:
+          type: string
+
+    KnowledgeSearchHit:
+      type: object
+      required: [chunkId, documentId, documentTitle, position, snippet, score, vectorScore, textScore]
+      properties:
+        chunkId:
+          type: string
+        documentId:
+          type: string
+        documentTitle:
+          type: string
+        position:
+          type: integer
+        snippet:
+          type: string
+        score:
+          type: number
+        vectorScore:
+          type: number
+        textScore:
+          type: number
+        sourceUri:
+          type: string
+          nullable: true
+
+    KnowledgeSearchResult:
+      type: object
+      required: [query, hits]
+      properties:
+        query:
+          type: string
+        hits:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeSearchHit"
+
+    KnowledgeSearchResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/KnowledgeSearchResult"
+
+    KnowledgeStats:
+      type: object
+      required: [documentCount, collectionCount, chunkCount, totalSizeBytes, lastUpdatedAt]
+      properties:
+        documentCount:
+          type: integer
+        collectionCount:
+          type: integer
+        chunkCount:
+          type: integer
+        totalSizeBytes:
+          type: integer
+        lastUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    KnowledgeStatsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/KnowledgeStats"
+
+    KnowledgeDeleteReceipt:
+      type: object
+      required: [id, deleted]
+      properties:
+        id:
+          type: string
+        deleted:
+          type: boolean
+
+    KnowledgeDeleteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/KnowledgeDeleteReceipt"
+
+    KnowledgeExportDocument:
+      type: object
+      required: [id, title, sourceType, body, contentHash, tags, createdAt]
+      properties:
+        id:
+          type: string
+        collectionId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        sourceType:
+          type: string
+        sourceUri:
+          type: string
+          nullable: true
+        mimeType:
+          type: string
+          nullable: true
+        body:
+          type: string
+        contentHash:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        summary:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    KnowledgeExport:
+      type: object
+      required: [exportedAt, version, collections, documents]
+      properties:
+        exportedAt:
+          type: string
+          format: date-time
+        version:
+          type: string
+        collections:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeCollection"
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeExportDocument"
+
+    KnowledgeExportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/KnowledgeExport"
+
+    KnowledgeImportRequest:
+      type: object
+      required: [snapshot]
+      properties:
+        snapshot:
+          $ref: "#/components/schemas/KnowledgeExport"
+        replaceExisting:
+          type: boolean
+
+    KnowledgeImportReceipt:
+      type: object
+      required:
+        [collectionsImported, documentsImported, documentsSkipped, errors]
+      properties:
+        collectionsImported:
+          type: integer
+        documentsImported:
+          type: integer
+        documentsSkipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeImportError"
+
+    KnowledgeImportError:
+      type: object
+      required: [title, sourceDocumentId, message]
+      properties:
+        title:
+          type: string
+        sourceDocumentId:
+          type: string
+        message:
+          type: string
+
+    KnowledgeImportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/KnowledgeImportReceipt"
+

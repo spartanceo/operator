@@ -40,6 +40,7 @@ import { logger } from "../lib/logger";
 import { invokeTool, getToolByName } from "./tools.service";
 import { listMemories } from "./memory.service";
 import { logPrivacyEvent } from "./privacy.service";
+import { retrieveContext as retrieveKbContext } from "./kb.service";
 
 export interface AgentRunRow {
   id: string;
@@ -81,6 +82,15 @@ export interface ToolCallRow {
 export interface CreateAgentRunInput {
   goal: string;
   modelName?: string;
+  /**
+   * When true (default), the orchestrator queries the personal knowledge base
+   * for snippets relevant to the goal and prepends them to the run as a
+   * system message before the planner / executor run. Setting this to
+   * `false` skips RAG entirely (used by tests that want a clean transcript).
+   */
+  useKnowledgeBase?: boolean;
+  /** Optional collection scope for RAG retrieval. */
+  knowledgeCollectionId?: string;
 }
 
 function toRunRow(r: typeof agentRuns.$inferSelect): AgentRunRow {
@@ -266,6 +276,26 @@ export async function createAgentRun(
   const memorySummary = route === "memory" ? await memoryAgent(ctx) : null;
   const researchSummary = route === "research" ? researchAgent(input.goal) : null;
   const desktopNote = route === "desktop" ? desktopRouterNote(input.goal) : null;
+  // RAG: pull top-k snippets from the personal knowledge base unless the
+  // caller explicitly opted out. The retrieve call is best-effort — if the
+  // KB is empty or the search throws we still complete the run.
+  let knowledgeSummary: string | null = null;
+  if (input.useKnowledgeBase !== false) {
+    try {
+      const ctxPack = await retrieveKbContext(ctx, input.goal, {
+        limit: 5,
+        ...(input.knowledgeCollectionId
+          ? { collectionId: input.knowledgeCollectionId }
+          : {}),
+      });
+      if (ctxPack.hits.length > 0) knowledgeSummary = ctxPack.summary;
+    } catch (e) {
+      // Don't fail the run because RAG had a bad day — log and move on.
+      // Standard 8: external dependencies must never break the core path.
+      // eslint-disable-next-line no-console
+      console.warn("kb retrieve failed", e);
+    }
+  }
   const plan = plannerAgent(input.goal);
   const planText =
     (desktopNote ? `${desktopNote}\n` : "") +
@@ -290,6 +320,16 @@ export async function createAgentRun(
       content: input.goal,
     }),
   );
+  if (knowledgeSummary) {
+    await db.insert(messagesTable).values(
+      withTenantValues(ctx, {
+        id: `msg_${nanoid()}`,
+        runId: id,
+        role: "system",
+        content: `Knowledge base context:\n${knowledgeSummary}`,
+      }),
+    );
+  }
   if (memorySummary) {
     await db.insert(messagesTable).values(
       withTenantValues(ctx, {

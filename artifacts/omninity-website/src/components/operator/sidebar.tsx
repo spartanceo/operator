@@ -5,6 +5,7 @@ import {
   Wrench,
   Shield,
   Brain,
+  Library,
   Settings,
   ArrowLeft,
   Monitor,
@@ -26,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/tools", label: "Tools", icon: Wrench },
   { href: "/privacy", label: "Privacy", icon: Shield },
   { href: "/memory", label: "Memory", icon: Brain },
+  { href: "/knowledge", label: "Knowledge", icon: Library },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

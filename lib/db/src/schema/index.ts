@@ -24,3 +24,6 @@ export * from "./onboarding-profiles";
 export * from "./model-preferences";
 export * from "./desktop-sessions";
 export * from "./desktop-steps";
+export * from "./kb-collections";
+export * from "./kb-documents";
+export * from "./kb-chunks";
