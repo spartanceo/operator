@@ -255,6 +255,17 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
         </CardHeader>
         <CardContent className="space-y-5">
           <ErrorBanner error={upsert.error ?? hardwareQuery.error ?? null} />
+          {/* Surface failures from the new recommendation/catalogue routes
+              UNLESS they are the documented `FEATURE_DISABLED` 404, which
+              the wizard handles via `LegacyModelFallback`. Without this
+              banner the model step would silently render with no plan and
+              no error after a generic 5xx. */}
+          {!featureDisabled ? (
+            <ErrorBanner error={recommendedQuery.error} />
+          ) : null}
+          {!featureDisabled ? (
+            <ErrorBanner error={catalogueQuery.error} />
+          ) : null}
 
           {step === "welcome" ? (
             <WelcomeStep />
@@ -353,7 +364,14 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
                   // permissive and we let the user through.
                   (!featureDisabled &&
                     minimumSpec !== null &&
-                    !minimumSpec.meetsMinimum)
+                    !minimumSpec.meetsMinimum) ||
+                  // Block finish when the new recommendation route failed
+                  // for a non-FEATURE_DISABLED reason — there is no plan
+                  // to install and the legacy fallback path is not active.
+                  (!featureDisabled &&
+                    !recommendedQuery.isLoading &&
+                    plan === null &&
+                    recommendedQuery.error !== null)
                 }
                 data-testid="button-wizard-finish"
               >
@@ -820,13 +838,12 @@ function ModelStep({
 
           {installProgress === null ? (
             <Button
-              variant="outline"
               size="sm"
               onClick={onStartInstall}
               data-testid="button-install-model"
             >
               <Download className="mr-2 h-3.5 w-3.5" />
-              Pull model
+              Install recommended
             </Button>
           ) : (
             <div className="space-y-1.5">
@@ -834,7 +851,7 @@ function ModelStep({
               <p className="text-xs text-muted-foreground">
                 {installProgress >= 100
                   ? "Model ready."
-                  : `Pulling ${chosenModel ?? plan.primary.id} — ${installProgress}%`}
+                  : `Installing ${chosenModel ?? plan.primary.id} — ${installProgress}%`}
               </p>
             </div>
           )}
@@ -842,8 +859,8 @@ function ModelStep({
       ) : null}
 
       <p className="text-xs text-muted-foreground">
-        You can swap models any time from Settings. Skipping the pull is fine —
-        you can install later.
+        You can swap models any time from Settings. Skipping the install is
+        fine — you can pull it later.
       </p>
     </div>
   );
@@ -1032,14 +1049,13 @@ function LegacyModelFallback({
           </p>
           {installProgress === null ? (
             <Button
-              variant="outline"
               size="sm"
               className="mt-3"
               onClick={onStartInstall}
               data-testid="button-install-model"
             >
               <Download className="mr-2 h-3.5 w-3.5" />
-              Pull model
+              Install recommended
             </Button>
           ) : (
             <div className="mt-3 space-y-1.5">
@@ -1047,7 +1063,7 @@ function LegacyModelFallback({
               <p className="text-xs text-muted-foreground">
                 {installProgress >= 100
                   ? "Model ready."
-                  : `Pulling ${chosenModel ?? recommendation.model} — ${installProgress}%`}
+                  : `Installing ${chosenModel ?? recommendation.model} — ${installProgress}%`}
               </p>
             </div>
           )}

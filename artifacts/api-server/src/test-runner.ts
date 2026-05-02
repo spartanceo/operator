@@ -563,6 +563,18 @@ const cases: TestCase[] = [
       assert.equal(ok.body.data.visionLifecycle.mode, "aggressive");
       assert.equal(ok.body.data.catalogueChoiceMade, true);
 
+      // /select must apply the persisted vision-lifecycle preference to
+      // the live VisionLifecycle controller — without this wiring, the
+      // Settings toggle would only take effect after a process restart
+      // (architect round-3 finding for Task #64).
+      const { getVisionLifecycle } = await import("./services/hardware");
+      const live = getVisionLifecycle().getConfig();
+      assert.equal(
+        live.mode,
+        "aggressive",
+        `expected live lifecycle mode aggressive, got ${live.mode}`,
+      );
+
       // Subsequent /recommended should reflect the saved preference.
       const after = await request(app)
         .get("/api/models/recommended")

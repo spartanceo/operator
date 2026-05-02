@@ -25,7 +25,9 @@ import {
   evaluateMinimumSpec,
   getEffectiveModelPreferences,
   getHardwareProfile,
+  getVisionLifecycle,
   MODEL_CATALOGUE,
+  timeoutForMode,
   UnknownModelError,
   upsertModelPreferences,
 } from "../../services/hardware";
@@ -191,6 +193,21 @@ router.post(
         ...(nextInput.visionIdleTimeoutMs !== undefined
           ? { visionIdleTimeoutMs: nextInput.visionIdleTimeoutMs }
           : {}),
+      });
+      // Apply the persisted preference to the live VisionLifecycle
+      // controller so the new idle-timeout takes effect immediately —
+      // without this, the toggle in Settings would only influence the
+      // *next* process start. The actual ollama load/unload bridge ships
+      // in Task #30; the controller already owns the timer + state
+      // machine, so reconfiguring here is the wiring contract this task
+      // owes the runtime layer.
+      const lifecycle = getVisionLifecycle(getHardwareProfile().tier);
+      lifecycle.configure({
+        visionModelId: preferences.visionLifecycle.visionModelId,
+        mode: preferences.visionLifecycle.mode,
+        idleTimeoutMs:
+          preferences.visionLifecycle.idleTimeoutMs ||
+          timeoutForMode(preferences.visionLifecycle.mode),
       });
       res.json(ok(preferences));
     } catch (e) {
