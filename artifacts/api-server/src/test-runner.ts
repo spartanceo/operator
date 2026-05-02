@@ -2898,6 +2898,100 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "legal: documents catalogue lists every required type",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/legal/documents")
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      const types = (res.body.data.items as Array<{ type: string }>).map(
+        (d) => d.type,
+      );
+      for (const t of [
+        "eula",
+        "privacy",
+        "terms",
+        "eu_ai_act",
+        "open_source_attribution",
+      ]) {
+        assert.ok(types.includes(t), `missing document type: ${t}`);
+      }
+    },
+  },
+  {
+    name: "legal: acceptance ledger is append-only and gates pending docs",
+    run: async () => {
+      const tenantId = `tenant_legal_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      const headers = { "X-Tenant-ID": tenantId };
+
+      const before = await request(app)
+        .get("/api/legal/acceptances/state")
+        .set(headers)
+        .expect(200);
+      const pendingTypesBefore = (
+        before.body.data.pending as Array<{ document: { type: string } }>
+      ).map((p) => p.document.type);
+      assert.ok(pendingTypesBefore.includes("eula"));
+      assert.ok(pendingTypesBefore.includes("privacy"));
+      assert.ok(pendingTypesBefore.includes("terms"));
+
+      for (const t of ["eula", "privacy", "terms"]) {
+        const r = await request(app)
+          .post("/api/legal/acceptances")
+          .set(headers)
+          .send({ documentType: t })
+          .expect(200);
+        assert.equal(r.body.data.acceptance.documentType, t);
+        assert.ok(r.body.data.acceptance.documentHash.length === 64);
+      }
+
+      const after = await request(app)
+        .get("/api/legal/acceptances/state")
+        .set(headers)
+        .expect(200);
+      assert.equal(after.body.data.pending.length, 0);
+
+      await request(app)
+        .post("/api/legal/acceptances")
+        .set(headers)
+        .send({ documentType: "eula" })
+        .expect(200);
+      const acc = await request(app)
+        .get("/api/legal/acceptances")
+        .set(headers)
+        .expect(200);
+      const eulaCount = (
+        acc.body.data.items as Array<{ documentType: string }>
+      ).filter((r) => r.documentType === "eula").length;
+      assert.equal(eulaCount, 2);
+    },
+  },
+  {
+    name: "legal: model-licences flags non-commercial models clearly",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/legal/model-licences")
+        .expect(200);
+      const items = res.body.data.items as Array<{
+        modelId: string;
+        commercialUse: string;
+        bundledByDefault: boolean;
+      }>;
+      const flux = items.find((m) => m.modelId === "flux.1-dev");
+      const musicgen = items.find((m) => m.modelId === "musicgen-medium");
+      assert.equal(flux?.commercialUse, "non_commercial_only");
+      assert.equal(flux?.bundledByDefault, false);
+      assert.equal(musicgen?.commercialUse, "non_commercial_only");
+      assert.equal(musicgen?.bundledByDefault, false);
+      assert.ok(
+        items.some(
+          (m) => m.bundledByDefault && m.commercialUse !== "non_commercial_only",
+        ),
+      );
+    },
+  },
+  {
     name: "telemetry: tenant isolation on event listing",
     run: async () => {
       const list1 = await request(app)
@@ -2992,6 +3086,81 @@ const cases: TestCase[] = [
         .get("/api/telemetry/events")
         .set("X-Tenant-ID", TENANT);
       assert.equal(events.body.data.items.length, 0);
+    },
+  },
+  {
+    name: "legal: incident reports submit + paginate",
+    run: async () => {
+      const tenantId = `tenant_inc_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      const headers = { "X-Tenant-ID": tenantId };
+      const created = await request(app)
+        .post("/api/legal/incidents")
+        .set(headers)
+        .send({
+          category: "harmful_output",
+          title: "Agent produced disallowed advice",
+          description: "Reproduction details elided for the test.",
+          severity: "high",
+        })
+        .expect(200);
+      assert.equal(created.body.data.incident.status, "submitted");
+      const list = await request(app)
+        .get("/api/legal/incidents")
+        .set(headers)
+        .expect(200);
+      assert.equal(list.body.data.items.length, 1);
+      assert.equal(list.body.data.items[0].severity, "high");
+    },
+  },
+  {
+    name: "legal: age confirmation upserts and exposes minimum thresholds",
+    run: async () => {
+      const tenantId = `tenant_age_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      const headers = { "X-Tenant-ID": tenantId };
+      const before = await request(app)
+        .get("/api/legal/age-confirmation")
+        .set(headers)
+        .expect(200);
+      assert.equal(before.body.data.confirmation, null);
+      assert.equal(before.body.data.minimumAges.eu, 16);
+      assert.equal(before.body.data.minimumAges.us, 13);
+
+      const put1 = await request(app)
+        .put("/api/legal/age-confirmation")
+        .set(headers)
+        .send({ jurisdiction: "eu", confirmed: true })
+        .expect(200);
+      assert.equal(put1.body.data.confirmation.confirmed, true);
+      assert.equal(put1.body.data.confirmation.minimumAge, 16);
+
+      const put2 = await request(app)
+        .put("/api/legal/age-confirmation")
+        .set(headers)
+        .send({ jurisdiction: "us", confirmed: true })
+        .expect(200);
+      assert.equal(put2.body.data.confirmation.confirmed, true);
+      assert.equal(put2.body.data.confirmation.minimumAge, 13);
+    },
+  },
+  {
+    name: "legal: tenant isolation — tenant 2 cannot see tenant 1's acceptances",
+    run: async () => {
+      const a = `tenant_legal_a_${Date.now()}`;
+      const b = `tenant_legal_b_${Date.now()}`;
+      await bootstrapTenant(a);
+      await bootstrapTenant(b);
+      await request(app)
+        .post("/api/legal/acceptances")
+        .set("X-Tenant-ID", a)
+        .send({ documentType: "eula" })
+        .expect(200);
+      const bView = await request(app)
+        .get("/api/legal/acceptances")
+        .set("X-Tenant-ID", b)
+        .expect(200);
+      assert.equal(bView.body.data.items.length, 0);
     },
   },
 ];

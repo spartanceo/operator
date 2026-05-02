@@ -56,6 +56,8 @@ tags:
     description: Opt-in analytics, performance metrics, crash reports, and the per-tenant dashboard
   - name: distribution
     description: Platform distribution — code-signing attestation and OS permission flows
+  - name: legal
+    description: Legal documents, acceptance ledger, model licences, incident reports, age confirmation
 paths:
   /healthz:
     get:
@@ -3406,6 +3408,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+  /legal/documents:
+    get:
+      operationId: listLegalDocuments
+      tags:
+        - legal
+      summary: List every legal document with its current version + hash
+      description: |
+        Returns the catalogue of EULA / Privacy Policy / Terms of Service /
+        EU AI Act conformity statement / open source attribution. The hash
+        is computed from the canonical body text and pinned at every
+        acceptance — material updates rotate the hash and trigger
+        re-acceptance.
+      responses:
+        "200":
+          description: Document catalogue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalDocumentListResponse"
+  /legal/documents/{type}:
+    get:
+      operationId: getLegalDocument
+      tags:
+        - legal
+      summary: Fetch one legal document with its full body
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - eula
+              - privacy
+              - terms
+              - eu_ai_act
+              - open_source_attribution
+      responses:
+        "200":
+          description: Document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalDocumentResponse"
+        "400":
+          description: Unknown document type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
   /mobile/devices:
     get:
       operationId: listMobileDevices
@@ -3555,6 +3613,198 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MobileNotificationPrefsResponse"
+  /legal/acceptances:
+    get:
+      operationId: listLegalAcceptances
+      tags:
+        - legal
+      summary: List documents the requesting tenant has accepted
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Acceptances
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalAcceptanceListResponse"
+    post:
+      operationId: recordLegalAcceptance
+      tags:
+        - legal
+      summary: Record an acceptance for one legal document
+      description: |
+        Append-only — re-acceptance after a material update inserts a new
+        row rather than mutating the previous one. The server computes the
+        canonical document hash so the caller cannot pin acceptance to a
+        version it has not actually seen.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordLegalAcceptanceRequest"
+      responses:
+        "200":
+          description: Acceptance recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalAcceptanceResponse"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /legal/acceptances/state:
+    get:
+      operationId: getLegalAcceptanceState
+      tags:
+        - legal
+      summary: "{ pending, accepted } — drives the in-app legal gate"
+      description: |
+        `pending` lists every document whose current hash has not been
+        accepted by this tenant. The acceptance gate renders when this
+        array is non-empty.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Acceptance state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalAcceptanceStateResponse"
+  /legal/model-licences:
+    get:
+      operationId: listModelLicences
+      tags:
+        - legal
+      summary: Full model licence catalogue
+      description: |
+        Static catalogue listing the upstream licence, commercial-use
+        verdict, and user-facing restrictions for every bundled or
+        downloadable model. Surfaced both in the model download UI and on
+        the Settings → Legal page.
+      responses:
+        "200":
+          description: Model licence catalogue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelLicenceListResponse"
+  /legal/model-licences/{id}:
+    get:
+      operationId: getModelLicence
+      tags:
+        - legal
+      summary: Fetch one model's licence (singleton by model id)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Licence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelLicenceResponse"
+        "404":
+          description: Licence not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /legal/incidents:
+    get:
+      operationId: listIncidentReports
+      tags:
+        - legal
+      summary: List EU AI Act incident reports submitted by this tenant
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Incident reports page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncidentReportListResponse"
+    post:
+      operationId: createIncidentReport
+      tags:
+        - legal
+      summary: Submit an incident report (EU AI Act Article 73 channel)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIncidentReportRequest"
+      responses:
+        "200":
+          description: Incident submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncidentReportResponse"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /legal/age-confirmation:
+    get:
+      operationId: getAgeConfirmation
+      tags:
+        - legal
+      summary: Current COPPA / GDPR-K age-gate verdict (singleton)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Age confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgeConfirmationStateResponse"
+    put:
+      operationId: upsertAgeConfirmation
+      tags:
+        - legal
+      summary: Confirm jurisdiction + age threshold for the requesting tenant
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertAgeConfirmationRequest"
+      responses:
+        "200":
+          description: Confirmation saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgeConfirmationResponse"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
   /mobile/status:
     get:
       operationId: getMobileStatus
@@ -9363,6 +9613,56 @@ components:
         nextCursor:
           type: string
           nullable: true
+    LegalDocumentSummary:
+      type: object
+      required:
+        - type
+        - title
+        - version
+        - hash
+        - effectiveDate
+        - requiresAcceptance
+        - summary
+      properties:
+        type:
+          type: string
+          enum:
+            - eula
+            - privacy
+            - terms
+            - eu_ai_act
+            - open_source_attribution
+        title:
+          type: string
+        version:
+          type: string
+        hash:
+          type: string
+        effectiveDate:
+          type: string
+          format: date-time
+        requiresAcceptance:
+          type: boolean
+        summary:
+          type: string
+    LegalDocument:
+      allOf:
+        - $ref: "#/components/schemas/LegalDocumentSummary"
+        - type: object
+          required:
+            - body
+          properties:
+            body:
+              type: string
+    LegalDocumentListResult:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LegalDocumentSummary"
     MobileDeviceListResponse:
       type: object
       required:
@@ -9375,6 +9675,18 @@ components:
             - true
         data:
           $ref: "#/components/schemas/MobileDevicePage"
+    LegalDocumentListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/LegalDocumentListResult"
     MobileDeviceRevokeReceipt:
       type: object
       required:
@@ -9397,6 +9709,72 @@ components:
             - true
         data:
           $ref: "#/components/schemas/MobileDeviceRevokeReceipt"
+    LegalDocumentResult:
+      type: object
+      required:
+        - document
+      properties:
+        document:
+          $ref: "#/components/schemas/LegalDocument"
+    LegalDocumentResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/LegalDocumentResult"
+    LegalAcceptance:
+      type: object
+      required:
+        - id
+        - documentType
+        - documentVersion
+        - documentHash
+        - acceptedAt
+      properties:
+        id:
+          type: string
+        documentType:
+          type: string
+        documentVersion:
+          type: string
+        documentHash:
+          type: string
+        acceptedAt:
+          type: string
+          format: date-time
+        locale:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+    LegalAcceptanceListResult:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LegalAcceptance"
+    LegalAcceptanceListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/LegalAcceptanceListResult"
     MobilePushSubscriptionRequest:
       type: object
       required:
@@ -9446,6 +9824,40 @@ components:
             - true
         data:
           $ref: "#/components/schemas/MobilePushSubscription"
+    RecordLegalAcceptanceRequest:
+      type: object
+      required:
+        - documentType
+      properties:
+        documentType:
+          type: string
+          enum:
+            - eula
+            - privacy
+            - terms
+            - eu_ai_act
+            - open_source_attribution
+        locale:
+          type: string
+    LegalAcceptanceResult:
+      type: object
+      required:
+        - acceptance
+      properties:
+        acceptance:
+          $ref: "#/components/schemas/LegalAcceptance"
+    LegalAcceptanceResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/LegalAcceptanceResult"
     MobileNotificationPrefs:
       type: object
       required:
@@ -9545,6 +9957,46 @@ components:
             - true
         data:
           $ref: "#/components/schemas/MobileStatusCard"
+    LegalPendingAcceptance:
+      type: object
+      required:
+        - document
+      properties:
+        document:
+          $ref: "#/components/schemas/LegalDocumentSummary"
+        lastAcceptedVersion:
+          type: string
+          nullable: true
+        lastAcceptedAt:
+          type: string
+          format: date-time
+          nullable: true
+    LegalAcceptanceState:
+      type: object
+      required:
+        - pending
+        - accepted
+      properties:
+        pending:
+          type: array
+          items:
+            $ref: "#/components/schemas/LegalPendingAcceptance"
+        accepted:
+          type: array
+          items:
+            $ref: "#/components/schemas/LegalAcceptance"
+    LegalAcceptanceStateResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/LegalAcceptanceState"
     MobileApprovalItem:
       type: object
       required:
@@ -9579,6 +10031,141 @@ components:
             - medium
             - high
             - critical
+    ModelLicence:
+      type: object
+      required:
+        - modelId
+        - displayName
+        - licenceName
+        - licenceUrl
+        - commercialUse
+        - bundledByDefault
+        - summary
+        - restrictions
+      properties:
+        modelId:
+          type: string
+        displayName:
+          type: string
+        licenceName:
+          type: string
+        licenceSpdxId:
+          type: string
+          nullable: true
+        licenceUrl:
+          type: string
+        commercialUse:
+          type: string
+          enum:
+            - permitted
+            - permitted_with_conditions
+            - non_commercial_only
+        bundledByDefault:
+          type: boolean
+        summary:
+          type: string
+        restrictions:
+          type: array
+          items:
+            type: string
+    ModelLicenceListResult:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelLicence"
+    ModelLicenceListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ModelLicenceListResult"
+    ModelLicenceResult:
+      type: object
+      required:
+        - licence
+      properties:
+        licence:
+          $ref: "#/components/schemas/ModelLicence"
+    ModelLicenceResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ModelLicenceResult"
+    IncidentReport:
+      type: object
+      required:
+        - id
+        - category
+        - severity
+        - status
+        - title
+        - description
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+          enum:
+            - unexpected_action
+            - approval_bypass
+            - data_egress
+            - harmful_output
+            - hallucination
+            - model_failure
+            - other
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+        status:
+          type: string
+          enum:
+            - submitted
+            - triaged
+            - investigating
+            - resolved
+            - closed
+        title:
+          type: string
+        description:
+          type: string
+        relatedRunId:
+          type: string
+          nullable: true
+        relatedApprovalId:
+          type: string
+          nullable: true
+        contactEmail:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     MobileApprovalPage:
       type: object
       required:
@@ -9713,10 +10300,6 @@ components:
             - true
         data:
           $ref: "#/components/schemas/MobileQuickTaskPage"
-
-
-
-
 
     OptInTelemetryConsent:
       type: object
@@ -10256,6 +10839,152 @@ components:
             - true
         data:
           $ref: "#/components/schemas/BuildAttestation"
+    CreateIncidentReportRequest:
+      type: object
+      required:
+        - category
+        - title
+        - description
+      properties:
+        category:
+          type: string
+          enum:
+            - unexpected_action
+            - approval_bypass
+            - data_egress
+            - harmful_output
+            - hallucination
+            - model_failure
+            - other
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+        relatedRunId:
+          type: string
+        relatedApprovalId:
+          type: string
+        contactEmail:
+          type: string
+          format: email
+    IncidentReportResult:
+      type: object
+      required:
+        - incident
+      properties:
+        incident:
+          $ref: "#/components/schemas/IncidentReport"
+    IncidentReportResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/IncidentReportResult"
+    IncidentReportListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/IncidentReport"
+            nextCursor:
+              type: string
+              nullable: true
+    AgeConfirmation:
+      type: object
+      required:
+        - jurisdiction
+        - minimumAge
+        - confirmed
+        - createdAt
+        - updatedAt
+      properties:
+        jurisdiction:
+          type: string
+          enum:
+            - us
+            - eu
+            - uk
+            - global
+        minimumAge:
+          type: integer
+        confirmed:
+          type: boolean
+        confirmedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AgeConfirmationMinimums:
+      type: object
+      required:
+        - us
+        - eu
+        - uk
+        - global
+      properties:
+        us:
+          type: integer
+        eu:
+          type: integer
+        uk:
+          type: integer
+        global:
+          type: integer
+    AgeConfirmationState:
+      type: object
+      required:
+        - confirmation
+        - minimumAges
+      properties:
+        confirmation:
+          allOf:
+            - $ref: "#/components/schemas/AgeConfirmation"
+          nullable: true
+        minimumAges:
+          $ref: "#/components/schemas/AgeConfirmationMinimums"
+    AgeConfirmationStateResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/AgeConfirmationState"
     BuildAttestationReportRequest:
       type: object
       properties:
@@ -10367,6 +11096,40 @@ components:
             - true
         data:
           $ref: "#/components/schemas/PermissionList"
+    UpsertAgeConfirmationRequest:
+      type: object
+      required:
+        - jurisdiction
+        - confirmed
+      properties:
+        jurisdiction:
+          type: string
+          enum:
+            - us
+            - eu
+            - uk
+            - global
+        confirmed:
+          type: boolean
+    AgeConfirmationResult:
+      type: object
+      required:
+        - confirmation
+      properties:
+        confirmation:
+          $ref: "#/components/schemas/AgeConfirmation"
+    AgeConfirmationResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/AgeConfirmationResult"
     PermissionReportRequest:
       type: object
       required:
@@ -10396,3 +11159,4 @@ components:
             - true
         data:
           $ref: "#/components/schemas/PermissionView"
+

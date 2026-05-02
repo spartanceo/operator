@@ -48,10 +48,11 @@ const COLUMNS: FooterColumn[] = [
   {
     title: "Legal",
     links: [
-      { label: "Privacy", href: "/" },
-      { label: "Terms", href: "/" },
-      { label: "Security", href: "/" },
-      { label: "Open source licences", href: "/" },
+      { label: "Privacy Policy", href: "/legal/privacy" },
+      { label: "Terms of Service", href: "/legal/terms" },
+      { label: "End User Licence", href: "/legal/eula" },
+      { label: "EU AI Act", href: "/legal/eu-ai-act" },
+      { label: "Open source licences", href: "/legal/open-source" },
     ],
   },
 ];

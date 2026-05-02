@@ -33,6 +33,8 @@ import type {
   Admin2faSetupRequest,
   Admin2faSetupResponse,
   Admin2faVerifyResponse,
+  AgeConfirmationResponse,
+  AgeConfirmationStateResponse,
   AgentRunListResponse,
   AgentRunResponse,
   ApiErrorResponse,
@@ -73,6 +75,7 @@ import type {
   CreateContactRequest,
   CreateDesktopSessionRequest,
   CreateEmailDraftRequest,
+  CreateIncidentReportRequest,
   CreateKnowledgeCollectionRequest,
   CreateMemoryRequest,
   CreateNotificationRequest,
@@ -104,6 +107,8 @@ import type {
   GenerateVideoRequest,
   HardwareCapabilitiesResponse,
   HealthCheckResponse,
+  IncidentReportListResponse,
+  IncidentReportResponse,
   IngestEmailMessageRequest,
   IngestKnowledgeDocumentRequest,
   IngestKnowledgeDocumentResponse,
@@ -125,6 +130,11 @@ import type {
   KnowledgeSearchRequest,
   KnowledgeSearchResponse,
   KnowledgeStatsResponse,
+  LegalAcceptanceListResponse,
+  LegalAcceptanceResponse,
+  LegalAcceptanceStateResponse,
+  LegalDocumentListResponse,
+  LegalDocumentResponse,
   ListActivityEventsParams,
   ListAgentApprovalsParams,
   ListAgentRunApprovalsParams,
@@ -142,6 +152,7 @@ import type {
   ListEmailDraftsParams,
   ListEmailMessagesParams,
   ListFilesParams,
+  ListIncidentReportsParams,
   ListKnowledgeCollectionsParams,
   ListKnowledgeDocumentsParams,
   ListMediaAssetsParams,
@@ -190,6 +201,8 @@ import type {
   ModelGetResponse,
   ModelHardwareResponse,
   ModelInstallStateResponse,
+  ModelLicenceListResponse,
+  ModelLicenceResponse,
   ModelListResponse,
   ModelPreferencesResponse,
   ModelPullRequest,
@@ -221,6 +234,7 @@ import type {
   PlaceVoipCallRequest,
   PrivacyEventListResponse,
   PrivacyEventResponse,
+  RecordLegalAcceptanceRequest,
   RecordTelemetryEventsRequest,
   RecordTelemetryEventsResponse,
   RecordVoipCallRequest,
@@ -253,6 +267,7 @@ import type {
   UpdateTelemetryConsentRequest,
   UpdateVoipCallStatusRequest,
   UpscaleImageRequest,
+  UpsertAgeConfirmationRequest,
   UpsertOnboardingProfileRequest,
   VoipCallListResponse,
   VoipCallResponse,
@@ -13897,6 +13912,178 @@ export const useClaimMobilePairing = <
 };
 
 /**
+ * Returns the catalogue of EULA / Privacy Policy / Terms of Service /
+EU AI Act conformity statement / open source attribution. The hash
+is computed from the canonical body text and pinned at every
+acceptance — material updates rotate the hash and trigger
+re-acceptance.
+
+ * @summary List every legal document with its current version + hash
+ */
+export const getListLegalDocumentsUrl = () => {
+  return `/api/legal/documents`;
+};
+
+export const listLegalDocuments = async (
+  options?: RequestInit,
+): Promise<LegalDocumentListResponse> => {
+  return customFetch<LegalDocumentListResponse>(getListLegalDocumentsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListLegalDocumentsQueryKey = () => {
+  return [`/api/legal/documents`] as const;
+};
+
+export const getListLegalDocumentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listLegalDocuments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listLegalDocuments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListLegalDocumentsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listLegalDocuments>>
+  > = ({ signal }) => listLegalDocuments({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listLegalDocuments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListLegalDocumentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listLegalDocuments>>
+>;
+export type ListLegalDocumentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List every legal document with its current version + hash
+ */
+
+export function useListLegalDocuments<
+  TData = Awaited<ReturnType<typeof listLegalDocuments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listLegalDocuments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListLegalDocumentsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch one legal document with its full body
+ */
+export const getGetLegalDocumentUrl = (
+  type: "eula" | "privacy" | "terms" | "eu_ai_act" | "open_source_attribution",
+) => {
+  return `/api/legal/documents/${type}`;
+};
+
+export const getLegalDocument = async (
+  type: "eula" | "privacy" | "terms" | "eu_ai_act" | "open_source_attribution",
+  options?: RequestInit,
+): Promise<LegalDocumentResponse> => {
+  return customFetch<LegalDocumentResponse>(getGetLegalDocumentUrl(type), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLegalDocumentQueryKey = (
+  type: "eula" | "privacy" | "terms" | "eu_ai_act" | "open_source_attribution",
+) => {
+  return [`/api/legal/documents/${type}`] as const;
+};
+
+export const getGetLegalDocumentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLegalDocument>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  type: "eula" | "privacy" | "terms" | "eu_ai_act" | "open_source_attribution",
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLegalDocument>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLegalDocumentQueryKey(type);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLegalDocument>>
+  > = ({ signal }) => getLegalDocument(type, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!type,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLegalDocument>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLegalDocumentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLegalDocument>>
+>;
+export type GetLegalDocumentQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one legal document with its full body
+ */
+
+export function useGetLegalDocument<
+  TData = Awaited<ReturnType<typeof getLegalDocument>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  type: "eula" | "privacy" | "terms" | "eu_ai_act" | "open_source_attribution",
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLegalDocument>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLegalDocumentQueryOptions(type, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary List paired mobile devices
  */
 export const getListMobileDevicesUrl = (params?: ListMobileDevicesParams) => {
@@ -14509,6 +14696,778 @@ export const useSetMobileNotificationPrefs = <
   TContext
 > => {
   return useMutation(getSetMobileNotificationPrefsMutationOptions(options));
+};
+
+/**
+ * @summary List documents the requesting tenant has accepted
+ */
+export const getListLegalAcceptancesUrl = () => {
+  return `/api/legal/acceptances`;
+};
+
+export const listLegalAcceptances = async (
+  options?: RequestInit,
+): Promise<LegalAcceptanceListResponse> => {
+  return customFetch<LegalAcceptanceListResponse>(
+    getListLegalAcceptancesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListLegalAcceptancesQueryKey = () => {
+  return [`/api/legal/acceptances`] as const;
+};
+
+export const getListLegalAcceptancesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listLegalAcceptances>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listLegalAcceptances>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListLegalAcceptancesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listLegalAcceptances>>
+  > = ({ signal }) => listLegalAcceptances({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listLegalAcceptances>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListLegalAcceptancesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listLegalAcceptances>>
+>;
+export type ListLegalAcceptancesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List documents the requesting tenant has accepted
+ */
+
+export function useListLegalAcceptances<
+  TData = Awaited<ReturnType<typeof listLegalAcceptances>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listLegalAcceptances>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListLegalAcceptancesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Append-only — re-acceptance after a material update inserts a new
+row rather than mutating the previous one. The server computes the
+canonical document hash so the caller cannot pin acceptance to a
+version it has not actually seen.
+
+ * @summary Record an acceptance for one legal document
+ */
+export const getRecordLegalAcceptanceUrl = () => {
+  return `/api/legal/acceptances`;
+};
+
+export const recordLegalAcceptance = async (
+  recordLegalAcceptanceRequest: RecordLegalAcceptanceRequest,
+  options?: RequestInit,
+): Promise<LegalAcceptanceResponse> => {
+  return customFetch<LegalAcceptanceResponse>(getRecordLegalAcceptanceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(recordLegalAcceptanceRequest),
+  });
+};
+
+export const getRecordLegalAcceptanceMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordLegalAcceptance>>,
+    TError,
+    { data: BodyType<RecordLegalAcceptanceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordLegalAcceptance>>,
+  TError,
+  { data: BodyType<RecordLegalAcceptanceRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordLegalAcceptance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordLegalAcceptance>>,
+    { data: BodyType<RecordLegalAcceptanceRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordLegalAcceptance(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordLegalAcceptanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordLegalAcceptance>>
+>;
+export type RecordLegalAcceptanceMutationBody =
+  BodyType<RecordLegalAcceptanceRequest>;
+export type RecordLegalAcceptanceMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Record an acceptance for one legal document
+ */
+export const useRecordLegalAcceptance = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordLegalAcceptance>>,
+    TError,
+    { data: BodyType<RecordLegalAcceptanceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordLegalAcceptance>>,
+  TError,
+  { data: BodyType<RecordLegalAcceptanceRequest> },
+  TContext
+> => {
+  return useMutation(getRecordLegalAcceptanceMutationOptions(options));
+};
+
+/**
+ * `pending` lists every document whose current hash has not been
+accepted by this tenant. The acceptance gate renders when this
+array is non-empty.
+
+ * @summary { pending, accepted } — drives the in-app legal gate
+ */
+export const getGetLegalAcceptanceStateUrl = () => {
+  return `/api/legal/acceptances/state`;
+};
+
+export const getLegalAcceptanceState = async (
+  options?: RequestInit,
+): Promise<LegalAcceptanceStateResponse> => {
+  return customFetch<LegalAcceptanceStateResponse>(
+    getGetLegalAcceptanceStateUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetLegalAcceptanceStateQueryKey = () => {
+  return [`/api/legal/acceptances/state`] as const;
+};
+
+export const getGetLegalAcceptanceStateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLegalAcceptanceState>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLegalAcceptanceState>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetLegalAcceptanceStateQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLegalAcceptanceState>>
+  > = ({ signal }) => getLegalAcceptanceState({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLegalAcceptanceState>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLegalAcceptanceStateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLegalAcceptanceState>>
+>;
+export type GetLegalAcceptanceStateQueryError = ErrorType<unknown>;
+
+/**
+ * @summary { pending, accepted } — drives the in-app legal gate
+ */
+
+export function useGetLegalAcceptanceState<
+  TData = Awaited<ReturnType<typeof getLegalAcceptanceState>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLegalAcceptanceState>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLegalAcceptanceStateQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Static catalogue listing the upstream licence, commercial-use
+verdict, and user-facing restrictions for every bundled or
+downloadable model. Surfaced both in the model download UI and on
+the Settings → Legal page.
+
+ * @summary Full model licence catalogue
+ */
+export const getListModelLicencesUrl = () => {
+  return `/api/legal/model-licences`;
+};
+
+export const listModelLicences = async (
+  options?: RequestInit,
+): Promise<ModelLicenceListResponse> => {
+  return customFetch<ModelLicenceListResponse>(getListModelLicencesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListModelLicencesQueryKey = () => {
+  return [`/api/legal/model-licences`] as const;
+};
+
+export const getListModelLicencesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listModelLicences>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listModelLicences>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListModelLicencesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listModelLicences>>
+  > = ({ signal }) => listModelLicences({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listModelLicences>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListModelLicencesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listModelLicences>>
+>;
+export type ListModelLicencesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Full model licence catalogue
+ */
+
+export function useListModelLicences<
+  TData = Awaited<ReturnType<typeof listModelLicences>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listModelLicences>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListModelLicencesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch one model's licence (singleton by model id)
+ */
+export const getGetModelLicenceUrl = (id: string) => {
+  return `/api/legal/model-licences/${id}`;
+};
+
+export const getModelLicence = async (
+  id: string,
+  options?: RequestInit,
+): Promise<ModelLicenceResponse> => {
+  return customFetch<ModelLicenceResponse>(getGetModelLicenceUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetModelLicenceQueryKey = (id: string) => {
+  return [`/api/legal/model-licences/${id}`] as const;
+};
+
+export const getGetModelLicenceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getModelLicence>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getModelLicence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetModelLicenceQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getModelLicence>>> = ({
+    signal,
+  }) => getModelLicence(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getModelLicence>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetModelLicenceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getModelLicence>>
+>;
+export type GetModelLicenceQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one model's licence (singleton by model id)
+ */
+
+export function useGetModelLicence<
+  TData = Awaited<ReturnType<typeof getModelLicence>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getModelLicence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetModelLicenceQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List EU AI Act incident reports submitted by this tenant
+ */
+export const getListIncidentReportsUrl = (
+  params?: ListIncidentReportsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/legal/incidents?${stringifiedParams}`
+    : `/api/legal/incidents`;
+};
+
+export const listIncidentReports = async (
+  params?: ListIncidentReportsParams,
+  options?: RequestInit,
+): Promise<IncidentReportListResponse> => {
+  return customFetch<IncidentReportListResponse>(
+    getListIncidentReportsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListIncidentReportsQueryKey = (
+  params?: ListIncidentReportsParams,
+) => {
+  return [`/api/legal/incidents`, ...(params ? [params] : [])] as const;
+};
+
+export const getListIncidentReportsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listIncidentReports>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListIncidentReportsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIncidentReports>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListIncidentReportsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listIncidentReports>>
+  > = ({ signal }) =>
+    listIncidentReports(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listIncidentReports>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListIncidentReportsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listIncidentReports>>
+>;
+export type ListIncidentReportsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List EU AI Act incident reports submitted by this tenant
+ */
+
+export function useListIncidentReports<
+  TData = Awaited<ReturnType<typeof listIncidentReports>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListIncidentReportsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIncidentReports>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListIncidentReportsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit an incident report (EU AI Act Article 73 channel)
+ */
+export const getCreateIncidentReportUrl = () => {
+  return `/api/legal/incidents`;
+};
+
+export const createIncidentReport = async (
+  createIncidentReportRequest: CreateIncidentReportRequest,
+  options?: RequestInit,
+): Promise<IncidentReportResponse> => {
+  return customFetch<IncidentReportResponse>(getCreateIncidentReportUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createIncidentReportRequest),
+  });
+};
+
+export const getCreateIncidentReportMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createIncidentReport>>,
+    TError,
+    { data: BodyType<CreateIncidentReportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createIncidentReport>>,
+  TError,
+  { data: BodyType<CreateIncidentReportRequest> },
+  TContext
+> => {
+  const mutationKey = ["createIncidentReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createIncidentReport>>,
+    { data: BodyType<CreateIncidentReportRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createIncidentReport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateIncidentReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createIncidentReport>>
+>;
+export type CreateIncidentReportMutationBody =
+  BodyType<CreateIncidentReportRequest>;
+export type CreateIncidentReportMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Submit an incident report (EU AI Act Article 73 channel)
+ */
+export const useCreateIncidentReport = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createIncidentReport>>,
+    TError,
+    { data: BodyType<CreateIncidentReportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createIncidentReport>>,
+  TError,
+  { data: BodyType<CreateIncidentReportRequest> },
+  TContext
+> => {
+  return useMutation(getCreateIncidentReportMutationOptions(options));
+};
+
+/**
+ * @summary Current COPPA / GDPR-K age-gate verdict (singleton)
+ */
+export const getGetAgeConfirmationUrl = () => {
+  return `/api/legal/age-confirmation`;
+};
+
+export const getAgeConfirmation = async (
+  options?: RequestInit,
+): Promise<AgeConfirmationStateResponse> => {
+  return customFetch<AgeConfirmationStateResponse>(getGetAgeConfirmationUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAgeConfirmationQueryKey = () => {
+  return [`/api/legal/age-confirmation`] as const;
+};
+
+export const getGetAgeConfirmationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAgeConfirmation>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAgeConfirmation>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAgeConfirmationQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAgeConfirmation>>
+  > = ({ signal }) => getAgeConfirmation({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAgeConfirmation>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAgeConfirmationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAgeConfirmation>>
+>;
+export type GetAgeConfirmationQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Current COPPA / GDPR-K age-gate verdict (singleton)
+ */
+
+export function useGetAgeConfirmation<
+  TData = Awaited<ReturnType<typeof getAgeConfirmation>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAgeConfirmation>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAgeConfirmationQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Confirm jurisdiction + age threshold for the requesting tenant
+ */
+export const getUpsertAgeConfirmationUrl = () => {
+  return `/api/legal/age-confirmation`;
+};
+
+export const upsertAgeConfirmation = async (
+  upsertAgeConfirmationRequest: UpsertAgeConfirmationRequest,
+  options?: RequestInit,
+): Promise<AgeConfirmationResponse> => {
+  return customFetch<AgeConfirmationResponse>(getUpsertAgeConfirmationUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertAgeConfirmationRequest),
+  });
+};
+
+export const getUpsertAgeConfirmationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertAgeConfirmation>>,
+    TError,
+    { data: BodyType<UpsertAgeConfirmationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertAgeConfirmation>>,
+  TError,
+  { data: BodyType<UpsertAgeConfirmationRequest> },
+  TContext
+> => {
+  const mutationKey = ["upsertAgeConfirmation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertAgeConfirmation>>,
+    { data: BodyType<UpsertAgeConfirmationRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return upsertAgeConfirmation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertAgeConfirmationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertAgeConfirmation>>
+>;
+export type UpsertAgeConfirmationMutationBody =
+  BodyType<UpsertAgeConfirmationRequest>;
+export type UpsertAgeConfirmationMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Confirm jurisdiction + age threshold for the requesting tenant
+ */
+export const useUpsertAgeConfirmation = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertAgeConfirmation>>,
+    TError,
+    { data: BodyType<UpsertAgeConfirmationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertAgeConfirmation>>,
+  TError,
+  { data: BodyType<UpsertAgeConfirmationRequest> },
+  TContext
+> => {
+  return useMutation(getUpsertAgeConfirmationMutationOptions(options));
 };
 
 /**

@@ -2810,9 +2810,43 @@ export interface MobileDevicePage {
   nextCursor: string | null;
 }
 
+export type LegalDocumentSummaryType =
+  (typeof LegalDocumentSummaryType)[keyof typeof LegalDocumentSummaryType];
+
+export const LegalDocumentSummaryType = {
+  eula: "eula",
+  privacy: "privacy",
+  terms: "terms",
+  eu_ai_act: "eu_ai_act",
+  open_source_attribution: "open_source_attribution",
+} as const;
+
+export interface LegalDocumentSummary {
+  type: LegalDocumentSummaryType;
+  title: string;
+  version: string;
+  hash: string;
+  effectiveDate: string;
+  requiresAcceptance: boolean;
+  summary: string;
+}
+
+export type LegalDocument = LegalDocumentSummary & {
+  body: string;
+};
+
+export interface LegalDocumentListResult {
+  items: LegalDocumentSummary[];
+}
+
 export interface MobileDeviceListResponse {
   success: boolean;
   data: MobileDevicePage;
+}
+
+export interface LegalDocumentListResponse {
+  success: boolean;
+  data: LegalDocumentListResult;
 }
 
 export interface MobileDeviceRevokeReceipt {
@@ -2823,6 +2857,34 @@ export interface MobileDeviceRevokeReceipt {
 export interface MobileDeviceRevokeResponse {
   success: boolean;
   data: MobileDeviceRevokeReceipt;
+}
+
+export interface LegalDocumentResult {
+  document: LegalDocument;
+}
+
+export interface LegalDocumentResponse {
+  success: boolean;
+  data: LegalDocumentResult;
+}
+
+export interface LegalAcceptance {
+  id: string;
+  documentType: string;
+  documentVersion: string;
+  documentHash: string;
+  acceptedAt: string;
+  locale?: string | null;
+  userAgent?: string | null;
+}
+
+export interface LegalAcceptanceListResult {
+  items: LegalAcceptance[];
+}
+
+export interface LegalAcceptanceListResponse {
+  success: boolean;
+  data: LegalAcceptanceListResult;
 }
 
 export interface MobilePushSubscriptionRequest {
@@ -2845,6 +2907,31 @@ export interface MobilePushSubscription {
 export interface MobilePushSubscriptionResponse {
   success: boolean;
   data: MobilePushSubscription;
+}
+
+export type RecordLegalAcceptanceRequestDocumentType =
+  (typeof RecordLegalAcceptanceRequestDocumentType)[keyof typeof RecordLegalAcceptanceRequestDocumentType];
+
+export const RecordLegalAcceptanceRequestDocumentType = {
+  eula: "eula",
+  privacy: "privacy",
+  terms: "terms",
+  eu_ai_act: "eu_ai_act",
+  open_source_attribution: "open_source_attribution",
+} as const;
+
+export interface RecordLegalAcceptanceRequest {
+  documentType: RecordLegalAcceptanceRequestDocumentType;
+  locale?: string;
+}
+
+export interface LegalAcceptanceResult {
+  acceptance: LegalAcceptance;
+}
+
+export interface LegalAcceptanceResponse {
+  success: boolean;
+  data: LegalAcceptanceResult;
 }
 
 export interface MobileNotificationPrefs {
@@ -2896,6 +2983,22 @@ export interface MobileStatusResponse {
   data: MobileStatusCard;
 }
 
+export interface LegalPendingAcceptance {
+  document: LegalDocumentSummary;
+  lastAcceptedVersion?: string | null;
+  lastAcceptedAt?: string | null;
+}
+
+export interface LegalAcceptanceState {
+  pending: LegalPendingAcceptance[];
+  accepted: LegalAcceptance[];
+}
+
+export interface LegalAcceptanceStateResponse {
+  success: boolean;
+  data: LegalAcceptanceState;
+}
+
 export type MobileApprovalItemRiskLevel =
   (typeof MobileApprovalItemRiskLevel)[keyof typeof MobileApprovalItemRiskLevel];
 
@@ -2915,6 +3018,93 @@ export interface MobileApprovalItem {
   decision: string;
   createdAt: string;
   riskLevel: MobileApprovalItemRiskLevel;
+}
+
+export type ModelLicenceCommercialUse =
+  (typeof ModelLicenceCommercialUse)[keyof typeof ModelLicenceCommercialUse];
+
+export const ModelLicenceCommercialUse = {
+  permitted: "permitted",
+  permitted_with_conditions: "permitted_with_conditions",
+  non_commercial_only: "non_commercial_only",
+} as const;
+
+export interface ModelLicence {
+  modelId: string;
+  displayName: string;
+  licenceName: string;
+  licenceSpdxId?: string | null;
+  licenceUrl: string;
+  commercialUse: ModelLicenceCommercialUse;
+  bundledByDefault: boolean;
+  summary: string;
+  restrictions: string[];
+}
+
+export interface ModelLicenceListResult {
+  items: ModelLicence[];
+}
+
+export interface ModelLicenceListResponse {
+  success: boolean;
+  data: ModelLicenceListResult;
+}
+
+export interface ModelLicenceResult {
+  licence: ModelLicence;
+}
+
+export interface ModelLicenceResponse {
+  success: boolean;
+  data: ModelLicenceResult;
+}
+
+export type IncidentReportCategory =
+  (typeof IncidentReportCategory)[keyof typeof IncidentReportCategory];
+
+export const IncidentReportCategory = {
+  unexpected_action: "unexpected_action",
+  approval_bypass: "approval_bypass",
+  data_egress: "data_egress",
+  harmful_output: "harmful_output",
+  hallucination: "hallucination",
+  model_failure: "model_failure",
+  other: "other",
+} as const;
+
+export type IncidentReportSeverity =
+  (typeof IncidentReportSeverity)[keyof typeof IncidentReportSeverity];
+
+export const IncidentReportSeverity = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export type IncidentReportStatus =
+  (typeof IncidentReportStatus)[keyof typeof IncidentReportStatus];
+
+export const IncidentReportStatus = {
+  submitted: "submitted",
+  triaged: "triaged",
+  investigating: "investigating",
+  resolved: "resolved",
+  closed: "closed",
+} as const;
+
+export interface IncidentReport {
+  id: string;
+  category: IncidentReportCategory;
+  severity: IncidentReportSeverity;
+  status: IncidentReportStatus;
+  title: string;
+  description: string;
+  relatedRunId?: string | null;
+  relatedApprovalId?: string | null;
+  contactEmail?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MobileApprovalPage {
@@ -3293,6 +3483,94 @@ export interface BuildAttestationResponse {
   data: BuildAttestation;
 }
 
+export type CreateIncidentReportRequestCategory =
+  (typeof CreateIncidentReportRequestCategory)[keyof typeof CreateIncidentReportRequestCategory];
+
+export const CreateIncidentReportRequestCategory = {
+  unexpected_action: "unexpected_action",
+  approval_bypass: "approval_bypass",
+  data_egress: "data_egress",
+  harmful_output: "harmful_output",
+  hallucination: "hallucination",
+  model_failure: "model_failure",
+  other: "other",
+} as const;
+
+export type CreateIncidentReportRequestSeverity =
+  (typeof CreateIncidentReportRequestSeverity)[keyof typeof CreateIncidentReportRequestSeverity];
+
+export const CreateIncidentReportRequestSeverity = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export interface CreateIncidentReportRequest {
+  category: CreateIncidentReportRequestCategory;
+  title: string;
+  description: string;
+  severity?: CreateIncidentReportRequestSeverity;
+  relatedRunId?: string;
+  relatedApprovalId?: string;
+  contactEmail?: string;
+}
+
+export interface IncidentReportResult {
+  incident: IncidentReport;
+}
+
+export interface IncidentReportResponse {
+  success: boolean;
+  data: IncidentReportResult;
+}
+
+export type IncidentReportListResponseData = {
+  items: IncidentReport[];
+  nextCursor?: string | null;
+};
+
+export interface IncidentReportListResponse {
+  success: boolean;
+  data: IncidentReportListResponseData;
+}
+
+export type AgeConfirmationJurisdiction =
+  (typeof AgeConfirmationJurisdiction)[keyof typeof AgeConfirmationJurisdiction];
+
+export const AgeConfirmationJurisdiction = {
+  us: "us",
+  eu: "eu",
+  uk: "uk",
+  global: "global",
+} as const;
+
+export interface AgeConfirmation {
+  jurisdiction: AgeConfirmationJurisdiction;
+  minimumAge: number;
+  confirmed: boolean;
+  confirmedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgeConfirmationMinimums {
+  us: number;
+  eu: number;
+  uk: number;
+  global: number;
+}
+
+export interface AgeConfirmationState {
+  confirmation: AgeConfirmation | null;
+  minimumAges: AgeConfirmationMinimums;
+}
+
+export interface AgeConfirmationStateResponse {
+  success: boolean;
+  data: AgeConfirmationState;
+}
+
 export type BuildAttestationReportRequestPlatform =
   (typeof BuildAttestationReportRequestPlatform)[keyof typeof BuildAttestationReportRequestPlatform];
 
@@ -3384,6 +3662,30 @@ export interface PermissionList {
 export interface PermissionListResponse {
   success: boolean;
   data: PermissionList;
+}
+
+export type UpsertAgeConfirmationRequestJurisdiction =
+  (typeof UpsertAgeConfirmationRequestJurisdiction)[keyof typeof UpsertAgeConfirmationRequestJurisdiction];
+
+export const UpsertAgeConfirmationRequestJurisdiction = {
+  us: "us",
+  eu: "eu",
+  uk: "uk",
+  global: "global",
+} as const;
+
+export interface UpsertAgeConfirmationRequest {
+  jurisdiction: UpsertAgeConfirmationRequestJurisdiction;
+  confirmed: boolean;
+}
+
+export interface AgeConfirmationResult {
+  confirmation: AgeConfirmation;
+}
+
+export interface AgeConfirmationResponse {
+  success: boolean;
+  data: AgeConfirmationResult;
 }
 
 export type PermissionReportRequestStatus =
@@ -3914,6 +4216,19 @@ export type SecurityWebhookSecretsListParams = {
 };
 
 export type ListMobileDevicesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListIncidentReportsParams = {
   /**
    * Opaque cursor returned by the previous page.
    */

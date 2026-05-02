@@ -6218,6 +6218,78 @@ export const ClaimMobilePairingResponse = zod.object({
 });
 
 /**
+ * Returns the catalogue of EULA / Privacy Policy / Terms of Service /
+EU AI Act conformity statement / open source attribution. The hash
+is computed from the canonical body text and pinned at every
+acceptance — material updates rotate the hash and trigger
+re-acceptance.
+
+ * @summary List every legal document with its current version + hash
+ */
+export const ListLegalDocumentsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        type: zod.enum([
+          "eula",
+          "privacy",
+          "terms",
+          "eu_ai_act",
+          "open_source_attribution",
+        ]),
+        title: zod.string(),
+        version: zod.string(),
+        hash: zod.string(),
+        effectiveDate: zod.coerce.date(),
+        requiresAcceptance: zod.boolean(),
+        summary: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Fetch one legal document with its full body
+ */
+export const GetLegalDocumentParams = zod.object({
+  type: zod.enum([
+    "eula",
+    "privacy",
+    "terms",
+    "eu_ai_act",
+    "open_source_attribution",
+  ]),
+});
+
+export const GetLegalDocumentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    document: zod
+      .object({
+        type: zod.enum([
+          "eula",
+          "privacy",
+          "terms",
+          "eu_ai_act",
+          "open_source_attribution",
+        ]),
+        title: zod.string(),
+        version: zod.string(),
+        hash: zod.string(),
+        effectiveDate: zod.coerce.date(),
+        requiresAcceptance: zod.boolean(),
+        summary: zod.string(),
+      })
+      .and(
+        zod.object({
+          body: zod.string(),
+        }),
+      ),
+  }),
+});
+
+/**
  * @summary List paired mobile devices
  */
 export const listMobileDevicesQueryLimitDefault = 20;
@@ -6433,6 +6505,376 @@ export const SetMobileNotificationPrefsResponse = zod.object({
     taskFailed: zod.boolean(),
     longTaskProgress: zod.boolean(),
     updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List documents the requesting tenant has accepted
+ */
+export const ListLegalAcceptancesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListLegalAcceptancesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        documentType: zod.string(),
+        documentVersion: zod.string(),
+        documentHash: zod.string(),
+        acceptedAt: zod.coerce.date(),
+        locale: zod.string().nullish(),
+        userAgent: zod.string().nullish(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * Append-only — re-acceptance after a material update inserts a new
+row rather than mutating the previous one. The server computes the
+canonical document hash so the caller cannot pin acceptance to a
+version it has not actually seen.
+
+ * @summary Record an acceptance for one legal document
+ */
+export const RecordLegalAcceptanceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RecordLegalAcceptanceBody = zod.object({
+  documentType: zod.enum([
+    "eula",
+    "privacy",
+    "terms",
+    "eu_ai_act",
+    "open_source_attribution",
+  ]),
+  locale: zod.string().optional(),
+});
+
+export const RecordLegalAcceptanceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    acceptance: zod.object({
+      id: zod.string(),
+      documentType: zod.string(),
+      documentVersion: zod.string(),
+      documentHash: zod.string(),
+      acceptedAt: zod.coerce.date(),
+      locale: zod.string().nullish(),
+      userAgent: zod.string().nullish(),
+    }),
+  }),
+});
+
+/**
+ * `pending` lists every document whose current hash has not been
+accepted by this tenant. The acceptance gate renders when this
+array is non-empty.
+
+ * @summary { pending, accepted } — drives the in-app legal gate
+ */
+export const GetLegalAcceptanceStateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetLegalAcceptanceStateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    pending: zod.array(
+      zod.object({
+        document: zod.object({
+          type: zod.enum([
+            "eula",
+            "privacy",
+            "terms",
+            "eu_ai_act",
+            "open_source_attribution",
+          ]),
+          title: zod.string(),
+          version: zod.string(),
+          hash: zod.string(),
+          effectiveDate: zod.coerce.date(),
+          requiresAcceptance: zod.boolean(),
+          summary: zod.string(),
+        }),
+        lastAcceptedVersion: zod.string().nullish(),
+        lastAcceptedAt: zod.coerce.date().nullish(),
+      }),
+    ),
+    accepted: zod.array(
+      zod.object({
+        id: zod.string(),
+        documentType: zod.string(),
+        documentVersion: zod.string(),
+        documentHash: zod.string(),
+        acceptedAt: zod.coerce.date(),
+        locale: zod.string().nullish(),
+        userAgent: zod.string().nullish(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * Static catalogue listing the upstream licence, commercial-use
+verdict, and user-facing restrictions for every bundled or
+downloadable model. Surfaced both in the model download UI and on
+the Settings → Legal page.
+
+ * @summary Full model licence catalogue
+ */
+export const ListModelLicencesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        modelId: zod.string(),
+        displayName: zod.string(),
+        licenceName: zod.string(),
+        licenceSpdxId: zod.string().nullish(),
+        licenceUrl: zod.string(),
+        commercialUse: zod.enum([
+          "permitted",
+          "permitted_with_conditions",
+          "non_commercial_only",
+        ]),
+        bundledByDefault: zod.boolean(),
+        summary: zod.string(),
+        restrictions: zod.array(zod.string()),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Fetch one model's licence (singleton by model id)
+ */
+export const GetModelLicenceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetModelLicenceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    licence: zod.object({
+      modelId: zod.string(),
+      displayName: zod.string(),
+      licenceName: zod.string(),
+      licenceSpdxId: zod.string().nullish(),
+      licenceUrl: zod.string(),
+      commercialUse: zod.enum([
+        "permitted",
+        "permitted_with_conditions",
+        "non_commercial_only",
+      ]),
+      bundledByDefault: zod.boolean(),
+      summary: zod.string(),
+      restrictions: zod.array(zod.string()),
+    }),
+  }),
+});
+
+/**
+ * @summary List EU AI Act incident reports submitted by this tenant
+ */
+export const listIncidentReportsQueryLimitDefault = 20;
+export const listIncidentReportsQueryLimitMax = 100;
+
+export const ListIncidentReportsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listIncidentReportsQueryLimitMax)
+    .default(listIncidentReportsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListIncidentReportsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListIncidentReportsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        category: zod.enum([
+          "unexpected_action",
+          "approval_bypass",
+          "data_egress",
+          "harmful_output",
+          "hallucination",
+          "model_failure",
+          "other",
+        ]),
+        severity: zod.enum(["low", "medium", "high", "critical"]),
+        status: zod.enum([
+          "submitted",
+          "triaged",
+          "investigating",
+          "resolved",
+          "closed",
+        ]),
+        title: zod.string(),
+        description: zod.string(),
+        relatedRunId: zod.string().nullish(),
+        relatedApprovalId: zod.string().nullish(),
+        contactEmail: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullish(),
+  }),
+});
+
+/**
+ * @summary Submit an incident report (EU AI Act Article 73 channel)
+ */
+export const CreateIncidentReportHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateIncidentReportBody = zod.object({
+  category: zod.enum([
+    "unexpected_action",
+    "approval_bypass",
+    "data_egress",
+    "harmful_output",
+    "hallucination",
+    "model_failure",
+    "other",
+  ]),
+  title: zod.string(),
+  description: zod.string(),
+  severity: zod.enum(["low", "medium", "high", "critical"]).optional(),
+  relatedRunId: zod.string().optional(),
+  relatedApprovalId: zod.string().optional(),
+  contactEmail: zod.string().email().optional(),
+});
+
+export const CreateIncidentReportResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    incident: zod.object({
+      id: zod.string(),
+      category: zod.enum([
+        "unexpected_action",
+        "approval_bypass",
+        "data_egress",
+        "harmful_output",
+        "hallucination",
+        "model_failure",
+        "other",
+      ]),
+      severity: zod.enum(["low", "medium", "high", "critical"]),
+      status: zod.enum([
+        "submitted",
+        "triaged",
+        "investigating",
+        "resolved",
+        "closed",
+      ]),
+      title: zod.string(),
+      description: zod.string(),
+      relatedRunId: zod.string().nullish(),
+      relatedApprovalId: zod.string().nullish(),
+      contactEmail: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Current COPPA / GDPR-K age-gate verdict (singleton)
+ */
+export const GetAgeConfirmationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetAgeConfirmationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    confirmation: zod
+      .object({
+        jurisdiction: zod.enum(["us", "eu", "uk", "global"]),
+        minimumAge: zod.number(),
+        confirmed: zod.boolean(),
+        confirmedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+    minimumAges: zod.object({
+      us: zod.number(),
+      eu: zod.number(),
+      uk: zod.number(),
+      global: zod.number(),
+    }),
+  }),
+});
+
+/**
+ * @summary Confirm jurisdiction + age threshold for the requesting tenant
+ */
+export const UpsertAgeConfirmationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpsertAgeConfirmationBody = zod.object({
+  jurisdiction: zod.enum(["us", "eu", "uk", "global"]),
+  confirmed: zod.boolean(),
+});
+
+export const UpsertAgeConfirmationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    confirmation: zod.object({
+      jurisdiction: zod.enum(["us", "eu", "uk", "global"]),
+      minimumAge: zod.number(),
+      confirmed: zod.boolean(),
+      confirmedAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
   }),
 });
 

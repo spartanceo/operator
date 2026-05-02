@@ -554,7 +554,7 @@ interface ApprovalItem {
   reason: string;
   summary: string;
   riskLevel: string;
-  createdAt: string;
+  createdAt: string | Date;
 }
 
 function ApprovalCard({

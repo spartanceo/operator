@@ -56,3 +56,6 @@ export * from "./mobile-quick-tasks";
 export * from "./telemetry-settings";
 export * from "./telemetry-events";
 export * from "./crash-reports";
+export * from "./legal-acceptances";
+export * from "./incident-reports";
+export * from "./age-confirmations";

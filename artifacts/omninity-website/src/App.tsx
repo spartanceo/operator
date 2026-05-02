@@ -39,6 +39,8 @@ import ApprovalsPage from "@/pages/operator/approvals";
 import SettingsPage from "@/pages/operator/settings";
 import OnboardingPage from "@/pages/operator/onboarding";
 import MobilePage from "@/pages/mobile";
+import LegalPage from "@/pages/legal";
+import { LegalGate } from "@/components/operator/legal-gate";
 
 initApiClient();
 
@@ -81,6 +83,21 @@ function MarketingShell() {
         <Route path="/docs" component={DocsPage} />
         <Route path="/docs/:section" component={DocsPage} />
         <Route path="/docs/:section/:page" component={DocsPage} />
+        <Route path="/legal/privacy">
+          <LegalPage documentType="privacy" />
+        </Route>
+        <Route path="/legal/terms">
+          <LegalPage documentType="terms" />
+        </Route>
+        <Route path="/legal/eula">
+          <LegalPage documentType="eula" />
+        </Route>
+        <Route path="/legal/eu-ai-act">
+          <LegalPage documentType="eu_ai_act" />
+        </Route>
+        <Route path="/legal/open-source">
+          <LegalPage documentType="open_source_attribution" />
+        </Route>
         <Route component={NotFound} />
       </Switch>
     </Layout>
@@ -116,15 +133,25 @@ function OperatorShell() {
 
   if (!completed) {
     return (
-      <OnboardingPage
-        initialProfile={profile}
-        onComplete={() => {
-          void qc.invalidateQueries();
-        }}
-      />
+      <LegalGate>
+        <OnboardingPage
+          initialProfile={profile}
+          onComplete={() => {
+            void qc.invalidateQueries();
+          }}
+        />
+      </LegalGate>
     );
   }
 
+  return (
+    <LegalGate>
+      <OperatorRoutes />
+    </LegalGate>
+  );
+}
+
+function OperatorRoutes() {
   return (
     <Switch>
       <Route path="/chat" component={ChatPage} />
