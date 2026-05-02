@@ -58,6 +58,8 @@ tags:
     description: Platform distribution — code-signing attestation and OS permission flows
   - name: legal
     description: Legal documents, acceptance ledger, model licences, incident reports, age confirmation
+  - name: diagnostics
+    description: Local error log, disk-health probe, and the user-facing error catalog (Task #31 — Error Handling & Graceful Degradation)
 paths:
   /healthz:
     get:
@@ -4213,6 +4215,84 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+  /diagnostics/errors:
+    get:
+      operationId: listDiagnosticErrors
+      tags:
+        - diagnostics
+      summary: Recent error events recorded for the calling tenant
+      description: |
+        Returns the most recent failures captured by the API error handler
+        (Task #31 — Error Handling & Graceful Degradation). Newest first.
+        The list is bounded; consumers should poll, not subscribe.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: limit
+          in: query
+          required: false
+          description: Page size, default 50, max 200.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Recent error events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticErrorListResponse"
+    delete:
+      operationId: clearDiagnosticErrors
+      tags:
+        - diagnostics
+      summary: Clear the calling tenant's error log
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticClearResponse"
+  /diagnostics/disk:
+    get:
+      operationId: getDiagnosticDisk
+      tags:
+        - diagnostics
+      summary: Disk-space report for the local data directory
+      description: |
+        Returns free / total bytes for the volume hosting the local data
+        directory plus the warning (2 GB) and critical (500 MB) thresholds
+        used to gate model downloads and backups.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Disk health report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticDiskResponse"
+  /diagnostics/catalog:
+    get:
+      operationId: getDiagnosticCatalog
+      tags:
+        - diagnostics
+      summary: Full user-facing error catalog
+      description: |
+        Returns every known error code paired with its plain-English
+        message, the recommended user action, and a severity tag. The web
+        client uses this so it never has to inline copy for known failures.
+      responses:
+        "200":
+          description: Catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticCatalogResponse"
 components:
   parameters:
     TenantHeader:
@@ -11159,4 +11239,160 @@ components:
             - true
         data:
           $ref: "#/components/schemas/PermissionView"
+    DiagnosticErrorEntry:
+      type: object
+      required:
+        - id
+        - timestamp
+        - code
+        - message
+        - action
+        - severity
+        - httpStatus
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        tenantId:
+          type: string
+          nullable: true
+        code:
+          type: string
+        message:
+          type: string
+        action:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, error, critical]
+        httpStatus:
+          type: integer
+        requestId:
+          type: string
+          nullable: true
+        path:
+          type: string
+          nullable: true
+        method:
+          type: string
+          nullable: true
+        causeSnippet:
+          type: string
+          nullable: true
+    DiagnosticErrorListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/DiagnosticErrorEntry"
+    DiagnosticClearResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [cleared]
+          properties:
+            cleared:
+              type: integer
+    DiagnosticDiskStatus:
+      type: object
+      required:
+        - health
+        - path
+      properties:
+        health:
+          type: string
+          enum: [ok, warning, critical, unknown]
+        freeBytes:
+          type: integer
+          nullable: true
+        totalBytes:
+          type: integer
+          nullable: true
+        path:
+          type: string
+    DiagnosticDiskReport:
+      type: object
+      required:
+        - status
+        - thresholds
+        - checkedAt
+      properties:
+        status:
+          $ref: "#/components/schemas/DiagnosticDiskStatus"
+        thresholds:
+          type: object
+          required: [warningBytes, criticalBytes]
+          properties:
+            warningBytes:
+              type: integer
+            criticalBytes:
+              type: integer
+        checkedAt:
+          type: string
+          format: date-time
+    DiagnosticDiskResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/DiagnosticDiskReport"
+    DiagnosticCatalogEntry:
+      type: object
+      required:
+        - code
+        - message
+        - action
+        - severity
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        action:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, error, critical]
+    DiagnosticCatalogResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/DiagnosticCatalogEntry"
 

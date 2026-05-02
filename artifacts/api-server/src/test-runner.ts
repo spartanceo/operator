@@ -3163,6 +3163,92 @@ const cases: TestCase[] = [
       assert.equal(bView.body.data.items.length, 0);
     },
   },
+  {
+    name: "diagnostics: catalog returns plain-English entries",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/diagnostics/catalog")
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      assert.equal(res.body.success, true);
+      assert.ok(Array.isArray(res.body.data.items));
+      assert.ok(res.body.data.items.length > 0);
+      const internal = res.body.data.items.find(
+        (e: { code: string }) => e.code === "INTERNAL",
+      );
+      assert.ok(internal, "expected INTERNAL code in catalog");
+      assert.ok(internal.message && internal.action);
+      assert.ok(["info", "warning", "error", "critical"].includes(internal.severity));
+    },
+  },
+  {
+    name: "diagnostics: disk probe returns thresholds + status",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/diagnostics/disk")
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      assert.equal(res.body.success, true);
+      assert.ok(res.body.data.thresholds.warningBytes > 0);
+      assert.ok(res.body.data.thresholds.criticalBytes > 0);
+      assert.ok(
+        ["ok", "warning", "critical", "unknown"].includes(res.body.data.status.health),
+      );
+    },
+  },
+  {
+    name: "diagnostics: 404 errors are recorded and listed for the same tenant",
+    run: async () => {
+      const tenant = `tenant_diag_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      // Trigger an error by hitting an unknown route under /api/*.
+      await request(app)
+        .get("/api/this-route-does-not-exist-xyz")
+        .set("X-Tenant-ID", tenant)
+        .expect(404);
+      const list = await request(app)
+        .get("/api/diagnostics/errors")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(list.body.success, true);
+      assert.ok(Array.isArray(list.body.data.items));
+      assert.ok(list.body.data.items.length >= 1, "expected the 404 to be recorded");
+      const entry = list.body.data.items[0];
+      assert.equal(entry.httpStatus, 404);
+      assert.ok(entry.code);
+      assert.ok(entry.message);
+      assert.ok(entry.action);
+    },
+  },
+  {
+    name: "diagnostics: error log is tenant-isolated and clearable",
+    run: async () => {
+      const a = `tenant_diag_a_${Date.now()}`;
+      const b = `tenant_diag_b_${Date.now()}`;
+      await bootstrapTenant(a);
+      await bootstrapTenant(b);
+      await request(app)
+        .get("/api/this-route-does-not-exist-xyz")
+        .set("X-Tenant-ID", a)
+        .expect(404);
+      const bView = await request(app)
+        .get("/api/diagnostics/errors")
+        .set("X-Tenant-ID", b)
+        .expect(200);
+      assert.equal(bView.body.data.items.length, 0, "tenant b must not see tenant a's errors");
+      // Clear and confirm.
+      const cleared = await request(app)
+        .delete("/api/diagnostics/errors")
+        .set("X-Tenant-ID", a)
+        .expect(200);
+      assert.ok(cleared.body.data.cleared >= 1);
+      const aView = await request(app)
+        .get("/api/diagnostics/errors")
+        .set("X-Tenant-ID", a)
+        .expect(200);
+      assert.equal(aView.body.data.items.length, 0);
+    },
+  },
 ];
 
 async function main() {

@@ -87,6 +87,10 @@ import type {
   DesktopSessionResponse,
   DesktopStepListResponse,
   DesktopStepResponse,
+  DiagnosticCatalogResponse,
+  DiagnosticClearResponse,
+  DiagnosticDiskResponse,
+  DiagnosticErrorListResponse,
   EmailCategoryRequest,
   EmailDraftListResponse,
   EmailDraftResponse,
@@ -148,6 +152,7 @@ import type {
   ListCrashReportsParams,
   ListDesktopSessionStepsParams,
   ListDesktopSessionsParams,
+  ListDiagnosticErrorsParams,
   ListDistributionPermissionsParams,
   ListEmailDraftsParams,
   ListEmailMessagesParams,
@@ -17096,3 +17101,349 @@ export const useReportDistributionPermission = <
 > => {
   return useMutation(getReportDistributionPermissionMutationOptions(options));
 };
+
+/**
+ * Returns the most recent failures captured by the API error handler
+(Task #31 — Error Handling & Graceful Degradation). Newest first.
+The list is bounded; consumers should poll, not subscribe.
+
+ * @summary Recent error events recorded for the calling tenant
+ */
+export const getListDiagnosticErrorsUrl = (
+  params?: ListDiagnosticErrorsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/diagnostics/errors?${stringifiedParams}`
+    : `/api/diagnostics/errors`;
+};
+
+export const listDiagnosticErrors = async (
+  params?: ListDiagnosticErrorsParams,
+  options?: RequestInit,
+): Promise<DiagnosticErrorListResponse> => {
+  return customFetch<DiagnosticErrorListResponse>(
+    getListDiagnosticErrorsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDiagnosticErrorsQueryKey = (
+  params?: ListDiagnosticErrorsParams,
+) => {
+  return [`/api/diagnostics/errors`, ...(params ? [params] : [])] as const;
+};
+
+export const getListDiagnosticErrorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDiagnosticErrors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDiagnosticErrorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDiagnosticErrors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDiagnosticErrorsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDiagnosticErrors>>
+  > = ({ signal }) =>
+    listDiagnosticErrors(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDiagnosticErrors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDiagnosticErrorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDiagnosticErrors>>
+>;
+export type ListDiagnosticErrorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Recent error events recorded for the calling tenant
+ */
+
+export function useListDiagnosticErrors<
+  TData = Awaited<ReturnType<typeof listDiagnosticErrors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDiagnosticErrorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDiagnosticErrors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDiagnosticErrorsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Clear the calling tenant's error log
+ */
+export const getClearDiagnosticErrorsUrl = () => {
+  return `/api/diagnostics/errors`;
+};
+
+export const clearDiagnosticErrors = async (
+  options?: RequestInit,
+): Promise<DiagnosticClearResponse> => {
+  return customFetch<DiagnosticClearResponse>(getClearDiagnosticErrorsUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getClearDiagnosticErrorsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof clearDiagnosticErrors>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof clearDiagnosticErrors>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["clearDiagnosticErrors"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof clearDiagnosticErrors>>,
+    void
+  > = () => {
+    return clearDiagnosticErrors(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClearDiagnosticErrorsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof clearDiagnosticErrors>>
+>;
+
+export type ClearDiagnosticErrorsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Clear the calling tenant's error log
+ */
+export const useClearDiagnosticErrors = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof clearDiagnosticErrors>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof clearDiagnosticErrors>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getClearDiagnosticErrorsMutationOptions(options));
+};
+
+/**
+ * Returns free / total bytes for the volume hosting the local data
+directory plus the warning (2 GB) and critical (500 MB) thresholds
+used to gate model downloads and backups.
+
+ * @summary Disk-space report for the local data directory
+ */
+export const getGetDiagnosticDiskUrl = () => {
+  return `/api/diagnostics/disk`;
+};
+
+export const getDiagnosticDisk = async (
+  options?: RequestInit,
+): Promise<DiagnosticDiskResponse> => {
+  return customFetch<DiagnosticDiskResponse>(getGetDiagnosticDiskUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDiagnosticDiskQueryKey = () => {
+  return [`/api/diagnostics/disk`] as const;
+};
+
+export const getGetDiagnosticDiskQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDiagnosticDisk>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDiagnosticDisk>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDiagnosticDiskQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDiagnosticDisk>>
+  > = ({ signal }) => getDiagnosticDisk({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDiagnosticDisk>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDiagnosticDiskQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDiagnosticDisk>>
+>;
+export type GetDiagnosticDiskQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Disk-space report for the local data directory
+ */
+
+export function useGetDiagnosticDisk<
+  TData = Awaited<ReturnType<typeof getDiagnosticDisk>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDiagnosticDisk>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDiagnosticDiskQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns every known error code paired with its plain-English
+message, the recommended user action, and a severity tag. The web
+client uses this so it never has to inline copy for known failures.
+
+ * @summary Full user-facing error catalog
+ */
+export const getGetDiagnosticCatalogUrl = () => {
+  return `/api/diagnostics/catalog`;
+};
+
+export const getDiagnosticCatalog = async (
+  options?: RequestInit,
+): Promise<DiagnosticCatalogResponse> => {
+  return customFetch<DiagnosticCatalogResponse>(getGetDiagnosticCatalogUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDiagnosticCatalogQueryKey = () => {
+  return [`/api/diagnostics/catalog`] as const;
+};
+
+export const getGetDiagnosticCatalogQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDiagnosticCatalog>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDiagnosticCatalog>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDiagnosticCatalogQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDiagnosticCatalog>>
+  > = ({ signal }) => getDiagnosticCatalog({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDiagnosticCatalog>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDiagnosticCatalogQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDiagnosticCatalog>>
+>;
+export type GetDiagnosticCatalogQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Full user-facing error catalog
+ */
+
+export function useGetDiagnosticCatalog<
+  TData = Awaited<ReturnType<typeof getDiagnosticCatalog>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDiagnosticCatalog>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDiagnosticCatalogQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

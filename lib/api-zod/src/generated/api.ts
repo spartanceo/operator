@@ -7727,3 +7727,123 @@ export const ReportDistributionPermissionResponse = zod.object({
     featureEnabled: zod.boolean(),
   }),
 });
+
+/**
+ * Returns the most recent failures captured by the API error handler
+(Task #31 — Error Handling & Graceful Degradation). Newest first.
+The list is bounded; consumers should poll, not subscribe.
+
+ * @summary Recent error events recorded for the calling tenant
+ */
+export const listDiagnosticErrorsQueryLimitDefault = 50;
+export const listDiagnosticErrorsQueryLimitMax = 200;
+
+export const ListDiagnosticErrorsQueryParams = zod.object({
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listDiagnosticErrorsQueryLimitMax)
+    .default(listDiagnosticErrorsQueryLimitDefault)
+    .describe("Page size, default 50, max 200."),
+});
+
+export const ListDiagnosticErrorsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListDiagnosticErrorsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        timestamp: zod.coerce.date(),
+        tenantId: zod.string().nullish(),
+        code: zod.string(),
+        message: zod.string(),
+        action: zod.string(),
+        severity: zod.enum(["info", "warning", "error", "critical"]),
+        httpStatus: zod.number(),
+        requestId: zod.string().nullish(),
+        path: zod.string().nullish(),
+        method: zod.string().nullish(),
+        causeSnippet: zod.string().nullish(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Clear the calling tenant's error log
+ */
+export const ClearDiagnosticErrorsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ClearDiagnosticErrorsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    cleared: zod.number(),
+  }),
+});
+
+/**
+ * Returns free / total bytes for the volume hosting the local data
+directory plus the warning (2 GB) and critical (500 MB) thresholds
+used to gate model downloads and backups.
+
+ * @summary Disk-space report for the local data directory
+ */
+export const GetDiagnosticDiskHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetDiagnosticDiskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    status: zod.object({
+      health: zod.enum(["ok", "warning", "critical", "unknown"]),
+      freeBytes: zod.number().nullish(),
+      totalBytes: zod.number().nullish(),
+      path: zod.string(),
+    }),
+    thresholds: zod.object({
+      warningBytes: zod.number(),
+      criticalBytes: zod.number(),
+    }),
+    checkedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * Returns every known error code paired with its plain-English
+message, the recommended user action, and a severity tag. The web
+client uses this so it never has to inline copy for known failures.
+
+ * @summary Full user-facing error catalog
+ */
+export const GetDiagnosticCatalogResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        code: zod.string(),
+        message: zod.string(),
+        action: zod.string(),
+        severity: zod.enum(["info", "warning", "error", "critical"]),
+      }),
+    ),
+  }),
+});

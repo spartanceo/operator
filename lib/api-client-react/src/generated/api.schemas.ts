@@ -3720,6 +3720,108 @@ export interface PermissionViewResponse {
   data: PermissionView;
 }
 
+export type DiagnosticErrorEntrySeverity =
+  (typeof DiagnosticErrorEntrySeverity)[keyof typeof DiagnosticErrorEntrySeverity];
+
+export const DiagnosticErrorEntrySeverity = {
+  info: "info",
+  warning: "warning",
+  error: "error",
+  critical: "critical",
+} as const;
+
+export interface DiagnosticErrorEntry {
+  id: string;
+  timestamp: string;
+  tenantId?: string | null;
+  code: string;
+  message: string;
+  action: string;
+  severity: DiagnosticErrorEntrySeverity;
+  httpStatus: number;
+  requestId?: string | null;
+  path?: string | null;
+  method?: string | null;
+  causeSnippet?: string | null;
+}
+
+export type DiagnosticErrorListResponseData = {
+  items: DiagnosticErrorEntry[];
+};
+
+export interface DiagnosticErrorListResponse {
+  success: boolean;
+  data: DiagnosticErrorListResponseData;
+}
+
+export type DiagnosticClearResponseData = {
+  cleared: number;
+};
+
+export interface DiagnosticClearResponse {
+  success: boolean;
+  data: DiagnosticClearResponseData;
+}
+
+export type DiagnosticDiskStatusHealth =
+  (typeof DiagnosticDiskStatusHealth)[keyof typeof DiagnosticDiskStatusHealth];
+
+export const DiagnosticDiskStatusHealth = {
+  ok: "ok",
+  warning: "warning",
+  critical: "critical",
+  unknown: "unknown",
+} as const;
+
+export interface DiagnosticDiskStatus {
+  health: DiagnosticDiskStatusHealth;
+  freeBytes?: number | null;
+  totalBytes?: number | null;
+  path: string;
+}
+
+export type DiagnosticDiskReportThresholds = {
+  warningBytes: number;
+  criticalBytes: number;
+};
+
+export interface DiagnosticDiskReport {
+  status: DiagnosticDiskStatus;
+  thresholds: DiagnosticDiskReportThresholds;
+  checkedAt: string;
+}
+
+export interface DiagnosticDiskResponse {
+  success: boolean;
+  data: DiagnosticDiskReport;
+}
+
+export type DiagnosticCatalogEntrySeverity =
+  (typeof DiagnosticCatalogEntrySeverity)[keyof typeof DiagnosticCatalogEntrySeverity];
+
+export const DiagnosticCatalogEntrySeverity = {
+  info: "info",
+  warning: "warning",
+  error: "error",
+  critical: "critical",
+} as const;
+
+export interface DiagnosticCatalogEntry {
+  code: string;
+  message: string;
+  action: string;
+  severity: DiagnosticCatalogEntrySeverity;
+}
+
+export type DiagnosticCatalogResponseData = {
+  items: DiagnosticCatalogEntry[];
+};
+
+export interface DiagnosticCatalogResponse {
+  success: boolean;
+  data: DiagnosticCatalogResponseData;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -4325,3 +4427,12 @@ export const ListDistributionPermissionsPlatform = {
   linux: "linux",
   unknown: "unknown",
 } as const;
+
+export type ListDiagnosticErrorsParams = {
+  /**
+   * Page size, default 50, max 200.
+   * @minimum 1
+   * @maximum 200
+   */
+  limit?: number;
+};

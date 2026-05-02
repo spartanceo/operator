@@ -13,6 +13,7 @@ import {
   FeatureTour,
   GlobalKeyboardShortcuts,
 } from "@/components/help";
+import { CatalogHydrator } from "@/components/operator/catalog-hydrator";
 import { initApiClient } from "@/lib/api-config";
 import { makeQueryClient } from "@/lib/query-client";
 import LandingPage from "@/pages/landing";
@@ -201,6 +202,7 @@ function App() {
         <SettingsProvider>
           <HelpProvider>
             <TooltipProvider>
+              <CatalogHydrator />
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                 <Router />
               </WouterRouter>

@@ -19,6 +19,7 @@ import {
   type HelpCategoryId,
   searchArticles,
 } from "./help-content";
+import { DiagnosticsPanel } from "@/components/operator/diagnostics-panel";
 
 /**
  * Slide-out help panel. Hosts:
@@ -31,6 +32,7 @@ export function HelpPanel() {
   const { panel, closePanel, feedback, setArticleFeedback } = useHelp();
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [tab, setTab] = useState<"articles" | "diagnostics">("articles");
   const articleRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
   // When the panel opens with a deep-link article id, surface that article
@@ -83,25 +85,66 @@ export function HelpPanel() {
             </kbd>{" "}
             to reopen.
           </SheetDescription>
-          <div className="relative mt-3">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search articles…"
-              data-testid="help-search-input"
-              className="h-9 rounded-md pl-8 text-sm"
-              aria-label="Search help articles"
-            />
+          <div className="mt-3 flex gap-1 rounded-md bg-muted/50 p-1 text-xs">
+            <button
+              type="button"
+              onClick={() => setTab("articles")}
+              data-testid="help-tab-articles"
+              className={cn(
+                "hover-elevate active-elevate-2 flex-1 rounded px-2 py-1.5",
+                tab === "articles"
+                  ? "bg-background font-medium text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              Articles
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("diagnostics")}
+              data-testid="help-tab-diagnostics"
+              className={cn(
+                "hover-elevate active-elevate-2 flex-1 rounded px-2 py-1.5",
+                tab === "diagnostics"
+                  ? "bg-background font-medium text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              Diagnostics
+            </button>
           </div>
-          <p className="mt-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            {query.trim()
-              ? `${totalMatches} result${totalMatches === 1 ? "" : "s"}`
-              : `${HELP_ARTICLES.length} articles in ${HELP_CATEGORIES.length} categories`}
-          </p>
+          {tab === "articles" ? (
+            <>
+              <div className="relative mt-3">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search articles…"
+                  data-testid="help-search-input"
+                  className="h-9 rounded-md pl-8 text-sm"
+                  aria-label="Search help articles"
+                />
+              </div>
+              <p className="mt-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                {query.trim()
+                  ? `${totalMatches} result${totalMatches === 1 ? "" : "s"}`
+                  : `${HELP_ARTICLES.length} articles in ${HELP_CATEGORIES.length} categories`}
+              </p>
+            </>
+          ) : (
+            <p className="mt-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Recent problems Operator caught on this device
+            </p>
+          )}
         </SheetHeader>
 
+        {tab === "diagnostics" ? (
+          <div className="min-h-0 flex-1 overflow-y-auto p-5">
+            <DiagnosticsPanel />
+          </div>
+        ) : (
         <div className="flex min-h-0 flex-1 overflow-y-auto">
           <nav
             aria-label="Help categories"
@@ -230,6 +273,7 @@ export function HelpPanel() {
             </Badge>
           </div>
         </div>
+        )}
       </SheetContent>
     </Sheet>
   );

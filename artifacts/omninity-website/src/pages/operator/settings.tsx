@@ -19,6 +19,7 @@ import {
 } from "@workspace/api-client-react";
 import { HardwareModelSettings } from "@/components/operator/hardware-model-settings";
 import { TelemetryCard } from "@/components/operator/telemetry-card";
+import { DiagnosticsPanel } from "@/components/operator/diagnostics-panel";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettings } from "@/contexts/settings-context";
 import { useTheme } from "@/contexts/theme-context";
@@ -234,6 +235,10 @@ export default function SettingsPage() {
         <HardwareModelSettings />
 
         <TelemetryCard />
+
+        <div className="lg:col-span-2">
+          <DiagnosticsPanel />
+        </div>
 
         <Card className="lg:col-span-2">
           <CardHeader>

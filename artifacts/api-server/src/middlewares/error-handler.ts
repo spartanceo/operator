@@ -4,41 +4,63 @@
  *
  * Internal error details are NOT returned to the client per Standard 12
  * (`Forbidden Patterns → Secret leakage`). The full error is logged with
- * the request context; the client gets a stable `code` and a safe `message`.
+ * the request context; the client gets a stable `code` and a safe `message`
+ * sourced from the @workspace/errors catalog (Step 6 of Task #31).
+ *
+ * Every captured error is also recorded in the diagnostics ring buffer so
+ * the help-panel "Diagnostics" tab can show recent failures, and so the
+ * persistent-error escalator can promote repeat failures to the
+ * notification centre.
  */
 import type { ErrorRequestHandler, RequestHandler } from "express";
 
-import { err } from "../lib/api-envelope";
-import { logger } from "../lib/logger";
+import { toApiError } from "@workspace/errors";
 
-interface AppError {
-  code?: string;
-  status?: number;
-  statusCode?: number;
-  expose?: boolean;
-  message?: string;
-}
+import { err } from "../lib/api-envelope";
+import { getTenantContext } from "../lib/tenant-context";
+import { logger } from "../lib/logger";
+import { recordErrorEvent } from "../services/diagnostics.service";
 
 export function errorHandler(): ErrorRequestHandler {
   return function errorHandlerMiddleware(error, req, res, _next) {
-    const e = (error ?? {}) as AppError;
-    const status = e.status ?? e.statusCode ?? 500;
-    const code = e.code ?? (status === 404 ? "NOT_FOUND" : "INTERNAL");
-    const safeMessage =
-      e.expose && e.message ? e.message : status >= 500 ? "Internal server error" : e.message ?? "Bad request";
+    const triple = toApiError(error);
+    const ctx = getTenantContext();
+    const requestId = (res.locals["requestId"] as string | undefined) ?? null;
+    const path = req.url.split("?")[0] ?? null;
 
     logger.error(
       {
-        err: error,
-        requestId: res.locals["requestId"],
+        err: triple.cause,
+        requestId,
         method: req.method,
-        url: req.url.split("?")[0],
-        status,
+        url: path,
+        status: triple.status,
+        code: triple.code,
+        details: triple.details,
       },
       "Request failed",
     );
 
-    res.status(status).json(err(code, safeMessage));
+    try {
+      recordErrorEvent({
+        code: triple.code,
+        httpStatus: triple.status,
+        tenantId: ctx?.tenantId ?? null,
+        requestId,
+        path,
+        method: req.method,
+        cause: triple.cause,
+      });
+    } catch (recordErr) {
+      // Diagnostics MUST never become a new failure source.
+      logger.warn({ err: recordErr }, "Diagnostic recording failed");
+    }
+
+    const payload = triple.details
+      ? err(triple.code, triple.message, triple.details)
+      : err(triple.code, triple.message);
+
+    res.status(triple.status).json(payload);
   };
 }
 
@@ -54,8 +76,24 @@ export function errorHandler(): ErrorRequestHandler {
  */
 export function notFoundHandler(): RequestHandler {
   return function notFoundMiddleware(req, res, _next) {
+    const ctx = getTenantContext();
+    const requestId = (res.locals["requestId"] as string | undefined) ?? null;
+    const path = req.url.split("?")[0] ?? null;
+    try {
+      recordErrorEvent({
+        code: "NOT_FOUND",
+        httpStatus: 404,
+        tenantId: ctx?.tenantId ?? null,
+        requestId,
+        path,
+        method: req.method,
+        cause: new Error(`No route matches ${req.method} ${path ?? ""}`),
+      });
+    } catch (recordErr) {
+      logger.warn({ err: recordErr }, "Diagnostic recording failed");
+    }
     res
       .status(404)
-      .json(err("NOT_FOUND", `No route matches ${req.method} ${req.url.split("?")[0]}`));
+      .json(err("NOT_FOUND", `No route matches ${req.method} ${path}`));
   };
 }
