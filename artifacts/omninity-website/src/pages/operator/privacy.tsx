@@ -18,6 +18,7 @@ import {
 import { ErrorBanner } from "@/components/operator/error-banner";
 import { EmptyState } from "@/components/operator/empty-state";
 import { JsonView } from "@/components/operator/json-view";
+import { HelpIcon } from "@/components/help";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_STYLES: Record<string, string> = {
@@ -77,6 +78,7 @@ export default function PrivacyPage() {
       description="Audit log of every privacy-sensitive event. Export or erase all tenant data on demand (GDPR)."
       actions={
         <div className="flex items-center gap-2">
+          <HelpIcon articleId="data-export" label="Export and erase" />
           <Button
             variant="outline"
             size="sm"

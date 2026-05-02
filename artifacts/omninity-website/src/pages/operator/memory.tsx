@@ -28,6 +28,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorBanner } from "@/components/operator/error-banner";
 import { EmptyState } from "@/components/operator/empty-state";
+import { HelpIcon, useHelp } from "@/components/help";
 
 const KIND_OPTIONS = ["fact", "preference", "instruction", "skill", "note"];
 
@@ -39,12 +40,14 @@ export default function MemoryPage() {
   const [importance, setImportance] = useState(50);
 
   const qc = useQueryClient();
+  const { completeChecklistItem } = useHelp();
   const memoriesQuery = useListMemories({ limit: 100 });
   const memories = memoriesQuery.data?.data.items ?? [];
 
   const create = useCreateMemory({
     mutation: {
       onSuccess: () => {
+        completeChecklistItem("memory");
         setTitle("");
         setContent("");
         setKind("fact");
@@ -76,13 +79,15 @@ export default function MemoryPage() {
       title="Memory"
       description="Long-lived context the agents can recall across runs."
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" data-testid="button-add-memory">
-              <Plus className="mr-1 h-3 w-3" />
-              New memory
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <HelpIcon articleId="memory-system" label="How memory works" />
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" data-testid="button-add-memory">
+                <Plus className="mr-1 h-3 w-3" />
+                New memory
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New memory</DialogTitle>
@@ -177,7 +182,8 @@ export default function MemoryPage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       }
     >
       <div className="space-y-4 p-6">

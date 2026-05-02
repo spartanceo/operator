@@ -6,6 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout/layout";
 import { ThemeProvider } from "@/contexts/theme-context";
 import { SettingsProvider } from "@/contexts/settings-context";
+import {
+  HelpProvider,
+  HelpPanel,
+  ShortcutsOverlay,
+  FeatureTour,
+  GlobalKeyboardShortcuts,
+} from "@/components/help";
 import { initApiClient } from "@/lib/api-config";
 import { makeQueryClient } from "@/lib/query-client";
 import LandingPage from "@/pages/landing";
@@ -133,7 +140,20 @@ function Router() {
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   const relativePath = base && path.startsWith(base) ? path.slice(base.length) || "/" : path;
-  return isOperatorPath(relativePath) ? <OperatorShell /> : <MarketingShell />;
+  const isOperator = isOperatorPath(relativePath);
+  return (
+    <>
+      {isOperator ? <OperatorShell /> : <MarketingShell />}
+      {isOperator ? (
+        <>
+          <HelpPanel />
+          <ShortcutsOverlay />
+          <FeatureTour />
+          <GlobalKeyboardShortcuts />
+        </>
+      ) : null}
+    </>
+  );
 }
 
 function App() {
@@ -141,11 +161,13 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <SettingsProvider>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
-          </TooltipProvider>
+          <HelpProvider>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+            </TooltipProvider>
+          </HelpProvider>
         </SettingsProvider>
       </ThemeProvider>
     </QueryClientProvider>

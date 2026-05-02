@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
+import { OnboardingChecklist } from "@/components/help";
 
 interface NavItem {
   href: string;
@@ -53,7 +54,7 @@ export function OperatorSidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 p-3" aria-label="Primary">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Primary">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active =
@@ -77,6 +78,8 @@ export function OperatorSidebar() {
             </Link>
           );
         })}
+
+        <OnboardingChecklist />
       </nav>
 
       <div className="border-t border-sidebar-border p-3">

@@ -29,6 +29,7 @@ import { EmptyState } from "@/components/operator/empty-state";
 import { PlanCard } from "@/components/operator/plan-card";
 import { ExecutionTimeline } from "@/components/operator/timeline";
 import { JsonView } from "@/components/operator/json-view";
+import { HelpIcon } from "@/components/help";
 import { cn } from "@/lib/utils";
 
 const AGENT_ROSTER = [
@@ -86,8 +87,9 @@ export default function AgentsPage() {
         <ErrorBanner error={runsQuery.error} />
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Roster
+            <HelpIcon articleId="agent-roster" label="Agent roster" />
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {AGENT_ROSTER.map((agent) => {

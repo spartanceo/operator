@@ -36,6 +36,12 @@ import { ApprovalModal } from "@/components/operator/approval-modal";
 import { ExecutionTimeline } from "@/components/operator/timeline";
 import { StarterChips } from "@/components/onboarding/starter-chips";
 import { SuccessSparkle } from "@/components/onboarding/success-sparkle";
+import {
+  HelpIcon,
+  InlineHints,
+  FirstTimeTooltip,
+  useHelp,
+} from "@/components/help";
 import { useSettings } from "@/contexts/settings-context";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +63,7 @@ interface LocalChatTurn {
 export default function ChatPage() {
   const { settings } = useSettings();
   const qc = useQueryClient();
+  const { completeChecklistItem } = useHelp();
   const [agentMode, setAgentMode] = useState(false);
   const [input, setInput] = useState("");
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
@@ -215,7 +222,9 @@ export default function ChatPage() {
   const submit = () => {
     const text = input.trim();
     if (!text) return;
+    completeChecklistItem("first-chat");
     if (agentMode) {
+      completeChecklistItem("agent-run");
       createRun.mutate({
         data: { goal: text, ...(model ? { modelName: model } : {}) },
       });
@@ -254,18 +263,28 @@ export default function ChatPage() {
   const headerActions = (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-2">
-        <Switch
-          id="agent-mode"
-          checked={agentMode}
-          onCheckedChange={setAgentMode}
-          data-testid="switch-agent-mode"
-        />
-        <label
-          htmlFor="agent-mode"
-          className="cursor-pointer select-none text-sm text-muted-foreground"
+        <FirstTimeTooltip
+          id="chat-agent-toggle"
+          title="Try Agent mode"
+          body="Flip this switch to plan, execute and verify a multi-step goal end-to-end."
+          side="bottom"
         >
-          Agent
-        </label>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="agent-mode"
+              checked={agentMode}
+              onCheckedChange={setAgentMode}
+              data-testid="switch-agent-mode"
+            />
+            <label
+              htmlFor="agent-mode"
+              className="cursor-pointer select-none text-sm text-muted-foreground"
+            >
+              Agent
+            </label>
+          </div>
+        </FirstTimeTooltip>
+        <HelpIcon articleId="approvals" label="Agent mode" />
       </div>
       <div className="hidden md:block w-48">
         <Select value={model} onValueChange={setModel}>
@@ -327,10 +346,10 @@ export default function ChatPage() {
           <div className="border-t border-border bg-background/95 px-6 py-4">
             <ErrorBanner error={chatMutation.error ?? createRun.error ?? null} className="mb-3" />
             {(agentMode ? !activeRunId : chatTurns.length === 0) ? (
-              <StarterChips
-                className="mb-3"
-                onPick={(prompt) => setInput(prompt)}
-              />
+              <div className="mb-3 space-y-3">
+                <StarterChips onPick={(prompt) => setInput(prompt)} />
+                <InlineHints onPick={(prompt) => setInput(prompt)} />
+              </div>
             ) : null}
             <div className="flex items-end gap-2">
               <Textarea

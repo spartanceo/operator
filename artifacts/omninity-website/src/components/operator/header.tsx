@@ -1,9 +1,15 @@
-import { Sun, Moon, Activity, AlertCircle } from "lucide-react";
+import { Sun, Moon, Activity, AlertCircle, HelpCircle, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTheme } from "@/contexts/theme-context";
 import { useHealthCheck } from "@workspace/api-client-react";
 import { useSettings } from "@/contexts/settings-context";
+import { useHelp, FeatureHighlight } from "@/components/help";
 import { cn } from "@/lib/utils";
 
 interface OperatorHeaderProps {
@@ -19,6 +25,7 @@ export function OperatorHeader({
 }: OperatorHeaderProps) {
   const { theme, toggle } = useTheme();
   const { settings } = useSettings();
+  const { openPanel, openShortcuts } = useHelp();
   const health = useHealthCheck({
     query: { refetchInterval: 15_000 } as never,
   });
@@ -90,6 +97,44 @@ export function OperatorHeader({
               ? "API online"
               : "API offline"}
         </Badge>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Open help centre"
+              onClick={() => openPanel()}
+              data-testid="button-help-open"
+              className="relative"
+            >
+              <HelpCircle className="h-4 w-4" />
+              <span className="absolute -right-0.5 -top-0.5">
+                <FeatureHighlight highlightId="command-palette-v1" />
+              </span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <span className="text-xs">Help · ⌘?</span>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Show keyboard shortcuts"
+              onClick={openShortcuts}
+              data-testid="button-shortcuts-open"
+            >
+              <Keyboard className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <span className="text-xs">Shortcuts · ⌘/</span>
+          </TooltipContent>
+        </Tooltip>
 
         <Button
           variant="outline"
