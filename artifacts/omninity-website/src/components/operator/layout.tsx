@@ -3,6 +3,7 @@ import { OperatorSidebar } from "./sidebar";
 import { OperatorHeader } from "./header";
 import { DiskHealthBanner } from "./disk-health-banner";
 import { UpdateBanner } from "@/components/onboarding/update-banner";
+import { SkipLink, MAIN_CONTENT_ID } from "@/components/a11y/skip-link";
 
 interface OperatorLayoutProps {
   title: string;
@@ -19,6 +20,7 @@ export function OperatorLayout({
 }: OperatorLayoutProps) {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+      <SkipLink />
       <OperatorSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <UpdateBanner />
@@ -28,7 +30,13 @@ export function OperatorLayout({
           {...(description !== undefined ? { description } : {})}
           {...(actions !== undefined ? { actions } : {})}
         />
-        <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+        <main
+          id={MAIN_CONTENT_ID}
+          tabIndex={-1}
+          className="min-h-0 flex-1 overflow-auto focus:outline-none"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

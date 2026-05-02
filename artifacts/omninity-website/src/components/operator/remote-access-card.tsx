@@ -147,6 +147,7 @@ export function RemoteAccessCard() {
           <Switch
             checked={enabled}
             onCheckedChange={onToggle}
+            aria-label="Enable remote access"
             data-testid="switch-remote-access"
           />
         </div>

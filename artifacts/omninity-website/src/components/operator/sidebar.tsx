@@ -45,7 +45,7 @@ export function OperatorSidebar() {
 
   return (
     <aside
-      className="hidden lg:flex w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
+      className="hidden lg:flex w-60 shrink-0 flex-col border-e border-sidebar-border bg-sidebar text-sidebar-foreground"
       aria-label="Operator navigation"
     >
       <div className="flex h-14 items-center border-b border-sidebar-border px-4">

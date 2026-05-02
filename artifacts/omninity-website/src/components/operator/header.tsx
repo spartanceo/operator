@@ -110,7 +110,7 @@ export function OperatorHeader({
               className="relative"
             >
               <HelpCircle className="h-4 w-4" />
-              <span className="absolute -right-0.5 -top-0.5">
+              <span className="absolute -end-0.5 -top-0.5">
                 <FeatureHighlight highlightId="command-palette-v1" />
               </span>
             </Button>

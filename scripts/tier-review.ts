@@ -2385,6 +2385,8 @@ async function main() {
     checkPaginationEnvelope,
     checkRequiredIndexes,
     checkBoundedCaches,
+    checkI18nKeyParity,
+    checkA11yAxeCore,
   ];
 
   const results: CheckResult[] = [];
@@ -2456,6 +2458,65 @@ async function main() {
     console.log();
     process.exit(1);
   }
+}
+
+// ─── Check 19: i18n key parity (Task #28) ────────────────────────────────────
+// Re-runs the standalone `pnpm --filter @workspace/scripts run i18n-check`
+// gate so the translation parity contract is enforced as part of tier review.
+function checkI18nKeyParity(): CheckResult {
+  const { ok, output } = run("pnpm --filter @workspace/scripts run i18n-check");
+  if (ok) {
+    return {
+      name: "Translation key parity",
+      passed: true,
+      message: "All locale bundles mirror the English key set",
+    };
+  }
+  const detail = output
+    .split("\n")
+    .filter((l) => l.includes("missing") || l.includes("stray") || l.startsWith("✗"))
+    .slice(0, 15);
+  return {
+    name: "Translation key parity",
+    passed: false,
+    message: "One or more locale bundles diverged from English",
+    detail,
+  };
+}
+
+// ─── Check 20: axe-core rendered accessibility audit (Task #28) ─────────────
+// Runs the artifact-local `pnpm --filter @workspace/omninity-website run
+// a11y-check` gate, which renders the marketing landing and operator
+// settings routes through React + the full provider stack and audits the
+// resulting DOM with axe-core. Fails on any moderate/serious/critical
+// WCAG 2.1 AA violation.
+function checkA11yAxeCore(): CheckResult {
+  const { ok, output } = run(
+    "pnpm --filter @workspace/omninity-website run a11y-check",
+  );
+  if (ok) {
+    return {
+      name: "axe-core accessibility",
+      passed: true,
+      message: "No serious/critical WCAG 2.1 AA violations",
+    };
+  }
+  const detail = output
+    .split("\n")
+    .filter(
+      (l) =>
+        l.includes("[moderate]") ||
+        l.includes("[serious]") ||
+        l.includes("[critical]") ||
+        l.includes("a11y-check failed"),
+    )
+    .slice(0, 15);
+  return {
+    name: "axe-core accessibility",
+    passed: false,
+    message: "Serious or critical accessibility violations detected",
+    detail,
+  };
 }
 
 // Only auto-execute when this file is the direct entry point, not when imported

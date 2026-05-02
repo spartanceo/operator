@@ -16,6 +16,8 @@ import {
 import { CatalogHydrator } from "@/components/operator/catalog-hydrator";
 import { initApiClient } from "@/lib/api-config";
 import { makeQueryClient } from "@/lib/query-client";
+import { LocaleProvider } from "@/i18n/locale-context";
+import { getBaseUrl } from "@/lib/base-url";
 import LandingPage from "@/pages/landing";
 import DownloadPage from "@/pages/download";
 import PricingPage from "@/pages/pricing";
@@ -173,7 +175,7 @@ function OperatorRoutes() {
 
 function Router() {
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
-  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const base = getBaseUrl().replace(/\/$/, "");
   const relativePath = base && path.startsWith(base) ? path.slice(base.length) || "/" : path;
   const isMobile = relativePath === "/mobile" || relativePath.startsWith("/mobile/");
   const isOperator = !isMobile && isOperatorPath(relativePath);
@@ -198,18 +200,20 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <LocaleProvider>
       <ThemeProvider>
         <SettingsProvider>
           <HelpProvider>
             <TooltipProvider>
               <CatalogHydrator />
-              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <WouterRouter base={getBaseUrl().replace(/\/$/, "")}>
                 <Router />
               </WouterRouter>
             </TooltipProvider>
           </HelpProvider>
         </SettingsProvider>
       </ThemeProvider>
+      </LocaleProvider>
     </QueryClientProvider>
   );
 }

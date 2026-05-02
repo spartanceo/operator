@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Save, Download, RotateCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { OperatorLayout } from "@/components/operator/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +33,10 @@ import {
 import { ErrorBanner } from "@/components/operator/error-banner";
 import { JsonView } from "@/components/operator/json-view";
 import { RemoteAccessCard } from "@/components/operator/remote-access-card";
+import { LanguageSwitcher } from "@/components/a11y/language-switcher";
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { settings, update, reset } = useSettings();
   const { theme, setTheme } = useTheme();
   const qc = useQueryClient();
@@ -42,6 +45,13 @@ export default function SettingsPage() {
   const [tenantId, setTenant] = useState(getTenantId());
   const [workspaceId, setWorkspace] = useState(getWorkspaceId());
   const [pullName, setPullName] = useState("");
+
+  const ollamaUrlId = useId();
+  const defaultModelId = useId();
+  const tenantInputId = useId();
+  const workspaceInputId = useId();
+  const workspacePathId = useId();
+  const pullInputId = useId();
 
   useEffect(() => {
     setDraft(settings);
@@ -86,8 +96,8 @@ export default function SettingsPage() {
 
   return (
     <OperatorLayout
-      title="Settings"
-      description="Configure runtime, models, and workspace identity."
+      title={t("settings.title")}
+      description={t("settings.description")}
       actions={
         <div className="flex items-center gap-2">
           <Button
@@ -96,8 +106,8 @@ export default function SettingsPage() {
             onClick={onReset}
             data-testid="button-reset-settings"
           >
-            <RotateCcw className="mr-1 h-3 w-3" />
-            Reset
+            <RotateCcw className="me-1 h-3 w-3" aria-hidden="true" />
+            {t("settings.reset")}
           </Button>
           <Button
             size="sm"
@@ -105,8 +115,8 @@ export default function SettingsPage() {
             disabled={!dirty}
             data-testid="button-save-settings"
           >
-            <Save className="mr-1 h-3 w-3" />
-            Save
+            <Save className="me-1 h-3 w-3" aria-hidden="true" />
+            {t("settings.save")}
           </Button>
         </div>
       }
@@ -114,23 +124,28 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Appearance</CardTitle>
+            <CardTitle className="text-base">
+              {t("settings.appearance.title")}
+            </CardTitle>
             <CardDescription className="text-xs">
-              Toggle dark or light theme. Persists across sessions.
+              {t("settings.appearance.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Dark mode</p>
+                <p className="text-sm font-medium">
+                  {t("settings.appearance.darkMode")}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Currently: {theme}
+                  {t("settings.appearance.currently", { theme })}
                 </p>
               </div>
               <Switch
                 checked={theme === "dark"}
                 onCheckedChange={(v) => setTheme(v ? "dark" : "light")}
                 data-testid="switch-theme"
+                aria-label={t("settings.appearance.darkMode")}
               />
             </div>
           </CardContent>
@@ -138,17 +153,37 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Runtime</CardTitle>
+            <CardTitle className="text-base">
+              {t("settings.language.title")}
+            </CardTitle>
             <CardDescription className="text-xs">
-              Ollama endpoint and default model used by agents.
+              {t("settings.language.description")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LanguageSwitcher data-testid="settings-language-switcher" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {t("settings.runtime.title")}
+            </CardTitle>
+            <CardDescription className="text-xs">
+              {t("settings.runtime.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Ollama URL
+              <label
+                htmlFor={ollamaUrlId}
+                className="text-xs uppercase tracking-wide text-muted-foreground"
+              >
+                {t("settings.runtime.ollamaUrl")}
               </label>
               <Input
+                id={ollamaUrlId}
                 value={draft.ollamaUrl}
                 onChange={(e) => setDraft({ ...draft, ollamaUrl: e.target.value })}
                 data-testid="input-ollama-url"
@@ -156,10 +191,14 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Default model
+              <label
+                htmlFor={defaultModelId}
+                className="text-xs uppercase tracking-wide text-muted-foreground"
+              >
+                {t("settings.runtime.defaultModel")}
               </label>
               <Input
+                id={defaultModelId}
                 value={draft.defaultModel}
                 onChange={(e) =>
                   setDraft({ ...draft, defaultModel: e.target.value })
@@ -170,16 +209,18 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center justify-between rounded-md border border-border p-3">
               <div>
-                <p className="text-sm font-medium">Cloud mode</p>
+                <p className="text-sm font-medium">
+                  {t("settings.runtime.cloudMode")}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Allow falling back to a hosted model when the local one is
-                  unavailable.
+                  {t("settings.runtime.cloudModeDescription")}
                 </p>
               </div>
               <Switch
                 checked={draft.cloudMode}
                 onCheckedChange={(v) => setDraft({ ...draft, cloudMode: v })}
                 data-testid="switch-cloud-mode"
+                aria-label={t("settings.runtime.cloudMode")}
               />
             </div>
           </CardContent>
@@ -187,18 +228,23 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Workspace</CardTitle>
+            <CardTitle className="text-base">
+              {t("settings.workspace.title")}
+            </CardTitle>
             <CardDescription className="text-xs">
-              Tenant identity sent on every API request, and the local
-              filesystem path the file tools may touch.
+              {t("settings.workspace.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Tenant ID
+              <label
+                htmlFor={tenantInputId}
+                className="text-xs uppercase tracking-wide text-muted-foreground"
+              >
+                {t("settings.workspace.tenantId")}
               </label>
               <Input
+                id={tenantInputId}
                 value={tenantId}
                 onChange={(e) => setTenant(e.target.value)}
                 data-testid="input-tenant-id"
@@ -206,10 +252,14 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Workspace ID
+              <label
+                htmlFor={workspaceInputId}
+                className="text-xs uppercase tracking-wide text-muted-foreground"
+              >
+                {t("settings.workspace.workspaceId")}
               </label>
               <Input
+                id={workspaceInputId}
                 value={workspaceId}
                 onChange={(e) => setWorkspace(e.target.value)}
                 data-testid="input-workspace-id"
@@ -217,10 +267,14 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Workspace path
+              <label
+                htmlFor={workspacePathId}
+                className="text-xs uppercase tracking-wide text-muted-foreground"
+              >
+                {t("settings.workspace.workspacePath")}
               </label>
               <Input
+                id={workspacePathId}
                 value={draft.workspacePath}
                 onChange={(e) =>
                   setDraft({ ...draft, workspacePath: e.target.value })
@@ -242,17 +296,18 @@ export default function SettingsPage() {
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Pull custom model</CardTitle>
+            <CardTitle className="text-base">
+              {t("settings.pull.title")}
+            </CardTitle>
             <CardDescription className="text-xs">
-              All local models reported by Ollama, plus a manual `pull` for
-              models outside the curated catalogue (advanced).
+              {t("settings.pull.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <ErrorBanner error={modelsQuery.error} />
             <div>
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Installed locally
+                {t("settings.pull.installed")}
               </p>
               <div
                 className="mt-2 flex flex-wrap gap-1"
@@ -260,7 +315,7 @@ export default function SettingsPage() {
               >
                 {(modelsQuery.data?.data.items ?? []).length === 0 ? (
                   <span className="text-xs italic text-muted-foreground">
-                    No models reported.
+                    {t("settings.pull.noModels")}
                   </span>
                 ) : (
                   (modelsQuery.data?.data.items ?? []).map((m) => (
@@ -276,12 +331,16 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Pull a model by name
+              <label
+                htmlFor={pullInputId}
+                className="text-xs uppercase tracking-wide text-muted-foreground"
+              >
+                {t("settings.pull.label")}
               </label>
               <div className="mt-1 flex gap-2">
                 <Input
-                  placeholder="e.g. llama3.1:8b"
+                  id={pullInputId}
+                  placeholder={t("settings.pull.placeholder")}
                   value={pullName}
                   onChange={(e) => setPullName(e.target.value)}
                   data-testid="input-pull-model"
@@ -292,14 +351,19 @@ export default function SettingsPage() {
                   disabled={pull.isPending || !pullName.trim()}
                   data-testid="button-pull-model"
                 >
-                  <Download className="mr-1 h-3 w-3" />
-                  {pull.isPending ? "Pulling…" : "Pull"}
+                  <Download className="me-1 h-3 w-3" aria-hidden="true" />
+                  {pull.isPending
+                    ? t("settings.pull.actionPending")
+                    : t("settings.pull.action")}
                 </Button>
               </div>
               <ErrorBanner error={pull.error} className="mt-2" />
               {pull.data ? (
                 <p className="mt-2 text-xs text-emerald-500">
-                  Pull queued: {pull.data.data.name} ({pull.data.data.status})
+                  {t("settings.pull.queued", {
+                    name: pull.data.data.name,
+                    status: pull.data.data.status,
+                  })}
                 </p>
               ) : null}
             </div>
@@ -312,18 +376,21 @@ export default function SettingsPage() {
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Account</CardTitle>
+            <CardTitle className="text-base">
+              {t("settings.account.title")}
+            </CardTitle>
             <CardDescription className="text-xs">
-              Information returned by <code>GET /api/auth/me</code>.
+              {t("settings.account.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {currentUser.isLoading ? (
-              <p className="text-xs text-muted-foreground">Loading…</p>
+              <p className="text-xs text-muted-foreground">
+                {t("settings.loading")}
+              </p>
             ) : currentUser.error ? (
               <p className="text-xs italic text-muted-foreground">
-                Not signed in. Auth ships in a later milestone — tenant header is
-                used for now.
+                {t("settings.account.notSignedIn")}
               </p>
             ) : (
               <JsonView value={currentUser.data?.data ?? null} />
