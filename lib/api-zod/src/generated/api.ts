@@ -1478,6 +1478,77 @@ export const SelectModelResponse = zod.object({
 });
 
 /**
+ * Starts (or resumes) an install for the chosen primary model plus
+the bundled vision companion (Moondream 2 by default). Returns
+the current `ModelInstallState` envelope; the actual `ollama
+pull` runs in the background. Clients should poll
+`GET /models/install/status` until `status` reaches `completed`
+or `failed`. POSTing again while a run is `running` is a no-op
+— the existing state is returned without starting a duplicate.
+
+ * @summary Kick off the bundled primary + vision install
+ */
+export const InstallModelsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const installModelsBodyPrimaryModelMax = 200;
+
+export const InstallModelsBody = zod.object({
+  primaryModel: zod.string().min(1).max(installModelsBodyPrimaryModelMax),
+  includeVision: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true (default) the bundled vision companion is pulled\nalongside the primary. Set to false only for power-user\ninstalls that opt out of vision.\n",
+    ),
+});
+
+/**
+ * Returns the current install state for the requesting tenant.
+When no install has ever been started the envelope reports
+`status: "idle"` with an empty `models` array — callers should
+treat this as "not started" rather than an error.
+
+ * @summary Per-tenant install state for polling
+ */
+export const GetModelsInstallStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const getModelsInstallStatusResponseDataModelsItemPercentMin = 0;
+export const getModelsInstallStatusResponseDataModelsItemPercentMax = 100;
+
+export const GetModelsInstallStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    status: zod.enum(["idle", "running", "completed", "failed"]),
+    startedAt: zod.coerce.date().nullable(),
+    completedAt: zod.coerce.date().nullable(),
+    models: zod.array(
+      zod.object({
+        modelId: zod.string(),
+        role: zod.enum(["primary", "vision"]),
+        status: zod.enum(["pending", "pulling", "ready", "failed", "skipped"]),
+        percent: zod
+          .number()
+          .min(getModelsInstallStatusResponseDataModelsItemPercentMin)
+          .max(getModelsInstallStatusResponseDataModelsItemPercentMax),
+        error: zod.string().nullable(),
+      }),
+    ),
+  }),
+});
+
+/**
  * Returns the persisted setup-wizard answers, completion flags, and
 hardware snapshot for the requesting tenant. The frontend uses this
 on every cold start to decide whether to render the wizard or drop

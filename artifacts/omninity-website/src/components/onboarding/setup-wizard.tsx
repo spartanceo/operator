@@ -14,13 +14,17 @@ import {
 } from "lucide-react";
 import {
   useGetModelsCatalogue,
+  useGetModelsInstallStatus,
   useGetModelsRecommended,
   useGetOnboardingHardware,
+  useInstallModels,
   useSelectModel,
   useUpsertOnboardingProfile,
   type HardwareProfile,
   type ModelCatalogueEntry,
+  type ModelInstallEntry,
   type ModelInstallPlan,
+  type ModelInstallState,
   type ModelRecommendation,
   type MinimumSpecVerdict,
   type OnboardingProfile,
@@ -121,7 +125,14 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
   const [useCase, setUseCase] = useState<UseCase | null>(
     (initialProfile?.useCase as UseCase | null) ?? null,
   );
-  const [installProgress, setInstallProgress] = useState<number | null>(null);
+  // `null` when no install has been kicked off yet; otherwise the
+  // server-truth state envelope returned by `/api/models/install/status`.
+  // Replaces the previous setTimeout-driven `installProgress: number` —
+  // the wizard now reflects the REAL ollama pull status for both the
+  // primary AND the bundled vision companion (Task #64 invariant).
+  const [installState, setInstallState] = useState<ModelInstallState | null>(
+    null,
+  );
 
   const hardwareQuery = useGetOnboardingHardware();
   const recommendedQuery = useGetModelsRecommended({
@@ -132,6 +143,24 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
   });
   const upsert = useUpsertOnboardingProfile();
   const selectModel = useSelectModel();
+  const installModels = useInstallModels();
+  // Only poll while we have an active run that is still in progress.
+  // The hook's `enabled` guard keeps idle wizards from hammering the
+  // status endpoint; once we observe a terminal status we flip enabled
+  // back to false and the polling stops.
+  const installPolling =
+    installState !== null && installState.status === "running";
+  const installStatusQuery = useGetModelsInstallStatus({
+    query: {
+      enabled: installPolling,
+      refetchInterval: installPolling ? 1000 : false,
+      retry: false,
+    } as never,
+  });
+  useEffect(() => {
+    const next = installStatusQuery.data?.data;
+    if (next) setInstallState(next);
+  }, [installStatusQuery.data]);
 
   const stepIndex = STEPS.indexOf(step);
 
@@ -189,17 +218,23 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
     if (prev) setStep(prev);
   };
 
-  // Simulated download progress for the recommended model. Real Ollama
-  // pulls stream from /api/models/pull; this loop keeps the UX honest
-  // about "this takes time" without coupling the wizard to model state.
-  useEffect(() => {
-    if (step !== "model" || installProgress === null) return;
-    if (installProgress >= 100) return;
-    const t = setTimeout(() => {
-      setInstallProgress((p) => Math.min(100, (p ?? 0) + 5));
-    }, 220);
-    return () => clearTimeout(t);
-  }, [step, installProgress]);
+  // Real install kickoff — POSTs to /api/models/install which begins a
+  // background pull of the chosen primary AND the bundled vision
+  // companion (Moondream 2). The POST returns 202 + the initial state;
+  // we seed `installState` from that envelope and let `installStatusQuery`
+  // poll until it reaches a terminal status (`completed` or `failed`).
+  // No setTimeout simulation — the percentages the user sees are derived
+  // from Ollama's NDJSON pull stream.
+  const startInstall = () => {
+    const primaryId = chosenModel ?? plan?.primary.id;
+    if (!primaryId || featureDisabled) return;
+    installModels.mutate(
+      { data: { primaryModel: primaryId, includeVision: true } },
+      {
+        onSuccess: (resp) => setInstallState(resp.data),
+      },
+    );
+  };
 
   const completeWizard = () => {
     const finalModelId = chosenModel ?? plan?.primary.id ?? recommendation?.model;
@@ -310,8 +345,9 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
                 hardwareQuery.isLoading ||
                 (!featureDisabled && recommendedQuery.isLoading)
               }
-              installProgress={installProgress}
-              onStartInstall={() => setInstallProgress(0)}
+              installState={installState}
+              installError={installModels.error}
+              onStartInstall={startInstall}
             />
           ) : null}
 
@@ -654,7 +690,8 @@ function ModelStep({
   visionMode,
   onChangeVisionMode,
   loading,
-  installProgress,
+  installState,
+  installError,
   onStartInstall,
 }: {
   hardware: HardwareProfile | null;
@@ -669,7 +706,8 @@ function ModelStep({
   visionMode: SelectModelRequestVisionLifecycleMode;
   onChangeVisionMode: (mode: SelectModelRequestVisionLifecycleMode) => void;
   loading: boolean;
-  installProgress: number | null;
+  installState: ModelInstallState | null;
+  installError: unknown;
   onStartInstall: () => void;
 }) {
   if (loading) {
@@ -692,8 +730,6 @@ function ModelStep({
         recommendation={recommendation}
         chosenModel={chosenModel}
         onChooseModel={onChooseModel}
-        installProgress={installProgress}
-        onStartInstall={onStartInstall}
       />
     );
   }
@@ -849,25 +885,11 @@ function ModelStep({
             </p>
           </div>
 
-          {installProgress === null ? (
-            <Button
-              size="sm"
-              onClick={onStartInstall}
-              data-testid="button-install-model"
-            >
-              <Download className="mr-2 h-3.5 w-3.5" />
-              Install recommended
-            </Button>
-          ) : (
-            <div className="space-y-1.5">
-              <Progress value={installProgress} className="h-1.5" />
-              <p className="text-xs text-muted-foreground">
-                {installProgress >= 100
-                  ? "Model ready."
-                  : `Installing ${chosenModel ?? plan.primary.id} — ${installProgress}%`}
-              </p>
-            </div>
-          )}
+          <InstallPanel
+            installState={installState}
+            installError={installError}
+            onStartInstall={onStartInstall}
+          />
         </>
       ) : null}
 
@@ -1035,20 +1057,112 @@ function PowerUserCatalogue({
   );
 }
 
+/**
+ * Renders the real install state for the chosen primary + bundled vision
+ * companion. Server-truth comes from `/api/models/install/status`; this
+ * component never simulates progress — every percent shown was reported
+ * by Ollama's NDJSON pull stream via the install orchestrator.
+ *
+ * Three visible states:
+ *  - idle      → "Install recommended" CTA is the only thing shown.
+ *  - running   → per-model rows with role labels and live progress bars.
+ *  - completed → success affordance + a "Reinstall" link for retries.
+ *  - failed    → per-model error messages + retry CTA.
+ */
+function InstallPanel({
+  installState,
+  installError,
+  onStartInstall,
+}: {
+  installState: ModelInstallState | null;
+  installError: unknown;
+  onStartInstall: () => void;
+}) {
+  const status = installState?.status ?? "idle";
+  if (status === "idle") {
+    return (
+      <div className="space-y-2">
+        <Button
+          size="sm"
+          onClick={onStartInstall}
+          data-testid="button-install-model"
+        >
+          <Download className="mr-2 h-3.5 w-3.5" />
+          Install recommended
+        </Button>
+        {installError ? (
+          <ErrorBanner error={installError} />
+        ) : null}
+      </div>
+    );
+  }
+  const models: ReadonlyArray<ModelInstallEntry> = installState?.models ?? [];
+  return (
+    <div className="space-y-2" data-testid="install-panel">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+        {status === "completed"
+          ? "Install complete"
+          : status === "failed"
+            ? "Install failed"
+            : "Installing models"}
+      </p>
+      <div className="space-y-2">
+        {models.map((m) => (
+          <div
+            key={m.modelId}
+            className="space-y-1"
+            data-testid={`install-row-${m.role}`}
+          >
+            <div className="flex items-center gap-2 text-xs">
+              <Badge variant="outline" className="text-[9px] uppercase">
+                {m.role}
+              </Badge>
+              <span className="font-mono text-foreground">{m.modelId}</span>
+              <span className="ml-auto text-muted-foreground">
+                {m.status === "ready"
+                  ? "Ready"
+                  : m.status === "failed"
+                    ? "Failed"
+                    : `${m.percent}%`}
+              </span>
+            </div>
+            <Progress value={m.percent} className="h-1.5" />
+            {m.error ? (
+              <p className="text-[11px] text-destructive">{m.error}</p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      {status === "failed" ? (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onStartInstall}
+          data-testid="button-install-retry"
+        >
+          <Download className="mr-2 h-3.5 w-3.5" />
+          Retry install
+        </Button>
+      ) : null}
+      {status === "completed" ? (
+        <p className="text-[11px] text-muted-foreground">
+          Both models pulled — Operator is ready to launch.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function LegacyModelFallback({
   hardware,
   recommendation,
   chosenModel,
   onChooseModel,
-  installProgress,
-  onStartInstall,
 }: {
   hardware: HardwareProfile | null;
   recommendation: ModelRecommendation | null;
   chosenModel: string | null;
   onChooseModel: (id: string) => void;
-  installProgress: number | null;
-  onStartInstall: () => void;
 }) {
   // Auto-pick the legacy recommendation as the chosen model so "Open
   // Operator" can complete the wizard even when the new chooser is off.
@@ -1087,26 +1201,10 @@ function LegacyModelFallback({
           <p className="mt-1 text-xs text-muted-foreground">
             {recommendation.reason}
           </p>
-          {installProgress === null ? (
-            <Button
-              size="sm"
-              className="mt-3"
-              onClick={onStartInstall}
-              data-testid="button-install-model"
-            >
-              <Download className="mr-2 h-3.5 w-3.5" />
-              Install recommended
-            </Button>
-          ) : (
-            <div className="mt-3 space-y-1.5">
-              <Progress value={installProgress} className="h-1.5" />
-              <p className="text-xs text-muted-foreground">
-                {installProgress >= 100
-                  ? "Model ready."
-                  : `Installing ${chosenModel ?? recommendation.model} — ${installProgress}%`}
-              </p>
-            </div>
-          )}
+          <p className="mt-3 text-xs text-muted-foreground">
+            Hardware-aware install is disabled on this server — model pulls
+            run from the chat header in the legacy code path.
+          </p>
         </div>
       ) : (
         <p className="text-xs italic text-muted-foreground">

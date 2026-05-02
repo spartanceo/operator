@@ -27,6 +27,20 @@ export {
 } from "./analytics";
 export { detectHardware, probeGpu, type GpuInfo } from "./detector";
 export {
+  clearInstallStateForTests,
+  getInstallRuntimeBridge,
+  getInstallState,
+  resetInstallRuntimeBridgeForTests,
+  setInstallRuntimeBridgeForTests,
+  startInstall,
+  type InstallOverallStatus,
+  type InstallPlanItem,
+  type InstallRuntimeBridge,
+  type InstallState,
+  type ModelInstallEntry,
+  type ModelInstallStatus,
+} from "./install";
+export {
   getVisionRuntimeBridge,
   resetVisionRuntimeBridgeForTests,
   setVisionRuntimeBridgeForTests,

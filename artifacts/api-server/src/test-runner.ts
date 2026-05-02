@@ -679,6 +679,144 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "POST /api/models/install pulls primary AND bundled vision via real bridge",
+    run: async () => {
+      // Reviewer's round-10 blocker: the wizard's "Install recommended"
+      // button only simulated progress — no real ollama pull was issued
+      // for either the primary or the bundled vision companion. This
+      // test pins the orchestration contract: a single POST kicks off
+      // a real pull for BOTH models and progress polling reaches a
+      // terminal `completed` state once both succeed.
+      const {
+        clearInstallStateForTests,
+        resetInstallRuntimeBridgeForTests,
+        setInstallRuntimeBridgeForTests,
+      } = await import("./services/hardware");
+      const calls: string[] = [];
+      setInstallRuntimeBridgeForTests({
+        pull: async (_ctx, modelId, onProgress) => {
+          calls.push(modelId);
+          onProgress(50);
+          onProgress(100);
+          return true;
+        },
+      });
+      try {
+        clearInstallStateForTests();
+        const start = await request(app)
+          .post("/api/models/install")
+          .set("X-Tenant-ID", TENANT)
+          .send({ primaryModel: "mistral:7b" });
+        assert.equal(start.status, 202, JSON.stringify(start.body));
+        assert.equal(start.body.data.status, "running");
+        assert.equal(start.body.data.models.length, 2);
+        assert.equal(start.body.data.models[0].modelId, "mistral:7b");
+        assert.equal(start.body.data.models[0].role, "primary");
+        assert.equal(start.body.data.models[1].role, "vision");
+
+        // Poll status until terminal — bridge resolves immediately so
+        // a few ticks suffice. Bound the loop tightly so a regression
+        // (e.g. the runner never marking completed) fails fast.
+        let last: { status: string; models: Array<{ status: string; percent: number; modelId: string; role: string }> } | null = null;
+        for (let i = 0; i < 40; i++) {
+          const poll = await request(app)
+            .get("/api/models/install/status")
+            .set("X-Tenant-ID", TENANT);
+          assert.equal(poll.status, 200);
+          last = poll.body.data;
+          if (last && last.status !== "running") break;
+          await new Promise((r) => setTimeout(r, 25));
+        }
+        assert.ok(last, "must observe at least one status poll");
+        assert.equal(last.status, "completed", JSON.stringify(last));
+        assert.equal(last.models.length, 2);
+        assert.equal(last.models[0].status, "ready");
+        assert.equal(last.models[0].percent, 100);
+        assert.equal(last.models[1].status, "ready");
+
+        // Both the primary AND the bundled vision must have been
+        // pulled — the product invariant the wizard's CTA promised.
+        assert.equal(calls.length, 2, `expected 2 pulls, got ${calls.length}`);
+        assert.equal(calls[0], "mistral:7b");
+        assert.ok(
+          calls[1] && calls[1].includes("moondream"),
+          `expected vision pull, got ${calls[1]}`,
+        );
+      } finally {
+        resetInstallRuntimeBridgeForTests();
+        clearInstallStateForTests();
+      }
+    },
+  },
+  {
+    name: "POST /api/models/install marks failed when bridge cannot pull",
+    run: async () => {
+      // Failure surfaces to the user — without this, a network-down
+      // install would hang on "running" forever and the wizard would
+      // never advance to its terminal CTA.
+      const {
+        clearInstallStateForTests,
+        resetInstallRuntimeBridgeForTests,
+        setInstallRuntimeBridgeForTests,
+      } = await import("./services/hardware");
+      setInstallRuntimeBridgeForTests({
+        pull: async () => false,
+      });
+      try {
+        clearInstallStateForTests();
+        const start = await request(app)
+          .post("/api/models/install")
+          .set("X-Tenant-ID", TENANT)
+          .send({ primaryModel: "phi3:mini" });
+        assert.equal(start.status, 202);
+
+        let last: { status: string; models: Array<{ status: string; error: string | null }> } | null = null;
+        for (let i = 0; i < 40; i++) {
+          const poll = await request(app)
+            .get("/api/models/install/status")
+            .set("X-Tenant-ID", TENANT);
+          last = poll.body.data;
+          if (last && last.status !== "running") break;
+          await new Promise((r) => setTimeout(r, 25));
+        }
+        assert.ok(last);
+        assert.equal(last.status, "failed");
+        assert.equal(last.models[0].status, "failed");
+        assert.ok(last.models[0].error, "failed entry must carry an error message");
+      } finally {
+        resetInstallRuntimeBridgeForTests();
+        clearInstallStateForTests();
+      }
+    },
+  },
+  {
+    name: "POST /api/models/install rejects unknown primary model",
+    run: async () => {
+      const bad = await request(app)
+        .post("/api/models/install")
+        .set("X-Tenant-ID", TENANT)
+        .send({ primaryModel: "no-such-model:foo" });
+      assert.equal(bad.status, 400);
+      assert.equal(bad.body.error.code, "INVALID_MODEL");
+    },
+  },
+  {
+    name: "GET /api/models/install/status reports idle when never started",
+    run: async () => {
+      // Use a fresh tenant so other install tests can't pollute state.
+      const { clearInstallStateForTests } = await import(
+        "./services/hardware"
+      );
+      clearInstallStateForTests();
+      const res = await request(app)
+        .get("/api/models/install/status")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.status, "idle");
+      assert.equal(res.body.data.models.length, 0);
+    },
+  },
+  {
     name: "POST /api/models/select rejects a vision-role id as primary",
     run: async () => {
       // Role gating: even though vision models exist in both the curated

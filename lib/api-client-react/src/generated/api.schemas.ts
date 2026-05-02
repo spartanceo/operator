@@ -766,6 +766,72 @@ export interface ModelPreferencesResponse {
   data: ModelPreferences;
 }
 
+export interface InstallModelsRequest {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  primaryModel: string;
+  /** When true (default) the bundled vision companion is pulled
+alongside the primary. Set to false only for power-user
+installs that opt out of vision.
+ */
+  includeVision?: boolean;
+}
+
+export type ModelInstallEntryRole =
+  (typeof ModelInstallEntryRole)[keyof typeof ModelInstallEntryRole];
+
+export const ModelInstallEntryRole = {
+  primary: "primary",
+  vision: "vision",
+} as const;
+
+export type ModelInstallEntryStatus =
+  (typeof ModelInstallEntryStatus)[keyof typeof ModelInstallEntryStatus];
+
+export const ModelInstallEntryStatus = {
+  pending: "pending",
+  pulling: "pulling",
+  ready: "ready",
+  failed: "failed",
+  skipped: "skipped",
+} as const;
+
+export interface ModelInstallEntry {
+  modelId: string;
+  role: ModelInstallEntryRole;
+  status: ModelInstallEntryStatus;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  percent: number;
+  error: string | null;
+}
+
+export type ModelInstallStateStatus =
+  (typeof ModelInstallStateStatus)[keyof typeof ModelInstallStateStatus];
+
+export const ModelInstallStateStatus = {
+  idle: "idle",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+export interface ModelInstallState {
+  status: ModelInstallStateStatus;
+  startedAt: string | null;
+  completedAt: string | null;
+  models: ModelInstallEntry[];
+}
+
+export interface ModelInstallStateResponse {
+  success: boolean;
+  data: ModelInstallState;
+}
+
 export type SelectModelRequestVisionLifecycleMode =
   (typeof SelectModelRequestVisionLifecycleMode)[keyof typeof SelectModelRequestVisionLifecycleMode];
 

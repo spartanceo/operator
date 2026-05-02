@@ -817,6 +817,61 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
 
+  /models/install:
+    post:
+      operationId: installModels
+      tags: [models]
+      summary: Kick off the bundled primary + vision install
+      description: |
+        Starts (or resumes) an install for the chosen primary model plus
+        the bundled vision companion (Moondream 2 by default). Returns
+        the current `ModelInstallState` envelope; the actual `ollama
+        pull` runs in the background. Clients should poll
+        `GET /models/install/status` until `status` reaches `completed`
+        or `failed`. POSTing again while a run is `running` is a no-op
+        — the existing state is returned without starting a duplicate.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstallModelsRequest"
+      responses:
+        "202":
+          description: Install scheduled (or already running)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelInstallStateResponse"
+        "400":
+          description: Invalid payload or unknown model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /models/install/status:
+    get:
+      operationId: getModelsInstallStatus
+      tags: [models]
+      summary: Per-tenant install state for polling
+      description: |
+        Returns the current install state for the requesting tenant.
+        When no install has ever been started the envelope reports
+        `status: "idle"` with an empty `models` array — callers should
+        treat this as "not started" rather than an error.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Install state envelope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelInstallStateResponse"
+
   /onboarding/profile:
     get:
       operationId: getOnboardingProfile
@@ -2289,6 +2344,71 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/ModelPreferences"
+
+    InstallModelsRequest:
+      type: object
+      required: [primaryModel]
+      properties:
+        primaryModel:
+          type: string
+          minLength: 1
+          maxLength: 200
+        includeVision:
+          type: boolean
+          description: |
+            When true (default) the bundled vision companion is pulled
+            alongside the primary. Set to false only for power-user
+            installs that opt out of vision.
+
+    ModelInstallEntry:
+      type: object
+      required: [modelId, role, status, percent, error]
+      properties:
+        modelId:
+          type: string
+        role:
+          type: string
+          enum: [primary, vision]
+        status:
+          type: string
+          enum: [pending, pulling, ready, failed, skipped]
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: string
+          nullable: true
+
+    ModelInstallState:
+      type: object
+      required: [status, models, startedAt, completedAt]
+      properties:
+        status:
+          type: string
+          enum: [idle, running, completed, failed]
+        startedAt:
+          type: string
+          nullable: true
+          format: date-time
+        completedAt:
+          type: string
+          nullable: true
+          format: date-time
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelInstallEntry"
+
+    ModelInstallStateResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ModelInstallState"
 
     SelectModelRequest:
       type: object

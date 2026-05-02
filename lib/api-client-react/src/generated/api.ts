@@ -50,6 +50,7 @@ import type {
   FileWriteRequest,
   FileWriteResponse,
   HealthCheckResponse,
+  InstallModelsRequest,
   ListAgentRunApprovalsParams,
   ListAgentRunMessagesParams,
   ListAgentRunToolCallsParams,
@@ -67,6 +68,7 @@ import type {
   ModelCatalogueResponse,
   ModelGetResponse,
   ModelHardwareResponse,
+  ModelInstallStateResponse,
   ModelListResponse,
   ModelPreferencesResponse,
   ModelPullRequest,
@@ -3366,6 +3368,184 @@ export const useSelectModel = <
 > => {
   return useMutation(getSelectModelMutationOptions(options));
 };
+
+/**
+ * Starts (or resumes) an install for the chosen primary model plus
+the bundled vision companion (Moondream 2 by default). Returns
+the current `ModelInstallState` envelope; the actual `ollama
+pull` runs in the background. Clients should poll
+`GET /models/install/status` until `status` reaches `completed`
+or `failed`. POSTing again while a run is `running` is a no-op
+— the existing state is returned without starting a duplicate.
+
+ * @summary Kick off the bundled primary + vision install
+ */
+export const getInstallModelsUrl = () => {
+  return `/api/models/install`;
+};
+
+export const installModels = async (
+  installModelsRequest: InstallModelsRequest,
+  options?: RequestInit,
+): Promise<ModelInstallStateResponse> => {
+  return customFetch<ModelInstallStateResponse>(getInstallModelsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(installModelsRequest),
+  });
+};
+
+export const getInstallModelsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installModels>>,
+    TError,
+    { data: BodyType<InstallModelsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof installModels>>,
+  TError,
+  { data: BodyType<InstallModelsRequest> },
+  TContext
+> => {
+  const mutationKey = ["installModels"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof installModels>>,
+    { data: BodyType<InstallModelsRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return installModels(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InstallModelsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof installModels>>
+>;
+export type InstallModelsMutationBody = BodyType<InstallModelsRequest>;
+export type InstallModelsMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Kick off the bundled primary + vision install
+ */
+export const useInstallModels = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installModels>>,
+    TError,
+    { data: BodyType<InstallModelsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof installModels>>,
+  TError,
+  { data: BodyType<InstallModelsRequest> },
+  TContext
+> => {
+  return useMutation(getInstallModelsMutationOptions(options));
+};
+
+/**
+ * Returns the current install state for the requesting tenant.
+When no install has ever been started the envelope reports
+`status: "idle"` with an empty `models` array — callers should
+treat this as "not started" rather than an error.
+
+ * @summary Per-tenant install state for polling
+ */
+export const getGetModelsInstallStatusUrl = () => {
+  return `/api/models/install/status`;
+};
+
+export const getModelsInstallStatus = async (
+  options?: RequestInit,
+): Promise<ModelInstallStateResponse> => {
+  return customFetch<ModelInstallStateResponse>(
+    getGetModelsInstallStatusUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetModelsInstallStatusQueryKey = () => {
+  return [`/api/models/install/status`] as const;
+};
+
+export const getGetModelsInstallStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getModelsInstallStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsInstallStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetModelsInstallStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getModelsInstallStatus>>
+  > = ({ signal }) => getModelsInstallStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsInstallStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetModelsInstallStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getModelsInstallStatus>>
+>;
+export type GetModelsInstallStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Per-tenant install state for polling
+ */
+
+export function useGetModelsInstallStatus<
+  TData = Awaited<ReturnType<typeof getModelsInstallStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsInstallStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetModelsInstallStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Returns the persisted setup-wizard answers, completion flags, and

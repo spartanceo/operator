@@ -23,14 +23,20 @@ import {
   buildModelInstallPlan,
   clearHardwareCache,
   evaluateMinimumSpec,
+  getDefaultVision,
   getEffectiveModelPreferences,
   getHardwareProfile,
+  getInstallState,
+  getSelectableModelEntry,
   getVisionLifecycle,
   MODEL_CATALOGUE,
   OLLAMA_LIBRARY,
+  startInstall,
   timeoutForMode,
   UnknownModelError,
   upsertModelPreferences,
+  type InstallPlanItem,
+  type InstallState,
 } from "../../services/hardware";
 import { getModel, listModels, pullModel } from "../../services/ollama.service";
 
@@ -71,6 +77,28 @@ const SelectSchema = z.object({
     .optional(),
   visionIdleTimeoutMs: z.number().int().min(0).max(86_400_000).optional(),
 });
+
+const InstallSchema = z.object({
+  primaryModel: z.string().min(1).max(200),
+  // Default true — the product invariant is "every install includes the
+  // bundled vision". Tests and power-user flows can opt out explicitly.
+  includeVision: z.boolean().optional().default(true),
+});
+
+function serialiseInstallState(state: InstallState) {
+  return {
+    status: state.status,
+    startedAt: state.startedAt,
+    completedAt: state.completedAt,
+    models: state.models.map((m) => ({
+      modelId: m.modelId,
+      role: m.role,
+      status: m.status,
+      percent: m.percent,
+      error: m.error,
+    })),
+  };
+}
 
 router.get("/", requireTenant(), async (_req, res, next) => {
   try {
@@ -232,6 +260,84 @@ router.post(
     next(e);
   }
 });
+
+// ─── Install orchestration (Task #64 "one-click install") ────────────────
+//
+// `POST /install` kicks off (or returns the existing) install run for the
+// selected primary + the bundled vision companion. The request returns
+// 202 + the current state envelope; the wizard then polls
+// `GET /install/status` until the run reaches a terminal status. The
+// orchestrator runs the actual `ollama pull` calls in the background so
+// the HTTP request never holds open the multi-minute pull stream.
+
+router.post(
+  "/install",
+  requireHardwareAwareFlag,
+  requireTenant(),
+  async (req, res, next) => {
+    try {
+      const ctx = requireTenantContext();
+      const parsed = InstallSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res
+          .status(400)
+          .json(err("VALIDATION", "Invalid install payload"));
+        return;
+      }
+      const primary = await getSelectableModelEntry(parsed.data.primaryModel);
+      if (!primary) {
+        res
+          .status(400)
+          .json(
+            err("INVALID_MODEL", `Unknown primary model "${parsed.data.primaryModel}"`),
+          );
+        return;
+      }
+      const items: InstallPlanItem[] = [
+        { modelId: primary.id, role: "primary" },
+      ];
+      if (parsed.data.includeVision) {
+        const vision = getDefaultVision();
+        if (vision) {
+          items.push({ modelId: vision.id, role: "vision" });
+        }
+      }
+      const state = startInstall(ctx, items);
+      res.status(202).json(ok(serialiseInstallState(state)));
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
+router.get(
+  "/install/status",
+  requireHardwareAwareFlag,
+  requireTenant(),
+  async (_req, res, next) => {
+    try {
+      const ctx = requireTenantContext();
+      const state = getInstallState(ctx);
+      if (!state) {
+        // No install ever started for this tenant — return an empty
+        // envelope so the frontend can distinguish "never started" from
+        // a terminal state without a separate 404 round trip.
+        res.json(
+          ok({
+            status: "idle" as const,
+            startedAt: null,
+            completedAt: null,
+            models: [],
+          }),
+        );
+        return;
+      }
+      res.json(ok(serialiseInstallState(state)));
+    } catch (e) {
+      next(e);
+    }
+  },
+);
 
 // ─── Catch-all by name — declared LAST so the static paths win ───────────
 
