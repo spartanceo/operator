@@ -7,13 +7,21 @@ import {
   Loader2,
   HardDrive,
   Wand2,
+  AlertTriangle,
+  Eye,
 } from "lucide-react";
 import {
+  useGetModelsRecommended,
   useGetOnboardingHardware,
+  useSelectModel,
   useUpsertOnboardingProfile,
   type HardwareProfile,
+  type ModelCatalogueEntry,
+  type ModelInstallPlan,
   type ModelRecommendation,
+  type MinimumSpecVerdict,
   type OnboardingProfile,
+  type SelectModelRequestVisionLifecycleMode,
   type UpsertOnboardingProfileRequest,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -112,7 +120,9 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
   const [installProgress, setInstallProgress] = useState<number | null>(null);
 
   const hardwareQuery = useGetOnboardingHardware();
+  const recommendedQuery = useGetModelsRecommended();
   const upsert = useUpsertOnboardingProfile();
+  const selectModel = useSelectModel();
 
   const stepIndex = STEPS.indexOf(step);
 
@@ -120,6 +130,24 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
     hardwareQuery.data?.data.hardware ?? null;
   const recommendation: ModelRecommendation | null =
     hardwareQuery.data?.data.recommendation ?? null;
+
+  const plan: ModelInstallPlan | null =
+    recommendedQuery.data?.data.plan ?? null;
+  const minimumSpec: MinimumSpecVerdict | null =
+    recommendedQuery.data?.data.minimumSpec ?? null;
+
+  // Default chosen model to the recommended primary as soon as the plan
+  // loads — keeps "Continue" enabled without forcing a click on the card.
+  const [chosenModel, setChosenModel] = useState<string | null>(null);
+  const [visionMode, setVisionMode] =
+    useState<SelectModelRequestVisionLifecycleMode>("balanced");
+  useEffect(() => {
+    if (chosenModel === null && plan) setChosenModel(plan.primary.id);
+  }, [plan, chosenModel]);
+  useEffect(() => {
+    const saved = recommendedQuery.data?.data.preferences.visionLifecycle.mode;
+    if (saved) setVisionMode(saved as SelectModelRequestVisionLifecycleMode);
+  }, [recommendedQuery.data]);
 
   // Persist progress on every step transition so a refresh resumes the
   // wizard mid-flow rather than dropping the user back to "welcome".
@@ -151,13 +179,25 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
   }, [step, installProgress]);
 
   const completeWizard = () => {
+    const finalModelId = chosenModel ?? plan?.primary.id ?? recommendation?.model;
+    // Persist the user's model + vision-lifecycle pick to the new
+    // /api/models/select endpoint. Fire-and-forget — failure here doesn't
+    // block onboarding completion (the recommendation is regenerated on
+    // every launch from hardware), but a successful select makes the chat
+    // header reflect the chosen model immediately.
+    if (finalModelId) {
+      selectModel.mutate({
+        data: {
+          primaryModel: finalModelId,
+          visionLifecycleMode: visionMode,
+        },
+      });
+    }
     upsert.mutate(
       {
         data: {
           completed: true,
-          ...(recommendation
-            ? { recommendedModel: recommendation.model }
-            : {}),
+          ...(finalModelId ? { recommendedModel: finalModelId } : {}),
           ...(hardware ? { hardwareSnapshot: hardware } : {}),
         },
       },
@@ -218,7 +258,13 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
             <ModelStep
               hardware={hardware}
               recommendation={recommendation}
-              loading={hardwareQuery.isLoading}
+              plan={plan}
+              minimumSpec={minimumSpec}
+              chosenModel={chosenModel}
+              onChooseModel={setChosenModel}
+              visionMode={visionMode}
+              onChangeVisionMode={setVisionMode}
+              loading={hardwareQuery.isLoading || recommendedQuery.isLoading}
               installProgress={installProgress}
               onStartInstall={() => setInstallProgress(0)}
             />
@@ -448,12 +494,24 @@ function UseCaseStep({
 function ModelStep({
   hardware,
   recommendation,
+  plan,
+  minimumSpec,
+  chosenModel,
+  onChooseModel,
+  visionMode,
+  onChangeVisionMode,
   loading,
   installProgress,
   onStartInstall,
 }: {
   hardware: HardwareProfile | null;
   recommendation: ModelRecommendation | null;
+  plan: ModelInstallPlan | null;
+  minimumSpec: MinimumSpecVerdict | null;
+  chosenModel: string | null;
+  onChooseModel: (id: string) => void;
+  visionMode: SelectModelRequestVisionLifecycleMode;
+  onChangeVisionMode: (mode: SelectModelRequestVisionLifecycleMode) => void;
   loading: boolean;
   installProgress: number | null;
   onStartInstall: () => void;
@@ -466,6 +524,24 @@ function ModelStep({
       </p>
     );
   }
+
+  // Below-minimum-spec branch — surface the warning prominently. We still
+  // let the user proceed (with the fallback recommendation) so they aren't
+  // stuck, but make it clear the experience will be degraded.
+  if (minimumSpec && !minimumSpec.meetsMinimum) {
+    return (
+      <MinSpecScreen
+        hardware={hardware}
+        minimumSpec={minimumSpec}
+        recommendation={recommendation}
+      />
+    );
+  }
+
+  // Build the unique chooser list from plan.primary + plan.alternatives.
+  const choices: ReadonlyArray<ModelCatalogueEntry> = plan
+    ? [plan.primary, ...plan.alternatives]
+    : [];
 
   return (
     <div className="space-y-4">
@@ -499,33 +575,121 @@ function ModelStep({
         </div>
       </div>
 
-      {recommendation ? (
-        <div className="rounded-md border border-primary/30 bg-primary/5 p-4">
-          <div className="flex items-center gap-2">
-            <Wand2 className="h-4 w-4 text-primary" />
-            <p className="text-sm font-medium text-foreground">
-              Recommended: <span className="font-mono">{recommendation.model}</span>
-            </p>
-            <Badge
-              variant="outline"
-              className="ml-auto text-[10px] uppercase"
-              data-testid="badge-tier"
-            >
-              {recommendation.tier}
-            </Badge>
+      {plan ? (
+        <>
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-center gap-2">
+              <Wand2 className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium text-foreground">
+                Recommended for your hardware
+              </p>
+              <Badge
+                variant="outline"
+                className="ml-auto text-[10px] uppercase"
+                data-testid="badge-tier"
+              >
+                {plan.tier}
+              </Badge>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{plan.reason}</p>
           </div>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {recommendation.reason}
-          </p>
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            Approx download size: {formatBytes(recommendation.sizeBytes)}.
-          </p>
+
+          <div className="space-y-2">
+            {choices.map((m) => {
+              const selected = chosenModel === m.id;
+              const isRecommended = m.id === plan.primary.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => onChooseModel(m.id)}
+                  className={cn(
+                    "w-full rounded-md border p-3 text-left transition-colors",
+                    selected
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/30",
+                  )}
+                  data-testid={`button-choose-model-${m.id}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">
+                      {m.displayName}
+                    </p>
+                    {isRecommended ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] uppercase"
+                      >
+                        Recommended
+                      </Badge>
+                    ) : null}
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {formatBytes(m.sizeBytes)} · {formatBytes(m.ramRequiredBytes)} RAM
+                    </span>
+                    {selected ? (
+                      <Check className="h-3.5 w-3.5 text-primary" />
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {m.tradeoff}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          {plan.companions.length > 0 ? (
+            <div className="rounded-md border border-border bg-card p-3">
+              <div className="flex items-center gap-2">
+                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-xs font-medium text-foreground">
+                  Vision companion bundled:{" "}
+                  <span className="font-mono">
+                    {plan.companions[0]?.displayName}
+                  </span>
+                </p>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Loaded on demand and unloaded after idle to free RAM.
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {(["aggressive", "balanced", "warm"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => onChangeVisionMode(mode)}
+                    className={cn(
+                      "rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wide transition-colors",
+                      visionMode === mode
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:bg-muted/40",
+                    )}
+                    data-testid={`button-vision-mode-${mode}`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="rounded-md border border-border bg-card p-3 text-xs text-muted-foreground">
+            <p>
+              Total install size:{" "}
+              <span className="font-medium text-foreground">
+                {formatBytes(plan.totalDownloadBytes)}
+              </span>{" "}
+              · Approx RAM at runtime:{" "}
+              <span className="font-medium text-foreground">
+                {formatBytes(plan.totalRamBytes)}
+              </span>
+            </p>
+          </div>
 
           {installProgress === null ? (
             <Button
               variant="outline"
               size="sm"
-              className="mt-3"
               onClick={onStartInstall}
               data-testid="button-install-model"
             >
@@ -533,21 +697,69 @@ function ModelStep({
               Pull model
             </Button>
           ) : (
-            <div className="mt-3 space-y-1.5">
+            <div className="space-y-1.5">
               <Progress value={installProgress} className="h-1.5" />
               <p className="text-xs text-muted-foreground">
                 {installProgress >= 100
                   ? "Model ready."
-                  : `Pulling ${recommendation.model} — ${installProgress}%`}
+                  : `Pulling ${chosenModel ?? plan.primary.id} — ${installProgress}%`}
               </p>
             </div>
           )}
-        </div>
+        </>
       ) : null}
 
       <p className="text-xs text-muted-foreground">
-        You can swap models any time from the chat header. Skipping the pull is
-        fine — you can install later from Settings.
+        You can swap models any time from Settings. Skipping the pull is fine —
+        you can install later.
+      </p>
+    </div>
+  );
+}
+
+function MinSpecScreen({
+  hardware,
+  minimumSpec,
+  recommendation,
+}: {
+  hardware: HardwareProfile | null;
+  minimumSpec: MinimumSpecVerdict;
+  recommendation: ModelRecommendation | null;
+}) {
+  return (
+    <div className="space-y-3" data-testid="min-spec-screen">
+      <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            Below the minimum spec
+          </p>
+          <p className="text-xs text-muted-foreground">{minimumSpec.message}</p>
+        </div>
+      </div>
+      <div className="rounded-md border border-border bg-card p-3 text-xs text-muted-foreground">
+        <p>
+          Detected RAM:{" "}
+          <span className="font-medium text-foreground">
+            {hardware ? formatBytes(hardware.totalRamBytes) : "—"}
+          </span>{" "}
+          · Required:{" "}
+          <span className="font-medium text-foreground">
+            {formatBytes(minimumSpec.minimumRamBytes)}
+          </span>
+        </p>
+        {recommendation ? (
+          <p className="mt-1">
+            We&apos;ll fall back to{" "}
+            <span className="font-mono">{recommendation.model}</span> if you
+            continue, but inference will be slow.
+          </p>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        You can still continue — Omninity Operator will keep working with the
+        smallest model in the catalogue. For full performance, upgrade to a
+        host with more RAM and re-run setup from Settings.
       </p>
     </div>
   );

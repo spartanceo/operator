@@ -20,3 +20,4 @@ export * from "./api-envelope";
 export * from "./runtime-modes";
 export * from "./agent-loop";
 export * from "./skill-runtime";
+export * from "./model-catalogue";

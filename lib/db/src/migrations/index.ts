@@ -13,6 +13,7 @@
  */
 import { migration as m0001 } from "./0001_baseline";
 import { migration as m0002 } from "./0002_onboarding_profiles";
+import { migration as m0003 } from "./0003_model_preferences";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -23,6 +24,10 @@ export type {
   SchemaMigration,
 } from "./types";
 
-export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [m0001, m0002];
+export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
+  m0001,
+  m0002,
+  m0003,
+];
 
 export const BACKGROUND_MIGRATIONS: readonly BackgroundMigration[] = [];

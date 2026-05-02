@@ -64,16 +64,21 @@ import type {
   MemoryListResponse,
   MemoryResponse,
   MessageListResponse,
+  ModelCatalogueResponse,
   ModelGetResponse,
+  ModelHardwareResponse,
   ModelListResponse,
+  ModelPreferencesResponse,
   ModelPullRequest,
   ModelPullResponse,
+  ModelRecommendationResponse,
   OnboardingHardwareResponse,
   OnboardingProfileResponse,
   OnboardingStarterTaskResponse,
   PrivacyEventListResponse,
   PrivacyEventResponse,
   RegisterRequest,
+  SelectModelRequest,
   TenantDataExportResponse,
   TenantErasureResponse,
   ToolCallListResponse,
@@ -2941,6 +2946,338 @@ export const useDeleteFile = <
   TContext
 > => {
   return useMutation(getDeleteFileMutationOptions(options));
+};
+
+/**
+ * Returns the cached hardware probe alongside the recommendation
+engine's `ModelInstallPlan` (or `null` when no model fits) and the
+minimum-spec verdict that drives the min-spec onboarding screen.
+
+ * @summary Detected host hardware + min-spec verdict
+ */
+export const getGetModelsHardwareUrl = () => {
+  return `/api/models/hardware`;
+};
+
+export const getModelsHardware = async (
+  options?: RequestInit,
+): Promise<ModelHardwareResponse> => {
+  return customFetch<ModelHardwareResponse>(getGetModelsHardwareUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetModelsHardwareQueryKey = () => {
+  return [`/api/models/hardware`] as const;
+};
+
+export const getGetModelsHardwareQueryOptions = <
+  TData = Awaited<ReturnType<typeof getModelsHardware>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsHardware>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetModelsHardwareQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getModelsHardware>>
+  > = ({ signal }) => getModelsHardware({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsHardware>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetModelsHardwareQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getModelsHardware>>
+>;
+export type GetModelsHardwareQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Detected host hardware + min-spec verdict
+ */
+
+export function useGetModelsHardware<
+  TData = Awaited<ReturnType<typeof getModelsHardware>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsHardware>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetModelsHardwareQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Static, data-driven list backing the onboarding chooser and the
+Settings model-swap UI. Adding a model is a one-entry edit in
+`services/hardware/catalogue.ts` (Standard 12 — config as data).
+
+ * @summary Full catalogue of primary + vision models known to the runtime
+ */
+export const getGetModelsCatalogueUrl = () => {
+  return `/api/models/catalogue`;
+};
+
+export const getModelsCatalogue = async (
+  options?: RequestInit,
+): Promise<ModelCatalogueResponse> => {
+  return customFetch<ModelCatalogueResponse>(getGetModelsCatalogueUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetModelsCatalogueQueryKey = () => {
+  return [`/api/models/catalogue`] as const;
+};
+
+export const getGetModelsCatalogueQueryOptions = <
+  TData = Awaited<ReturnType<typeof getModelsCatalogue>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsCatalogue>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetModelsCatalogueQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getModelsCatalogue>>
+  > = ({ signal }) => getModelsCatalogue({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsCatalogue>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetModelsCatalogueQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getModelsCatalogue>>
+>;
+export type GetModelsCatalogueQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Full catalogue of primary + vision models known to the runtime
+ */
+
+export function useGetModelsCatalogue<
+  TData = Awaited<ReturnType<typeof getModelsCatalogue>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsCatalogue>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetModelsCatalogueQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Hardware-aware recommendation: detected host, install plan (primary
++ bundled vision companion + alternatives), the min-spec verdict, and
+the persisted user preferences (or sane defaults when the user has
+not made an explicit choice yet).
+
+ * @summary Recommendation plan + persisted user preferences
+ */
+export const getGetModelsRecommendedUrl = () => {
+  return `/api/models/recommended`;
+};
+
+export const getModelsRecommended = async (
+  options?: RequestInit,
+): Promise<ModelRecommendationResponse> => {
+  return customFetch<ModelRecommendationResponse>(
+    getGetModelsRecommendedUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetModelsRecommendedQueryKey = () => {
+  return [`/api/models/recommended`] as const;
+};
+
+export const getGetModelsRecommendedQueryOptions = <
+  TData = Awaited<ReturnType<typeof getModelsRecommended>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsRecommended>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetModelsRecommendedQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getModelsRecommended>>
+  > = ({ signal }) => getModelsRecommended({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsRecommended>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetModelsRecommendedQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getModelsRecommended>>
+>;
+export type GetModelsRecommendedQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Recommendation plan + persisted user preferences
+ */
+
+export function useGetModelsRecommended<
+  TData = Awaited<ReturnType<typeof getModelsRecommended>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getModelsRecommended>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetModelsRecommendedQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Idempotent upsert of the per-tenant `model_preferences` row. The
+primary model id must exist in the catalogue. Vision lifecycle
+fields are optional and default to the per-tier policy from the
+recommendation engine.
+
+ * @summary Persist the user's primary model + optional vision lifecycle
+ */
+export const getSelectModelUrl = () => {
+  return `/api/models/select`;
+};
+
+export const selectModel = async (
+  selectModelRequest: SelectModelRequest,
+  options?: RequestInit,
+): Promise<ModelPreferencesResponse> => {
+  return customFetch<ModelPreferencesResponse>(getSelectModelUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(selectModelRequest),
+  });
+};
+
+export const getSelectModelMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof selectModel>>,
+    TError,
+    { data: BodyType<SelectModelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof selectModel>>,
+  TError,
+  { data: BodyType<SelectModelRequest> },
+  TContext
+> => {
+  const mutationKey = ["selectModel"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof selectModel>>,
+    { data: BodyType<SelectModelRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return selectModel(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SelectModelMutationResult = NonNullable<
+  Awaited<ReturnType<typeof selectModel>>
+>;
+export type SelectModelMutationBody = BodyType<SelectModelRequest>;
+export type SelectModelMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Persist the user's primary model + optional vision lifecycle
+ */
+export const useSelectModel = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof selectModel>>,
+    TError,
+    { data: BodyType<SelectModelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof selectModel>>,
+  TError,
+  { data: BodyType<SelectModelRequest> },
+  TContext
+> => {
+  return useMutation(getSelectModelMutationOptions(options));
 };
 
 /**

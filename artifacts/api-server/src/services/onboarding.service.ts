@@ -19,8 +19,6 @@
  * (low/mid/high/pro) to an Ollama model. The catalogue lives at the top of
  * this file (Standard 12 — config as data, not branches).
  */
-import os from "node:os";
-
 import { and, eq } from "drizzle-orm";
 
 import {
@@ -29,30 +27,24 @@ import {
   tenantScope,
   withTenantValues,
 } from "@workspace/db";
-import type { TenantContext } from "@workspace/types";
+import type {
+  HardwareProfile,
+  HardwareTierKey,
+  ModelRecommendation,
+  TenantContext,
+} from "@workspace/types";
 
-import { logger } from "../lib/logger";
+import {
+  detectHardware as detectHardwareInternal,
+  recommendModelLegacy,
+} from "./hardware";
 
-export type HardwareTier = "low" | "mid" | "high" | "pro";
-
-export interface HardwareProfile {
-  platform: string;
-  arch: string;
-  cpuCount: number;
-  cpuModel: string | null;
-  totalRamBytes: number;
-  freeRamBytes: number;
-  appleSilicon: boolean;
-  tier: HardwareTier;
-  detectedAt: string;
-}
-
-export interface ModelRecommendation {
-  model: string;
-  reason: string;
-  sizeBytes: number;
-  tier: HardwareTier;
-}
+// Re-export the canonical types so existing call sites keep compiling.
+// New code should import from "@workspace/types" directly. The previous
+// `import { logger }` from "../lib/logger" was removed with the override
+// parser — that lives in `services/hardware/detector.ts` now.
+export type HardwareTier = HardwareTierKey;
+export type { HardwareProfile, ModelRecommendation };
 
 export interface OnboardingProfileRow {
   tenantId: string;
@@ -88,137 +80,21 @@ export interface StarterTask {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Recommendation catalogue — data-driven so adding a tier is a one-line
-// edit, not a code change. Sized for Ollama's published quantised weights.
+// Hardware detection + recommendation
+//
+// The catalogue + recommendation engine moved to `services/hardware/`
+// (Task #64). These shims keep the original public surface stable so the
+// `/api/onboarding/hardware` route and any older callers continue to work.
 // ─────────────────────────────────────────────────────────────────────────
-
-const ONE_GB = 1024 * 1024 * 1024;
-
-interface CatalogueEntry {
-  tier: HardwareTier;
-  minRamBytes: number;
-  model: string;
-  sizeBytes: number;
-  reason: string;
-}
-
-const MODEL_CATALOGUE: ReadonlyArray<CatalogueEntry> = [
-  {
-    tier: "pro",
-    minRamBytes: 32 * ONE_GB,
-    model: "llama3.1:70b",
-    sizeBytes: 40 * ONE_GB,
-    reason:
-      "Detected 32GB+ of RAM — running Llama 3.1 70B for the best local quality.",
-  },
-  {
-    tier: "high",
-    minRamBytes: 16 * ONE_GB,
-    model: "llama3.1:8b",
-    sizeBytes: 5 * ONE_GB,
-    reason:
-      "Detected 16GB+ of RAM — Llama 3.1 8B is the sweet spot for speed and quality.",
-  },
-  {
-    tier: "mid",
-    minRamBytes: 8 * ONE_GB,
-    model: "mistral:7b",
-    sizeBytes: 4 * ONE_GB,
-    reason:
-      "Detected 8GB+ of RAM — Mistral 7B keeps memory headroom for tools and the editor.",
-  },
-  {
-    tier: "low",
-    minRamBytes: 0,
-    model: "phi3:mini",
-    sizeBytes: 2 * ONE_GB,
-    reason:
-      "Below 8GB of RAM — Phi-3 Mini runs comfortably and still supports the agent loop.",
-  },
-] as const;
-
-function pickCatalogueEntry(totalRamBytes: number): CatalogueEntry {
-  for (const entry of MODEL_CATALOGUE) {
-    if (totalRamBytes >= entry.minRamBytes) return entry;
-  }
-  // Catalogue's last entry has minRamBytes=0 so this is unreachable, but
-  // keep an explicit fallback for the type narrower.
-  const fallback = MODEL_CATALOGUE[MODEL_CATALOGUE.length - 1];
-  if (!fallback) {
-    throw new Error("Model catalogue is empty");
-  }
-  return fallback;
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Hardware detection
-// ─────────────────────────────────────────────────────────────────────────
-
-interface HardwareOverride {
-  platform?: string;
-  arch?: string;
-  cpuCount?: number;
-  cpuModel?: string | null;
-  totalRamBytes?: number;
-  freeRamBytes?: number;
-  appleSilicon?: boolean;
-}
-
-function readOverride(): HardwareOverride | null {
-  const raw = process.env["OMNINITY_HARDWARE_OVERRIDE"];
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as HardwareOverride;
-    return typeof parsed === "object" && parsed !== null ? parsed : null;
-  } catch (e) {
-    logger.warn(
-      { err: e instanceof Error ? e.message : String(e) },
-      "Invalid OMNINITY_HARDWARE_OVERRIDE — ignoring",
-    );
-    return null;
-  }
-}
 
 export function detectHardware(): HardwareProfile {
-  const override = readOverride();
-  const platform = override?.platform ?? os.platform();
-  const arch = override?.arch ?? os.arch();
-  const cpus = os.cpus();
-  const cpuCount = override?.cpuCount ?? cpus.length;
-  const cpuModel =
-    override?.cpuModel !== undefined
-      ? override.cpuModel
-      : cpus[0]?.model ?? null;
-  const totalRamBytes = override?.totalRamBytes ?? os.totalmem();
-  const freeRamBytes = override?.freeRamBytes ?? os.freemem();
-  const appleSilicon =
-    override?.appleSilicon ?? (platform === "darwin" && arch === "arm64");
-
-  const entry = pickCatalogueEntry(totalRamBytes);
-
-  return {
-    platform,
-    arch,
-    cpuCount,
-    cpuModel,
-    totalRamBytes,
-    freeRamBytes,
-    appleSilicon,
-    tier: entry.tier,
-    detectedAt: new Date().toISOString(),
-  };
+  return detectHardwareInternal();
 }
 
 export function recommendModel(
   hardware: HardwareProfile,
 ): ModelRecommendation {
-  const entry = pickCatalogueEntry(hardware.totalRamBytes);
-  return {
-    model: entry.model,
-    reason: entry.reason,
-    sizeBytes: entry.sizeBytes,
-    tier: entry.tier,
-  };
+  return recommendModelLegacy(hardware);
 }
 
 // ─────────────────────────────────────────────────────────────────────────

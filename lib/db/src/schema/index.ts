@@ -21,3 +21,4 @@ export * from "./memories";
 export * from "./privacy-events";
 export * from "./approvals";
 export * from "./onboarding-profiles";
+export * from "./model-preferences";

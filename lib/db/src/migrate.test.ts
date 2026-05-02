@@ -483,10 +483,14 @@ check("ensureHistoryTable upgrades legacy single-column PK to composite", () => 
     .map((c) => c.name);
   assert.deepEqual(legacyPk, ["id"]);
   // Run the migration framework — it must repair the table AND treat
-  // baseline as already-applied (skipped, not reapplied).
+  // baseline as already-applied (skipped, not reapplied). Any newer
+  // migrations registered after baseline are unapplied in this freshDb,
+  // so they should appear in `result.applied` — exactly once each, with
+  // baseline still skipped.
   const result = runMigrations(sqlite);
   assert.equal(result.success, true);
-  assert.equal(result.applied.length, 0);
+  const expectedApplied = SCHEMA_MIGRATIONS.slice(1).map((m) => m.id);
+  assert.deepEqual(result.applied, expectedApplied);
   assert.deepEqual(result.skipped, [baseline.id]);
   // After repair, both id and kind must be PK columns.
   const newPk = (

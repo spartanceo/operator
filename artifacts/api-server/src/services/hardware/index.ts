@@ -1,0 +1,39 @@
+/**
+ * `services/hardware/` barrel — Task #64.
+ *
+ * Single import surface for the hardware-aware model recommendation
+ * subsystem: detection, catalogue, recommendation engine, vision lifecycle,
+ * and persistent model preferences.
+ */
+export {
+  MODEL_CATALOGUE,
+  SYSTEM_RAM_RESERVATION_BYTES,
+  TIER_THRESHOLDS_BYTES,
+  getCatalogueEntry,
+  getDefaultVision,
+  getMinimumPrimary,
+  tierForRam,
+} from "./catalogue";
+export { detectHardware } from "./detector";
+export { clearHardwareCache, getHardwareProfile } from "./cache";
+export {
+  buildModelInstallPlan,
+  evaluateMinimumSpec,
+  recommendModelLegacy,
+} from "./recommendation";
+export {
+  defaultLifecycleForTier,
+  getVisionLifecycle,
+  resetVisionLifecycleForTests,
+  timeoutForMode,
+} from "./vision-lifecycle";
+export {
+  getEffectiveModelPreferences,
+  getModelPreferences,
+  UnknownModelError,
+  upsertModelPreferences,
+} from "./preferences.service";
+export type {
+  ModelPreferencesView,
+  UpsertModelPreferencesInput,
+} from "./preferences.service";

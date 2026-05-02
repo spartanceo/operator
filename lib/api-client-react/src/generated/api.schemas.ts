@@ -511,6 +511,12 @@ export const HardwareProfileTier = {
   pro: "pro",
 } as const;
 
+export interface HardwareGpu {
+  vendor: string;
+  kind: string;
+  vramBytes?: number;
+}
+
 export interface HardwareProfile {
   /** Node `os.platform()` — e.g. `darwin`, `win32`, `linux`. */
   platform: string;
@@ -526,6 +532,9 @@ export interface HardwareProfile {
  */
   tier: HardwareProfileTier;
   detectedAt: string;
+  /** Node `os.release()` snapshot. */
+  osVersion?: string | null;
+  gpu?: HardwareGpu | null;
 }
 
 export interface OnboardingProfile {
@@ -599,6 +608,176 @@ export interface ModelRecommendation {
   reason: string;
   sizeBytes: number;
   tier: string;
+}
+
+export type ModelCatalogueEntryRole =
+  (typeof ModelCatalogueEntryRole)[keyof typeof ModelCatalogueEntryRole];
+
+export const ModelCatalogueEntryRole = {
+  primary: "primary",
+  vision: "vision",
+  embedding: "embedding",
+} as const;
+
+export type ModelCatalogueEntryMinTier =
+  (typeof ModelCatalogueEntryMinTier)[keyof typeof ModelCatalogueEntryMinTier];
+
+export const ModelCatalogueEntryMinTier = {
+  low: "low",
+  mid: "mid",
+  high: "high",
+  pro: "pro",
+} as const;
+
+export type ModelCatalogueEntryUseCaseAxis =
+  (typeof ModelCatalogueEntryUseCaseAxis)[keyof typeof ModelCatalogueEntryUseCaseAxis];
+
+export const ModelCatalogueEntryUseCaseAxis = {
+  writing: "writing",
+  code: "code",
+  balanced: "balanced",
+} as const;
+
+export interface ModelCatalogueEntry {
+  id: string;
+  displayName: string;
+  family: string;
+  role: ModelCatalogueEntryRole;
+  sizeBytes: number;
+  ramRequiredBytes: number;
+  minTier: ModelCatalogueEntryMinTier;
+  capabilities: string[];
+  tradeoff: string;
+  useCaseAxis?: ModelCatalogueEntryUseCaseAxis;
+}
+
+export type ModelInstallPlanEntryRole =
+  (typeof ModelInstallPlanEntryRole)[keyof typeof ModelInstallPlanEntryRole];
+
+export const ModelInstallPlanEntryRole = {
+  primary: "primary",
+  vision: "vision",
+  embedding: "embedding",
+} as const;
+
+export interface ModelInstallPlanEntry {
+  id: string;
+  displayName: string;
+  role: ModelInstallPlanEntryRole;
+  sizeBytes: number;
+  ramRequiredBytes: number;
+}
+
+export type ModelInstallPlanTier =
+  (typeof ModelInstallPlanTier)[keyof typeof ModelInstallPlanTier];
+
+export const ModelInstallPlanTier = {
+  low: "low",
+  mid: "mid",
+  high: "high",
+  pro: "pro",
+} as const;
+
+export interface ModelInstallPlan {
+  primary: ModelCatalogueEntry;
+  companions: ModelInstallPlanEntry[];
+  totalDownloadBytes: number;
+  totalRamBytes: number;
+  fitsHardware: boolean;
+  tier: ModelInstallPlanTier;
+  reason: string;
+  alternatives: ModelCatalogueEntry[];
+}
+
+export interface MinimumSpecVerdict {
+  meetsMinimum: boolean;
+  minimumRamBytes: number;
+  detectedRamBytes: number;
+  message: string;
+}
+
+export type VisionModelLifecycleConfigMode =
+  (typeof VisionModelLifecycleConfigMode)[keyof typeof VisionModelLifecycleConfigMode];
+
+export const VisionModelLifecycleConfigMode = {
+  aggressive: "aggressive",
+  balanced: "balanced",
+  warm: "warm",
+} as const;
+
+export interface VisionModelLifecycleConfig {
+  visionModelId: string;
+  mode: VisionModelLifecycleConfigMode;
+  idleTimeoutMs: number;
+}
+
+export interface ModelHardwareSnapshot {
+  hardware: HardwareProfile;
+  plan: ModelInstallPlan | null;
+  minimumSpec: MinimumSpecVerdict;
+}
+
+export interface ModelHardwareResponse {
+  success: boolean;
+  data: ModelHardwareSnapshot;
+}
+
+export type ModelCatalogueResponseData = {
+  items: ModelCatalogueEntry[];
+};
+
+export interface ModelCatalogueResponse {
+  success: boolean;
+  data: ModelCatalogueResponseData;
+}
+
+export interface ModelPreferences {
+  tenantId: string;
+  primaryModel: string | null;
+  visionLifecycle: VisionModelLifecycleConfig;
+  catalogueChoiceMade: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ModelRecommendationView {
+  hardware: HardwareProfile;
+  plan: ModelInstallPlan | null;
+  minimumSpec: MinimumSpecVerdict;
+  preferences: ModelPreferences;
+}
+
+export interface ModelRecommendationResponse {
+  success: boolean;
+  data: ModelRecommendationView;
+}
+
+export interface ModelPreferencesResponse {
+  success: boolean;
+  data: ModelPreferences;
+}
+
+export type SelectModelRequestVisionLifecycleMode =
+  (typeof SelectModelRequestVisionLifecycleMode)[keyof typeof SelectModelRequestVisionLifecycleMode];
+
+export const SelectModelRequestVisionLifecycleMode = {
+  aggressive: "aggressive",
+  balanced: "balanced",
+  warm: "warm",
+} as const;
+
+export interface SelectModelRequest {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  primaryModel: string;
+  visionLifecycleMode?: SelectModelRequestVisionLifecycleMode;
+  /**
+   * @minimum 0
+   * @maximum 86400000
+   */
+  visionIdleTimeoutMs?: number;
 }
 
 export interface OnboardingHardware {

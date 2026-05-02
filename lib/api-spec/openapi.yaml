@@ -700,6 +700,96 @@ paths:
               schema:
                 $ref: "#/components/schemas/FileDeleteResponse"
 
+  /models/hardware:
+    get:
+      operationId: getModelsHardware
+      tags: [models]
+      summary: Detected host hardware + min-spec verdict
+      description: |
+        Returns the cached hardware probe alongside the recommendation
+        engine's `ModelInstallPlan` (or `null` when no model fits) and the
+        minimum-spec verdict that drives the min-spec onboarding screen.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Hardware snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelHardwareResponse"
+
+  /models/catalogue:
+    get:
+      operationId: getModelsCatalogue
+      tags: [models]
+      summary: Full catalogue of primary + vision models known to the runtime
+      description: |
+        Static, data-driven list backing the onboarding chooser and the
+        Settings model-swap UI. Adding a model is a one-entry edit in
+        `services/hardware/catalogue.ts` (Standard 12 — config as data).
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Model catalogue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelCatalogueResponse"
+
+  /models/recommended:
+    get:
+      operationId: getModelsRecommended
+      tags: [models]
+      summary: Recommendation plan + persisted user preferences
+      description: |
+        Hardware-aware recommendation: detected host, install plan (primary
+        + bundled vision companion + alternatives), the min-spec verdict, and
+        the persisted user preferences (or sane defaults when the user has
+        not made an explicit choice yet).
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Recommendation view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelRecommendationResponse"
+
+  /models/select:
+    post:
+      operationId: selectModel
+      tags: [models]
+      summary: Persist the user's primary model + optional vision lifecycle
+      description: |
+        Idempotent upsert of the per-tenant `model_preferences` row. The
+        primary model id must exist in the catalogue. Vision lifecycle
+        fields are optional and default to the per-tier policy from the
+        recommendation engine.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SelectModelRequest"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelPreferencesResponse"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
   /onboarding/profile:
     get:
       operationId: getOnboardingProfile
@@ -1913,6 +2003,25 @@ components:
         detectedAt:
           type: string
           format: date-time
+        osVersion:
+          type: string
+          nullable: true
+          description: Node `os.release()` snapshot.
+        gpu:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/HardwareGpu"
+
+    HardwareGpu:
+      type: object
+      required: [vendor, kind]
+      properties:
+        vendor:
+          type: string
+        kind:
+          type: string
+        vramBytes:
+          type: integer
 
     ModelRecommendation:
       type: object
@@ -1927,6 +2036,236 @@ components:
           type: integer
         tier:
           type: string
+
+    ModelCatalogueEntry:
+      type: object
+      required:
+        - id
+        - displayName
+        - family
+        - role
+        - sizeBytes
+        - ramRequiredBytes
+        - minTier
+        - capabilities
+        - tradeoff
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        family:
+          type: string
+        role:
+          type: string
+          enum: [primary, vision, embedding]
+        sizeBytes:
+          type: integer
+        ramRequiredBytes:
+          type: integer
+        minTier:
+          type: string
+          enum: [low, mid, high, pro]
+        capabilities:
+          type: array
+          items:
+            type: string
+        tradeoff:
+          type: string
+        useCaseAxis:
+          type: string
+          enum: [writing, code, balanced]
+
+    ModelInstallPlanEntry:
+      type: object
+      required: [id, displayName, role, sizeBytes, ramRequiredBytes]
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+          enum: [primary, vision, embedding]
+        sizeBytes:
+          type: integer
+        ramRequiredBytes:
+          type: integer
+
+    ModelInstallPlan:
+      type: object
+      required:
+        - primary
+        - companions
+        - totalDownloadBytes
+        - totalRamBytes
+        - fitsHardware
+        - tier
+        - reason
+        - alternatives
+      properties:
+        primary:
+          $ref: "#/components/schemas/ModelCatalogueEntry"
+        companions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelInstallPlanEntry"
+        totalDownloadBytes:
+          type: integer
+        totalRamBytes:
+          type: integer
+        fitsHardware:
+          type: boolean
+        tier:
+          type: string
+          enum: [low, mid, high, pro]
+        reason:
+          type: string
+        alternatives:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelCatalogueEntry"
+
+    MinimumSpecVerdict:
+      type: object
+      required: [meetsMinimum, minimumRamBytes, detectedRamBytes, message]
+      properties:
+        meetsMinimum:
+          type: boolean
+        minimumRamBytes:
+          type: integer
+        detectedRamBytes:
+          type: integer
+        message:
+          type: string
+
+    VisionModelLifecycleConfig:
+      type: object
+      required: [visionModelId, mode, idleTimeoutMs]
+      properties:
+        visionModelId:
+          type: string
+        mode:
+          type: string
+          enum: [aggressive, balanced, warm]
+        idleTimeoutMs:
+          type: integer
+
+    ModelHardwareSnapshot:
+      type: object
+      required: [hardware, plan, minimumSpec]
+      properties:
+        hardware:
+          $ref: "#/components/schemas/HardwareProfile"
+        plan:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ModelInstallPlan"
+        minimumSpec:
+          $ref: "#/components/schemas/MinimumSpecVerdict"
+
+    ModelHardwareResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ModelHardwareSnapshot"
+
+    ModelCatalogueResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ModelCatalogueEntry"
+
+    ModelRecommendationView:
+      type: object
+      required: [hardware, plan, minimumSpec, preferences]
+      properties:
+        hardware:
+          $ref: "#/components/schemas/HardwareProfile"
+        plan:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ModelInstallPlan"
+        minimumSpec:
+          $ref: "#/components/schemas/MinimumSpecVerdict"
+        preferences:
+          $ref: "#/components/schemas/ModelPreferences"
+
+    ModelRecommendationResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ModelRecommendationView"
+
+    ModelPreferences:
+      type: object
+      required:
+        - tenantId
+        - primaryModel
+        - visionLifecycle
+        - catalogueChoiceMade
+        - createdAt
+        - updatedAt
+      properties:
+        tenantId:
+          type: string
+        primaryModel:
+          type: string
+          nullable: true
+        visionLifecycle:
+          $ref: "#/components/schemas/VisionModelLifecycleConfig"
+        catalogueChoiceMade:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ModelPreferencesResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ModelPreferences"
+
+    SelectModelRequest:
+      type: object
+      required: [primaryModel]
+      properties:
+        primaryModel:
+          type: string
+          minLength: 1
+          maxLength: 200
+        visionLifecycleMode:
+          type: string
+          enum: [aggressive, balanced, warm]
+        visionIdleTimeoutMs:
+          type: integer
+          minimum: 0
+          maximum: 86400000
 
     OnboardingHardware:
       type: object

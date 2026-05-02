@@ -32,6 +32,40 @@ import request from "supertest";
 import { db, getRawSqlite, runMigrations, tenants, workspaces } from "@workspace/db";
 
 import app from "./app";
+import {
+  buildModelInstallPlan,
+  clearHardwareCache,
+  defaultLifecycleForTier,
+  evaluateMinimumSpec,
+  getDefaultVision,
+  getMinimumPrimary,
+  getVisionLifecycle,
+  resetVisionLifecycleForTests,
+} from "./services/hardware";
+import type { HardwareProfile } from "@workspace/types";
+
+function syntheticHardware(
+  totalRamGb: number,
+  overrides: Partial<HardwareProfile> = {},
+): HardwareProfile {
+  const ONE_GB = 1024 * 1024 * 1024;
+  const tier =
+    totalRamGb >= 32 ? "pro" : totalRamGb >= 16 ? "high" : totalRamGb >= 8 ? "mid" : "low";
+  return {
+    platform: "linux",
+    arch: "x64",
+    cpuCount: 8,
+    cpuModel: "Synthetic CPU",
+    totalRamBytes: totalRamGb * ONE_GB,
+    freeRamBytes: Math.floor((totalRamGb / 2) * ONE_GB),
+    appleSilicon: false,
+    tier,
+    detectedAt: new Date().toISOString(),
+    osVersion: "test",
+    gpu: null,
+    ...overrides,
+  };
+}
 
 const TENANT = "tenant_test_1";
 const TENANT_2 = "tenant_test_2";
@@ -330,6 +364,217 @@ const cases: TestCase[] = [
         .set("X-Tenant-ID", TENANT_2);
       assert.equal(cross.status, 200);
       assert.equal(cross.body.data.profile, null);
+    },
+  },
+
+  // ─── Task #64: hardware-aware model recommendation ────────────────────
+
+  {
+    name: "recommendation engine: 16GB host gets a primary + bundled vision",
+    run: async () => {
+      const plan = buildModelInstallPlan(syntheticHardware(16));
+      assert.ok(plan, "plan must not be null on a 16GB host");
+      assert.equal(plan.fitsHardware, true);
+      assert.equal(plan.primary.role, "primary");
+      assert.equal(plan.tier, "high");
+      assert.ok(plan.companions.length >= 1, "vision companion expected");
+      assert.equal(plan.companions[0]?.role, "vision");
+      assert.ok(plan.alternatives.length >= 1, "alternatives expected");
+      assert.ok(plan.totalDownloadBytes > plan.primary.sizeBytes);
+    },
+  },
+  {
+    name: "recommendation engine: pro host (64GB) returns the 70B model",
+    run: async () => {
+      const plan = buildModelInstallPlan(syntheticHardware(64));
+      assert.ok(plan);
+      assert.equal(plan.tier, "pro");
+      assert.equal(plan.primary.id, "llama3.1:70b");
+    },
+  },
+  {
+    name: "recommendation engine: low-RAM host drops vision to keep primary",
+    run: async () => {
+      // 6GB total — vision (1.6GB) + 2GB OS reserve leaves only 2.4GB for
+      // primary, which fits Phi-3 Mini (3GB) only WITHOUT vision. The engine
+      // should retry without vision and still surface a primary.
+      const plan = buildModelInstallPlan(syntheticHardware(6));
+      assert.ok(plan, "primary must still be recommended on a 6GB host");
+      assert.equal(plan.primary.id, "phi3:mini");
+      assert.equal(plan.companions.length, 0, "vision should be dropped");
+    },
+  },
+  {
+    name: "recommendation engine: <minimum spec returns null plan",
+    run: async () => {
+      const plan = buildModelInstallPlan(syntheticHardware(2));
+      assert.equal(plan, null);
+      const verdict = evaluateMinimumSpec(syntheticHardware(2));
+      assert.equal(verdict.meetsMinimum, false);
+      assert.ok(verdict.minimumRamBytes > 0);
+      assert.match(verdict.message, /minimum/i);
+    },
+  },
+  {
+    name: "vision lifecycle: aggressive mode for low/mid tier hosts",
+    run: async () => {
+      const low = defaultLifecycleForTier("low");
+      const mid = defaultLifecycleForTier("mid");
+      const high = defaultLifecycleForTier("high");
+      const pro = defaultLifecycleForTier("pro");
+      assert.equal(low.mode, "aggressive");
+      assert.equal(mid.mode, "aggressive");
+      assert.equal(high.mode, "balanced");
+      assert.equal(pro.mode, "warm");
+      assert.ok(low.idleTimeoutMs < high.idleTimeoutMs);
+    },
+  },
+  {
+    name: "vision lifecycle: idle timeout auto-unloads after timer fires",
+    run: async () => {
+      resetVisionLifecycleForTests();
+      const cycle = getVisionLifecycle("high");
+      // Re-arm with a tiny timeout so the test does not have to wait
+      // a real 5-minute balanced window.
+      cycle.configure({
+        visionModelId: "moondream:v2",
+        mode: "aggressive",
+        idleTimeoutMs: 20,
+      });
+      cycle.touch();
+      assert.equal(cycle.snapshot().state, "loaded");
+      await new Promise((r) => setTimeout(r, 60));
+      assert.equal(
+        cycle.snapshot().state,
+        "unloaded",
+        "idle timer must auto-unload",
+      );
+      // Re-touch followed by a fresh configure() must re-arm cleanly.
+      cycle.touch();
+      cycle.configure({
+        visionModelId: "moondream:v2",
+        mode: "aggressive",
+        idleTimeoutMs: 15,
+      });
+      await new Promise((r) => setTimeout(r, 50));
+      assert.equal(cycle.snapshot().state, "unloaded");
+      resetVisionLifecycleForTests();
+    },
+  },
+  {
+    name: "vision lifecycle: touch loads, unload frees RAM",
+    run: async () => {
+      resetVisionLifecycleForTests();
+      const cycle = getVisionLifecycle("high");
+      assert.equal(cycle.snapshot().state, "unloaded");
+      cycle.touch();
+      assert.equal(cycle.snapshot().state, "loaded");
+      assert.ok(cycle.snapshot().lastUsedAt);
+      cycle.unload();
+      assert.equal(cycle.snapshot().state, "unloaded");
+      const vision = getDefaultVision();
+      assert.ok(vision, "catalogue must include a vision model");
+      assert.equal(cycle.snapshot().visionModelId, vision.id);
+      resetVisionLifecycleForTests();
+    },
+  },
+  {
+    name: "GET /api/models/hardware returns plan + minimum-spec verdict",
+    run: async () => {
+      clearHardwareCache(); // pick up the test-runner override
+      const res = await request(app)
+        .get("/api/models/hardware")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      const { hardware, plan, minimumSpec } = res.body.data;
+      assert.equal(hardware.tier, "high");
+      assert.ok(plan, "16GB override must yield a plan");
+      assert.equal(plan.primary.id, "llama3.1:8b");
+      assert.equal(minimumSpec.meetsMinimum, true);
+    },
+  },
+  {
+    name: "GET /api/models/catalogue returns all entries with vision included",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/models/catalogue")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.ok(Array.isArray(res.body.data.items));
+      assert.ok(res.body.data.items.length >= 4);
+      const roles = new Set(
+        res.body.data.items.map((m: { role: string }) => m.role),
+      );
+      assert.ok(roles.has("primary"));
+      assert.ok(roles.has("vision"));
+    },
+  },
+  {
+    name: "GET /api/models/recommended returns plan + default preferences",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/models/recommended")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.preferences.catalogueChoiceMade, false);
+      assert.ok(res.body.data.preferences.visionLifecycle.idleTimeoutMs > 0);
+      assert.ok(res.body.data.plan);
+      assert.equal(res.body.data.plan.primary.id, "llama3.1:8b");
+    },
+  },
+  {
+    name: "POST /api/models/select persists user choice",
+    run: async () => {
+      const ok = await request(app)
+        .post("/api/models/select")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          primaryModel: "mistral:7b",
+          visionLifecycleMode: "aggressive",
+        });
+      assert.equal(ok.status, 200, JSON.stringify(ok.body));
+      assert.equal(ok.body.data.primaryModel, "mistral:7b");
+      assert.equal(ok.body.data.visionLifecycle.mode, "aggressive");
+      assert.equal(ok.body.data.catalogueChoiceMade, true);
+
+      // Subsequent /recommended should reflect the saved preference.
+      const after = await request(app)
+        .get("/api/models/recommended")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(after.status, 200);
+      assert.equal(after.body.data.preferences.primaryModel, "mistral:7b");
+      assert.equal(after.body.data.preferences.catalogueChoiceMade, true);
+    },
+  },
+  {
+    name: "POST /api/models/select rejects unknown model id",
+    run: async () => {
+      const bad = await request(app)
+        .post("/api/models/select")
+        .set("X-Tenant-ID", TENANT)
+        .send({ primaryModel: "made-up-model:foo" });
+      assert.equal(bad.status, 400);
+      assert.equal(bad.body.success, false);
+      assert.equal(bad.body.error.code, "INVALID_MODEL");
+    },
+  },
+  {
+    name: "model preferences are tenant-isolated",
+    run: async () => {
+      const cross = await request(app)
+        .get("/api/models/recommended")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(cross.status, 200);
+      assert.equal(cross.body.data.preferences.primaryModel, "llama3.1:8b");
+      assert.equal(cross.body.data.preferences.catalogueChoiceMade, false);
+    },
+  },
+  {
+    name: "minimum primary in catalogue is the smallest by RAM",
+    run: async () => {
+      const min = getMinimumPrimary();
+      assert.equal(min.id, "phi3:mini");
     },
   },
 

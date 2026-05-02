@@ -1062,6 +1062,299 @@ export const DeleteFileResponse = zod.object({
 });
 
 /**
+ * Returns the cached hardware probe alongside the recommendation
+engine's `ModelInstallPlan` (or `null` when no model fits) and the
+minimum-spec verdict that drives the min-spec onboarding screen.
+
+ * @summary Detected host hardware + min-spec verdict
+ */
+export const GetModelsHardwareHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetModelsHardwareResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    hardware: zod.object({
+      platform: zod
+        .string()
+        .describe("Node `os.platform()` — e.g. `darwin`, `win32`, `linux`."),
+      arch: zod.string().describe("Node `os.arch()` — e.g. `arm64`, `x64`."),
+      cpuCount: zod.number(),
+      cpuModel: zod.string().nullish(),
+      totalRamBytes: zod.number(),
+      freeRamBytes: zod.number(),
+      appleSilicon: zod.boolean(),
+      tier: zod
+        .enum(["low", "mid", "high", "pro"])
+        .describe(
+          "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
+        ),
+      detectedAt: zod.coerce.date(),
+      osVersion: zod
+        .string()
+        .nullish()
+        .describe("Node `os.release()` snapshot."),
+      gpu: zod
+        .object({
+          vendor: zod.string(),
+          kind: zod.string(),
+          vramBytes: zod.number().optional(),
+        })
+        .nullish(),
+    }),
+    plan: zod
+      .object({
+        primary: zod.object({
+          id: zod.string(),
+          displayName: zod.string(),
+          family: zod.string(),
+          role: zod.enum(["primary", "vision", "embedding"]),
+          sizeBytes: zod.number(),
+          ramRequiredBytes: zod.number(),
+          minTier: zod.enum(["low", "mid", "high", "pro"]),
+          capabilities: zod.array(zod.string()),
+          tradeoff: zod.string(),
+          useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
+        }),
+        companions: zod.array(
+          zod.object({
+            id: zod.string(),
+            displayName: zod.string(),
+            role: zod.enum(["primary", "vision", "embedding"]),
+            sizeBytes: zod.number(),
+            ramRequiredBytes: zod.number(),
+          }),
+        ),
+        totalDownloadBytes: zod.number(),
+        totalRamBytes: zod.number(),
+        fitsHardware: zod.boolean(),
+        tier: zod.enum(["low", "mid", "high", "pro"]),
+        reason: zod.string(),
+        alternatives: zod.array(
+          zod.object({
+            id: zod.string(),
+            displayName: zod.string(),
+            family: zod.string(),
+            role: zod.enum(["primary", "vision", "embedding"]),
+            sizeBytes: zod.number(),
+            ramRequiredBytes: zod.number(),
+            minTier: zod.enum(["low", "mid", "high", "pro"]),
+            capabilities: zod.array(zod.string()),
+            tradeoff: zod.string(),
+            useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
+          }),
+        ),
+      })
+      .nullable(),
+    minimumSpec: zod.object({
+      meetsMinimum: zod.boolean(),
+      minimumRamBytes: zod.number(),
+      detectedRamBytes: zod.number(),
+      message: zod.string(),
+    }),
+  }),
+});
+
+/**
+ * Static, data-driven list backing the onboarding chooser and the
+Settings model-swap UI. Adding a model is a one-entry edit in
+`services/hardware/catalogue.ts` (Standard 12 — config as data).
+
+ * @summary Full catalogue of primary + vision models known to the runtime
+ */
+export const GetModelsCatalogueHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetModelsCatalogueResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        displayName: zod.string(),
+        family: zod.string(),
+        role: zod.enum(["primary", "vision", "embedding"]),
+        sizeBytes: zod.number(),
+        ramRequiredBytes: zod.number(),
+        minTier: zod.enum(["low", "mid", "high", "pro"]),
+        capabilities: zod.array(zod.string()),
+        tradeoff: zod.string(),
+        useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * Hardware-aware recommendation: detected host, install plan (primary
++ bundled vision companion + alternatives), the min-spec verdict, and
+the persisted user preferences (or sane defaults when the user has
+not made an explicit choice yet).
+
+ * @summary Recommendation plan + persisted user preferences
+ */
+export const GetModelsRecommendedHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetModelsRecommendedResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    hardware: zod.object({
+      platform: zod
+        .string()
+        .describe("Node `os.platform()` — e.g. `darwin`, `win32`, `linux`."),
+      arch: zod.string().describe("Node `os.arch()` — e.g. `arm64`, `x64`."),
+      cpuCount: zod.number(),
+      cpuModel: zod.string().nullish(),
+      totalRamBytes: zod.number(),
+      freeRamBytes: zod.number(),
+      appleSilicon: zod.boolean(),
+      tier: zod
+        .enum(["low", "mid", "high", "pro"])
+        .describe(
+          "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
+        ),
+      detectedAt: zod.coerce.date(),
+      osVersion: zod
+        .string()
+        .nullish()
+        .describe("Node `os.release()` snapshot."),
+      gpu: zod
+        .object({
+          vendor: zod.string(),
+          kind: zod.string(),
+          vramBytes: zod.number().optional(),
+        })
+        .nullish(),
+    }),
+    plan: zod
+      .object({
+        primary: zod.object({
+          id: zod.string(),
+          displayName: zod.string(),
+          family: zod.string(),
+          role: zod.enum(["primary", "vision", "embedding"]),
+          sizeBytes: zod.number(),
+          ramRequiredBytes: zod.number(),
+          minTier: zod.enum(["low", "mid", "high", "pro"]),
+          capabilities: zod.array(zod.string()),
+          tradeoff: zod.string(),
+          useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
+        }),
+        companions: zod.array(
+          zod.object({
+            id: zod.string(),
+            displayName: zod.string(),
+            role: zod.enum(["primary", "vision", "embedding"]),
+            sizeBytes: zod.number(),
+            ramRequiredBytes: zod.number(),
+          }),
+        ),
+        totalDownloadBytes: zod.number(),
+        totalRamBytes: zod.number(),
+        fitsHardware: zod.boolean(),
+        tier: zod.enum(["low", "mid", "high", "pro"]),
+        reason: zod.string(),
+        alternatives: zod.array(
+          zod.object({
+            id: zod.string(),
+            displayName: zod.string(),
+            family: zod.string(),
+            role: zod.enum(["primary", "vision", "embedding"]),
+            sizeBytes: zod.number(),
+            ramRequiredBytes: zod.number(),
+            minTier: zod.enum(["low", "mid", "high", "pro"]),
+            capabilities: zod.array(zod.string()),
+            tradeoff: zod.string(),
+            useCaseAxis: zod.enum(["writing", "code", "balanced"]).optional(),
+          }),
+        ),
+      })
+      .nullable(),
+    minimumSpec: zod.object({
+      meetsMinimum: zod.boolean(),
+      minimumRamBytes: zod.number(),
+      detectedRamBytes: zod.number(),
+      message: zod.string(),
+    }),
+    preferences: zod.object({
+      tenantId: zod.string(),
+      primaryModel: zod.string().nullable(),
+      visionLifecycle: zod.object({
+        visionModelId: zod.string(),
+        mode: zod.enum(["aggressive", "balanced", "warm"]),
+        idleTimeoutMs: zod.number(),
+      }),
+      catalogueChoiceMade: zod.boolean(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * Idempotent upsert of the per-tenant `model_preferences` row. The
+primary model id must exist in the catalogue. Vision lifecycle
+fields are optional and default to the per-tier policy from the
+recommendation engine.
+
+ * @summary Persist the user's primary model + optional vision lifecycle
+ */
+export const SelectModelHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const selectModelBodyPrimaryModelMax = 200;
+
+export const selectModelBodyVisionIdleTimeoutMsMin = 0;
+export const selectModelBodyVisionIdleTimeoutMsMax = 86400000;
+
+export const SelectModelBody = zod.object({
+  primaryModel: zod.string().min(1).max(selectModelBodyPrimaryModelMax),
+  visionLifecycleMode: zod.enum(["aggressive", "balanced", "warm"]).optional(),
+  visionIdleTimeoutMs: zod
+    .number()
+    .min(selectModelBodyVisionIdleTimeoutMsMin)
+    .max(selectModelBodyVisionIdleTimeoutMsMax)
+    .optional(),
+});
+
+export const SelectModelResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    tenantId: zod.string(),
+    primaryModel: zod.string().nullable(),
+    visionLifecycle: zod.object({
+      visionModelId: zod.string(),
+      mode: zod.enum(["aggressive", "balanced", "warm"]),
+      idleTimeoutMs: zod.number(),
+    }),
+    catalogueChoiceMade: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
  * Returns the persisted setup-wizard answers, completion flags, and
 hardware snapshot for the requesting tenant. The frontend uses this
 on every cold start to decide whether to render the wizard or drop
@@ -1119,6 +1412,17 @@ export const GetOnboardingProfileResponse = zod.object({
                 "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
               ),
             detectedAt: zod.coerce.date(),
+            osVersion: zod
+              .string()
+              .nullish()
+              .describe("Node `os.release()` snapshot."),
+            gpu: zod
+              .object({
+                vendor: zod.string(),
+                kind: zod.string(),
+                vramBytes: zod.number().optional(),
+              })
+              .nullish(),
           })
           .nullish(),
         completedAt: zod.coerce.date().nullish(),
@@ -1183,6 +1487,17 @@ export const UpsertOnboardingProfileBody = zod.object({
           "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
         ),
       detectedAt: zod.coerce.date(),
+      osVersion: zod
+        .string()
+        .nullish()
+        .describe("Node `os.release()` snapshot."),
+      gpu: zod
+        .object({
+          vendor: zod.string(),
+          kind: zod.string(),
+          vramBytes: zod.number().optional(),
+        })
+        .nullish(),
     })
     .optional(),
 });
@@ -1229,6 +1544,17 @@ export const UpsertOnboardingProfileResponse = zod.object({
                 "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
               ),
             detectedAt: zod.coerce.date(),
+            osVersion: zod
+              .string()
+              .nullish()
+              .describe("Node `os.release()` snapshot."),
+            gpu: zod
+              .object({
+                vendor: zod.string(),
+                kind: zod.string(),
+                vramBytes: zod.number().optional(),
+              })
+              .nullish(),
           })
           .nullish(),
         completedAt: zod.coerce.date().nullish(),
@@ -1274,6 +1600,17 @@ export const GetOnboardingHardwareResponse = zod.object({
           "Coarse hardware bucket the recommendation engine maps to a model.\n`low` ≤8GB, `mid` ≤16GB, `high` ≤32GB, `pro` >32GB.\n",
         ),
       detectedAt: zod.coerce.date(),
+      osVersion: zod
+        .string()
+        .nullish()
+        .describe("Node `os.release()` snapshot."),
+      gpu: zod
+        .object({
+          vendor: zod.string(),
+          kind: zod.string(),
+          vramBytes: zod.number().optional(),
+        })
+        .nullish(),
     }),
     recommendation: zod.object({
       model: zod.string().describe("Ollama tag (e.g. `llama3.1:8b`)."),
