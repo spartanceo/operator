@@ -152,3 +152,31 @@ These belong to dependent tasks that will consume the primitives, not re-impleme
 - OAuth re-auth flow / retry queues → Task #21 (Integrations).
 - Notification-centre escalation → Task #2 (Frontend Web App).
 - DB integrity check / KB rebuild → Task #57 + Task #37.
+
+---
+
+## Task #1 Foundation Notes (Backend & Database)
+
+Task #1 wired the SQLite-backed API server, deterministic agent loop, tool registry, approval system, privacy logging, and local auth. Subsequent tasks should consume these primitives — do not re-implement.
+
+### What's wired
+
+- **DB**: SQLite (better-sqlite3) via `@workspace/db`. 10 tenant-scoped tables: tenants, workspaces, users, sessions, memories, agent_runs, messages, tool_calls, approvals, privacy_events. `runMigrations()` runs on startup (and in the test runner). The default workspace id is `default-<tenantId>` so two tenants can each own a "default" workspace without colliding on the single-column PK.
+- **Tenant scoping**: `withTenantValues(ctx, values)` always emits a non-optional `workspaceId` (defaults to `default-<tenantId>` when ctx omits one). The api-server `tenantContext()` middleware always populates one. `tenantScope(ctx, table)` adds the WHERE filters.
+- **Auth**: `bcryptjs` + `express-session` + DB-backed `sessions` table. `/api/auth/{register,login,logout,me}`. The session cookie is `omninity.sid` with `httpOnly`, `sameSite=lax`, `secure` in prod. `SESSION_SECRET` is required in production.
+- **Agent**: 6 deterministic agents (Router → Planner → Executor → Verifier → Research → Memory). `runAgent(ctx, prompt)` writes messages, tool_calls, approvals, and a final summary atomically.
+- **Tools**: 15-tool const registry under `services/tools.service.ts` (`clock.now`, `echo`, `noop`, plus filesystem, browser stub, memory, model, etc.). Risk levels gate the approval flow.
+- **Privacy**: every outbound `fetch()` (Ollama + browser) is bracketed by `logPrivacyEvent(ctx, …)` ±10 lines (Check #8 enforces this).
+- **Files**: `lib/sandbox.ts` resolves paths under `<workspace>/sandbox/<tenantId>/<workspaceId>` and rejects absolute paths, traversal, and symlinks. Read/write are capped at 1 MB.
+
+### Conventions to follow
+
+- New tables MUST include `id, tenantId, workspaceId, createdAt, updatedAt, version` (Check #5 enforces; `version` exempt for `_event` / `_log` / `idempotency_*` tables).
+- All `db.insert()` calls go through `withTenantValues(ctx, …)`; `db.select()` through `tenantScope(ctx, table)`.
+- Routes must use `requireTenant()` plus the api-envelope (`ok` / `err` / `pageOk`); list endpoints return `{ items, nextCursor }` (Check #16).
+- CLI scripts (e.g. `src/test-runner.ts`) write through `process.stdout.write`, not `console.log` — Check #3 rejects `console.log` in non-test source files.
+- Module-level `new Map()` / `new Set()` must be wrapped in `LRUCache` OR carry the comment `// tier-review: bounded — <reason>` on the line above (Check #18).
+
+### Tier-review status
+
+`pnpm run tier-review` → 16/16 active checks pass. Two checks (`Performance budget compliance`, `Frontend bundle size budget`) are intentionally skipped — they activate when Task #2 (frontend) ships its first `*.bench.ts` and `bundle-budget.json`.

@@ -3,13 +3,13 @@
  * Pure-function tests for the Standard 13 helpers exported from
  * `@workspace/db`. No database connection required — these helpers are
  * either pure (pagination) or build SQL fragments (tenantScope) we can
- * inspect via Drizzle's `PgDialect.sqlToQuery` API.
+ * inspect via Drizzle's `SQLiteSyncDialect.sqlToQuery` API.
  *
  * Run with `pnpm --filter @workspace/db run test`.
  */
 import assert from "node:assert/strict";
 
-import { PgDialect } from "drizzle-orm/pg-core";
+import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 
 import {
   assertTenant,
@@ -27,7 +27,7 @@ import {
 import { tenants } from "./schema/tenants";
 import { workspaces } from "./schema/workspaces";
 
-const dialect = new PgDialect();
+const dialect = new SQLiteSyncDialect();
 const ctx = {
   tenantId: "t_demo",
   workspaceId: "w_demo",
@@ -37,8 +37,6 @@ const ctx = {
 // ─── tenantScope ─────────────────────────────────────────────────────────────
 
 {
-  // Tenant-only table → tenant_id filter + GDPR `status != 'erased'` filter
-  // (the table has a `status` column, so the soft-delete exclusion fires).
   const q = dialect.sqlToQuery(tenantScope(ctx, tenants));
   assert.match(q.sql, /tenant_id/);
   assert.match(q.sql, /status/);
@@ -47,8 +45,6 @@ const ctx = {
 }
 
 {
-  // workspaces table has no workspaceId column — its own id IS the workspace.
-  // It DOES have a `status` column, so erased rows are excluded.
   const q = dialect.sqlToQuery(tenantScope(ctx, workspaces));
   assert.match(q.sql, /tenant_id/);
   assert.match(q.sql, /status/);
@@ -59,11 +55,7 @@ const ctx = {
 }
 
 {
-  // Synthetic fixture: a table without a `status` column should NOT include
-  // the erased exclusion (no extra param), proving the filter is opt-in
-  // by table shape rather than always-on.
   const fakeTable = { tenantId: tenants.tenantId } as const;
-  // Cast through `unknown` — this fixture mimics a Drizzle table shape.
   const q = dialect.sqlToQuery(
     tenantScope(ctx, fakeTable as unknown as typeof tenants),
   );
@@ -72,7 +64,6 @@ const ctx = {
 }
 
 {
-  // withTenant is the sanctioned alias — must produce identical SQL.
   const a = dialect.sqlToQuery(tenantScope(ctx, tenants));
   const b = dialect.sqlToQuery(withTenant(ctx, tenants));
   assert.equal(a.sql, b.sql);
@@ -91,19 +82,21 @@ const ctx = {
 }
 
 {
-  // Caller-provided values win — never silently overridden.
   const v = withTenantValues(ctx, { tenantId: "t_other", name: "x" });
   assert.equal(v.tenantId, "t_other");
   console.log("  ✓  withTenantValues respects explicit tenantId from caller");
 }
 
 {
-  // No workspaceId on context → key omitted from result (not set to undefined).
+  // When the caller's context omits an explicit workspaceId, the helper
+  // synthesises a tenant-scoped default (`default-<tenantId>`). This keeps
+  // every downstream insert FK-safe against the workspaces table, which
+  // rejects nulls.
   const ctxNoWs = { tenantId: "t_demo", requestId: "r" } as const;
   const v = withTenantValues(ctxNoWs, { name: "x" });
   assert.equal(v.tenantId, "t_demo");
-  assert.equal("workspaceId" in v, false);
-  console.log("  ✓  withTenantValues omits workspaceId when context lacks one");
+  assert.equal(v.workspaceId, "default-t_demo");
+  console.log("  ✓  withTenantValues defaults workspaceId to default-<tenantId> when ctx lacks one");
 }
 
 // ─── assertTenant ────────────────────────────────────────────────────────────
@@ -116,7 +109,6 @@ const ctx = {
 }
 
 {
-  // Mismatched tenantId → hard throw.
   const row = { id: "1", tenantId: "t_other" };
   assert.throws(
     () => assertTenant(ctx, row),
@@ -128,7 +120,6 @@ const ctx = {
 }
 
 {
-  // Mismatched workspaceId → hard throw.
   const row = { id: "1", tenantId: "t_demo", workspaceId: "w_other" };
   assert.throws(
     () => assertTenant(ctx, row),
@@ -138,15 +129,12 @@ const ctx = {
 }
 
 {
-  // null/undefined pass through (lookup returned no row → not a leak).
   assert.equal(assertTenant(ctx, null), null);
   assert.equal(assertTenant(ctx, undefined), null);
   console.log("  ✓  assertTenant returns null for null/undefined rows");
 }
 
 {
-  // Row without workspaceId is fine even when context has one — only a
-  // *conflicting* workspaceId triggers the throw.
   const row = { id: "1", tenantId: "t_demo" };
   assert.equal(assertTenant(ctx, row), row);
   console.log("  ✓  assertTenant tolerates rows without workspaceId");
@@ -162,7 +150,6 @@ const ctx = {
 }
 
 {
-  // Oversampled query (limit+1 rows) → trims to limit and emits a cursor.
   const rows = [{ id: "a" }, { id: "b" }, { id: "c" }];
   const page = buildPage(rows, 2, (r) => r.id);
   assert.equal(page.items.length, 2);
@@ -173,7 +160,6 @@ const ctx = {
 }
 
 {
-  // Underfilled page (rows ≤ limit) → no next cursor.
   const page = buildPage([{ id: "a" }], 5, (r) => r.id);
   assert.equal(page.items.length, 1);
   assert.equal(page.nextCursor, null);
@@ -182,7 +168,7 @@ const ctx = {
 
 {
   const c = encodeCursor("hello/world+1");
-  assert.notEqual(c, "hello/world+1"); // base64url-encoded
+  assert.notEqual(c, "hello/world+1");
   assert.equal(decodeCursor(c), "hello/world+1");
   console.log("  ✓  encodeCursor + decodeCursor round-trip");
 }
@@ -203,7 +189,7 @@ const ctx = {
   const cache = new LRUCache<string, number>({ max: 2 });
   cache.set("a", 1);
   cache.set("b", 2);
-  cache.set("c", 3); // evicts "a"
+  cache.set("c", 3);
   assert.equal(cache.get("a"), undefined);
   assert.equal(cache.get("b"), 2);
   assert.equal(cache.get("c"), 3);

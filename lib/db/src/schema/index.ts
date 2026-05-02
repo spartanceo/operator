@@ -12,3 +12,11 @@
  */
 export * from "./tenants";
 export * from "./workspaces";
+export * from "./users";
+export * from "./sessions";
+export * from "./agent-runs";
+export * from "./messages";
+export * from "./tool-calls";
+export * from "./memories";
+export * from "./privacy-events";
+export * from "./approvals";

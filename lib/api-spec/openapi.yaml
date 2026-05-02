@@ -11,8 +11,8 @@ info:
     Collection endpoints further wrap their payload in
     `{ items, nextCursor }` per `Standard 13`.
 
-    Tenant context is supplied via the `X-Tenant-ID` header until the
-    authentication task lands; thereafter the JWT replaces the header.
+    Tenant context is supplied via the `X-Tenant-ID` header until session
+    cookies replace it on `/api/auth/login`.
 servers:
   - url: /api
     description: Base API path
@@ -21,13 +21,44 @@ tags:
     description: Health and readiness probes
   - name: admin
     description: Tenant-administration endpoints (GDPR data export / erasure)
+  - name: auth
+    description: Local authentication (bcrypt + session cookie)
+  - name: models
+    description: Local Ollama model lifecycle
+  - name: chat
+    description: Single-turn chat with the active model
+  - name: agent
+    description: Deterministic agent loop (Router / Planner / Executor / Verifier / Research / Memory)
+  - name: tools
+    description: Tool catalog and direct invocation
+  - name: privacy
+    description: Privacy-event audit log
+  - name: memory
+    description: Long-lived user memories
+  - name: files
+    description: Workspace-sandboxed file operations
+  - name: browser
+    description: Local browser automation (Tier 1 stubs)
 
 paths:
   /healthz:
     get:
+      operationId: healthCheckLegacy
+      tags: [health]
+      summary: Legacy health probe (kept for back-compat)
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheckResponse"
+
+  /health:
+    get:
       operationId: healthCheck
       tags: [health]
-      summary: Health check
+      summary: Health probe
       description: |
         Returns server health status. Always responds 200; payload reports
         the running version and the current server time so callers can detect
@@ -45,10 +76,6 @@ paths:
       operationId: exportTenantData
       tags: [admin]
       summary: Export the requesting tenant's data (GDPR portability)
-      description: |
-        Returns a structured snapshot of every record the requesting tenant
-        owns. Synchronous in v1; switches to a job-based flow once datasets
-        grow past the inline budget.
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
       responses:
@@ -68,10 +95,6 @@ paths:
       operationId: eraseTenantData
       tags: [admin]
       summary: Erase the requesting tenant's data (GDPR erasure)
-      description: |
-        Marks the tenant and every record it owns as `erased`. Soft-delete in
-        v1 so support can recover a mistakenly-erased tenant within 30 days;
-        a follow-up nightly job hard-deletes once the grace window expires.
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
       responses:
@@ -88,6 +111,633 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
 
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Bootstrap a new tenant + owner user
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: User created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Sign in with email + password
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Logged in; session cookie set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logoutUser
+      tags: [auth]
+      summary: Destroy the current session
+      responses:
+        "200":
+          description: Session destroyed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthLogoutResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Return the signed-in user (singleton)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /models:
+    get:
+      operationId: listModels
+      tags: [models]
+      summary: List Ollama models known to this installation
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Models page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelListResponse"
+
+  /models/pull:
+    post:
+      operationId: pullModel
+      tags: [models]
+      summary: Schedule download of a named model
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelPullRequest"
+      responses:
+        "200":
+          description: Pull scheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelPullResponse"
+
+  /models/{name}:
+    get:
+      operationId: getModel
+      tags: [models]
+      summary: Fetch one model's status (singleton)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Model details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelGetResponse"
+        "404":
+          description: Unknown model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /chat:
+    post:
+      operationId: chat
+      tags: [chat]
+      summary: Single-turn chat completion via the local Ollama model
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: Assistant message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
+  /agent/runs:
+    get:
+      operationId: listAgentRuns
+      tags: [agent]
+      summary: List recent agent runs in this workspace
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Agent runs page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRunListResponse"
+    post:
+      operationId: createAgentRun
+      tags: [agent]
+      summary: Kick off a new deterministic agent run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAgentRunRequest"
+      responses:
+        "200":
+          description: Agent run created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRunResponse"
+
+  /agent/runs/{id}:
+    get:
+      operationId: getAgentRun
+      tags: [agent]
+      summary: Fetch one agent run by id
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Agent run details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRunResponse"
+        "404":
+          description: Unknown run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /agent/runs/{id}/cancel:
+    post:
+      operationId: cancelAgentRun
+      tags: [agent]
+      summary: Cancel a running agent
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRunResponse"
+
+  /agent/runs/{id}/messages:
+    get:
+      operationId: listAgentRunMessages
+      tags: [agent]
+      summary: Conversation messages for one run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Messages page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageListResponse"
+
+  /agent/runs/{id}/tool-calls:
+    get:
+      operationId: listAgentRunToolCalls
+      tags: [agent]
+      summary: Tool calls executed inside one run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Tool calls page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolCallListResponse"
+
+  /agent/runs/{id}/approvals:
+    get:
+      operationId: listAgentRunApprovals
+      tags: [agent]
+      summary: Approval gates for one run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Approvals page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalListResponse"
+
+  /agent/approvals/{id}/decide:
+    post:
+      operationId: decideApproval
+      tags: [agent]
+      summary: Approve or deny a pending approval gate
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalDecisionRequest"
+      responses:
+        "200":
+          description: Decision recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalResponse"
+
+  /tools:
+    get:
+      operationId: listTools
+      tags: [tools]
+      summary: List installed tools
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Tools page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolListResponse"
+
+  /tools/{name}/invoke:
+    post:
+      operationId: invokeTool
+      tags: [tools]
+      summary: Directly invoke a tool (outside an agent run)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToolInvokeRequest"
+      responses:
+        "200":
+          description: Tool output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolInvokeResponse"
+
+  /privacy/events:
+    get:
+      operationId: listPrivacyEvents
+      tags: [privacy]
+      summary: Browse the privacy-event audit log
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Privacy events page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyEventListResponse"
+    post:
+      operationId: createPrivacyEvent
+      tags: [privacy]
+      summary: Manually log a privacy event
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePrivacyEventRequest"
+      responses:
+        "200":
+          description: Event recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyEventResponse"
+
+  /memory:
+    get:
+      operationId: listMemories
+      tags: [memory]
+      summary: List long-lived user memories
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Memories page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryListResponse"
+    post:
+      operationId: createMemory
+      tags: [memory]
+      summary: Create a memory entry
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMemoryRequest"
+      responses:
+        "200":
+          description: Memory created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryResponse"
+
+  /memory/{id}:
+    get:
+      operationId: getMemory
+      tags: [memory]
+      summary: Fetch one memory (singleton)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Memory entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryResponse"
+        "404":
+          description: Unknown memory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: deleteMemory
+      tags: [memory]
+      summary: Delete a memory entry
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deletion receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryDeleteResponse"
+
+  /files/list:
+    get:
+      operationId: listFiles
+      tags: [files]
+      summary: List entries inside the workspace sandbox
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: path
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Files page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileListResponse"
+
+  /files/read:
+    post:
+      operationId: readFile
+      tags: [files]
+      summary: Read a sandboxed file
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileReadRequest"
+      responses:
+        "200":
+          description: File contents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileReadResponse"
+
+  /files/write:
+    post:
+      operationId: writeFile
+      tags: [files]
+      summary: Write a sandboxed file
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileWriteRequest"
+      responses:
+        "200":
+          description: Write receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileWriteResponse"
+
+  /files/delete:
+    post:
+      operationId: deleteFile
+      tags: [files]
+      summary: Delete a sandboxed file
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileDeleteRequest"
+      responses:
+        "200":
+          description: Delete receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileDeleteResponse"
+
+  /browser/screenshot:
+    post:
+      operationId: browserScreenshot
+      tags: [browser]
+      summary: Capture a screenshot via the local browser tool (Tier 1 stub)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrowserScreenshotRequest"
+      responses:
+        "200":
+          description: Screenshot scheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrowserActionResponse"
+
+  /browser/extract:
+    post:
+      operationId: browserExtract
+      tags: [browser]
+      summary: Extract structured content from a page (Tier 1 stub)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrowserExtractRequest"
+      responses:
+        "200":
+          description: Extraction scheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrowserActionResponse"
+
 components:
   parameters:
     TenantHeader:
@@ -95,10 +745,27 @@ components:
       in: header
       required: true
       description: |
-        Tenant identifier. Replaced by JWT-derived context once auth lands
-        in Task #4 — until then this header is the request's tenant context.
+        Tenant identifier. Replaced by JWT-derived context once full SSO
+        ships — until then this header is the request's tenant context.
       schema:
         type: string
+    CursorParam:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor returned by the previous page.
+      schema:
+        type: string
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      description: Page size, default 20, max 100.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
 
   schemas:
     HealthStatus:
@@ -110,7 +777,6 @@ components:
           enum: [ok]
         version:
           type: string
-          description: Running server version (semver).
         time:
           type: string
           format: date-time
@@ -213,3 +879,840 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/TenantErasureReceipt"
+
+    RegisterRequest:
+      type: object
+      required: [email, password, displayName]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 12
+        displayName:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthUser:
+      type: object
+      required: [id, email, displayName, role]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AuthSession:
+      type: object
+      required: [user, expiresAt]
+      properties:
+        user:
+          $ref: "#/components/schemas/AuthUser"
+        expiresAt:
+          type: string
+          format: date-time
+
+    AuthSessionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/AuthSession"
+
+    AuthLogoutReceipt:
+      type: object
+      required: [loggedOut]
+      properties:
+        loggedOut:
+          type: boolean
+
+    AuthLogoutResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/AuthLogoutReceipt"
+
+    ModelEntry:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        sizeBytes:
+          type: integer
+          nullable: true
+        family:
+          type: string
+          nullable: true
+        modifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ModelListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelEntry"
+        nextCursor:
+          type: string
+          nullable: true
+
+    ModelListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ModelListPage"
+
+    ModelGetResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ModelEntry"
+
+    ModelPullRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+
+    ModelPullReceipt:
+      type: object
+      required: [name, status, scheduledAt]
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+
+    ModelPullResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ModelPullReceipt"
+
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant, tool]
+        content:
+          type: string
+
+    ChatRequest:
+      type: object
+      required: [messages]
+      properties:
+        model:
+          type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+
+    ChatResult:
+      type: object
+      required: [model, message]
+      properties:
+        model:
+          type: string
+        message:
+          $ref: "#/components/schemas/ChatMessage"
+        tokensIn:
+          type: integer
+          nullable: true
+        tokensOut:
+          type: integer
+          nullable: true
+
+    ChatResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ChatResult"
+
+    AgentRun:
+      type: object
+      required: [id, goal, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        goal:
+          type: string
+        status:
+          type: string
+        plan:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        modelName:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AgentRunListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentRun"
+        nextCursor:
+          type: string
+          nullable: true
+
+    AgentRunListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/AgentRunListPage"
+
+    AgentRunResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/AgentRun"
+
+    CreateAgentRunRequest:
+      type: object
+      required: [goal]
+      properties:
+        goal:
+          type: string
+        modelName:
+          type: string
+
+    Message:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id:
+          type: string
+        runId:
+          type: string
+          nullable: true
+        role:
+          type: string
+        content:
+          type: string
+        tokensIn:
+          type: integer
+          nullable: true
+        tokensOut:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    MessageListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+        nextCursor:
+          type: string
+          nullable: true
+
+    MessageListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/MessageListPage"
+
+    ToolCall:
+      type: object
+      required: [id, runId, toolName, status, riskLevel, createdAt]
+      properties:
+        id:
+          type: string
+        runId:
+          type: string
+        toolName:
+          type: string
+        status:
+          type: string
+        riskLevel:
+          type: string
+        input:
+          type: string
+        output:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        durationMs:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ToolCallListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ToolCall"
+        nextCursor:
+          type: string
+          nullable: true
+
+    ToolCallListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ToolCallListPage"
+
+    Approval:
+      type: object
+      required: [id, runId, toolCallId, reason, summary, decision, createdAt]
+      properties:
+        id:
+          type: string
+        runId:
+          type: string
+        toolCallId:
+          type: string
+        reason:
+          type: string
+        summary:
+          type: string
+        decision:
+          type: string
+        decidedBy:
+          type: string
+          nullable: true
+        decidedAt:
+          type: string
+          format: date-time
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ApprovalListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Approval"
+        nextCursor:
+          type: string
+          nullable: true
+
+    ApprovalListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ApprovalListPage"
+
+    ApprovalResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/Approval"
+
+    ApprovalDecisionRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [approved, denied]
+        note:
+          type: string
+
+    ToolEntry:
+      type: object
+      required: [name, description, riskLevel]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        riskLevel:
+          type: string
+
+    ToolListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ToolEntry"
+        nextCursor:
+          type: string
+          nullable: true
+
+    ToolListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ToolListPage"
+
+    ToolInvokeRequest:
+      type: object
+      required: [input]
+      properties:
+        input:
+          type: object
+          additionalProperties: true
+
+    ToolInvokeResult:
+      type: object
+      required: [toolName, output, durationMs]
+      properties:
+        toolName:
+          type: string
+        output:
+          type: object
+          additionalProperties: true
+        durationMs:
+          type: integer
+
+    ToolInvokeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ToolInvokeResult"
+
+    PrivacyEvent:
+      type: object
+      required: [id, eventType, actor, target, severity, createdAt]
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+        actor:
+          type: string
+        target:
+          type: string
+        severity:
+          type: string
+        detail:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    PrivacyEventListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PrivacyEvent"
+        nextCursor:
+          type: string
+          nullable: true
+
+    PrivacyEventListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/PrivacyEventListPage"
+
+    PrivacyEventResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/PrivacyEvent"
+
+    CreatePrivacyEventRequest:
+      type: object
+      required: [eventType, actor, target]
+      properties:
+        eventType:
+          type: string
+        actor:
+          type: string
+        target:
+          type: string
+        severity:
+          type: string
+        detail:
+          type: string
+
+    Memory:
+      type: object
+      required: [id, kind, title, content, importance, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        importance:
+          type: integer
+        source:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MemoryListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Memory"
+        nextCursor:
+          type: string
+          nullable: true
+
+    MemoryListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/MemoryListPage"
+
+    MemoryResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/Memory"
+
+    CreateMemoryRequest:
+      type: object
+      required: [title, content]
+      properties:
+        kind:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        importance:
+          type: integer
+          minimum: 0
+          maximum: 100
+        source:
+          type: string
+
+    MemoryDeleteReceipt:
+      type: object
+      required: [id, deleted]
+      properties:
+        id:
+          type: string
+        deleted:
+          type: boolean
+
+    MemoryDeleteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/MemoryDeleteReceipt"
+
+    FileEntry:
+      type: object
+      required: [path, kind, size]
+      properties:
+        path:
+          type: string
+        kind:
+          type: string
+        size:
+          type: integer
+        modifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    FileListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileEntry"
+        nextCursor:
+          type: string
+          nullable: true
+
+    FileListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/FileListPage"
+
+    FileReadRequest:
+      type: object
+      required: [path]
+      properties:
+        path:
+          type: string
+
+    FileReadResult:
+      type: object
+      required: [path, content, size]
+      properties:
+        path:
+          type: string
+        content:
+          type: string
+        size:
+          type: integer
+
+    FileReadResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/FileReadResult"
+
+    FileWriteRequest:
+      type: object
+      required: [path, content]
+      properties:
+        path:
+          type: string
+        content:
+          type: string
+
+    FileWriteResult:
+      type: object
+      required: [path, size]
+      properties:
+        path:
+          type: string
+        size:
+          type: integer
+
+    FileWriteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/FileWriteResult"
+
+    FileDeleteRequest:
+      type: object
+      required: [path]
+      properties:
+        path:
+          type: string
+
+    FileDeleteResult:
+      type: object
+      required: [path, deleted]
+      properties:
+        path:
+          type: string
+        deleted:
+          type: boolean
+
+    FileDeleteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/FileDeleteResult"
+
+    BrowserScreenshotRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+        viewport:
+          type: string
+
+    BrowserExtractRequest:
+      type: object
+      required: [url, selector]
+      properties:
+        url:
+          type: string
+          format: uri
+        selector:
+          type: string
+
+    BrowserActionReceipt:
+      type: object
+      required: [status, scheduledAt]
+      properties:
+        status:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        detail:
+          type: string
+
+    BrowserActionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/BrowserActionReceipt"

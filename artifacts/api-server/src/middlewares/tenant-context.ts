@@ -41,12 +41,18 @@ export function tenantContext() {
       return;
     }
 
-    const workspaceId = req.header(WORKSPACE_HEADER) || undefined;
+    // Default the workspace id to a tenant-scoped value when the caller
+    // doesn't supply one. `workspaces.id` is a single-column PK, so two
+    // tenants can't both own a row with id "default" — we therefore namespace
+    // the default by tenantId. Auth bootstrap creates the matching row on
+    // first registration.
+    const workspaceId =
+      req.header(WORKSPACE_HEADER) || `default-${tenantId}`;
     const userId = req.header(USER_HEADER) || undefined;
 
     const ctx: TenantContext = {
       tenantId,
-      ...(workspaceId !== undefined ? { workspaceId } : {}),
+      workspaceId,
       ...(userId !== undefined ? { userId } : {}),
       requestId,
     };

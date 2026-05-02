@@ -9,41 +9,49 @@ Every 2xx response conforms to the canonical envelope shape defined in
 Collection endpoints further wrap their payload in
 `{ items, nextCursor }` per `Standard 13`.
 
-Tenant context is supplied via the `X-Tenant-ID` header until the
-authentication task lands; thereafter the JWT replaces the header.
+Tenant context is supplied via the `X-Tenant-ID` header until session
+cookies replace it on `/api/auth/login`.
 
  * OpenAPI spec version: 0.1.0
  */
 import * as zod from "zod";
 
 /**
- * Returns server health status. Always responds 200; payload reports
-the running version and the current server time so callers can detect
-clock skew.
-
- * @summary Health check
+ * @summary Legacy health probe (kept for back-compat)
  */
-export const HealthCheckResponse = zod.object({
+export const HealthCheckLegacyResponse = zod.object({
   success: zod.literal(true),
   data: zod.object({
     status: zod.enum(["ok"]),
-    version: zod.string().describe("Running server version (semver)."),
+    version: zod.string(),
     time: zod.coerce.date(),
   }),
 });
 
 /**
- * Returns a structured snapshot of every record the requesting tenant
-owns. Synchronous in v1; switches to a job-based flow once datasets
-grow past the inline budget.
+ * Returns server health status. Always responds 200; payload reports
+the running version and the current server time so callers can detect
+clock skew.
 
+ * @summary Health probe
+ */
+export const HealthCheckResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    status: zod.enum(["ok"]),
+    version: zod.string(),
+    time: zod.coerce.date(),
+  }),
+});
+
+/**
  * @summary Export the requesting tenant's data (GDPR portability)
  */
 export const ExportTenantDataHeader = zod.object({
   "X-Tenant-ID": zod
     .string()
     .describe(
-      "Tenant identifier. Replaced by JWT-derived context once auth lands\nin Task #4 — until then this header is the request's tenant context.\n",
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
     ),
 });
 
@@ -68,17 +76,13 @@ export const ExportTenantDataResponse = zod.object({
 });
 
 /**
- * Marks the tenant and every record it owns as `erased`. Soft-delete in
-v1 so support can recover a mistakenly-erased tenant within 30 days;
-a follow-up nightly job hard-deletes once the grace window expires.
-
  * @summary Erase the requesting tenant's data (GDPR erasure)
  */
 export const EraseTenantDataHeader = zod.object({
   "X-Tenant-ID": zod
     .string()
     .describe(
-      "Tenant identifier. Replaced by JWT-derived context once auth lands\nin Task #4 — until then this header is the request's tenant context.\n",
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
     ),
 });
 
@@ -88,5 +92,1021 @@ export const EraseTenantDataResponse = zod.object({
     tenantId: zod.string(),
     status: zod.enum(["erased"]),
     scheduledAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Bootstrap a new tenant + owner user
+ */
+export const RegisterUserHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const registerUserBodyPasswordMin = 12;
+
+export const RegisterUserBody = zod.object({
+  email: zod.string().email(),
+  password: zod.string().min(registerUserBodyPasswordMin),
+  displayName: zod.string(),
+});
+
+export const RegisterUserResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    user: zod.object({
+      id: zod.string(),
+      email: zod.string(),
+      displayName: zod.string(),
+      role: zod.string(),
+      lastLoginAt: zod.coerce.date().nullish(),
+    }),
+    expiresAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Sign in with email + password
+ */
+export const LoginUserHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const LoginUserBody = zod.object({
+  email: zod.string().email(),
+  password: zod.string(),
+});
+
+export const LoginUserResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    user: zod.object({
+      id: zod.string(),
+      email: zod.string(),
+      displayName: zod.string(),
+      role: zod.string(),
+      lastLoginAt: zod.coerce.date().nullish(),
+    }),
+    expiresAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Destroy the current session
+ */
+export const LogoutUserResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    loggedOut: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Return the signed-in user (singleton)
+ */
+export const GetCurrentUserHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetCurrentUserResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    user: zod.object({
+      id: zod.string(),
+      email: zod.string(),
+      displayName: zod.string(),
+      role: zod.string(),
+      lastLoginAt: zod.coerce.date().nullish(),
+    }),
+    expiresAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List Ollama models known to this installation
+ */
+export const listModelsQueryLimitDefault = 20;
+export const listModelsQueryLimitMax = 100;
+
+export const ListModelsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listModelsQueryLimitMax)
+    .default(listModelsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListModelsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListModelsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        name: zod.string(),
+        status: zod.string(),
+        sizeBytes: zod.number().nullish(),
+        family: zod.string().nullish(),
+        modifiedAt: zod.coerce.date().nullish(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Schedule download of a named model
+ */
+export const PullModelHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PullModelBody = zod.object({
+  name: zod.string(),
+});
+
+export const PullModelResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    name: zod.string(),
+    status: zod.string(),
+    scheduledAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one model's status (singleton)
+ */
+export const GetModelParams = zod.object({
+  name: zod.coerce.string(),
+});
+
+export const GetModelHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetModelResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    name: zod.string(),
+    status: zod.string(),
+    sizeBytes: zod.number().nullish(),
+    family: zod.string().nullish(),
+    modifiedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Single-turn chat completion via the local Ollama model
+ */
+export const ChatHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const chatBodyTemperatureMin = 0;
+export const chatBodyTemperatureMax = 2;
+
+export const ChatBody = zod.object({
+  model: zod.string().optional(),
+  messages: zod.array(
+    zod.object({
+      role: zod.enum(["system", "user", "assistant", "tool"]),
+      content: zod.string(),
+    }),
+  ),
+  temperature: zod
+    .number()
+    .min(chatBodyTemperatureMin)
+    .max(chatBodyTemperatureMax)
+    .optional(),
+});
+
+export const ChatResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    model: zod.string(),
+    message: zod.object({
+      role: zod.enum(["system", "user", "assistant", "tool"]),
+      content: zod.string(),
+    }),
+    tokensIn: zod.number().nullish(),
+    tokensOut: zod.number().nullish(),
+  }),
+});
+
+/**
+ * @summary List recent agent runs in this workspace
+ */
+export const listAgentRunsQueryLimitDefault = 20;
+export const listAgentRunsQueryLimitMax = 100;
+
+export const ListAgentRunsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listAgentRunsQueryLimitMax)
+    .default(listAgentRunsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListAgentRunsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListAgentRunsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        goal: zod.string(),
+        status: zod.string(),
+        plan: zod.string().nullish(),
+        summary: zod.string().nullish(),
+        error: zod.string().nullish(),
+        modelName: zod.string().nullish(),
+        startedAt: zod.coerce.date().nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Kick off a new deterministic agent run
+ */
+export const CreateAgentRunHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateAgentRunBody = zod.object({
+  goal: zod.string(),
+  modelName: zod.string().optional(),
+});
+
+export const CreateAgentRunResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    goal: zod.string(),
+    status: zod.string(),
+    plan: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    error: zod.string().nullish(),
+    modelName: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one agent run by id
+ */
+export const GetAgentRunParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetAgentRunHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetAgentRunResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    goal: zod.string(),
+    status: zod.string(),
+    plan: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    error: zod.string().nullish(),
+    modelName: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Cancel a running agent
+ */
+export const CancelAgentRunParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CancelAgentRunHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CancelAgentRunResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    goal: zod.string(),
+    status: zod.string(),
+    plan: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    error: zod.string().nullish(),
+    modelName: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Conversation messages for one run
+ */
+export const ListAgentRunMessagesParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listAgentRunMessagesQueryLimitDefault = 20;
+export const listAgentRunMessagesQueryLimitMax = 100;
+
+export const ListAgentRunMessagesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listAgentRunMessagesQueryLimitMax)
+    .default(listAgentRunMessagesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListAgentRunMessagesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListAgentRunMessagesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        runId: zod.string().nullish(),
+        role: zod.string(),
+        content: zod.string(),
+        tokensIn: zod.number().nullish(),
+        tokensOut: zod.number().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Tool calls executed inside one run
+ */
+export const ListAgentRunToolCallsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listAgentRunToolCallsQueryLimitDefault = 20;
+export const listAgentRunToolCallsQueryLimitMax = 100;
+
+export const ListAgentRunToolCallsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listAgentRunToolCallsQueryLimitMax)
+    .default(listAgentRunToolCallsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListAgentRunToolCallsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListAgentRunToolCallsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        runId: zod.string(),
+        toolName: zod.string(),
+        status: zod.string(),
+        riskLevel: zod.string(),
+        input: zod.string().optional(),
+        output: zod.string().nullish(),
+        error: zod.string().nullish(),
+        durationMs: zod.number().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Approval gates for one run
+ */
+export const ListAgentRunApprovalsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listAgentRunApprovalsQueryLimitDefault = 20;
+export const listAgentRunApprovalsQueryLimitMax = 100;
+
+export const ListAgentRunApprovalsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listAgentRunApprovalsQueryLimitMax)
+    .default(listAgentRunApprovalsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListAgentRunApprovalsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListAgentRunApprovalsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        runId: zod.string(),
+        toolCallId: zod.string(),
+        reason: zod.string(),
+        summary: zod.string(),
+        decision: zod.string(),
+        decidedBy: zod.string().nullish(),
+        decidedAt: zod.coerce.date().nullish(),
+        note: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Approve or deny a pending approval gate
+ */
+export const DecideApprovalParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DecideApprovalHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DecideApprovalBody = zod.object({
+  decision: zod.enum(["approved", "denied"]),
+  note: zod.string().optional(),
+});
+
+export const DecideApprovalResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    runId: zod.string(),
+    toolCallId: zod.string(),
+    reason: zod.string(),
+    summary: zod.string(),
+    decision: zod.string(),
+    decidedBy: zod.string().nullish(),
+    decidedAt: zod.coerce.date().nullish(),
+    note: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List installed tools
+ */
+export const listToolsQueryLimitDefault = 20;
+export const listToolsQueryLimitMax = 100;
+
+export const ListToolsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listToolsQueryLimitMax)
+    .default(listToolsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListToolsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListToolsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string(),
+        riskLevel: zod.string(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Directly invoke a tool (outside an agent run)
+ */
+export const InvokeToolParams = zod.object({
+  name: zod.coerce.string(),
+});
+
+export const InvokeToolHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const InvokeToolBody = zod.object({
+  input: zod.record(zod.string(), zod.unknown()),
+});
+
+export const InvokeToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    toolName: zod.string(),
+    output: zod.record(zod.string(), zod.unknown()),
+    durationMs: zod.number(),
+  }),
+});
+
+/**
+ * @summary Browse the privacy-event audit log
+ */
+export const listPrivacyEventsQueryLimitDefault = 20;
+export const listPrivacyEventsQueryLimitMax = 100;
+
+export const ListPrivacyEventsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listPrivacyEventsQueryLimitMax)
+    .default(listPrivacyEventsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListPrivacyEventsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListPrivacyEventsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        eventType: zod.string(),
+        actor: zod.string(),
+        target: zod.string(),
+        severity: zod.string(),
+        detail: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Manually log a privacy event
+ */
+export const CreatePrivacyEventHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreatePrivacyEventBody = zod.object({
+  eventType: zod.string(),
+  actor: zod.string(),
+  target: zod.string(),
+  severity: zod.string().optional(),
+  detail: zod.string().optional(),
+});
+
+export const CreatePrivacyEventResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    eventType: zod.string(),
+    actor: zod.string(),
+    target: zod.string(),
+    severity: zod.string(),
+    detail: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List long-lived user memories
+ */
+export const listMemoriesQueryLimitDefault = 20;
+export const listMemoriesQueryLimitMax = 100;
+
+export const ListMemoriesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listMemoriesQueryLimitMax)
+    .default(listMemoriesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListMemoriesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListMemoriesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        kind: zod.string(),
+        title: zod.string(),
+        content: zod.string(),
+        importance: zod.number(),
+        source: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a memory entry
+ */
+export const CreateMemoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const createMemoryBodyImportanceMin = 0;
+export const createMemoryBodyImportanceMax = 100;
+
+export const CreateMemoryBody = zod.object({
+  kind: zod.string().optional(),
+  title: zod.string(),
+  content: zod.string(),
+  importance: zod
+    .number()
+    .min(createMemoryBodyImportanceMin)
+    .max(createMemoryBodyImportanceMax)
+    .optional(),
+  source: zod.string().optional(),
+});
+
+export const CreateMemoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.string(),
+    title: zod.string(),
+    content: zod.string(),
+    importance: zod.number(),
+    source: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one memory (singleton)
+ */
+export const GetMemoryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMemoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMemoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.string(),
+    title: zod.string(),
+    content: zod.string(),
+    importance: zod.number(),
+    source: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Delete a memory entry
+ */
+export const DeleteMemoryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteMemoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteMemoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary List entries inside the workspace sandbox
+ */
+export const listFilesQueryLimitDefault = 20;
+export const listFilesQueryLimitMax = 100;
+
+export const ListFilesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listFilesQueryLimitMax)
+    .default(listFilesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  path: zod.coerce.string().optional(),
+});
+
+export const ListFilesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListFilesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        path: zod.string(),
+        kind: zod.string(),
+        size: zod.number(),
+        modifiedAt: zod.coerce.date().nullish(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Read a sandboxed file
+ */
+export const ReadFileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ReadFileBody = zod.object({
+  path: zod.string(),
+});
+
+export const ReadFileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    path: zod.string(),
+    content: zod.string(),
+    size: zod.number(),
+  }),
+});
+
+/**
+ * @summary Write a sandboxed file
+ */
+export const WriteFileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const WriteFileBody = zod.object({
+  path: zod.string(),
+  content: zod.string(),
+});
+
+export const WriteFileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    path: zod.string(),
+    size: zod.number(),
+  }),
+});
+
+/**
+ * @summary Delete a sandboxed file
+ */
+export const DeleteFileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteFileBody = zod.object({
+  path: zod.string(),
+});
+
+export const DeleteFileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    path: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Capture a screenshot via the local browser tool (Tier 1 stub)
+ */
+export const BrowserScreenshotHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const BrowserScreenshotBody = zod.object({
+  url: zod.string().url(),
+  viewport: zod.string().optional(),
+});
+
+export const BrowserScreenshotResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    status: zod.string(),
+    scheduledAt: zod.coerce.date(),
+    detail: zod.string().optional(),
+  }),
+});
+
+/**
+ * @summary Extract structured content from a page (Tier 1 stub)
+ */
+export const BrowserExtractHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const BrowserExtractBody = zod.object({
+  url: zod.string().url(),
+  selector: zod.string(),
+});
+
+export const BrowserExtractResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    status: zod.string(),
+    scheduledAt: zod.coerce.date(),
+    detail: zod.string().optional(),
   }),
 });

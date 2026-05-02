@@ -1,0 +1,290 @@
+/**
+ * Tool catalogue and direct-invoke dispatcher.
+ *
+ * The catalogue is the authoritative list of tools the agent loop is
+ * allowed to call. Each entry declares its risk level (low / medium /
+ * high / critical) — the orchestrator pauses for an approval row on
+ * medium+ before running the tool.
+ *
+ * Tier 1 ships fifteen deterministic tools: file ops (sandboxed), memory
+ * ops, browser stubs, an Ollama chat shim, plus utility tools that are
+ * useful inside agent plans (uuid, clock, echo) without needing network
+ * or disk access.
+ *
+ * `invokeTool()` is the single entry-point — never call a tool handler
+ * directly. The dispatcher records timing and forwards through the
+ * tenant context so every handler can audit its own work.
+ */
+import { randomUUID } from "node:crypto";
+
+import {
+  buildPage,
+  decodeCursor,
+  normaliseLimit,
+  type PaginatedData,
+} from "@workspace/db";
+import type { TenantContext } from "@workspace/types";
+
+import * as browserService from "./browser.service";
+import * as filesService from "./files.service";
+import * as memoryService from "./memory.service";
+import { chat as ollamaChat } from "./ollama.service";
+import { logPrivacyEvent } from "./privacy.service";
+
+export type ToolRiskLevel = "low" | "medium" | "high" | "critical";
+
+export interface ToolDescriptor {
+  name: string;
+  description: string;
+  riskLevel: ToolRiskLevel;
+}
+
+export interface ToolInvokeResult {
+  toolName: string;
+  output: Record<string, unknown>;
+  durationMs: number;
+}
+
+type ToolHandler = (
+  ctx: TenantContext,
+  input: Record<string, unknown>,
+) => Promise<Record<string, unknown>>;
+
+interface ToolEntry extends ToolDescriptor {
+  handler: ToolHandler;
+}
+
+function str(v: unknown, field: string): string {
+  if (typeof v !== "string" || v.length === 0) {
+    throw new ToolValidationError(`Field "${field}" must be a non-empty string`);
+  }
+  return v;
+}
+
+function intOr(v: unknown, fallback: number): number {
+  return typeof v === "number" && Number.isFinite(v) ? Math.floor(v) : fallback;
+}
+
+export class ToolNotFoundError extends Error {
+  override readonly name = "ToolNotFoundError";
+  readonly code = "TOOL_NOT_FOUND";
+  constructor(name: string) {
+    super(`Unknown tool "${name}"`);
+  }
+}
+
+export class ToolValidationError extends Error {
+  override readonly name = "ToolValidationError";
+  readonly code = "TOOL_VALIDATION";
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+const TOOLS: ToolEntry[] = [
+  {
+    name: "file.read",
+    description: "Read a UTF-8 file inside the workspace sandbox.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const r = await filesService.readFile(ctx, str(input["path"], "path"));
+      return { ...r };
+    },
+  },
+  {
+    name: "file.write",
+    description: "Write a UTF-8 file inside the workspace sandbox.",
+    riskLevel: "medium",
+    handler: async (ctx, input) => {
+      const r = await filesService.writeFile(
+        ctx,
+        str(input["path"], "path"),
+        str(input["content"], "content"),
+      );
+      return { ...r };
+    },
+  },
+  {
+    name: "file.delete",
+    description: "Delete a file inside the workspace sandbox.",
+    riskLevel: "high",
+    handler: async (ctx, input) => {
+      const r = await filesService.deleteFile(ctx, str(input["path"], "path"));
+      return { ...r };
+    },
+  },
+  {
+    name: "file.list",
+    description: "List entries inside a workspace directory (paginated).",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const r = await filesService.listFiles(ctx, {
+        path: typeof input["path"] === "string" ? (input["path"] as string) : ".",
+        limit: intOr(input["limit"], 20),
+      });
+      return { items: r.items, nextCursor: r.nextCursor };
+    },
+  },
+  {
+    name: "memory.create",
+    description: "Persist a long-lived user memory.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const r = await memoryService.createMemory(ctx, {
+        title: str(input["title"], "title"),
+        content: str(input["content"], "content"),
+        kind: typeof input["kind"] === "string" ? (input["kind"] as string) : undefined,
+        importance: intOr(input["importance"], 50),
+      });
+      return { ...r };
+    },
+  },
+  {
+    name: "memory.list",
+    description: "List the user's memories ordered by importance.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const r = await memoryService.listMemories(ctx, { limit: intOr(input["limit"], 20) });
+      return { items: r.items, nextCursor: r.nextCursor };
+    },
+  },
+  {
+    name: "memory.delete",
+    description: "Delete one memory entry.",
+    riskLevel: "high",
+    handler: async (ctx, input) => {
+      const r = await memoryService.deleteMemory(ctx, str(input["id"], "id"));
+      return { ...r };
+    },
+  },
+  {
+    name: "browser.screenshot",
+    description: "Capture a screenshot of a URL (Tier 1 stub).",
+    riskLevel: "medium",
+    handler: async (ctx, input) => {
+      const r = await browserService.screenshot(
+        ctx,
+        str(input["url"], "url"),
+        typeof input["viewport"] === "string" ? (input["viewport"] as string) : undefined,
+      );
+      return { ...r };
+    },
+  },
+  {
+    name: "browser.extract",
+    description: "Extract content matching a selector (Tier 1 stub).",
+    riskLevel: "medium",
+    handler: async (ctx, input) => {
+      const r = await browserService.extract(
+        ctx,
+        str(input["url"], "url"),
+        str(input["selector"], "selector"),
+      );
+      return { ...r };
+    },
+  },
+  {
+    name: "ollama.chat",
+    description: "Single-turn chat completion against the local Ollama model.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const messages = Array.isArray(input["messages"]) ? input["messages"] : [];
+      const r = await ollamaChat(ctx, {
+        model: typeof input["model"] === "string" ? (input["model"] as string) : "llama3",
+        messages: messages as Array<{
+          role: "system" | "user" | "assistant" | "tool";
+          content: string;
+        }>,
+        temperature:
+          typeof input["temperature"] === "number"
+            ? (input["temperature"] as number)
+            : undefined,
+      });
+      return { ...r };
+    },
+  },
+  {
+    name: "privacy.log",
+    description: "Manually append a privacy-event row.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const r = await logPrivacyEvent(ctx, {
+        eventType: str(input["eventType"], "eventType"),
+        actor: str(input["actor"], "actor"),
+        target: str(input["target"], "target"),
+        severity:
+          typeof input["severity"] === "string"
+            ? (input["severity"] as
+                | "info"
+                | "low"
+                | "medium"
+                | "high"
+                | "critical")
+            : "info",
+        detail:
+          typeof input["detail"] === "string" ? (input["detail"] as string) : undefined,
+      });
+      return { event: r };
+    },
+  },
+  {
+    name: "clock.now",
+    description: "Return the current ISO-8601 timestamp (deterministic per call).",
+    riskLevel: "low",
+    handler: async () => ({ now: new Date().toISOString() }),
+  },
+  {
+    name: "random.uuid",
+    description: "Generate a cryptographically-random UUID v4.",
+    riskLevel: "low",
+    handler: async () => ({ uuid: randomUUID() }),
+  },
+  {
+    name: "echo",
+    description: "Return the input verbatim — used by the verifier to assert wiring.",
+    riskLevel: "low",
+    handler: async (_ctx, input) => ({ echoed: input }),
+  },
+  {
+    name: "noop",
+    description: "Do nothing successfully — useful for plan placeholders.",
+    riskLevel: "low",
+    handler: async () => ({ ok: true }),
+  },
+];
+
+export function getToolDescriptors(): ToolDescriptor[] {
+  return TOOLS.map((t) => ({
+    name: t.name,
+    description: t.description,
+    riskLevel: t.riskLevel,
+  }));
+}
+
+export function getToolByName(name: string): ToolEntry | null {
+  return TOOLS.find((t) => t.name === name) ?? null;
+}
+
+export async function listTools(opts: {
+  cursor?: string;
+  limit?: number;
+}): Promise<PaginatedData<ToolDescriptor>> {
+  const limit = normaliseLimit(opts.limit);
+  const all = getToolDescriptors().sort((a, b) => a.name.localeCompare(b.name));
+  const cursorName = opts.cursor ? decodeCursor(opts.cursor) : null;
+  const startIdx = cursorName ? all.findIndex((t) => t.name > cursorName) : 0;
+  const sliced = startIdx === -1 ? [] : all.slice(startIdx);
+  return buildPage(sliced.slice(0, limit + 1), limit, (t) => t.name);
+}
+
+export async function invokeTool(
+  ctx: TenantContext,
+  name: string,
+  input: Record<string, unknown>,
+): Promise<ToolInvokeResult> {
+  const entry = getToolByName(name);
+  if (!entry) throw new ToolNotFoundError(name);
+  const t0 = Date.now();
+  const output = await entry.handler(ctx, input);
+  return { toolName: name, output, durationMs: Date.now() - t0 };
+}

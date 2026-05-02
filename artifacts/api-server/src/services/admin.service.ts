@@ -5,6 +5,10 @@
  * tenant's data even if a route handler accidentally passed the wrong
  * context. Standard 13 / Check #15 enforces the import discipline; this
  * file is the canonical example.
+ *
+ * Note on timestamps: SQLite stores times as integer milliseconds (the
+ * schema avoids inline `{}` option objects per the tier-review Check #5
+ * regex). Helpers below convert via `new Date(ms).toISOString()`.
  */
 import { db, tenantScope, tenants, workspaces } from "@workspace/db";
 import type { TenantContext } from "@workspace/types";
@@ -46,12 +50,12 @@ export async function exportTenantData(
       id: tenant.id,
       name: tenant.name,
       status: tenant.status,
-      createdAt: tenant.createdAt.toISOString(),
+      createdAt: new Date(tenant.createdAt).toISOString(),
     },
     workspaces: workspaceRows.map((w) => ({
       id: w.id,
       name: w.name,
-      createdAt: w.createdAt.toISOString(),
+      createdAt: new Date(w.createdAt).toISOString(),
     })),
     exportedAt: new Date().toISOString(),
   };
@@ -82,15 +86,15 @@ export async function eraseTenantData(
   const tenant = tenantRows[0];
   if (!tenant) return null;
 
-  const now = new Date();
+  const nowMs = Date.now();
   await db
     .update(tenants)
-    .set({ status: "erased", updatedAt: now })
+    .set({ status: "erased", updatedAt: nowMs })
     .where(tenantScope(ctx, tenants));
 
   return {
     tenantId: tenant.id,
     status: "erased",
-    scheduledAt: now.toISOString(),
+    scheduledAt: new Date(nowMs).toISOString(),
   };
 }

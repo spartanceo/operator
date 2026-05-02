@@ -9,8 +9,8 @@ Every 2xx response conforms to the canonical envelope shape defined in
 Collection endpoints further wrap their payload in
 `{ items, nextCursor }` per `Standard 13`.
 
-Tenant context is supplied via the `X-Tenant-ID` header until the
-authentication task lands; thereafter the JWT replaces the header.
+Tenant context is supplied via the `X-Tenant-ID` header until session
+cookies replace it on `/api/auth/login`.
 
  * OpenAPI spec version: 0.1.0
  */
@@ -23,7 +23,6 @@ export const HealthStatusStatus = {
 
 export interface HealthStatus {
   status: HealthStatusStatus;
-  /** Running server version (semver). */
   version: string;
   time: string;
 }
@@ -88,9 +87,567 @@ export interface TenantErasureResponse {
   data: TenantErasureReceipt;
 }
 
+export interface RegisterRequest {
+  email: string;
+  /** @minLength 12 */
+  password: string;
+  displayName: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  displayName: string;
+  role: string;
+  lastLoginAt?: string | null;
+}
+
+export interface AuthSession {
+  user: AuthUser;
+  expiresAt: string;
+}
+
+export interface AuthSessionResponse {
+  success: boolean;
+  data: AuthSession;
+}
+
+export interface AuthLogoutReceipt {
+  loggedOut: boolean;
+}
+
+export interface AuthLogoutResponse {
+  success: boolean;
+  data: AuthLogoutReceipt;
+}
+
+export interface ModelEntry {
+  name: string;
+  status: string;
+  sizeBytes?: number | null;
+  family?: string | null;
+  modifiedAt?: string | null;
+}
+
+export interface ModelListPage {
+  items: ModelEntry[];
+  nextCursor: string | null;
+}
+
+export interface ModelListResponse {
+  success: boolean;
+  data: ModelListPage;
+}
+
+export interface ModelGetResponse {
+  success: boolean;
+  data: ModelEntry;
+}
+
+export interface ModelPullRequest {
+  name: string;
+}
+
+export interface ModelPullReceipt {
+  name: string;
+  status: string;
+  scheduledAt: string;
+}
+
+export interface ModelPullResponse {
+  success: boolean;
+  data: ModelPullReceipt;
+}
+
+export type ChatMessageRole =
+  (typeof ChatMessageRole)[keyof typeof ChatMessageRole];
+
+export const ChatMessageRole = {
+  system: "system",
+  user: "user",
+  assistant: "assistant",
+  tool: "tool",
+} as const;
+
+export interface ChatMessage {
+  role: ChatMessageRole;
+  content: string;
+}
+
+export interface ChatRequest {
+  model?: string;
+  messages: ChatMessage[];
+  /**
+   * @minimum 0
+   * @maximum 2
+   */
+  temperature?: number;
+}
+
+export interface ChatResult {
+  model: string;
+  message: ChatMessage;
+  tokensIn?: number | null;
+  tokensOut?: number | null;
+}
+
+export interface ChatResponse {
+  success: boolean;
+  data: ChatResult;
+}
+
+export interface AgentRun {
+  id: string;
+  goal: string;
+  status: string;
+  plan?: string | null;
+  summary?: string | null;
+  error?: string | null;
+  modelName?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentRunListPage {
+  items: AgentRun[];
+  nextCursor: string | null;
+}
+
+export interface AgentRunListResponse {
+  success: boolean;
+  data: AgentRunListPage;
+}
+
+export interface AgentRunResponse {
+  success: boolean;
+  data: AgentRun;
+}
+
+export interface CreateAgentRunRequest {
+  goal: string;
+  modelName?: string;
+}
+
+export interface Message {
+  id: string;
+  runId?: string | null;
+  role: string;
+  content: string;
+  tokensIn?: number | null;
+  tokensOut?: number | null;
+  createdAt: string;
+}
+
+export interface MessageListPage {
+  items: Message[];
+  nextCursor: string | null;
+}
+
+export interface MessageListResponse {
+  success: boolean;
+  data: MessageListPage;
+}
+
+export interface ToolCall {
+  id: string;
+  runId: string;
+  toolName: string;
+  status: string;
+  riskLevel: string;
+  input?: string;
+  output?: string | null;
+  error?: string | null;
+  durationMs?: number | null;
+  createdAt: string;
+}
+
+export interface ToolCallListPage {
+  items: ToolCall[];
+  nextCursor: string | null;
+}
+
+export interface ToolCallListResponse {
+  success: boolean;
+  data: ToolCallListPage;
+}
+
+export interface Approval {
+  id: string;
+  runId: string;
+  toolCallId: string;
+  reason: string;
+  summary: string;
+  decision: string;
+  decidedBy?: string | null;
+  decidedAt?: string | null;
+  note?: string | null;
+  createdAt: string;
+}
+
+export interface ApprovalListPage {
+  items: Approval[];
+  nextCursor: string | null;
+}
+
+export interface ApprovalListResponse {
+  success: boolean;
+  data: ApprovalListPage;
+}
+
+export interface ApprovalResponse {
+  success: boolean;
+  data: Approval;
+}
+
+export type ApprovalDecisionRequestDecision =
+  (typeof ApprovalDecisionRequestDecision)[keyof typeof ApprovalDecisionRequestDecision];
+
+export const ApprovalDecisionRequestDecision = {
+  approved: "approved",
+  denied: "denied",
+} as const;
+
+export interface ApprovalDecisionRequest {
+  decision: ApprovalDecisionRequestDecision;
+  note?: string;
+}
+
+export interface ToolEntry {
+  name: string;
+  description: string;
+  riskLevel: string;
+}
+
+export interface ToolListPage {
+  items: ToolEntry[];
+  nextCursor: string | null;
+}
+
+export interface ToolListResponse {
+  success: boolean;
+  data: ToolListPage;
+}
+
+export type ToolInvokeRequestInput = { [key: string]: unknown };
+
+export interface ToolInvokeRequest {
+  input: ToolInvokeRequestInput;
+}
+
+export type ToolInvokeResultOutput = { [key: string]: unknown };
+
+export interface ToolInvokeResult {
+  toolName: string;
+  output: ToolInvokeResultOutput;
+  durationMs: number;
+}
+
+export interface ToolInvokeResponse {
+  success: boolean;
+  data: ToolInvokeResult;
+}
+
+export interface PrivacyEvent {
+  id: string;
+  eventType: string;
+  actor: string;
+  target: string;
+  severity: string;
+  detail?: string | null;
+  createdAt: string;
+}
+
+export interface PrivacyEventListPage {
+  items: PrivacyEvent[];
+  nextCursor: string | null;
+}
+
+export interface PrivacyEventListResponse {
+  success: boolean;
+  data: PrivacyEventListPage;
+}
+
+export interface PrivacyEventResponse {
+  success: boolean;
+  data: PrivacyEvent;
+}
+
+export interface CreatePrivacyEventRequest {
+  eventType: string;
+  actor: string;
+  target: string;
+  severity?: string;
+  detail?: string;
+}
+
+export interface Memory {
+  id: string;
+  kind: string;
+  title: string;
+  content: string;
+  importance: number;
+  source?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemoryListPage {
+  items: Memory[];
+  nextCursor: string | null;
+}
+
+export interface MemoryListResponse {
+  success: boolean;
+  data: MemoryListPage;
+}
+
+export interface MemoryResponse {
+  success: boolean;
+  data: Memory;
+}
+
+export interface CreateMemoryRequest {
+  kind?: string;
+  title: string;
+  content: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  importance?: number;
+  source?: string;
+}
+
+export interface MemoryDeleteReceipt {
+  id: string;
+  deleted: boolean;
+}
+
+export interface MemoryDeleteResponse {
+  success: boolean;
+  data: MemoryDeleteReceipt;
+}
+
+export interface FileEntry {
+  path: string;
+  kind: string;
+  size: number;
+  modifiedAt?: string | null;
+}
+
+export interface FileListPage {
+  items: FileEntry[];
+  nextCursor: string | null;
+}
+
+export interface FileListResponse {
+  success: boolean;
+  data: FileListPage;
+}
+
+export interface FileReadRequest {
+  path: string;
+}
+
+export interface FileReadResult {
+  path: string;
+  content: string;
+  size: number;
+}
+
+export interface FileReadResponse {
+  success: boolean;
+  data: FileReadResult;
+}
+
+export interface FileWriteRequest {
+  path: string;
+  content: string;
+}
+
+export interface FileWriteResult {
+  path: string;
+  size: number;
+}
+
+export interface FileWriteResponse {
+  success: boolean;
+  data: FileWriteResult;
+}
+
+export interface FileDeleteRequest {
+  path: string;
+}
+
+export interface FileDeleteResult {
+  path: string;
+  deleted: boolean;
+}
+
+export interface FileDeleteResponse {
+  success: boolean;
+  data: FileDeleteResult;
+}
+
+export interface BrowserScreenshotRequest {
+  url: string;
+  viewport?: string;
+}
+
+export interface BrowserExtractRequest {
+  url: string;
+  selector: string;
+}
+
+export interface BrowserActionReceipt {
+  status: string;
+  scheduledAt: string;
+  detail?: string;
+}
+
+export interface BrowserActionResponse {
+  success: boolean;
+  data: BrowserActionReceipt;
+}
+
 /**
- * Tenant identifier. Replaced by JWT-derived context once auth lands
-in Task #4 — until then this header is the request's tenant context.
+ * Tenant identifier. Replaced by JWT-derived context once full SSO
+ships — until then this header is the request's tenant context.
 
  */
 export type TenantHeaderParameter = string;
+
+/**
+ * Opaque cursor returned by the previous page.
+ */
+export type CursorParamParameter = string;
+
+/**
+ * Page size, default 20, max 100.
+ */
+export type LimitParamParameter = number;
+
+export type ListModelsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListAgentRunsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListAgentRunMessagesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListAgentRunToolCallsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListAgentRunApprovalsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListToolsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListPrivacyEventsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListMemoriesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListFilesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  path?: string;
+};

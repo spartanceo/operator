@@ -102,12 +102,16 @@ export const withTenant = tenantScope;
 export function withTenantValues<V extends Record<string, unknown>>(
   ctx: TenantContext,
   values: V,
-): V & { tenantId: string; workspaceId?: string } {
+): V & { tenantId: string; workspaceId: string } {
+  // The api-server's tenant-context middleware always populates a
+  // workspaceId (defaulting to a tenant-scoped value) so this helper can
+  // emit it as a non-optional string. Tables that don't have a workspaceId
+  // column simply ignore the extra field on insert.
   return {
     tenantId: ctx.tenantId,
-    ...(ctx.workspaceId ? { workspaceId: ctx.workspaceId } : {}),
+    workspaceId: ctx.workspaceId ?? `default-${ctx.tenantId}`,
     ...values,
-  } as V & { tenantId: string; workspaceId?: string };
+  } as V & { tenantId: string; workspaceId: string };
 }
 
 /**

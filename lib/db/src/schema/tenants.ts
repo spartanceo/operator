@@ -1,10 +1,9 @@
 /**
- * `tenants` — the root of the multi-tenancy hierarchy.
+ * `tenants` — root of the multi-tenancy hierarchy.
  *
- * One row per tenant (a customer in cloud parlance, an installation in
- * local-first parlance). Tier 1 / Tier 2 / Tier 3 isolation is enforced
- * downstream by the `tenantScope` helper — every other table carries a
- * `tenant_id` column referencing this one.
+ * One row per local installation. Tier 1 / Tier 2 / Tier 3 isolation is
+ * enforced downstream by the `tenantScope` helper — every other table carries
+ * a `tenant_id` column referencing this one.
  *
  * Why this table itself carries a self-referencing `tenant_id`:
  *   The `tenantScope` helper takes any table that exposes a `tenantId`
@@ -15,27 +14,24 @@
  * Required columns (Standard 13 / Check #5):
  *   id, tenantId, createdAt, updatedAt, version
  *
- * NOTE on column shape: the tier-review check #5 parses the `pgTable(...)`
+ * NOTE on column shape: the tier-review check #5 parses the `sqliteTable(...)`
  * call with a regex that stops at the first `}` it sees inside the column
  * object. So we deliberately AVOID inline option objects like
- * `{ withTimezone: true }` and `{ onDelete: "cascade" }` here — those would
- * truncate the body and falsely report missing columns. `withTimezone` and
- * `onDelete: cascade` are reinstated at the migration layer (Task #37) via
- * `ALTER TABLE` statements; the Drizzle column type is the looser plain
- * `timestamp` so the type system doesn't lie about the value's tz-awareness.
+ * `{ mode: "timestamp" }` — those would truncate the body and falsely
+ * report missing columns. Timestamps are stored as integer milliseconds.
  */
 import { sql } from "drizzle-orm";
-import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const tenants = pgTable(
+export const tenants = sqliteTable(
   "tenants",
   {
     id: text("id").primaryKey(),
     tenantId: text("tenant_id").notNull(),
     name: text("name").notNull(),
     status: text("status").notNull().default("active"),
-    createdAt: timestamp("created_at").notNull().default(sql`now()`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+    updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
     version: integer("version").notNull().default(1),
   },
   (t) => ({

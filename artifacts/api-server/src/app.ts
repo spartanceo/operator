@@ -8,10 +8,11 @@
  *   4. pinoHttp          — structured request log with the trace id bound.
  *   5. defaultLimiter    — coarse rate limit before parsing.
  *   6. body parsers      — bounded sizes; reject oversize payloads early.
- *   7. tenantContext     — populate AsyncLocalStorage from headers.
- *   8. /api router       — application routes.
- *   9. notFoundHandler   — final 404 in canonical envelope.
- *  10. errorHandler      — catch-all error in canonical envelope.
+ *   7. session           — express-session (cookie + memory store).
+ *   8. tenantContext     — populate AsyncLocalStorage from headers.
+ *   9. /api router       — application routes.
+ *  10. notFoundHandler   — final 404 in canonical envelope.
+ *  11. errorHandler      — catch-all error in canonical envelope.
  */
 import cors from "cors";
 import express, { type Express } from "express";
@@ -27,9 +28,12 @@ import {
   requestId,
   tenantContext,
 } from "./middlewares";
+import { sessionMiddleware } from "./middlewares/session";
 import router from "./routes";
 
 const app: Express = express();
+
+app.set("trust proxy", 1);
 
 // 1. Security headers + locked-down CSP.
 app.use(
@@ -91,13 +95,16 @@ app.use(defaultLimiter);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
-// 7. Populate AsyncLocalStorage tenant context from headers.
+// 7. Session cookie — must run before any auth-bearing route reads it.
+app.use(sessionMiddleware());
+
+// 8. Populate AsyncLocalStorage tenant context from headers.
 app.use(tenantContext());
 
-// 8. Application routes.
+// 9. Application routes.
 app.use("/api", router);
 
-// 9 + 10. 404 + error envelope.
+// 10 + 11. 404 + error envelope.
 app.use(notFoundHandler());
 app.use(errorHandler());
 
