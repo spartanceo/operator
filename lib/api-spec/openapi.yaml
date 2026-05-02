@@ -43,6 +43,8 @@ tags:
     description: First-run setup wizard, hardware probe, and starter-task suggestions
   - name: updates
     description: Desktop application update channel
+  - name: desktop
+    description: Desktop control agent — Look-Act-Verify with semantic targeting
 
 paths:
   /healthz:
@@ -1022,6 +1024,189 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BrowserActionResponse"
+
+  /desktop/feature:
+    get:
+      operationId: getDesktopFeature
+      tags: [desktop]
+      summary: Report whether desktop control is enabled in this environment
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Feature flag status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DesktopFeatureResponse"
+
+  /desktop/sessions:
+    get:
+      operationId: listDesktopSessions
+      tags: [desktop]
+      summary: List recent desktop control sessions
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Sessions page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DesktopSessionListResponse"
+    post:
+      operationId: createDesktopSession
+      tags: [desktop]
+      summary: Plan and execute a new desktop control session
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDesktopSessionRequest"
+      responses:
+        "200":
+          description: Session created with initial plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DesktopSessionResponse"
+        "403":
+          description: Desktop control feature disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /desktop/sessions/{id}:
+    get:
+      operationId: getDesktopSession
+      tags: [desktop]
+      summary: Fetch one desktop session by id
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Desktop session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DesktopSessionResponse"
+        "404":
+          description: Unknown session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /desktop/sessions/{id}/stop:
+    post:
+      operationId: stopDesktopSession
+      tags: [desktop]
+      summary: Halt a running desktop session immediately
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DesktopSessionResponse"
+        "404":
+          description: Unknown session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /desktop/sessions/{id}/steps:
+    get:
+      operationId: listDesktopSessionSteps
+      tags: [desktop]
+      summary: Steps inside one desktop session (LAV cycle audit)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Steps page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DesktopStepListResponse"
+
+  /desktop/sessions/{id}/screen:
+    get:
+      operationId: getDesktopSessionScreen
+      tags: [desktop]
+      summary: Latest screen frame for the live panel
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Latest captured frame
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DesktopScreenResponse"
+        "404":
+          description: Unknown session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /desktop/steps/{id}/execute:
+    post:
+      operationId: executeDesktopStep
+      tags: [desktop]
+      summary: Run an approved or pending desktop step (LAV cycle for one action)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Step executed (or queued for approval)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DesktopStepResponse"
+        "404":
+          description: Unknown step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
 
 components:
   parameters:
@@ -2553,3 +2738,238 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/BrowserActionReceipt"
+
+    DesktopFeatureStatus:
+      type: object
+      required: [enabled, mode, reason]
+      properties:
+        enabled:
+          type: boolean
+        mode:
+          type: string
+        reason:
+          type: string
+
+    DesktopFeatureResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/DesktopFeatureStatus"
+
+    DesktopSession:
+      type: object
+      required: [id, goal, status, mode, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        runId:
+          type: string
+          nullable: true
+        goal:
+          type: string
+        status:
+          type: string
+        mode:
+          type: string
+        plan:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        modelName:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        stoppedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DesktopSessionListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DesktopSession"
+        nextCursor:
+          type: string
+          nullable: true
+
+    DesktopSessionListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/DesktopSessionListPage"
+
+    DesktopSessionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/DesktopSession"
+
+    CreateDesktopSessionRequest:
+      type: object
+      required: [goal]
+      properties:
+        goal:
+          type: string
+        modelName:
+          type: string
+        autoExecute:
+          type: boolean
+
+    DesktopStep:
+      type: object
+      required: [id, sessionId, stepIndex, actionType, targetDescription, riskLevel, needsApproval, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        stepIndex:
+          type: integer
+        actionType:
+          type: string
+        targetDescription:
+          type: string
+        targetRole:
+          type: string
+          nullable: true
+        targetLabel:
+          type: string
+          nullable: true
+        inputValue:
+          type: string
+          nullable: true
+        riskLevel:
+          type: string
+        needsApproval:
+          type: boolean
+        status:
+          type: string
+        expectedState:
+          type: string
+          nullable: true
+        observedState:
+          type: string
+          nullable: true
+        verifyAttempts:
+          type: integer
+        toolCallId:
+          type: string
+          nullable: true
+        approvalId:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DesktopStepListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DesktopStep"
+        nextCursor:
+          type: string
+          nullable: true
+
+    DesktopStepListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/DesktopStepListPage"
+
+    DesktopStepResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/DesktopStep"
+
+    DesktopScreenFrame:
+      type: object
+      required: [sessionId, capturedAt, mimeType, data, width, height, source]
+      properties:
+        sessionId:
+          type: string
+        capturedAt:
+          type: string
+          format: date-time
+        mimeType:
+          type: string
+        data:
+          type: string
+          description: Base64-encoded screenshot payload
+        width:
+          type: integer
+        height:
+          type: integer
+        source:
+          type: string
+          description: "live | stub | cached"
+
+    DesktopScreenResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/DesktopScreenFrame"

@@ -15,6 +15,7 @@ import { migration as m0001 } from "./0001_baseline";
 import { migration as m0002 } from "./0002_onboarding_profiles";
 import { migration as m0003 } from "./0003_model_preferences";
 import { migration as m0004 } from "./0004_system_tenant";
+import { migration as m0005 } from "./0005_desktop_control";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -30,6 +31,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0002,
   m0003,
   m0004,
+  m0005,
 ];
 
 /**

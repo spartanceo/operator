@@ -7,6 +7,7 @@ import {
   Brain,
   Settings,
   ArrowLeft,
+  Monitor,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -21,6 +22,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/agents", label: "Agents", icon: Bot },
+  { href: "/desktop", label: "Desktop", icon: Monitor },
   { href: "/tools", label: "Tools", icon: Wrench },
   { href: "/privacy", label: "Privacy", icon: Shield },
   { href: "/memory", label: "Memory", icon: Brain },

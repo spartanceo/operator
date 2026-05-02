@@ -26,6 +26,7 @@ import {
 import type { TenantContext } from "@workspace/types";
 
 import * as browserService from "./browser.service";
+import * as desktopInputService from "./desktop-input.service";
 import * as filesService from "./files.service";
 import * as memoryService from "./memory.service";
 import { chat as ollamaChat } from "./ollama.service";
@@ -250,6 +251,112 @@ const TOOLS: ToolEntry[] = [
     description: "Do nothing successfully — useful for plan placeholders.",
     riskLevel: "low",
     handler: async () => ({ ok: true }),
+  },
+  // ─── Desktop control (Tier 1 stub adapter) ─────────────────────────────────
+  {
+    name: "desktop.screenshot",
+    description: "Capture a screenshot of the active display.",
+    riskLevel: "medium",
+    handler: async (ctx) => ({ ...(await desktopInputService.captureScreenshot(ctx)) }),
+  },
+  {
+    name: "desktop.find_element",
+    description: "Resolve a SEMANTIC target description to a screen element.",
+    riskLevel: "low",
+    handler: async (ctx, input) => ({
+      ...(await desktopInputService.resolveTarget(ctx, {
+        description: str(input["description"], "description"),
+        role: typeof input["role"] === "string" ? (input["role"] as string) : undefined,
+        label: typeof input["label"] === "string" ? (input["label"] as string) : undefined,
+      })),
+    }),
+  },
+  {
+    name: "desktop.click",
+    description: "Click an element described semantically (no coordinates).",
+    riskLevel: "medium",
+    handler: async (ctx, input) => ({
+      ...(await desktopInputService.clickTarget(ctx, {
+        description: str(input["description"], "description"),
+        role: typeof input["role"] === "string" ? (input["role"] as string) : undefined,
+        label: typeof input["label"] === "string" ? (input["label"] as string) : undefined,
+      })),
+    }),
+  },
+  {
+    name: "desktop.type_text",
+    description: "Type text into the focused control.",
+    riskLevel: "high",
+    handler: async (ctx, input) => ({
+      ...(await desktopInputService.typeText(ctx, str(input["text"], "text"))),
+    }),
+  },
+  {
+    name: "desktop.press_key",
+    description: "Press a single keyboard key by name (e.g. Enter, Tab).",
+    riskLevel: "medium",
+    handler: async (ctx, input) => ({
+      ...(await desktopInputService.pressKey(ctx, str(input["key"], "key"))),
+    }),
+  },
+  {
+    name: "desktop.open_application",
+    description: "Launch a desktop application by name.",
+    riskLevel: "high",
+    handler: async (ctx, input) => ({
+      ...(await desktopInputService.openApplication(ctx, str(input["name"], "name"))),
+    }),
+  },
+  {
+    name: "desktop.scroll",
+    description: "Scroll the focused window in a direction.",
+    riskLevel: "low",
+    handler: async (ctx, input) => ({
+      ...(await desktopInputService.scroll(
+        ctx,
+        (typeof input["direction"] === "string"
+          ? (input["direction"] as "up" | "down" | "left" | "right")
+          : "down"),
+        intOr(input["amount"], 3),
+      )),
+    }),
+  },
+  {
+    name: "desktop.drag_drop",
+    description: "Drag from one semantic target to another.",
+    riskLevel: "high",
+    handler: async (ctx, input) => ({
+      ...(await desktopInputService.dragDrop(
+        ctx,
+        { description: str(input["from"], "from") },
+        { description: str(input["to"], "to") },
+      )),
+    }),
+  },
+  {
+    name: "desktop.read_text",
+    description: "Read on-screen text matching a hint (vision OCR).",
+    riskLevel: "low",
+    handler: async (ctx, input) => ({
+      ...(await desktopInputService.readScreenText(ctx, str(input["hint"], "hint"))),
+    }),
+  },
+  {
+    name: "desktop.terminal",
+    description: "Run a terminal command on the user's machine (highest risk).",
+    riskLevel: "critical",
+    handler: async (ctx, input) => ({
+      ...(await desktopInputService.runTerminalCommand(ctx, str(input["command"], "command"))),
+    }),
+  },
+  {
+    name: "desktop.feature_status",
+    description: "Report whether desktop control is enabled and the adapter mode.",
+    riskLevel: "low",
+    handler: async () => {
+      const status = desktopInputService.probeAdapter();
+      return { available: status.available, mode: status.mode, reason: status.reason };
+    },
   },
 ];
 

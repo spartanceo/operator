@@ -40,8 +40,15 @@ import type {
   ChatRequest,
   ChatResponse,
   CreateAgentRunRequest,
+  CreateDesktopSessionRequest,
   CreateMemoryRequest,
   CreatePrivacyEventRequest,
+  DesktopFeatureResponse,
+  DesktopScreenResponse,
+  DesktopSessionListResponse,
+  DesktopSessionResponse,
+  DesktopStepListResponse,
+  DesktopStepResponse,
   FileDeleteRequest,
   FileDeleteResponse,
   FileListResponse,
@@ -55,6 +62,8 @@ import type {
   ListAgentRunMessagesParams,
   ListAgentRunToolCallsParams,
   ListAgentRunsParams,
+  ListDesktopSessionStepsParams,
+  ListDesktopSessionsParams,
   ListFilesParams,
   ListMemoriesParams,
   ListModelsParams,
@@ -4138,4 +4147,733 @@ export const useBrowserExtract = <
   TContext
 > => {
   return useMutation(getBrowserExtractMutationOptions(options));
+};
+
+/**
+ * @summary Report whether desktop control is enabled in this environment
+ */
+export const getGetDesktopFeatureUrl = () => {
+  return `/api/desktop/feature`;
+};
+
+export const getDesktopFeature = async (
+  options?: RequestInit,
+): Promise<DesktopFeatureResponse> => {
+  return customFetch<DesktopFeatureResponse>(getGetDesktopFeatureUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDesktopFeatureQueryKey = () => {
+  return [`/api/desktop/feature`] as const;
+};
+
+export const getGetDesktopFeatureQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDesktopFeature>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDesktopFeature>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDesktopFeatureQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDesktopFeature>>
+  > = ({ signal }) => getDesktopFeature({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDesktopFeature>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDesktopFeatureQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDesktopFeature>>
+>;
+export type GetDesktopFeatureQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Report whether desktop control is enabled in this environment
+ */
+
+export function useGetDesktopFeature<
+  TData = Awaited<ReturnType<typeof getDesktopFeature>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDesktopFeature>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDesktopFeatureQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List recent desktop control sessions
+ */
+export const getListDesktopSessionsUrl = (
+  params?: ListDesktopSessionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/desktop/sessions?${stringifiedParams}`
+    : `/api/desktop/sessions`;
+};
+
+export const listDesktopSessions = async (
+  params?: ListDesktopSessionsParams,
+  options?: RequestInit,
+): Promise<DesktopSessionListResponse> => {
+  return customFetch<DesktopSessionListResponse>(
+    getListDesktopSessionsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDesktopSessionsQueryKey = (
+  params?: ListDesktopSessionsParams,
+) => {
+  return [`/api/desktop/sessions`, ...(params ? [params] : [])] as const;
+};
+
+export const getListDesktopSessionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDesktopSessions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDesktopSessionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDesktopSessions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDesktopSessionsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDesktopSessions>>
+  > = ({ signal }) =>
+    listDesktopSessions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDesktopSessions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDesktopSessionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDesktopSessions>>
+>;
+export type ListDesktopSessionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List recent desktop control sessions
+ */
+
+export function useListDesktopSessions<
+  TData = Awaited<ReturnType<typeof listDesktopSessions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDesktopSessionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDesktopSessions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDesktopSessionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Plan and execute a new desktop control session
+ */
+export const getCreateDesktopSessionUrl = () => {
+  return `/api/desktop/sessions`;
+};
+
+export const createDesktopSession = async (
+  createDesktopSessionRequest: CreateDesktopSessionRequest,
+  options?: RequestInit,
+): Promise<DesktopSessionResponse> => {
+  return customFetch<DesktopSessionResponse>(getCreateDesktopSessionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createDesktopSessionRequest),
+  });
+};
+
+export const getCreateDesktopSessionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDesktopSession>>,
+    TError,
+    { data: BodyType<CreateDesktopSessionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDesktopSession>>,
+  TError,
+  { data: BodyType<CreateDesktopSessionRequest> },
+  TContext
+> => {
+  const mutationKey = ["createDesktopSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDesktopSession>>,
+    { data: BodyType<CreateDesktopSessionRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createDesktopSession(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateDesktopSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createDesktopSession>>
+>;
+export type CreateDesktopSessionMutationBody =
+  BodyType<CreateDesktopSessionRequest>;
+export type CreateDesktopSessionMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Plan and execute a new desktop control session
+ */
+export const useCreateDesktopSession = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDesktopSession>>,
+    TError,
+    { data: BodyType<CreateDesktopSessionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createDesktopSession>>,
+  TError,
+  { data: BodyType<CreateDesktopSessionRequest> },
+  TContext
+> => {
+  return useMutation(getCreateDesktopSessionMutationOptions(options));
+};
+
+/**
+ * @summary Fetch one desktop session by id
+ */
+export const getGetDesktopSessionUrl = (id: string) => {
+  return `/api/desktop/sessions/${id}`;
+};
+
+export const getDesktopSession = async (
+  id: string,
+  options?: RequestInit,
+): Promise<DesktopSessionResponse> => {
+  return customFetch<DesktopSessionResponse>(getGetDesktopSessionUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDesktopSessionQueryKey = (id: string) => {
+  return [`/api/desktop/sessions/${id}`] as const;
+};
+
+export const getGetDesktopSessionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDesktopSession>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDesktopSession>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDesktopSessionQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDesktopSession>>
+  > = ({ signal }) => getDesktopSession(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDesktopSession>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDesktopSessionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDesktopSession>>
+>;
+export type GetDesktopSessionQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one desktop session by id
+ */
+
+export function useGetDesktopSession<
+  TData = Awaited<ReturnType<typeof getDesktopSession>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDesktopSession>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDesktopSessionQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Halt a running desktop session immediately
+ */
+export const getStopDesktopSessionUrl = (id: string) => {
+  return `/api/desktop/sessions/${id}/stop`;
+};
+
+export const stopDesktopSession = async (
+  id: string,
+  options?: RequestInit,
+): Promise<DesktopSessionResponse> => {
+  return customFetch<DesktopSessionResponse>(getStopDesktopSessionUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStopDesktopSessionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopDesktopSession>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof stopDesktopSession>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["stopDesktopSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof stopDesktopSession>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return stopDesktopSession(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StopDesktopSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof stopDesktopSession>>
+>;
+
+export type StopDesktopSessionMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Halt a running desktop session immediately
+ */
+export const useStopDesktopSession = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopDesktopSession>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof stopDesktopSession>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getStopDesktopSessionMutationOptions(options));
+};
+
+/**
+ * @summary Steps inside one desktop session (LAV cycle audit)
+ */
+export const getListDesktopSessionStepsUrl = (
+  id: string,
+  params?: ListDesktopSessionStepsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/desktop/sessions/${id}/steps?${stringifiedParams}`
+    : `/api/desktop/sessions/${id}/steps`;
+};
+
+export const listDesktopSessionSteps = async (
+  id: string,
+  params?: ListDesktopSessionStepsParams,
+  options?: RequestInit,
+): Promise<DesktopStepListResponse> => {
+  return customFetch<DesktopStepListResponse>(
+    getListDesktopSessionStepsUrl(id, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDesktopSessionStepsQueryKey = (
+  id: string,
+  params?: ListDesktopSessionStepsParams,
+) => {
+  return [
+    `/api/desktop/sessions/${id}/steps`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListDesktopSessionStepsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDesktopSessionSteps>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  params?: ListDesktopSessionStepsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDesktopSessionSteps>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDesktopSessionStepsQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDesktopSessionSteps>>
+  > = ({ signal }) =>
+    listDesktopSessionSteps(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDesktopSessionSteps>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDesktopSessionStepsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDesktopSessionSteps>>
+>;
+export type ListDesktopSessionStepsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Steps inside one desktop session (LAV cycle audit)
+ */
+
+export function useListDesktopSessionSteps<
+  TData = Awaited<ReturnType<typeof listDesktopSessionSteps>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  params?: ListDesktopSessionStepsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDesktopSessionSteps>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDesktopSessionStepsQueryOptions(
+    id,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Latest screen frame for the live panel
+ */
+export const getGetDesktopSessionScreenUrl = (id: string) => {
+  return `/api/desktop/sessions/${id}/screen`;
+};
+
+export const getDesktopSessionScreen = async (
+  id: string,
+  options?: RequestInit,
+): Promise<DesktopScreenResponse> => {
+  return customFetch<DesktopScreenResponse>(getGetDesktopSessionScreenUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDesktopSessionScreenQueryKey = (id: string) => {
+  return [`/api/desktop/sessions/${id}/screen`] as const;
+};
+
+export const getGetDesktopSessionScreenQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDesktopSessionScreen>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDesktopSessionScreen>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDesktopSessionScreenQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDesktopSessionScreen>>
+  > = ({ signal }) =>
+    getDesktopSessionScreen(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDesktopSessionScreen>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDesktopSessionScreenQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDesktopSessionScreen>>
+>;
+export type GetDesktopSessionScreenQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Latest screen frame for the live panel
+ */
+
+export function useGetDesktopSessionScreen<
+  TData = Awaited<ReturnType<typeof getDesktopSessionScreen>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDesktopSessionScreen>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDesktopSessionScreenQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Run an approved or pending desktop step (LAV cycle for one action)
+ */
+export const getExecuteDesktopStepUrl = (id: string) => {
+  return `/api/desktop/steps/${id}/execute`;
+};
+
+export const executeDesktopStep = async (
+  id: string,
+  options?: RequestInit,
+): Promise<DesktopStepResponse> => {
+  return customFetch<DesktopStepResponse>(getExecuteDesktopStepUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getExecuteDesktopStepMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof executeDesktopStep>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof executeDesktopStep>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["executeDesktopStep"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof executeDesktopStep>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return executeDesktopStep(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ExecuteDesktopStepMutationResult = NonNullable<
+  Awaited<ReturnType<typeof executeDesktopStep>>
+>;
+
+export type ExecuteDesktopStepMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Run an approved or pending desktop step (LAV cycle for one action)
+ */
+export const useExecuteDesktopStep = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof executeDesktopStep>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof executeDesktopStep>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getExecuteDesktopStepMutationOptions(options));
 };

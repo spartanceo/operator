@@ -22,3 +22,5 @@ export * from "./privacy-events";
 export * from "./approvals";
 export * from "./onboarding-profiles";
 export * from "./model-preferences";
+export * from "./desktop-sessions";
+export * from "./desktop-steps";

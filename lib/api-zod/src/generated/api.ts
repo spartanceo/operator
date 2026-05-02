@@ -1924,3 +1924,315 @@ export const BrowserExtractResponse = zod.object({
     detail: zod.string().optional(),
   }),
 });
+
+/**
+ * @summary Report whether desktop control is enabled in this environment
+ */
+export const GetDesktopFeatureHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetDesktopFeatureResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    enabled: zod.boolean(),
+    mode: zod.string(),
+    reason: zod.string(),
+  }),
+});
+
+/**
+ * @summary List recent desktop control sessions
+ */
+export const listDesktopSessionsQueryLimitDefault = 20;
+export const listDesktopSessionsQueryLimitMax = 100;
+
+export const ListDesktopSessionsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listDesktopSessionsQueryLimitMax)
+    .default(listDesktopSessionsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListDesktopSessionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListDesktopSessionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        runId: zod.string().nullish(),
+        goal: zod.string(),
+        status: zod.string(),
+        mode: zod.string(),
+        plan: zod.string().nullish(),
+        summary: zod.string().nullish(),
+        error: zod.string().nullish(),
+        modelName: zod.string().nullish(),
+        startedAt: zod.coerce.date().nullish(),
+        stoppedAt: zod.coerce.date().nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Plan and execute a new desktop control session
+ */
+export const CreateDesktopSessionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateDesktopSessionBody = zod.object({
+  goal: zod.string(),
+  modelName: zod.string().optional(),
+  autoExecute: zod.boolean().optional(),
+});
+
+export const CreateDesktopSessionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    runId: zod.string().nullish(),
+    goal: zod.string(),
+    status: zod.string(),
+    mode: zod.string(),
+    plan: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    error: zod.string().nullish(),
+    modelName: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    stoppedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one desktop session by id
+ */
+export const GetDesktopSessionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetDesktopSessionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetDesktopSessionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    runId: zod.string().nullish(),
+    goal: zod.string(),
+    status: zod.string(),
+    mode: zod.string(),
+    plan: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    error: zod.string().nullish(),
+    modelName: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    stoppedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Halt a running desktop session immediately
+ */
+export const StopDesktopSessionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const StopDesktopSessionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const StopDesktopSessionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    runId: zod.string().nullish(),
+    goal: zod.string(),
+    status: zod.string(),
+    mode: zod.string(),
+    plan: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    error: zod.string().nullish(),
+    modelName: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    stoppedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Steps inside one desktop session (LAV cycle audit)
+ */
+export const ListDesktopSessionStepsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listDesktopSessionStepsQueryLimitDefault = 20;
+export const listDesktopSessionStepsQueryLimitMax = 100;
+
+export const ListDesktopSessionStepsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listDesktopSessionStepsQueryLimitMax)
+    .default(listDesktopSessionStepsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListDesktopSessionStepsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListDesktopSessionStepsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        sessionId: zod.string(),
+        stepIndex: zod.number(),
+        actionType: zod.string(),
+        targetDescription: zod.string(),
+        targetRole: zod.string().nullish(),
+        targetLabel: zod.string().nullish(),
+        inputValue: zod.string().nullish(),
+        riskLevel: zod.string(),
+        needsApproval: zod.boolean(),
+        status: zod.string(),
+        expectedState: zod.string().nullish(),
+        observedState: zod.string().nullish(),
+        verifyAttempts: zod.number().optional(),
+        toolCallId: zod.string().nullish(),
+        approvalId: zod.string().nullish(),
+        error: zod.string().nullish(),
+        startedAt: zod.coerce.date().nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Latest screen frame for the live panel
+ */
+export const GetDesktopSessionScreenParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetDesktopSessionScreenHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetDesktopSessionScreenResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    sessionId: zod.string(),
+    capturedAt: zod.coerce.date(),
+    mimeType: zod.string(),
+    data: zod.string().describe("Base64-encoded screenshot payload"),
+    width: zod.number(),
+    height: zod.number(),
+    source: zod.string().describe("live | stub | cached"),
+  }),
+});
+
+/**
+ * @summary Run an approved or pending desktop step (LAV cycle for one action)
+ */
+export const ExecuteDesktopStepParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ExecuteDesktopStepHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ExecuteDesktopStepResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    sessionId: zod.string(),
+    stepIndex: zod.number(),
+    actionType: zod.string(),
+    targetDescription: zod.string(),
+    targetRole: zod.string().nullish(),
+    targetLabel: zod.string().nullish(),
+    inputValue: zod.string().nullish(),
+    riskLevel: zod.string(),
+    needsApproval: zod.boolean(),
+    status: zod.string(),
+    expectedState: zod.string().nullish(),
+    observedState: zod.string().nullish(),
+    verifyAttempts: zod.number().optional(),
+    toolCallId: zod.string().nullish(),
+    approvalId: zod.string().nullish(),
+    error: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});

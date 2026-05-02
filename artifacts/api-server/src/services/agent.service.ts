@@ -134,11 +134,40 @@ interface PlanStep {
   rationale: string;
 }
 
-function routerAgent(goal: string): "planner" | "research" | "memory" {
+/**
+ * Router classifier — picks the downstream agent for a goal.
+ *
+ * Tier 1 uses a deterministic keyword router. Desktop intents short-circuit
+ * to the dedicated `/desktop` orchestrator; the agent loop records the
+ * intent + redirect in the plan so the audit trail still shows the routing
+ * decision even when the actual execution lives in another service.
+ */
+function routerAgent(
+  goal: string,
+): "planner" | "research" | "memory" | "desktop" {
   const g = goal.toLowerCase();
   if (g.includes("remember") || g.includes("recall")) return "memory";
   if (g.includes("research") || g.includes("look up")) return "research";
+  if (
+    g.includes("desktop") ||
+    g.includes("screen") ||
+    g.includes("click ") ||
+    g.includes("type ") ||
+    g.includes("open application") ||
+    g.includes("open the app") ||
+    g.includes("press key")
+  ) {
+    return "desktop";
+  }
   return "planner";
+}
+
+function desktopRouterNote(goal: string): string {
+  return (
+    `Goal "${goal}" routed to the desktop control agent. ` +
+    `Open /desktop and start a session — the LAV cycle (Look → Act → Verify) ` +
+    `will plan and execute with semantic targeting.`
+  );
 }
 
 function plannerAgent(goal: string): PlanStep[] {
@@ -236,10 +265,11 @@ export async function createAgentRun(
   const route = routerAgent(input.goal);
   const memorySummary = route === "memory" ? await memoryAgent(ctx) : null;
   const researchSummary = route === "research" ? researchAgent(input.goal) : null;
+  const desktopNote = route === "desktop" ? desktopRouterNote(input.goal) : null;
   const plan = plannerAgent(input.goal);
-  const planText = plan
-    .map((p, i) => `${i + 1}. [${p.toolName}] ${p.rationale}`)
-    .join("\n");
+  const planText =
+    (desktopNote ? `${desktopNote}\n` : "") +
+    plan.map((p, i) => `${i + 1}. [${p.toolName}] ${p.rationale}`).join("\n");
 
   await db.insert(agentRuns).values(
     withTenantValues(ctx, {
@@ -277,6 +307,16 @@ export async function createAgentRun(
         runId: id,
         role: "system",
         content: researchSummary,
+      }),
+    );
+  }
+  if (desktopNote) {
+    await db.insert(messagesTable).values(
+      withTenantValues(ctx, {
+        id: `msg_${nanoid()}`,
+        runId: id,
+        role: "system",
+        content: desktopNote,
       }),
     );
   }

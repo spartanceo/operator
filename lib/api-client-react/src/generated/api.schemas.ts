@@ -919,6 +919,111 @@ export interface BrowserActionResponse {
   data: BrowserActionReceipt;
 }
 
+export interface DesktopFeatureStatus {
+  enabled: boolean;
+  mode: string;
+  reason: string;
+}
+
+export interface DesktopFeatureResponse {
+  success: boolean;
+  data: DesktopFeatureStatus;
+}
+
+export interface DesktopSession {
+  id: string;
+  runId?: string | null;
+  goal: string;
+  status: string;
+  mode: string;
+  plan?: string | null;
+  summary?: string | null;
+  error?: string | null;
+  modelName?: string | null;
+  startedAt?: string | null;
+  stoppedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DesktopSessionListPage {
+  items: DesktopSession[];
+  nextCursor: string | null;
+}
+
+export interface DesktopSessionListResponse {
+  success: boolean;
+  data: DesktopSessionListPage;
+}
+
+export interface DesktopSessionResponse {
+  success: boolean;
+  data: DesktopSession;
+}
+
+export interface CreateDesktopSessionRequest {
+  goal: string;
+  modelName?: string;
+  autoExecute?: boolean;
+}
+
+export interface DesktopStep {
+  id: string;
+  sessionId: string;
+  stepIndex: number;
+  actionType: string;
+  targetDescription: string;
+  targetRole?: string | null;
+  targetLabel?: string | null;
+  inputValue?: string | null;
+  riskLevel: string;
+  needsApproval: boolean;
+  status: string;
+  expectedState?: string | null;
+  observedState?: string | null;
+  verifyAttempts?: number;
+  toolCallId?: string | null;
+  approvalId?: string | null;
+  error?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DesktopStepListPage {
+  items: DesktopStep[];
+  nextCursor: string | null;
+}
+
+export interface DesktopStepListResponse {
+  success: boolean;
+  data: DesktopStepListPage;
+}
+
+export interface DesktopStepResponse {
+  success: boolean;
+  data: DesktopStep;
+}
+
+export interface DesktopScreenFrame {
+  sessionId: string;
+  capturedAt: string;
+  mimeType: string;
+  /** Base64-encoded screenshot payload */
+  data: string;
+  width: number;
+  height: number;
+  /** live | stub | cached */
+  source: string;
+}
+
+export interface DesktopScreenResponse {
+  success: boolean;
+  data: DesktopScreenFrame;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -1052,4 +1157,30 @@ export type ListFilesParams = {
    */
   limit?: LimitParamParameter;
   path?: string;
+};
+
+export type ListDesktopSessionsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListDesktopSessionStepsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
 };

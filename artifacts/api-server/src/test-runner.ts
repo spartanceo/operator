@@ -25,6 +25,10 @@ process.env["OMNINITY_HARDWARE_OVERRIDE"] = JSON.stringify({
   appleSilicon: true,
 });
 
+// Desktop control runs in stub mode by default; the flag opens the routes
+// so the orchestrator path (plan + execute + approval gate) is exercised.
+process.env["FEATURE_DESKTOP_CONTROL"] = "1";
+
 import assert from "node:assert/strict";
 
 import request from "supertest";
@@ -242,11 +246,129 @@ const cases: TestCase[] = [
     },
   },
   {
-    name: "privacy events log records the in-band activity",
+    name: "desktop feature flag exposes adapter status",
     run: async () => {
       const res = await request(app)
-        .get("/api/privacy/events?limit=20")
+        .get("/api/desktop/feature")
         .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.data.enabled, true);
+      assert.equal(typeof res.body.data.mode, "string");
+    },
+  },
+  {
+    name: "desktop session plans LAV steps and gates risk",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/desktop/sessions")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "open notepad and click new" });
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.success, true);
+      const sessionId = res.body.data.id as string;
+      assert.ok(sessionId.startsWith("dsk_"));
+
+      // Steps must be persisted in deterministic order.
+      const steps = await request(app)
+        .get(`/api/desktop/sessions/${sessionId}/steps?limit=20`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(steps.status, 200);
+      assert.ok(steps.body.data.items.length >= 2);
+
+      // High-risk step (open_application) must spawn an approval row.
+      const approvals = await request(app)
+        .get(`/api/agent/runs/${sessionId}/approvals?limit=20`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(approvals.status, 200);
+      assert.ok(
+        approvals.body.data.items.some(
+          (a: { decision: string }) => a.decision === "pending",
+        ),
+        "expected at least one pending approval for the high-risk launch step",
+      );
+
+      // Screen frame endpoint returns the stub PNG.
+      const frame = await request(app)
+        .get(`/api/desktop/sessions/${sessionId}/screen`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(frame.status, 200);
+      assert.equal(frame.body.data.mimeType, "image/png");
+      assert.equal(typeof frame.body.data.data, "string");
+    },
+  },
+  {
+    name: "desktop session stop endpoint flips status to stopped",
+    run: async () => {
+      const created = await request(app)
+        .post("/api/desktop/sessions")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "click the save button" });
+      assert.equal(created.status, 200);
+      const sessionId = created.body.data.id;
+      const stop = await request(app)
+        .post(`/api/desktop/sessions/${sessionId}/stop`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(stop.status, 200);
+      assert.equal(stop.body.data.status, "stopped");
+    },
+  },
+  {
+    name: "desktop session is tenant-isolated",
+    run: async () => {
+      const created = await request(app)
+        .post("/api/desktop/sessions")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "screenshot the desktop" });
+      assert.equal(created.status, 200);
+      const sessionId = created.body.data.id;
+      const cross = await request(app)
+        .get(`/api/desktop/sessions/${sessionId}`)
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(cross.status, 404);
+    },
+  },
+  {
+    name: "router agent routes desktop intents to the desktop note",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/agent/runs")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "click the Save button on screen" });
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      const runId = res.body.data.id;
+      assert.ok(
+        (res.body.data.plan ?? "").includes("desktop control agent"),
+        "router-agent should annotate desktop intents",
+      );
+      const messages = await request(app)
+        .get(`/api/agent/runs/${runId}/messages`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(messages.status, 200);
+      assert.ok(
+        messages.body.data.items.some((m: { content: string }) =>
+          m.content.includes("desktop control"),
+        ),
+      );
+    },
+  },
+  {
+    name: "privacy events log records the in-band activity",
+    run: async () => {
+      // Pull pages until we cover every event so the assertion isn't
+      // racing the high-volume desktop tests above for the latest 100.
+      const items: { eventType: string }[] = [];
+      let cursor: string | undefined;
+      for (let i = 0; i < 10; i++) {
+        const page = await request(app)
+          .get(`/api/privacy/events?limit=100${cursor ? `&cursor=${cursor}` : ""}`)
+          .set("X-Tenant-ID", TENANT);
+        assert.equal(page.status, 200);
+        items.push(...page.body.data.items);
+        cursor = page.body.data.nextCursor ?? undefined;
+        if (!cursor) break;
+      }
+      const res = { status: 200, body: { data: { items } } };
       assert.equal(res.status, 200);
       assert.ok(Array.isArray(res.body.data.items));
       // The earlier file.read/file.write tests must have left an audit trail.

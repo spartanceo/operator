@@ -20,6 +20,7 @@ import ApiReferencePage from "@/pages/api-reference";
 import NotFound from "@/pages/not-found";
 import ChatPage from "@/pages/operator/chat";
 import AgentsPage from "@/pages/operator/agents";
+import DesktopPage from "@/pages/operator/desktop";
 import ToolsPage from "@/pages/operator/tools";
 import PrivacyPage from "@/pages/operator/privacy";
 import MemoryPage from "@/pages/operator/memory";
@@ -34,6 +35,7 @@ const queryClient = makeQueryClient();
 const OPERATOR_ROUTES = new Set([
   "/chat",
   "/agents",
+  "/desktop",
   "/tools",
   "/privacy",
   "/memory",
@@ -109,6 +111,7 @@ function OperatorShell() {
     <Switch>
       <Route path="/chat" component={ChatPage} />
       <Route path="/agents" component={AgentsPage} />
+      <Route path="/desktop" component={DesktopPage} />
       <Route path="/tools" component={ToolsPage} />
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/memory" component={MemoryPage} />
