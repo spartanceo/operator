@@ -41,7 +41,7 @@ export default function CreatorsPage() {
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(50% 60% at 80% 0%, rgba(255,107,0,0.10), transparent 60%)",
+              "radial-gradient(50% 60% at 80% 0%, hsl(var(--primary) / 0.10), transparent 60%)",
           }}
         />
         <div className="relative mx-auto max-w-7xl px-5 md:px-8">
@@ -273,7 +273,7 @@ export default function CreatorsPage() {
               className="pointer-events-none absolute inset-0"
               style={{
                 background:
-                  "radial-gradient(60% 90% at 0% 0%, rgba(255,107,0,0.16), transparent 65%)",
+                  "radial-gradient(60% 90% at 0% 0%, hsl(var(--primary) / 0.16), transparent 65%)",
               }}
             />
             <div className="relative flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">

@@ -110,7 +110,7 @@ function Hero() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(60% 50% at 12% 0%, rgba(255,107,0,0.10), transparent 60%), radial-gradient(40% 50% at 100% 30%, rgba(255,107,0,0.06), transparent 60%)",
+            "radial-gradient(60% 50% at 12% 0%, hsl(var(--primary) / 0.10), transparent 60%), radial-gradient(40% 50% at 100% 30%, hsl(var(--primary) / 0.06), transparent 60%)",
         }}
       />
       <div
@@ -118,7 +118,7 @@ function Hero() {
         className="pointer-events-none absolute inset-0 opacity-[0.18]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+            "linear-gradient(hsl(0 0% 100% / 0.04) 1px, transparent 1px), linear-gradient(90deg, hsl(0 0% 100% / 0.04) 1px, transparent 1px)",
           backgroundSize: "48px 48px",
           maskImage:
             "radial-gradient(ellipse at center, black 30%, transparent 80%)",
@@ -577,7 +577,7 @@ function FinalCta() {
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "radial-gradient(60% 90% at 100% 0%, rgba(255,107,0,0.18), transparent 65%), radial-gradient(40% 60% at 0% 100%, rgba(255,107,0,0.08), transparent 60%)",
+                "radial-gradient(60% 90% at 100% 0%, hsl(var(--primary) / 0.18), transparent 65%), radial-gradient(40% 60% at 0% 100%, hsl(var(--primary) / 0.08), transparent 60%)",
             }}
           />
           <div className="relative flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
