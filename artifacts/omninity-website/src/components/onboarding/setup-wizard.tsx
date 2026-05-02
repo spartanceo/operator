@@ -319,7 +319,14 @@ export function SetupWizard({ initialProfile, onComplete }: SetupWizardProps) {
             {step === "model" ? (
               <Button
                 onClick={completeWizard}
-                disabled={upsert.isPending || hardwareQuery.isLoading}
+                disabled={
+                  upsert.isPending ||
+                  hardwareQuery.isLoading ||
+                  // Hard gate: when the host fails the minimum-spec check
+                  // we refuse to complete onboarding so the user never
+                  // ends up on a broken install.
+                  (minimumSpec !== null && !minimumSpec.meetsMinimum)
+                }
                 data-testid="button-wizard-finish"
               >
                 {upsert.isPending ? (
@@ -525,17 +532,11 @@ function ModelStep({
     );
   }
 
-  // Below-minimum-spec branch — surface the warning prominently. We still
-  // let the user proceed (with the fallback recommendation) so they aren't
-  // stuck, but make it clear the experience will be degraded.
+  // Hard min-spec gate — no chooser, no install button. The wizard's
+  // "Open Operator" CTA is disabled by `belowMinSpec` (see SetupWizard)
+  // so the user can't push past this screen with a degraded install.
   if (minimumSpec && !minimumSpec.meetsMinimum) {
-    return (
-      <MinSpecScreen
-        hardware={hardware}
-        minimumSpec={minimumSpec}
-        recommendation={recommendation}
-      />
-    );
+    return <MinSpecScreen hardware={hardware} minimumSpec={minimumSpec} />;
   }
 
   // Build the unique chooser list from plan.primary + plan.alternatives.
@@ -720,19 +721,24 @@ function ModelStep({
 function MinSpecScreen({
   hardware,
   minimumSpec,
-  recommendation,
 }: {
   hardware: HardwareProfile | null;
   minimumSpec: MinimumSpecVerdict;
-  recommendation: ModelRecommendation | null;
 }) {
+  // Hard gate. We deliberately do NOT offer a "continue with the smallest
+  // model" path here — installing a configuration that can't actually run
+  // primary + bundled vision wastes the user's bandwidth and produces a
+  // broken first-run experience. The setup wizard's "Open Operator"
+  // button is disabled while this screen is rendered (see ModelStep
+  // gating in SetupWizard) so the user is funnelled toward the upgrade
+  // path or running OP on a different machine.
   return (
     <div className="space-y-3" data-testid="min-spec-screen">
       <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
         <div className="space-y-1">
           <p className="text-sm font-medium text-foreground">
-            Below the minimum spec
+            This Mac/PC doesn&apos;t meet the minimum spec
           </p>
           <p className="text-xs text-muted-foreground">{minimumSpec.message}</p>
         </div>
@@ -748,19 +754,22 @@ function MinSpecScreen({
             {formatBytes(minimumSpec.minimumRamBytes)}
           </span>
         </p>
-        {recommendation ? (
-          <p className="mt-1">
-            We&apos;ll fall back to{" "}
-            <span className="font-mono">{recommendation.model}</span> if you
-            continue, but inference will be slow.
-          </p>
-        ) : null}
+        <p className="mt-1">
+          OP installs a primary chat model alongside Moondream 2 (vision) so
+          desktop control works out of the box. Both have to fit in RAM at
+          the same time.
+        </p>
       </div>
-      <p className="text-xs text-muted-foreground">
-        You can still continue — Omninity Operator will keep working with the
-        smallest model in the catalogue. For full performance, upgrade to a
-        host with more RAM and re-run setup from Settings.
-      </p>
+      <div className="space-y-1.5 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">What to do next</p>
+        <ul className="list-disc space-y-1 pl-4">
+          <li>Run setup again on a host with more RAM (16 GB+ recommended).</li>
+          <li>
+            Or upgrade this machine&apos;s memory and re-run first-run setup
+            from the Settings menu.
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }

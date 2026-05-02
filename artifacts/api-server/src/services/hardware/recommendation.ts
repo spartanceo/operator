@@ -124,41 +124,39 @@ function reasonFor(
 /**
  * The richer, plan-shaped recommendation introduced by Task #64.
  *
- * If no primary model fits, returns `null` and the caller surfaces the
- * minimum-spec screen (see `evaluateMinimumSpec` below).
+ * Vision (Moondream 2) is ALWAYS bundled with the primary — that is a
+ * product-level invariant of OP, not a per-host optimisation. If no primary
+ * fits while reserving RAM for the vision companion + the system baseline,
+ * we return `null` so the caller surfaces the minimum-spec gate. We never
+ * silently drop vision and continue with a degraded install: a host that
+ * can't run primary + vision + OS reserve fails the minimum-spec check.
  */
 export function buildModelInstallPlan(
   hardware: HardwareProfile,
 ): ModelInstallPlan | null {
   const vision = getDefaultVision();
-  const visionRam = vision?.ramRequiredBytes ?? 0;
-
-  // Try with vision first; if that excludes every primary, retry without
-  // vision so the user still gets a primary model recommendation and the
-  // vision companion is dropped from the bundle.
-  let companions: ModelInstallPlanEntry[] = [];
-  let fitting = rankFittingPrimaries(hardware.totalRamBytes, visionRam);
-  let visionFits = vision !== null && fitting.length > 0;
-
-  if (fitting.length === 0) {
-    fitting = rankFittingPrimaries(hardware.totalRamBytes, 0);
-    visionFits = false;
+  if (!vision) {
+    // The catalogue must always ship a vision companion — this is a
+    // configuration bug, fail fast instead of silently degrading.
+    throw new Error(
+      "Model catalogue is missing a vision companion (role='vision').",
+    );
   }
+  const visionRam = vision.ramRequiredBytes;
 
-  if (visionFits && vision) {
-    companions = [
-      {
-        id: vision.id,
-        displayName: vision.displayName,
-        role: vision.role,
-        sizeBytes: vision.sizeBytes,
-        ramRequiredBytes: vision.ramRequiredBytes,
-      },
-    ];
-  }
-
+  const fitting = rankFittingPrimaries(hardware.totalRamBytes, visionRam);
   const primary = chooseRecommendedPrimary(hardware, fitting);
   if (!primary) return null;
+
+  const companions: ModelInstallPlanEntry[] = [
+    {
+      id: vision.id,
+      displayName: vision.displayName,
+      role: vision.role,
+      sizeBytes: vision.sizeBytes,
+      ramRequiredBytes: vision.ramRequiredBytes,
+    },
+  ];
 
   const alternatives = pickAlternatives(fitting, primary.id);
 
@@ -175,7 +173,7 @@ export function buildModelInstallPlan(
     totalRamBytes,
     fitsHardware: true,
     tier: hardware.tier,
-    reason: reasonFor(hardware, primary, visionFits),
+    reason: reasonFor(hardware, primary, true),
     alternatives,
   };
 }
@@ -205,27 +203,36 @@ export function recommendModelLegacy(
 }
 
 /**
- * Yes/no verdict the min-spec screen needs. The threshold is the smallest
- * primary model's resident RAM + the system reservation; below that even
- * the lightest model can't run.
+ * Yes/no verdict the min-spec screen needs.
+ *
+ * Minimum spec is the smallest primary model + the bundled vision companion
+ * + the system RAM reservation. We include vision in the floor because the
+ * product invariant is that primary AND vision are installed together — a
+ * host that can't run that combined footprint cannot run OP's desktop
+ * control surface (vision is required for screen tools), so allowing
+ * "minimum spec met" without vision RAM would let users install a
+ * configuration that does not actually work.
  */
 export function evaluateMinimumSpec(
   hardware: HardwareProfile,
 ): MinimumSpecVerdict {
   const minimum = getMinimumPrimary();
+  const vision = getDefaultVision();
+  const visionRam = vision?.ramRequiredBytes ?? 0;
   const minimumRamBytes =
-    minimum.ramRequiredBytes + SYSTEM_RAM_RESERVATION_BYTES;
+    minimum.ramRequiredBytes + visionRam + SYSTEM_RAM_RESERVATION_BYTES;
   const meets = hardware.totalRamBytes >= minimumRamBytes;
+  const visionBlurb = vision ? ` + ${vision.displayName}` : "";
   return {
     meetsMinimum: meets,
     minimumRamBytes,
     detectedRamBytes: hardware.totalRamBytes,
     message: meets
-      ? `Host meets the minimum spec (${minimum.displayName} fits).`
+      ? `Host meets the minimum spec (${minimum.displayName}${visionBlurb} fit).`
       : `Below minimum spec — Omninity Operator needs at least ${(
           minimumRamBytes /
           (1024 * 1024 * 1024)
-        ).toFixed(1)}GB of RAM to run a primary model. Detected ${(
+        ).toFixed(1)}GB of RAM to run ${minimum.displayName}${visionBlurb}. Detected ${(
           hardware.totalRamBytes /
           (1024 * 1024 * 1024)
         ).toFixed(1)}GB.`,

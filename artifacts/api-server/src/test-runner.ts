@@ -33,11 +33,13 @@ import { db, getRawSqlite, runMigrations, tenants, workspaces } from "@workspace
 
 import app from "./app";
 import {
+  __clearHardwareCacheMemoForTests,
   buildModelInstallPlan,
   clearHardwareCache,
   defaultLifecycleForTier,
   evaluateMinimumSpec,
   getDefaultVision,
+  getHardwareProfile,
   getMinimumPrimary,
   getVisionLifecycle,
   resetVisionLifecycleForTests,
@@ -393,15 +395,22 @@ const cases: TestCase[] = [
     },
   },
   {
-    name: "recommendation engine: low-RAM host drops vision to keep primary",
+    name: "recommendation engine: vision is always bundled — never silently dropped",
     run: async () => {
-      // 6GB total — vision (1.6GB) + 2GB OS reserve leaves only 2.4GB for
-      // primary, which fits Phi-3 Mini (3GB) only WITHOUT vision. The engine
-      // should retry without vision and still surface a primary.
-      const plan = buildModelInstallPlan(syntheticHardware(6));
-      assert.ok(plan, "primary must still be recommended on a 6GB host");
-      assert.equal(plan.primary.id, "phi3:mini");
-      assert.equal(plan.companions.length, 0, "vision should be dropped");
+      // 6GB total — primary (3GB Phi-3) + vision (1.6GB) + OS (2GB) =
+      // 6.6GB needed. Below the minimum, so the plan must be `null` and
+      // the min-spec verdict must fail. Earlier behaviour silently
+      // dropped vision to keep going; we explicitly reject that path
+      // because installing primary-only produces a broken first-run.
+      const hw = syntheticHardware(6);
+      const plan = buildModelInstallPlan(hw);
+      assert.equal(
+        plan,
+        null,
+        "vision must never be silently dropped to keep a primary",
+      );
+      const verdict = evaluateMinimumSpec(hw);
+      assert.equal(verdict.meetsMinimum, false);
     },
   },
   {
@@ -413,6 +422,22 @@ const cases: TestCase[] = [
       assert.equal(verdict.meetsMinimum, false);
       assert.ok(verdict.minimumRamBytes > 0);
       assert.match(verdict.message, /minimum/i);
+    },
+  },
+  {
+    name: "min-spec floor includes vision RAM + system reservation",
+    run: async () => {
+      // Floor must equal smallest primary + vision + system reserve so a
+      // host that fits primary-only (but not primary+vision) still fails.
+      const verdict = evaluateMinimumSpec(syntheticHardware(64));
+      const minimum = getMinimumPrimary();
+      const vision = getDefaultVision();
+      assert.ok(vision, "catalogue must always ship a vision companion");
+      const expected =
+        minimum.ramRequiredBytes +
+        vision.ramRequiredBytes +
+        2 * 1024 * 1024 * 1024; // SYSTEM_RAM_RESERVATION_BYTES
+      assert.equal(verdict.minimumRamBytes, expected);
     },
   },
   {
@@ -577,6 +602,91 @@ const cases: TestCase[] = [
       assert.equal(min.id, "phi3:mini");
     },
   },
+  {
+    name: "feature flag off: hardware-aware routes return 404 FEATURE_DISABLED",
+    run: async () => {
+      const prev =
+        process.env["OMNINITY_FEATURE_HARDWARE_AWARE_RECOMMENDATION"];
+      process.env["OMNINITY_FEATURE_HARDWARE_AWARE_RECOMMENDATION"] = "false";
+      try {
+        for (const path of [
+          "/api/models/hardware",
+          "/api/models/catalogue",
+          "/api/models/recommended",
+        ]) {
+          const res = await request(app)
+            .get(path)
+            .set("X-Tenant-ID", TENANT);
+          assert.equal(res.status, 404, `${path} must 404 when flag off`);
+          assert.equal(res.body.error.code, "FEATURE_DISABLED");
+        }
+        const sel = await request(app)
+          .post("/api/models/select")
+          .set("X-Tenant-ID", TENANT)
+          .send({ primaryModel: "phi3:mini" });
+        assert.equal(sel.status, 404);
+        assert.equal(sel.body.error.code, "FEATURE_DISABLED");
+      } finally {
+        if (prev === undefined) {
+          delete process.env["OMNINITY_FEATURE_HARDWARE_AWARE_RECOMMENDATION"];
+        } else {
+          process.env["OMNINITY_FEATURE_HARDWARE_AWARE_RECOMMENDATION"] = prev;
+        }
+      }
+    },
+  },
+  {
+    name: "hardware cache: persists snapshot to disk and re-hydrates without re-detecting",
+    run: async () => {
+      const fs = await import("node:fs");
+      const tmp = `/tmp/omninity-hw-cache-${Date.now()}.json`;
+      const prev = process.env["OMNINITY_HARDWARE_CACHE_PATH"];
+      process.env["OMNINITY_HARDWARE_CACHE_PATH"] = tmp;
+      try {
+        clearHardwareCache();
+        if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+
+        // First call must detect + persist.
+        const first = getHardwareProfile();
+        assert.ok(fs.existsSync(tmp), "snapshot file must be written");
+        const onDisk = JSON.parse(fs.readFileSync(tmp, "utf8")) as {
+          profile: HardwareProfile;
+          fingerprint: { totalRamBytes: number };
+        };
+        assert.equal(onDisk.profile.totalRamBytes, first.totalRamBytes);
+        assert.ok(onDisk.fingerprint, "snapshot must carry a fingerprint");
+
+        // Drop ONLY the in-memory memo to simulate a fresh process. The
+        // next call must re-hydrate from disk rather than re-detect — we
+        // prove that by tampering with the file payload (a re-detect
+        // would overwrite our edit).
+        __clearHardwareCacheMemoForTests();
+        const tampered = {
+          ...onDisk,
+          profile: { ...onDisk.profile, cpuModel: "FROM-DISK-SENTINEL" },
+        };
+        fs.writeFileSync(tmp, JSON.stringify(tampered), "utf8");
+        const second = getHardwareProfile();
+        assert.equal(
+          second.cpuModel,
+          "FROM-DISK-SENTINEL",
+          "second call must hydrate from on-disk snapshot, not re-detect",
+        );
+
+        // clearHardwareCache() must wipe both the memo AND the file.
+        clearHardwareCache();
+        assert.equal(fs.existsSync(tmp), false, "file must be deleted");
+      } finally {
+        if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+        if (prev === undefined) {
+          delete process.env["OMNINITY_HARDWARE_CACHE_PATH"];
+        } else {
+          process.env["OMNINITY_HARDWARE_CACHE_PATH"] = prev;
+        }
+        clearHardwareCache();
+      }
+    },
+  },
 
   {
     name: "updates check returns no update when latest matches current",
@@ -665,7 +775,11 @@ async function main() {
     }
   }
   out(
-    `\n  ${failures === 0 ? "✓ all" : `✗ ${failures} of`} ${cases.length} test(s) failed`,
+    `\n  ${
+      failures === 0
+        ? `✓ all ${cases.length} test(s) passed`
+        : `✗ ${failures} of ${cases.length} test(s) failed`
+    }`,
   );
   if (failures > 0) process.exit(1);
 }

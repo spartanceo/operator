@@ -15,7 +15,11 @@ export {
   tierForRam,
 } from "./catalogue";
 export { detectHardware } from "./detector";
-export { clearHardwareCache, getHardwareProfile } from "./cache";
+export {
+  __clearHardwareCacheMemoForTests,
+  clearHardwareCache,
+  getHardwareProfile,
+} from "./cache";
 export {
   buildModelInstallPlan,
   evaluateMinimumSpec,
