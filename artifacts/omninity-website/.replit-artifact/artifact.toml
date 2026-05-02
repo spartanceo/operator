@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Omninity Operator"
+version = "1.0.0"
+id = "artifacts/omninity-website"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20599
+
+[services.development]
+run = "pnpm --filter @workspace/omninity-website run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/omninity-website", "run", "build" ]
+publicDir = "artifacts/omninity-website/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20599"
+BASE_PATH = "/"
