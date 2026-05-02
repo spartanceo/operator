@@ -27,20 +27,23 @@
  *     (e.g. id-based lookups joined to external IDs); it is the runtime
  *     guard that catches accidental cross-tenant access.
  */
-import { and, eq, ne, type SQL } from "drizzle-orm";
+import { and, eq, ne, type AnyColumn, type SQL } from "drizzle-orm";
 import type { TenantContext } from "@workspace/types";
 
 /**
  * Minimum shape of a Drizzle table that can be tenant-scoped: it must
  * expose a `tenantId` column. `workspaceId` and `status` are optional —
  * if the table has them, additional predicates are added automatically.
+ *
+ * `AnyColumn` is Drizzle's official escape hatch for "any column from any
+ * table" and is what `eq()` / `ne()` accept; using it here lets the helper
+ * be table-agnostic without leaking the deeply generic column generics
+ * into every consumer's call site, and avoids `any` escapes entirely.
  */
 export interface TenantScopedTable {
-  // Drizzle column types are deeply generic; using `unknown` here keeps the
-  // helper usable from any service file without leaking those internals.
-  readonly tenantId: unknown;
-  readonly workspaceId?: unknown;
-  readonly status?: unknown;
+  readonly tenantId: AnyColumn;
+  readonly workspaceId?: AnyColumn;
+  readonly status?: AnyColumn;
 }
 
 /**
@@ -64,20 +67,13 @@ export function tenantScope<T extends TenantScopedTable>(
   ctx: TenantContext,
   table: T,
 ): SQL {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle column generics
-  const conditions: SQL[] = [eq(table.tenantId as any, ctx.tenantId)];
-  if (
-    "workspaceId" in table &&
-    table.workspaceId !== undefined &&
-    ctx.workspaceId
-  ) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle column generics
-    conditions.push(eq(table.workspaceId as any, ctx.workspaceId));
+  const conditions: SQL[] = [eq(table.tenantId, ctx.tenantId)];
+  if (table.workspaceId !== undefined && ctx.workspaceId) {
+    conditions.push(eq(table.workspaceId, ctx.workspaceId));
   }
-  if ("status" in table && table.status !== undefined) {
+  if (table.status !== undefined) {
     // GDPR soft-delete: erased rows are invisible to tenant-scoped reads.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle column generics
-    conditions.push(ne(table.status as any, "erased"));
+    conditions.push(ne(table.status, "erased"));
   }
   // and(...) returns SQL when at least one condition is provided.
   return and(...conditions) as SQL;
