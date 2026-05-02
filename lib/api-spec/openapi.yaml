@@ -2656,6 +2656,422 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InteractionListResponse"
+  /security/audit:
+    get:
+      operationId: securityAuditList
+      tags:
+        - security
+      summary: List tamper-evident audit log entries (newest first)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Page of audit entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditListResponse"
+  /security/audit/verify:
+    get:
+      operationId: securityAuditVerify
+      tags:
+        - security
+      summary: Walk the hash chain end-to-end and report integrity
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Chain verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditVerifyResponse"
+  /security/events:
+    get:
+      operationId: securityEventsList
+      tags:
+        - security
+      summary: List severity-tagged security events (newest first)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Page of security events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityEventListResponse"
+  /security/master-password/status:
+    get:
+      operationId: securityMasterPasswordStatus
+      tags:
+        - security
+      summary: Report whether a master password is configured
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Master-password presence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterPasswordStatusResponse"
+  /security/master-password:
+    post:
+      operationId: securityMasterPasswordSet
+      tags:
+        - security
+      summary: Set or rotate the master password
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterPasswordSetRequest"
+      responses:
+        "200":
+          description: Master password configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterPasswordStatusResponse"
+  /security/master-password/verify:
+    post:
+      operationId: securityMasterPasswordVerify
+      tags:
+        - security
+      summary: Verify a master-password attempt
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterPasswordVerifyRequest"
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterPasswordVerifyResponse"
+  /security/auto-lock:
+    get:
+      operationId: securityAutoLockGet
+      tags:
+        - security
+      summary: Read the current auto-lock policy
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Auto-lock state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutoLockStateResponse"
+    post:
+      operationId: securityAutoLockSet
+      tags:
+        - security
+      summary: Update the auto-lock policy
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AutoLockUpdateRequest"
+      responses:
+        "200":
+          description: Updated auto-lock state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutoLockStateResponse"
+  /security/telemetry:
+    get:
+      operationId: securityTelemetryGet
+      tags:
+        - security
+      summary: Read the per-tenant telemetry consent (default OFF)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Telemetry consent state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryConsentResponse"
+    put:
+      operationId: securityTelemetryUpdate
+      tags:
+        - security
+      summary: Update the telemetry consent toggles
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelemetryConsentUpdateRequest"
+      responses:
+        "200":
+          description: Updated telemetry consent state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryConsentResponse"
+  /security/scan-skill:
+    post:
+      operationId: securityScanSkill
+      tags:
+        - security
+      summary: Pre-flight scan a skill source for malicious patterns
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanSkillRequest"
+      responses:
+        "200":
+          description: Scan result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanSkillResponse"
+  /security/webhook-secrets:
+    get:
+      operationId: securityWebhookSecretsList
+      tags:
+        - security
+      summary: List webhook HMAC secrets (plaintext is never returned)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Page of webhook secret records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookSecretListResponse"
+    post:
+      operationId: securityWebhookSecretsCreate
+      tags:
+        - security
+      summary: Create a webhook HMAC secret (returns plaintext once)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookSecretCreateRequest"
+      responses:
+        "200":
+          description: Newly minted webhook secret
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookSecretCreatedResponse"
+  /security/webhook-secrets/{id}:
+    delete:
+      operationId: securityWebhookSecretsDelete
+      tags:
+        - security
+      summary: Revoke a webhook HMAC secret
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revocation receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookSecretRevokeResponse"
+  /security/admin-2fa/setup:
+    post:
+      operationId: securityAdmin2faSetup
+      tags:
+        - security
+      summary: Begin TOTP enrollment for an admin user
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Admin2faSetupRequest"
+      responses:
+        "200":
+          description: TOTP secret + otpauth URI
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin2faSetupResponse"
+  /security/admin-2fa/confirm:
+    post:
+      operationId: securityAdmin2faConfirm
+      tags:
+        - security
+      summary: Confirm TOTP enrollment with the first valid code
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Admin2faCodeRequest"
+      responses:
+        "200":
+          description: Confirmation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin2faConfirmResponse"
+  /security/admin-2fa/verify:
+    post:
+      operationId: securityAdmin2faVerify
+      tags:
+        - security
+      summary: Verify a TOTP code for an enrolled admin user
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Admin2faCodeRequest"
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin2faVerifyResponse"
+  /security/jwt/issue:
+    post:
+      operationId: securityJwtIssue
+      tags:
+        - security
+      summary: Issue a fresh access + refresh token pair
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JwtIssueRequest"
+      responses:
+        "200":
+          description: New access + refresh pair
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JwtPairResponse"
+  /security/jwt/rotate:
+    post:
+      operationId: securityJwtRotate
+      tags:
+        - security
+      summary: Rotate a refresh token (re-use is treated as theft)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JwtRotateRequest"
+      responses:
+        "200":
+          description: Rotated access + refresh pair
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JwtPairResponse"
+  /security/jwt/revoke:
+    post:
+      operationId: securityJwtRevoke
+      tags:
+        - security
+      summary: Revoke a refresh token
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JwtRevokeRequest"
+      responses:
+        "200":
+          description: Revocation receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JwtRevokeResponse"
+  /security/report:
+    get:
+      operationId: securityReport
+      tags:
+        - security
+      summary: 30-day security summary report
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Aggregated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityReportResponse"
+  /security/nuke:
+    post:
+      operationId: securityNuke
+      tags:
+        - security
+      summary: Permanently erase all data for the calling tenant
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecurityNukeRequest"
+      responses:
+        "200":
+          description: Nuke receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityNukeResponse"
 components:
   parameters:
     TenantHeader:
@@ -6707,3 +7123,764 @@ components:
             - true
         data:
           $ref: "#/components/schemas/InteractionListPage"
+    AuditEntry:
+      type: object
+      required:
+        - id
+        - sequence
+        - actor
+        - action
+        - resourceType
+        - summary
+        - entryHash
+        - createdAt
+      properties:
+        id:
+          type: string
+        sequence:
+          type: integer
+        actor:
+          type: string
+        action:
+          type: string
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+          nullable: true
+        summary:
+          type: string
+        previousHash:
+          type: string
+          nullable: true
+        entryHash:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    AuditListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEntry"
+        nextCursor:
+          type: string
+          nullable: true
+    AuditListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/AuditListPage"
+    AuditVerifyResult:
+      type: object
+      required:
+        - intact
+        - checkedRows
+        - verifiedAt
+      properties:
+        intact:
+          type: boolean
+        checkedRows:
+          type: integer
+        firstBrokenSequence:
+          type: integer
+          nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+    AuditVerifyResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/AuditVerifyResult"
+    SecurityEvent:
+      type: object
+      required:
+        - id
+        - eventType
+        - severity
+        - actor
+        - createdAt
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+        severity:
+          type: string
+          enum:
+            - info
+            - low
+            - medium
+            - high
+            - critical
+        actor:
+          type: string
+        target:
+          type: string
+          nullable: true
+        detail:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    SecurityEventListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityEvent"
+        nextCursor:
+          type: string
+          nullable: true
+    SecurityEventListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/SecurityEventListPage"
+    MasterPasswordStatus:
+      type: object
+      required:
+        - isSet
+      properties:
+        isSet:
+          type: boolean
+        biometricEnabled:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    MasterPasswordStatusResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MasterPasswordStatus"
+    MasterPasswordSetRequest:
+      type: object
+      required:
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 12
+    MasterPasswordVerifyRequest:
+      type: object
+      required:
+        - password
+      properties:
+        password:
+          type: string
+    MasterPasswordVerifyResult:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+    MasterPasswordVerifyResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/MasterPasswordVerifyResult"
+    AutoLockState:
+      type: object
+      required:
+        - enabled
+        - inactivityMinutes
+        - lockOnSuspend
+        - locked
+      properties:
+        enabled:
+          type: boolean
+        inactivityMinutes:
+          type: integer
+        lockOnSuspend:
+          type: boolean
+        locked:
+          type: boolean
+        lastActivityAt:
+          type: string
+          format: date-time
+          nullable: true
+    AutoLockStateResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/AutoLockState"
+    AutoLockUpdateRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        inactivityMinutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+        lockOnSuspend:
+          type: boolean
+    TelemetryConsent:
+      type: object
+      required:
+        - crashReportsEnabled
+        - usageMetricsEnabled
+        - productImprovementEnabled
+        - consentVersion
+      properties:
+        crashReportsEnabled:
+          type: boolean
+        usageMetricsEnabled:
+          type: boolean
+        productImprovementEnabled:
+          type: boolean
+        consentGivenAt:
+          type: string
+          format: date-time
+          nullable: true
+        consentRevokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        consentVersion:
+          type: string
+    TelemetryConsentResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/TelemetryConsent"
+    TelemetryConsentUpdateRequest:
+      type: object
+      properties:
+        crashReportsEnabled:
+          type: boolean
+        usageMetricsEnabled:
+          type: boolean
+        productImprovementEnabled:
+          type: boolean
+    ScanSkillRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+    ScannerFinding:
+      type: object
+      required:
+        - ruleId
+        - description
+        - severity
+        - line
+        - snippet
+      properties:
+        ruleId:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+        line:
+          type: integer
+        snippet:
+          type: string
+    ScanSkillResult:
+      type: object
+      required:
+        - safe
+        - findings
+      properties:
+        safe:
+          type: boolean
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScannerFinding"
+    ScanSkillResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ScanSkillResult"
+    WebhookSecret:
+      type: object
+      required:
+        - id
+        - endpoint
+        - label
+        - createdAt
+      properties:
+        id:
+          type: string
+        endpoint:
+          type: string
+        label:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+    WebhookSecretListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookSecret"
+        nextCursor:
+          type: string
+          nullable: true
+    WebhookSecretListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/WebhookSecretListPage"
+    WebhookSecretCreateRequest:
+      type: object
+      required:
+        - endpoint
+        - label
+      properties:
+        endpoint:
+          type: string
+        label:
+          type: string
+    WebhookSecretCreated:
+      type: object
+      required:
+        - id
+        - endpoint
+        - label
+        - secret
+        - createdAt
+      properties:
+        id:
+          type: string
+        endpoint:
+          type: string
+        label:
+          type: string
+        secret:
+          type: string
+          description: Plaintext secret — returned only once.
+        createdAt:
+          type: string
+          format: date-time
+    WebhookSecretCreatedResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/WebhookSecretCreated"
+    WebhookSecretRevokeReceipt:
+      type: object
+      required:
+        - id
+        - revoked
+      properties:
+        id:
+          type: string
+        revoked:
+          type: boolean
+    WebhookSecretRevokeResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/WebhookSecretRevokeReceipt"
+    Admin2faSetupRequest:
+      type: object
+      required:
+        - userId
+        - accountLabel
+      properties:
+        userId:
+          type: string
+        accountLabel:
+          type: string
+    Admin2faSetupData:
+      type: object
+      required:
+        - secret
+        - otpauthUri
+      properties:
+        secret:
+          type: string
+        otpauthUri:
+          type: string
+    Admin2faSetupResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/Admin2faSetupData"
+    Admin2faCodeRequest:
+      type: object
+      required:
+        - userId
+        - code
+      properties:
+        userId:
+          type: string
+        code:
+          type: string
+    Admin2faConfirmData:
+      type: object
+      required:
+        - confirmed
+      properties:
+        confirmed:
+          type: boolean
+    Admin2faConfirmResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/Admin2faConfirmData"
+    Admin2faVerifyData:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+    Admin2faVerifyResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/Admin2faVerifyData"
+    JwtIssueRequest:
+      type: object
+      required:
+        - userId
+        - role
+      properties:
+        userId:
+          type: string
+        role:
+          type: string
+    JwtRotateRequest:
+      type: object
+      required:
+        - refreshToken
+        - role
+      properties:
+        refreshToken:
+          type: string
+        role:
+          type: string
+    JwtRevokeRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+    JwtPair:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - accessExpiresAt
+        - refreshExpiresAt
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        accessExpiresAt:
+          type: string
+          format: date-time
+        refreshExpiresAt:
+          type: string
+          format: date-time
+    JwtPairResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/JwtPair"
+    JwtRevokeReceipt:
+      type: object
+      required:
+        - revoked
+      properties:
+        revoked:
+          type: boolean
+    JwtRevokeResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/JwtRevokeReceipt"
+    SecurityReportTotals:
+      type: object
+      required:
+        - auditEntries
+        - securityEvents
+        - criticalEvents
+        - highEvents
+        - mediumEvents
+      properties:
+        auditEntries:
+          type: integer
+        securityEvents:
+          type: integer
+        criticalEvents:
+          type: integer
+        highEvents:
+          type: integer
+        mediumEvents:
+          type: integer
+    SecurityReportTopEventType:
+      type: object
+      required:
+        - eventType
+        - count
+      properties:
+        eventType:
+          type: string
+        count:
+          type: integer
+    SecurityReportChain:
+      type: object
+      required:
+        - intact
+        - checkedRows
+      properties:
+        intact:
+          type: boolean
+        checkedRows:
+          type: integer
+        firstBrokenSequence:
+          type: integer
+          nullable: true
+    SecurityReportRecentCritical:
+      type: object
+      required:
+        - id
+        - eventType
+        - severity
+        - actor
+        - createdAt
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+        severity:
+          type: string
+        actor:
+          type: string
+        target:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    SecurityReport:
+      type: object
+      required:
+        - windowStart
+        - windowEnd
+        - totals
+        - topEventTypes
+        - chain
+        - recentCritical
+      properties:
+        windowStart:
+          type: string
+          format: date-time
+        windowEnd:
+          type: string
+          format: date-time
+        totals:
+          $ref: "#/components/schemas/SecurityReportTotals"
+        topEventTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityReportTopEventType"
+        chain:
+          $ref: "#/components/schemas/SecurityReportChain"
+        recentCritical:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityReportRecentCritical"
+    SecurityReportResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/SecurityReport"
+    SecurityNukeRequest:
+      type: object
+      required:
+        - reason
+        - confirmation
+      properties:
+        reason:
+          type: string
+        confirmation:
+          type: string
+          description: Must equal the literal string "ERASE EVERYTHING".
+    SecurityNukeReceipt:
+      type: object
+      required:
+        - tenantId
+        - deletedCounts
+        - completedAt
+      properties:
+        tenantId:
+          type: string
+        deletedCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        completedAt:
+          type: string
+          format: date-time
+    SecurityNukeResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/SecurityNukeReceipt"

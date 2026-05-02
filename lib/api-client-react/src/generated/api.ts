@@ -26,14 +26,23 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  Admin2faCodeRequest,
+  Admin2faConfirmResponse,
+  Admin2faSetupRequest,
+  Admin2faSetupResponse,
+  Admin2faVerifyResponse,
   AgentRunListResponse,
   AgentRunResponse,
   ApiErrorResponse,
   ApprovalDecisionRequest,
   ApprovalListResponse,
   ApprovalResponse,
+  AuditListResponse,
+  AuditVerifyResponse,
   AuthLogoutResponse,
   AuthSessionResponse,
+  AutoLockStateResponse,
+  AutoLockUpdateRequest,
   BrowserActionResponse,
   BrowserExtractRequest,
   BrowserScreenshotRequest,
@@ -90,6 +99,11 @@ import type {
   IngestKnowledgeDocumentResponse,
   InstallModelsRequest,
   InteractionListResponse,
+  JwtIssueRequest,
+  JwtPairResponse,
+  JwtRevokeRequest,
+  JwtRevokeResponse,
+  JwtRotateRequest,
   KnowledgeCollectionListResponse,
   KnowledgeCollectionResponse,
   KnowledgeDeleteResponse,
@@ -125,6 +139,10 @@ import type {
   ListToolsParams,
   ListVoipCallsParams,
   LoginRequest,
+  MasterPasswordSetRequest,
+  MasterPasswordStatusResponse,
+  MasterPasswordVerifyRequest,
+  MasterPasswordVerifyResponse,
   MediaAssetDeleteResponse,
   MediaAssetListResponse,
   MediaAssetResponse,
@@ -156,7 +174,18 @@ import type {
   PrivacyEventResponse,
   RecordVoipCallRequest,
   RegisterRequest,
+  ScanSkillRequest,
+  ScanSkillResponse,
+  SecurityAuditListParams,
+  SecurityEventListResponse,
+  SecurityEventsListParams,
+  SecurityNukeRequest,
+  SecurityNukeResponse,
+  SecurityReportResponse,
+  SecurityWebhookSecretsListParams,
   SelectModelRequest,
+  TelemetryConsentResponse,
+  TelemetryConsentUpdateRequest,
   TenantDataExportResponse,
   TenantErasureResponse,
   ToolCallListResponse,
@@ -173,6 +202,10 @@ import type {
   VoipCallResponse,
   VoipSummariseRequest,
   VoipTranscribeRequest,
+  WebhookSecretCreateRequest,
+  WebhookSecretCreatedResponse,
+  WebhookSecretListResponse,
+  WebhookSecretRevokeResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -10499,3 +10532,1910 @@ export function useListContactInteractions<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List tamper-evident audit log entries (newest first)
+ */
+export const getSecurityAuditListUrl = (params?: SecurityAuditListParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/security/audit?${stringifiedParams}`
+    : `/api/security/audit`;
+};
+
+export const securityAuditList = async (
+  params?: SecurityAuditListParams,
+  options?: RequestInit,
+): Promise<AuditListResponse> => {
+  return customFetch<AuditListResponse>(getSecurityAuditListUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSecurityAuditListQueryKey = (
+  params?: SecurityAuditListParams,
+) => {
+  return [`/api/security/audit`, ...(params ? [params] : [])] as const;
+};
+
+export const getSecurityAuditListQueryOptions = <
+  TData = Awaited<ReturnType<typeof securityAuditList>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: SecurityAuditListParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof securityAuditList>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSecurityAuditListQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof securityAuditList>>
+  > = ({ signal }) => securityAuditList(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof securityAuditList>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SecurityAuditListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof securityAuditList>>
+>;
+export type SecurityAuditListQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List tamper-evident audit log entries (newest first)
+ */
+
+export function useSecurityAuditList<
+  TData = Awaited<ReturnType<typeof securityAuditList>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: SecurityAuditListParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof securityAuditList>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSecurityAuditListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Walk the hash chain end-to-end and report integrity
+ */
+export const getSecurityAuditVerifyUrl = () => {
+  return `/api/security/audit/verify`;
+};
+
+export const securityAuditVerify = async (
+  options?: RequestInit,
+): Promise<AuditVerifyResponse> => {
+  return customFetch<AuditVerifyResponse>(getSecurityAuditVerifyUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSecurityAuditVerifyQueryKey = () => {
+  return [`/api/security/audit/verify`] as const;
+};
+
+export const getSecurityAuditVerifyQueryOptions = <
+  TData = Awaited<ReturnType<typeof securityAuditVerify>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityAuditVerify>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSecurityAuditVerifyQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof securityAuditVerify>>
+  > = ({ signal }) => securityAuditVerify({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof securityAuditVerify>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SecurityAuditVerifyQueryResult = NonNullable<
+  Awaited<ReturnType<typeof securityAuditVerify>>
+>;
+export type SecurityAuditVerifyQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Walk the hash chain end-to-end and report integrity
+ */
+
+export function useSecurityAuditVerify<
+  TData = Awaited<ReturnType<typeof securityAuditVerify>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityAuditVerify>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSecurityAuditVerifyQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List severity-tagged security events (newest first)
+ */
+export const getSecurityEventsListUrl = (params?: SecurityEventsListParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/security/events?${stringifiedParams}`
+    : `/api/security/events`;
+};
+
+export const securityEventsList = async (
+  params?: SecurityEventsListParams,
+  options?: RequestInit,
+): Promise<SecurityEventListResponse> => {
+  return customFetch<SecurityEventListResponse>(
+    getSecurityEventsListUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getSecurityEventsListQueryKey = (
+  params?: SecurityEventsListParams,
+) => {
+  return [`/api/security/events`, ...(params ? [params] : [])] as const;
+};
+
+export const getSecurityEventsListQueryOptions = <
+  TData = Awaited<ReturnType<typeof securityEventsList>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: SecurityEventsListParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof securityEventsList>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSecurityEventsListQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof securityEventsList>>
+  > = ({ signal }) => securityEventsList(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof securityEventsList>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SecurityEventsListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof securityEventsList>>
+>;
+export type SecurityEventsListQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List severity-tagged security events (newest first)
+ */
+
+export function useSecurityEventsList<
+  TData = Awaited<ReturnType<typeof securityEventsList>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: SecurityEventsListParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof securityEventsList>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSecurityEventsListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Report whether a master password is configured
+ */
+export const getSecurityMasterPasswordStatusUrl = () => {
+  return `/api/security/master-password/status`;
+};
+
+export const securityMasterPasswordStatus = async (
+  options?: RequestInit,
+): Promise<MasterPasswordStatusResponse> => {
+  return customFetch<MasterPasswordStatusResponse>(
+    getSecurityMasterPasswordStatusUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getSecurityMasterPasswordStatusQueryKey = () => {
+  return [`/api/security/master-password/status`] as const;
+};
+
+export const getSecurityMasterPasswordStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof securityMasterPasswordStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityMasterPasswordStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSecurityMasterPasswordStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof securityMasterPasswordStatus>>
+  > = ({ signal }) =>
+    securityMasterPasswordStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof securityMasterPasswordStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SecurityMasterPasswordStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof securityMasterPasswordStatus>>
+>;
+export type SecurityMasterPasswordStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Report whether a master password is configured
+ */
+
+export function useSecurityMasterPasswordStatus<
+  TData = Awaited<ReturnType<typeof securityMasterPasswordStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityMasterPasswordStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSecurityMasterPasswordStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set or rotate the master password
+ */
+export const getSecurityMasterPasswordSetUrl = () => {
+  return `/api/security/master-password`;
+};
+
+export const securityMasterPasswordSet = async (
+  masterPasswordSetRequest: MasterPasswordSetRequest,
+  options?: RequestInit,
+): Promise<MasterPasswordStatusResponse> => {
+  return customFetch<MasterPasswordStatusResponse>(
+    getSecurityMasterPasswordSetUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(masterPasswordSetRequest),
+    },
+  );
+};
+
+export const getSecurityMasterPasswordSetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityMasterPasswordSet>>,
+    TError,
+    { data: BodyType<MasterPasswordSetRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityMasterPasswordSet>>,
+  TError,
+  { data: BodyType<MasterPasswordSetRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityMasterPasswordSet"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityMasterPasswordSet>>,
+    { data: BodyType<MasterPasswordSetRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityMasterPasswordSet(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityMasterPasswordSetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityMasterPasswordSet>>
+>;
+export type SecurityMasterPasswordSetMutationBody =
+  BodyType<MasterPasswordSetRequest>;
+export type SecurityMasterPasswordSetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set or rotate the master password
+ */
+export const useSecurityMasterPasswordSet = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityMasterPasswordSet>>,
+    TError,
+    { data: BodyType<MasterPasswordSetRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityMasterPasswordSet>>,
+  TError,
+  { data: BodyType<MasterPasswordSetRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityMasterPasswordSetMutationOptions(options));
+};
+
+/**
+ * @summary Verify a master-password attempt
+ */
+export const getSecurityMasterPasswordVerifyUrl = () => {
+  return `/api/security/master-password/verify`;
+};
+
+export const securityMasterPasswordVerify = async (
+  masterPasswordVerifyRequest: MasterPasswordVerifyRequest,
+  options?: RequestInit,
+): Promise<MasterPasswordVerifyResponse> => {
+  return customFetch<MasterPasswordVerifyResponse>(
+    getSecurityMasterPasswordVerifyUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(masterPasswordVerifyRequest),
+    },
+  );
+};
+
+export const getSecurityMasterPasswordVerifyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityMasterPasswordVerify>>,
+    TError,
+    { data: BodyType<MasterPasswordVerifyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityMasterPasswordVerify>>,
+  TError,
+  { data: BodyType<MasterPasswordVerifyRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityMasterPasswordVerify"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityMasterPasswordVerify>>,
+    { data: BodyType<MasterPasswordVerifyRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityMasterPasswordVerify(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityMasterPasswordVerifyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityMasterPasswordVerify>>
+>;
+export type SecurityMasterPasswordVerifyMutationBody =
+  BodyType<MasterPasswordVerifyRequest>;
+export type SecurityMasterPasswordVerifyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Verify a master-password attempt
+ */
+export const useSecurityMasterPasswordVerify = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityMasterPasswordVerify>>,
+    TError,
+    { data: BodyType<MasterPasswordVerifyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityMasterPasswordVerify>>,
+  TError,
+  { data: BodyType<MasterPasswordVerifyRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityMasterPasswordVerifyMutationOptions(options));
+};
+
+/**
+ * @summary Read the current auto-lock policy
+ */
+export const getSecurityAutoLockGetUrl = () => {
+  return `/api/security/auto-lock`;
+};
+
+export const securityAutoLockGet = async (
+  options?: RequestInit,
+): Promise<AutoLockStateResponse> => {
+  return customFetch<AutoLockStateResponse>(getSecurityAutoLockGetUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSecurityAutoLockGetQueryKey = () => {
+  return [`/api/security/auto-lock`] as const;
+};
+
+export const getSecurityAutoLockGetQueryOptions = <
+  TData = Awaited<ReturnType<typeof securityAutoLockGet>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityAutoLockGet>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSecurityAutoLockGetQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof securityAutoLockGet>>
+  > = ({ signal }) => securityAutoLockGet({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof securityAutoLockGet>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SecurityAutoLockGetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof securityAutoLockGet>>
+>;
+export type SecurityAutoLockGetQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Read the current auto-lock policy
+ */
+
+export function useSecurityAutoLockGet<
+  TData = Awaited<ReturnType<typeof securityAutoLockGet>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityAutoLockGet>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSecurityAutoLockGetQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update the auto-lock policy
+ */
+export const getSecurityAutoLockSetUrl = () => {
+  return `/api/security/auto-lock`;
+};
+
+export const securityAutoLockSet = async (
+  autoLockUpdateRequest: AutoLockUpdateRequest,
+  options?: RequestInit,
+): Promise<AutoLockStateResponse> => {
+  return customFetch<AutoLockStateResponse>(getSecurityAutoLockSetUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(autoLockUpdateRequest),
+  });
+};
+
+export const getSecurityAutoLockSetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityAutoLockSet>>,
+    TError,
+    { data: BodyType<AutoLockUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityAutoLockSet>>,
+  TError,
+  { data: BodyType<AutoLockUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityAutoLockSet"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityAutoLockSet>>,
+    { data: BodyType<AutoLockUpdateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityAutoLockSet(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityAutoLockSetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityAutoLockSet>>
+>;
+export type SecurityAutoLockSetMutationBody = BodyType<AutoLockUpdateRequest>;
+export type SecurityAutoLockSetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update the auto-lock policy
+ */
+export const useSecurityAutoLockSet = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityAutoLockSet>>,
+    TError,
+    { data: BodyType<AutoLockUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityAutoLockSet>>,
+  TError,
+  { data: BodyType<AutoLockUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityAutoLockSetMutationOptions(options));
+};
+
+/**
+ * @summary Read the per-tenant telemetry consent (default OFF)
+ */
+export const getSecurityTelemetryGetUrl = () => {
+  return `/api/security/telemetry`;
+};
+
+export const securityTelemetryGet = async (
+  options?: RequestInit,
+): Promise<TelemetryConsentResponse> => {
+  return customFetch<TelemetryConsentResponse>(getSecurityTelemetryGetUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSecurityTelemetryGetQueryKey = () => {
+  return [`/api/security/telemetry`] as const;
+};
+
+export const getSecurityTelemetryGetQueryOptions = <
+  TData = Awaited<ReturnType<typeof securityTelemetryGet>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityTelemetryGet>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSecurityTelemetryGetQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof securityTelemetryGet>>
+  > = ({ signal }) => securityTelemetryGet({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof securityTelemetryGet>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SecurityTelemetryGetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof securityTelemetryGet>>
+>;
+export type SecurityTelemetryGetQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Read the per-tenant telemetry consent (default OFF)
+ */
+
+export function useSecurityTelemetryGet<
+  TData = Awaited<ReturnType<typeof securityTelemetryGet>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityTelemetryGet>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSecurityTelemetryGetQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update the telemetry consent toggles
+ */
+export const getSecurityTelemetryUpdateUrl = () => {
+  return `/api/security/telemetry`;
+};
+
+export const securityTelemetryUpdate = async (
+  telemetryConsentUpdateRequest: TelemetryConsentUpdateRequest,
+  options?: RequestInit,
+): Promise<TelemetryConsentResponse> => {
+  return customFetch<TelemetryConsentResponse>(
+    getSecurityTelemetryUpdateUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(telemetryConsentUpdateRequest),
+    },
+  );
+};
+
+export const getSecurityTelemetryUpdateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityTelemetryUpdate>>,
+    TError,
+    { data: BodyType<TelemetryConsentUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityTelemetryUpdate>>,
+  TError,
+  { data: BodyType<TelemetryConsentUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityTelemetryUpdate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityTelemetryUpdate>>,
+    { data: BodyType<TelemetryConsentUpdateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityTelemetryUpdate(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityTelemetryUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityTelemetryUpdate>>
+>;
+export type SecurityTelemetryUpdateMutationBody =
+  BodyType<TelemetryConsentUpdateRequest>;
+export type SecurityTelemetryUpdateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update the telemetry consent toggles
+ */
+export const useSecurityTelemetryUpdate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityTelemetryUpdate>>,
+    TError,
+    { data: BodyType<TelemetryConsentUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityTelemetryUpdate>>,
+  TError,
+  { data: BodyType<TelemetryConsentUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityTelemetryUpdateMutationOptions(options));
+};
+
+/**
+ * @summary Pre-flight scan a skill source for malicious patterns
+ */
+export const getSecurityScanSkillUrl = () => {
+  return `/api/security/scan-skill`;
+};
+
+export const securityScanSkill = async (
+  scanSkillRequest: ScanSkillRequest,
+  options?: RequestInit,
+): Promise<ScanSkillResponse> => {
+  return customFetch<ScanSkillResponse>(getSecurityScanSkillUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(scanSkillRequest),
+  });
+};
+
+export const getSecurityScanSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityScanSkill>>,
+    TError,
+    { data: BodyType<ScanSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityScanSkill>>,
+  TError,
+  { data: BodyType<ScanSkillRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityScanSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityScanSkill>>,
+    { data: BodyType<ScanSkillRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityScanSkill(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityScanSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityScanSkill>>
+>;
+export type SecurityScanSkillMutationBody = BodyType<ScanSkillRequest>;
+export type SecurityScanSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Pre-flight scan a skill source for malicious patterns
+ */
+export const useSecurityScanSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityScanSkill>>,
+    TError,
+    { data: BodyType<ScanSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityScanSkill>>,
+  TError,
+  { data: BodyType<ScanSkillRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityScanSkillMutationOptions(options));
+};
+
+/**
+ * @summary List webhook HMAC secrets (plaintext is never returned)
+ */
+export const getSecurityWebhookSecretsListUrl = (
+  params?: SecurityWebhookSecretsListParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/security/webhook-secrets?${stringifiedParams}`
+    : `/api/security/webhook-secrets`;
+};
+
+export const securityWebhookSecretsList = async (
+  params?: SecurityWebhookSecretsListParams,
+  options?: RequestInit,
+): Promise<WebhookSecretListResponse> => {
+  return customFetch<WebhookSecretListResponse>(
+    getSecurityWebhookSecretsListUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getSecurityWebhookSecretsListQueryKey = (
+  params?: SecurityWebhookSecretsListParams,
+) => {
+  return [
+    `/api/security/webhook-secrets`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getSecurityWebhookSecretsListQueryOptions = <
+  TData = Awaited<ReturnType<typeof securityWebhookSecretsList>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: SecurityWebhookSecretsListParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof securityWebhookSecretsList>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSecurityWebhookSecretsListQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof securityWebhookSecretsList>>
+  > = ({ signal }) =>
+    securityWebhookSecretsList(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof securityWebhookSecretsList>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SecurityWebhookSecretsListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof securityWebhookSecretsList>>
+>;
+export type SecurityWebhookSecretsListQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List webhook HMAC secrets (plaintext is never returned)
+ */
+
+export function useSecurityWebhookSecretsList<
+  TData = Awaited<ReturnType<typeof securityWebhookSecretsList>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: SecurityWebhookSecretsListParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof securityWebhookSecretsList>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSecurityWebhookSecretsListQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a webhook HMAC secret (returns plaintext once)
+ */
+export const getSecurityWebhookSecretsCreateUrl = () => {
+  return `/api/security/webhook-secrets`;
+};
+
+export const securityWebhookSecretsCreate = async (
+  webhookSecretCreateRequest: WebhookSecretCreateRequest,
+  options?: RequestInit,
+): Promise<WebhookSecretCreatedResponse> => {
+  return customFetch<WebhookSecretCreatedResponse>(
+    getSecurityWebhookSecretsCreateUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(webhookSecretCreateRequest),
+    },
+  );
+};
+
+export const getSecurityWebhookSecretsCreateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityWebhookSecretsCreate>>,
+    TError,
+    { data: BodyType<WebhookSecretCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityWebhookSecretsCreate>>,
+  TError,
+  { data: BodyType<WebhookSecretCreateRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityWebhookSecretsCreate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityWebhookSecretsCreate>>,
+    { data: BodyType<WebhookSecretCreateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityWebhookSecretsCreate(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityWebhookSecretsCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityWebhookSecretsCreate>>
+>;
+export type SecurityWebhookSecretsCreateMutationBody =
+  BodyType<WebhookSecretCreateRequest>;
+export type SecurityWebhookSecretsCreateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a webhook HMAC secret (returns plaintext once)
+ */
+export const useSecurityWebhookSecretsCreate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityWebhookSecretsCreate>>,
+    TError,
+    { data: BodyType<WebhookSecretCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityWebhookSecretsCreate>>,
+  TError,
+  { data: BodyType<WebhookSecretCreateRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityWebhookSecretsCreateMutationOptions(options));
+};
+
+/**
+ * @summary Revoke a webhook HMAC secret
+ */
+export const getSecurityWebhookSecretsDeleteUrl = (id: string) => {
+  return `/api/security/webhook-secrets/${id}`;
+};
+
+export const securityWebhookSecretsDelete = async (
+  id: string,
+  options?: RequestInit,
+): Promise<WebhookSecretRevokeResponse> => {
+  return customFetch<WebhookSecretRevokeResponse>(
+    getSecurityWebhookSecretsDeleteUrl(id),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getSecurityWebhookSecretsDeleteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityWebhookSecretsDelete>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityWebhookSecretsDelete>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["securityWebhookSecretsDelete"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityWebhookSecretsDelete>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return securityWebhookSecretsDelete(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityWebhookSecretsDeleteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityWebhookSecretsDelete>>
+>;
+
+export type SecurityWebhookSecretsDeleteMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Revoke a webhook HMAC secret
+ */
+export const useSecurityWebhookSecretsDelete = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityWebhookSecretsDelete>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityWebhookSecretsDelete>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getSecurityWebhookSecretsDeleteMutationOptions(options));
+};
+
+/**
+ * @summary Begin TOTP enrollment for an admin user
+ */
+export const getSecurityAdmin2faSetupUrl = () => {
+  return `/api/security/admin-2fa/setup`;
+};
+
+export const securityAdmin2faSetup = async (
+  admin2faSetupRequest: Admin2faSetupRequest,
+  options?: RequestInit,
+): Promise<Admin2faSetupResponse> => {
+  return customFetch<Admin2faSetupResponse>(getSecurityAdmin2faSetupUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(admin2faSetupRequest),
+  });
+};
+
+export const getSecurityAdmin2faSetupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityAdmin2faSetup>>,
+    TError,
+    { data: BodyType<Admin2faSetupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityAdmin2faSetup>>,
+  TError,
+  { data: BodyType<Admin2faSetupRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityAdmin2faSetup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityAdmin2faSetup>>,
+    { data: BodyType<Admin2faSetupRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityAdmin2faSetup(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityAdmin2faSetupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityAdmin2faSetup>>
+>;
+export type SecurityAdmin2faSetupMutationBody = BodyType<Admin2faSetupRequest>;
+export type SecurityAdmin2faSetupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Begin TOTP enrollment for an admin user
+ */
+export const useSecurityAdmin2faSetup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityAdmin2faSetup>>,
+    TError,
+    { data: BodyType<Admin2faSetupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityAdmin2faSetup>>,
+  TError,
+  { data: BodyType<Admin2faSetupRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityAdmin2faSetupMutationOptions(options));
+};
+
+/**
+ * @summary Confirm TOTP enrollment with the first valid code
+ */
+export const getSecurityAdmin2faConfirmUrl = () => {
+  return `/api/security/admin-2fa/confirm`;
+};
+
+export const securityAdmin2faConfirm = async (
+  admin2faCodeRequest: Admin2faCodeRequest,
+  options?: RequestInit,
+): Promise<Admin2faConfirmResponse> => {
+  return customFetch<Admin2faConfirmResponse>(getSecurityAdmin2faConfirmUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(admin2faCodeRequest),
+  });
+};
+
+export const getSecurityAdmin2faConfirmMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityAdmin2faConfirm>>,
+    TError,
+    { data: BodyType<Admin2faCodeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityAdmin2faConfirm>>,
+  TError,
+  { data: BodyType<Admin2faCodeRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityAdmin2faConfirm"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityAdmin2faConfirm>>,
+    { data: BodyType<Admin2faCodeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityAdmin2faConfirm(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityAdmin2faConfirmMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityAdmin2faConfirm>>
+>;
+export type SecurityAdmin2faConfirmMutationBody = BodyType<Admin2faCodeRequest>;
+export type SecurityAdmin2faConfirmMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Confirm TOTP enrollment with the first valid code
+ */
+export const useSecurityAdmin2faConfirm = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityAdmin2faConfirm>>,
+    TError,
+    { data: BodyType<Admin2faCodeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityAdmin2faConfirm>>,
+  TError,
+  { data: BodyType<Admin2faCodeRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityAdmin2faConfirmMutationOptions(options));
+};
+
+/**
+ * @summary Verify a TOTP code for an enrolled admin user
+ */
+export const getSecurityAdmin2faVerifyUrl = () => {
+  return `/api/security/admin-2fa/verify`;
+};
+
+export const securityAdmin2faVerify = async (
+  admin2faCodeRequest: Admin2faCodeRequest,
+  options?: RequestInit,
+): Promise<Admin2faVerifyResponse> => {
+  return customFetch<Admin2faVerifyResponse>(getSecurityAdmin2faVerifyUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(admin2faCodeRequest),
+  });
+};
+
+export const getSecurityAdmin2faVerifyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityAdmin2faVerify>>,
+    TError,
+    { data: BodyType<Admin2faCodeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityAdmin2faVerify>>,
+  TError,
+  { data: BodyType<Admin2faCodeRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityAdmin2faVerify"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityAdmin2faVerify>>,
+    { data: BodyType<Admin2faCodeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityAdmin2faVerify(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityAdmin2faVerifyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityAdmin2faVerify>>
+>;
+export type SecurityAdmin2faVerifyMutationBody = BodyType<Admin2faCodeRequest>;
+export type SecurityAdmin2faVerifyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Verify a TOTP code for an enrolled admin user
+ */
+export const useSecurityAdmin2faVerify = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityAdmin2faVerify>>,
+    TError,
+    { data: BodyType<Admin2faCodeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityAdmin2faVerify>>,
+  TError,
+  { data: BodyType<Admin2faCodeRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityAdmin2faVerifyMutationOptions(options));
+};
+
+/**
+ * @summary Issue a fresh access + refresh token pair
+ */
+export const getSecurityJwtIssueUrl = () => {
+  return `/api/security/jwt/issue`;
+};
+
+export const securityJwtIssue = async (
+  jwtIssueRequest: JwtIssueRequest,
+  options?: RequestInit,
+): Promise<JwtPairResponse> => {
+  return customFetch<JwtPairResponse>(getSecurityJwtIssueUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(jwtIssueRequest),
+  });
+};
+
+export const getSecurityJwtIssueMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityJwtIssue>>,
+    TError,
+    { data: BodyType<JwtIssueRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityJwtIssue>>,
+  TError,
+  { data: BodyType<JwtIssueRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityJwtIssue"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityJwtIssue>>,
+    { data: BodyType<JwtIssueRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityJwtIssue(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityJwtIssueMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityJwtIssue>>
+>;
+export type SecurityJwtIssueMutationBody = BodyType<JwtIssueRequest>;
+export type SecurityJwtIssueMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Issue a fresh access + refresh token pair
+ */
+export const useSecurityJwtIssue = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityJwtIssue>>,
+    TError,
+    { data: BodyType<JwtIssueRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityJwtIssue>>,
+  TError,
+  { data: BodyType<JwtIssueRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityJwtIssueMutationOptions(options));
+};
+
+/**
+ * @summary Rotate a refresh token (re-use is treated as theft)
+ */
+export const getSecurityJwtRotateUrl = () => {
+  return `/api/security/jwt/rotate`;
+};
+
+export const securityJwtRotate = async (
+  jwtRotateRequest: JwtRotateRequest,
+  options?: RequestInit,
+): Promise<JwtPairResponse> => {
+  return customFetch<JwtPairResponse>(getSecurityJwtRotateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(jwtRotateRequest),
+  });
+};
+
+export const getSecurityJwtRotateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityJwtRotate>>,
+    TError,
+    { data: BodyType<JwtRotateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityJwtRotate>>,
+  TError,
+  { data: BodyType<JwtRotateRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityJwtRotate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityJwtRotate>>,
+    { data: BodyType<JwtRotateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityJwtRotate(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityJwtRotateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityJwtRotate>>
+>;
+export type SecurityJwtRotateMutationBody = BodyType<JwtRotateRequest>;
+export type SecurityJwtRotateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Rotate a refresh token (re-use is treated as theft)
+ */
+export const useSecurityJwtRotate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityJwtRotate>>,
+    TError,
+    { data: BodyType<JwtRotateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityJwtRotate>>,
+  TError,
+  { data: BodyType<JwtRotateRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityJwtRotateMutationOptions(options));
+};
+
+/**
+ * @summary Revoke a refresh token
+ */
+export const getSecurityJwtRevokeUrl = () => {
+  return `/api/security/jwt/revoke`;
+};
+
+export const securityJwtRevoke = async (
+  jwtRevokeRequest: JwtRevokeRequest,
+  options?: RequestInit,
+): Promise<JwtRevokeResponse> => {
+  return customFetch<JwtRevokeResponse>(getSecurityJwtRevokeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(jwtRevokeRequest),
+  });
+};
+
+export const getSecurityJwtRevokeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityJwtRevoke>>,
+    TError,
+    { data: BodyType<JwtRevokeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityJwtRevoke>>,
+  TError,
+  { data: BodyType<JwtRevokeRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityJwtRevoke"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityJwtRevoke>>,
+    { data: BodyType<JwtRevokeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityJwtRevoke(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityJwtRevokeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityJwtRevoke>>
+>;
+export type SecurityJwtRevokeMutationBody = BodyType<JwtRevokeRequest>;
+export type SecurityJwtRevokeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Revoke a refresh token
+ */
+export const useSecurityJwtRevoke = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityJwtRevoke>>,
+    TError,
+    { data: BodyType<JwtRevokeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityJwtRevoke>>,
+  TError,
+  { data: BodyType<JwtRevokeRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityJwtRevokeMutationOptions(options));
+};
+
+/**
+ * @summary 30-day security summary report
+ */
+export const getSecurityReportUrl = () => {
+  return `/api/security/report`;
+};
+
+export const securityReport = async (
+  options?: RequestInit,
+): Promise<SecurityReportResponse> => {
+  return customFetch<SecurityReportResponse>(getSecurityReportUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSecurityReportQueryKey = () => {
+  return [`/api/security/report`] as const;
+};
+
+export const getSecurityReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof securityReport>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSecurityReportQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof securityReport>>> = ({
+    signal,
+  }) => securityReport({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof securityReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SecurityReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof securityReport>>
+>;
+export type SecurityReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary 30-day security summary report
+ */
+
+export function useSecurityReport<
+  TData = Awaited<ReturnType<typeof securityReport>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof securityReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSecurityReportQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Permanently erase all data for the calling tenant
+ */
+export const getSecurityNukeUrl = () => {
+  return `/api/security/nuke`;
+};
+
+export const securityNuke = async (
+  securityNukeRequest: SecurityNukeRequest,
+  options?: RequestInit,
+): Promise<SecurityNukeResponse> => {
+  return customFetch<SecurityNukeResponse>(getSecurityNukeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(securityNukeRequest),
+  });
+};
+
+export const getSecurityNukeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityNuke>>,
+    TError,
+    { data: BodyType<SecurityNukeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof securityNuke>>,
+  TError,
+  { data: BodyType<SecurityNukeRequest> },
+  TContext
+> => {
+  const mutationKey = ["securityNuke"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof securityNuke>>,
+    { data: BodyType<SecurityNukeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return securityNuke(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SecurityNukeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof securityNuke>>
+>;
+export type SecurityNukeMutationBody = BodyType<SecurityNukeRequest>;
+export type SecurityNukeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Permanently erase all data for the calling tenant
+ */
+export const useSecurityNuke = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof securityNuke>>,
+    TError,
+    { data: BodyType<SecurityNukeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof securityNuke>>,
+  TError,
+  { data: BodyType<SecurityNukeRequest> },
+  TContext
+> => {
+  return useMutation(getSecurityNukeMutationOptions(options));
+};

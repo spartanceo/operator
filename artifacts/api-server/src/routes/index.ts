@@ -19,6 +19,7 @@ import memoryRouter from "./memory";
 import modelsRouter from "./models";
 import onboardingRouter from "./onboarding";
 import privacyRouter from "./privacy";
+import securityRouter from "./security";
 import toolsRouter from "./tools";
 import updatesRouter from "./updates";
 
@@ -32,6 +33,7 @@ router.use("/chat", chatRouter);
 router.use("/agent", agentRouter);
 router.use("/tools", toolsRouter);
 router.use("/privacy", privacyRouter);
+router.use("/security", securityRouter);
 router.use("/memory", memoryRouter);
 router.use("/knowledge", knowledgeRouter);
 router.use("/files", filesRouter);

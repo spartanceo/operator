@@ -2142,6 +2142,358 @@ export interface InteractionListResponse {
   data: InteractionListPage;
 }
 
+export interface AuditEntry {
+  id: string;
+  sequence: number;
+  actor: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string | null;
+  summary: string;
+  previousHash?: string | null;
+  entryHash: string;
+  createdAt: string;
+}
+
+export interface AuditListPage {
+  items: AuditEntry[];
+  nextCursor: string | null;
+}
+
+export interface AuditListResponse {
+  success: boolean;
+  data: AuditListPage;
+}
+
+export interface AuditVerifyResult {
+  intact: boolean;
+  checkedRows: number;
+  firstBrokenSequence?: number | null;
+  verifiedAt: string;
+}
+
+export interface AuditVerifyResponse {
+  success: boolean;
+  data: AuditVerifyResult;
+}
+
+export type SecurityEventSeverity =
+  (typeof SecurityEventSeverity)[keyof typeof SecurityEventSeverity];
+
+export const SecurityEventSeverity = {
+  info: "info",
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export interface SecurityEvent {
+  id: string;
+  eventType: string;
+  severity: SecurityEventSeverity;
+  actor: string;
+  target?: string | null;
+  detail?: string | null;
+  createdAt: string;
+}
+
+export interface SecurityEventListPage {
+  items: SecurityEvent[];
+  nextCursor: string | null;
+}
+
+export interface SecurityEventListResponse {
+  success: boolean;
+  data: SecurityEventListPage;
+}
+
+export interface MasterPasswordStatus {
+  isSet: boolean;
+  biometricEnabled?: boolean;
+  updatedAt?: string | null;
+}
+
+export interface MasterPasswordStatusResponse {
+  success: boolean;
+  data: MasterPasswordStatus;
+}
+
+export interface MasterPasswordSetRequest {
+  currentPassword?: string;
+  /** @minLength 12 */
+  newPassword: string;
+}
+
+export interface MasterPasswordVerifyRequest {
+  password: string;
+}
+
+export interface MasterPasswordVerifyResult {
+  success: boolean;
+}
+
+export interface MasterPasswordVerifyResponse {
+  success: boolean;
+  data: MasterPasswordVerifyResult;
+}
+
+export interface AutoLockState {
+  enabled: boolean;
+  inactivityMinutes: number;
+  lockOnSuspend: boolean;
+  locked: boolean;
+  lastActivityAt?: string | null;
+}
+
+export interface AutoLockStateResponse {
+  success: boolean;
+  data: AutoLockState;
+}
+
+export interface AutoLockUpdateRequest {
+  enabled?: boolean;
+  /**
+   * @minimum 1
+   * @maximum 1440
+   */
+  inactivityMinutes?: number;
+  lockOnSuspend?: boolean;
+}
+
+export interface TelemetryConsent {
+  crashReportsEnabled: boolean;
+  usageMetricsEnabled: boolean;
+  productImprovementEnabled: boolean;
+  consentGivenAt?: string | null;
+  consentRevokedAt?: string | null;
+  consentVersion: string;
+}
+
+export interface TelemetryConsentResponse {
+  success: boolean;
+  data: TelemetryConsent;
+}
+
+export interface TelemetryConsentUpdateRequest {
+  crashReportsEnabled?: boolean;
+  usageMetricsEnabled?: boolean;
+  productImprovementEnabled?: boolean;
+}
+
+export interface ScanSkillRequest {
+  code: string;
+}
+
+export type ScannerFindingSeverity =
+  (typeof ScannerFindingSeverity)[keyof typeof ScannerFindingSeverity];
+
+export const ScannerFindingSeverity = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export interface ScannerFinding {
+  ruleId: string;
+  description: string;
+  severity: ScannerFindingSeverity;
+  line: number;
+  snippet: string;
+}
+
+export interface ScanSkillResult {
+  safe: boolean;
+  findings: ScannerFinding[];
+}
+
+export interface ScanSkillResponse {
+  success: boolean;
+  data: ScanSkillResult;
+}
+
+export interface WebhookSecret {
+  id: string;
+  endpoint: string;
+  label: string;
+  createdAt: string;
+  revokedAt?: string | null;
+}
+
+export interface WebhookSecretListPage {
+  items: WebhookSecret[];
+  nextCursor: string | null;
+}
+
+export interface WebhookSecretListResponse {
+  success: boolean;
+  data: WebhookSecretListPage;
+}
+
+export interface WebhookSecretCreateRequest {
+  endpoint: string;
+  label: string;
+}
+
+export interface WebhookSecretCreated {
+  id: string;
+  endpoint: string;
+  label: string;
+  /** Plaintext secret — returned only once. */
+  secret: string;
+  createdAt: string;
+}
+
+export interface WebhookSecretCreatedResponse {
+  success: boolean;
+  data: WebhookSecretCreated;
+}
+
+export interface WebhookSecretRevokeReceipt {
+  id: string;
+  revoked: boolean;
+}
+
+export interface WebhookSecretRevokeResponse {
+  success: boolean;
+  data: WebhookSecretRevokeReceipt;
+}
+
+export interface Admin2faSetupRequest {
+  userId: string;
+  accountLabel: string;
+}
+
+export interface Admin2faSetupData {
+  secret: string;
+  otpauthUri: string;
+}
+
+export interface Admin2faSetupResponse {
+  success: boolean;
+  data: Admin2faSetupData;
+}
+
+export interface Admin2faCodeRequest {
+  userId: string;
+  code: string;
+}
+
+export interface Admin2faConfirmData {
+  confirmed: boolean;
+}
+
+export interface Admin2faConfirmResponse {
+  success: boolean;
+  data: Admin2faConfirmData;
+}
+
+export interface Admin2faVerifyData {
+  success: boolean;
+}
+
+export interface Admin2faVerifyResponse {
+  success: boolean;
+  data: Admin2faVerifyData;
+}
+
+export interface JwtIssueRequest {
+  userId: string;
+  role: string;
+}
+
+export interface JwtRotateRequest {
+  refreshToken: string;
+  role: string;
+}
+
+export interface JwtRevokeRequest {
+  refreshToken: string;
+}
+
+export interface JwtPair {
+  accessToken: string;
+  refreshToken: string;
+  accessExpiresAt: string;
+  refreshExpiresAt: string;
+}
+
+export interface JwtPairResponse {
+  success: boolean;
+  data: JwtPair;
+}
+
+export interface JwtRevokeReceipt {
+  revoked: boolean;
+}
+
+export interface JwtRevokeResponse {
+  success: boolean;
+  data: JwtRevokeReceipt;
+}
+
+export interface SecurityReportTotals {
+  auditEntries: number;
+  securityEvents: number;
+  criticalEvents: number;
+  highEvents: number;
+  mediumEvents: number;
+}
+
+export interface SecurityReportTopEventType {
+  eventType: string;
+  count: number;
+}
+
+export interface SecurityReportChain {
+  intact: boolean;
+  checkedRows: number;
+  firstBrokenSequence?: number | null;
+}
+
+export interface SecurityReportRecentCritical {
+  id: string;
+  eventType: string;
+  severity: string;
+  actor: string;
+  target?: string | null;
+  createdAt: string;
+}
+
+export interface SecurityReport {
+  windowStart: string;
+  windowEnd: string;
+  totals: SecurityReportTotals;
+  topEventTypes: SecurityReportTopEventType[];
+  chain: SecurityReportChain;
+  recentCritical: SecurityReportRecentCritical[];
+}
+
+export interface SecurityReportResponse {
+  success: boolean;
+  data: SecurityReport;
+}
+
+export interface SecurityNukeRequest {
+  reason: string;
+  /** Must equal the literal string "ERASE EVERYTHING". */
+  confirmation: string;
+}
+
+export type SecurityNukeReceiptDeletedCounts = { [key: string]: number };
+
+export interface SecurityNukeReceipt {
+  tenantId: string;
+  deletedCounts: SecurityNukeReceiptDeletedCounts;
+  completedAt: string;
+}
+
+export interface SecurityNukeResponse {
+  success: boolean;
+  data: SecurityNukeReceipt;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -2531,6 +2883,45 @@ export type ListContactsParams = {
 };
 
 export type ListContactInteractionsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type SecurityAuditListParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type SecurityEventsListParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type SecurityWebhookSecretsListParams = {
   /**
    * Opaque cursor returned by the previous page.
    */

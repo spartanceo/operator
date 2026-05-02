@@ -4938,3 +4938,636 @@ export const ListContactInteractionsResponse = zod.object({
     nextCursor: zod.string().nullable(),
   }),
 });
+
+/**
+ * @summary List tamper-evident audit log entries (newest first)
+ */
+export const securityAuditListQueryLimitDefault = 20;
+export const securityAuditListQueryLimitMax = 100;
+
+export const SecurityAuditListQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(securityAuditListQueryLimitMax)
+    .default(securityAuditListQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const SecurityAuditListHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityAuditListResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        sequence: zod.number(),
+        actor: zod.string(),
+        action: zod.string(),
+        resourceType: zod.string(),
+        resourceId: zod.string().nullish(),
+        summary: zod.string(),
+        previousHash: zod.string().nullish(),
+        entryHash: zod.string(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Walk the hash chain end-to-end and report integrity
+ */
+export const SecurityAuditVerifyHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityAuditVerifyResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    intact: zod.boolean(),
+    checkedRows: zod.number(),
+    firstBrokenSequence: zod.number().nullish(),
+    verifiedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List severity-tagged security events (newest first)
+ */
+export const securityEventsListQueryLimitDefault = 20;
+export const securityEventsListQueryLimitMax = 100;
+
+export const SecurityEventsListQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(securityEventsListQueryLimitMax)
+    .default(securityEventsListQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const SecurityEventsListHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityEventsListResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        eventType: zod.string(),
+        severity: zod.enum(["info", "low", "medium", "high", "critical"]),
+        actor: zod.string(),
+        target: zod.string().nullish(),
+        detail: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Report whether a master password is configured
+ */
+export const SecurityMasterPasswordStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityMasterPasswordStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    isSet: zod.boolean(),
+    biometricEnabled: zod.boolean().optional(),
+    updatedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Set or rotate the master password
+ */
+export const SecurityMasterPasswordSetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const securityMasterPasswordSetBodyNewPasswordMin = 12;
+
+export const SecurityMasterPasswordSetBody = zod.object({
+  currentPassword: zod.string().optional(),
+  newPassword: zod.string().min(securityMasterPasswordSetBodyNewPasswordMin),
+});
+
+export const SecurityMasterPasswordSetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    isSet: zod.boolean(),
+    biometricEnabled: zod.boolean().optional(),
+    updatedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Verify a master-password attempt
+ */
+export const SecurityMasterPasswordVerifyHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityMasterPasswordVerifyBody = zod.object({
+  password: zod.string(),
+});
+
+export const SecurityMasterPasswordVerifyResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    success: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Read the current auto-lock policy
+ */
+export const SecurityAutoLockGetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityAutoLockGetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    enabled: zod.boolean(),
+    inactivityMinutes: zod.number(),
+    lockOnSuspend: zod.boolean(),
+    locked: zod.boolean(),
+    lastActivityAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Update the auto-lock policy
+ */
+export const SecurityAutoLockSetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const securityAutoLockSetBodyInactivityMinutesMax = 1440;
+
+export const SecurityAutoLockSetBody = zod.object({
+  enabled: zod.boolean().optional(),
+  inactivityMinutes: zod
+    .number()
+    .min(1)
+    .max(securityAutoLockSetBodyInactivityMinutesMax)
+    .optional(),
+  lockOnSuspend: zod.boolean().optional(),
+});
+
+export const SecurityAutoLockSetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    enabled: zod.boolean(),
+    inactivityMinutes: zod.number(),
+    lockOnSuspend: zod.boolean(),
+    locked: zod.boolean(),
+    lastActivityAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Read the per-tenant telemetry consent (default OFF)
+ */
+export const SecurityTelemetryGetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityTelemetryGetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    crashReportsEnabled: zod.boolean(),
+    usageMetricsEnabled: zod.boolean(),
+    productImprovementEnabled: zod.boolean(),
+    consentGivenAt: zod.coerce.date().nullish(),
+    consentRevokedAt: zod.coerce.date().nullish(),
+    consentVersion: zod.string(),
+  }),
+});
+
+/**
+ * @summary Update the telemetry consent toggles
+ */
+export const SecurityTelemetryUpdateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityTelemetryUpdateBody = zod.object({
+  crashReportsEnabled: zod.boolean().optional(),
+  usageMetricsEnabled: zod.boolean().optional(),
+  productImprovementEnabled: zod.boolean().optional(),
+});
+
+export const SecurityTelemetryUpdateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    crashReportsEnabled: zod.boolean(),
+    usageMetricsEnabled: zod.boolean(),
+    productImprovementEnabled: zod.boolean(),
+    consentGivenAt: zod.coerce.date().nullish(),
+    consentRevokedAt: zod.coerce.date().nullish(),
+    consentVersion: zod.string(),
+  }),
+});
+
+/**
+ * @summary Pre-flight scan a skill source for malicious patterns
+ */
+export const SecurityScanSkillHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityScanSkillBody = zod.object({
+  code: zod.string(),
+});
+
+export const SecurityScanSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    safe: zod.boolean(),
+    findings: zod.array(
+      zod.object({
+        ruleId: zod.string(),
+        description: zod.string(),
+        severity: zod.enum(["low", "medium", "high", "critical"]),
+        line: zod.number(),
+        snippet: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary List webhook HMAC secrets (plaintext is never returned)
+ */
+export const securityWebhookSecretsListQueryLimitDefault = 20;
+export const securityWebhookSecretsListQueryLimitMax = 100;
+
+export const SecurityWebhookSecretsListQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(securityWebhookSecretsListQueryLimitMax)
+    .default(securityWebhookSecretsListQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const SecurityWebhookSecretsListHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityWebhookSecretsListResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        endpoint: zod.string(),
+        label: zod.string(),
+        createdAt: zod.coerce.date(),
+        revokedAt: zod.coerce.date().nullish(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a webhook HMAC secret (returns plaintext once)
+ */
+export const SecurityWebhookSecretsCreateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityWebhookSecretsCreateBody = zod.object({
+  endpoint: zod.string(),
+  label: zod.string(),
+});
+
+export const SecurityWebhookSecretsCreateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    endpoint: zod.string(),
+    label: zod.string(),
+    secret: zod.string().describe("Plaintext secret — returned only once."),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Revoke a webhook HMAC secret
+ */
+export const SecurityWebhookSecretsDeleteParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SecurityWebhookSecretsDeleteHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityWebhookSecretsDeleteResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    revoked: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Begin TOTP enrollment for an admin user
+ */
+export const SecurityAdmin2faSetupHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityAdmin2faSetupBody = zod.object({
+  userId: zod.string(),
+  accountLabel: zod.string(),
+});
+
+export const SecurityAdmin2faSetupResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    secret: zod.string(),
+    otpauthUri: zod.string(),
+  }),
+});
+
+/**
+ * @summary Confirm TOTP enrollment with the first valid code
+ */
+export const SecurityAdmin2faConfirmHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityAdmin2faConfirmBody = zod.object({
+  userId: zod.string(),
+  code: zod.string(),
+});
+
+export const SecurityAdmin2faConfirmResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    confirmed: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Verify a TOTP code for an enrolled admin user
+ */
+export const SecurityAdmin2faVerifyHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityAdmin2faVerifyBody = zod.object({
+  userId: zod.string(),
+  code: zod.string(),
+});
+
+export const SecurityAdmin2faVerifyResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    success: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Issue a fresh access + refresh token pair
+ */
+export const SecurityJwtIssueHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityJwtIssueBody = zod.object({
+  userId: zod.string(),
+  role: zod.string(),
+});
+
+export const SecurityJwtIssueResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    accessToken: zod.string(),
+    refreshToken: zod.string(),
+    accessExpiresAt: zod.coerce.date(),
+    refreshExpiresAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Rotate a refresh token (re-use is treated as theft)
+ */
+export const SecurityJwtRotateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityJwtRotateBody = zod.object({
+  refreshToken: zod.string(),
+  role: zod.string(),
+});
+
+export const SecurityJwtRotateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    accessToken: zod.string(),
+    refreshToken: zod.string(),
+    accessExpiresAt: zod.coerce.date(),
+    refreshExpiresAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Revoke a refresh token
+ */
+export const SecurityJwtRevokeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityJwtRevokeBody = zod.object({
+  refreshToken: zod.string(),
+});
+
+export const SecurityJwtRevokeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    revoked: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary 30-day security summary report
+ */
+export const SecurityReportHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityReportResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    windowStart: zod.coerce.date(),
+    windowEnd: zod.coerce.date(),
+    totals: zod.object({
+      auditEntries: zod.number(),
+      securityEvents: zod.number(),
+      criticalEvents: zod.number(),
+      highEvents: zod.number(),
+      mediumEvents: zod.number(),
+    }),
+    topEventTypes: zod.array(
+      zod.object({
+        eventType: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    chain: zod.object({
+      intact: zod.boolean(),
+      checkedRows: zod.number(),
+      firstBrokenSequence: zod.number().nullish(),
+    }),
+    recentCritical: zod.array(
+      zod.object({
+        id: zod.string(),
+        eventType: zod.string(),
+        severity: zod.string(),
+        actor: zod.string(),
+        target: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Permanently erase all data for the calling tenant
+ */
+export const SecurityNukeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SecurityNukeBody = zod.object({
+  reason: zod.string(),
+  confirmation: zod
+    .string()
+    .describe('Must equal the literal string \"ERASE EVERYTHING\".'),
+});
+
+export const SecurityNukeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    tenantId: zod.string(),
+    deletedCounts: zod.record(zod.string(), zod.number()),
+    completedAt: zod.coerce.date(),
+  }),
+});
