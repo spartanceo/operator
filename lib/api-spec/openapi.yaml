@@ -299,6 +299,275 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ChatResponse"
+  /conversations:
+    get:
+      operationId: listConversations
+      tags:
+        - chat
+      summary: List conversations (sidebar)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: archivedOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: since
+          in: query
+          required: false
+          description: ISO date — only conversations active on or after this timestamp.
+          schema:
+            type: string
+            format: date-time
+        - name: agentOnly
+          in: query
+          required: false
+          description: Only conversations that ran the agent at least once.
+          schema:
+            type: boolean
+        - name: desktopOnly
+          in: query
+          required: false
+          description: Only conversations whose desktop control was invoked.
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Conversations page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationListResponse"
+    post:
+      operationId: createConversation
+      tags:
+        - chat
+      summary: Create a new conversation thread
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConversationRequest"
+      responses:
+        "200":
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationResponse"
+  /conversations/search:
+    get:
+      operationId: searchConversations
+      tags:
+        - chat
+      summary: Full-text search across messages and runs
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: Search hits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationSearchResponse"
+  /conversations/{id}:
+    get:
+      operationId: getConversation
+      tags:
+        - chat
+      summary: Fetch one conversation
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    patch:
+      operationId: updateConversation
+      tags:
+        - chat
+      summary: Rename, pin, archive, or set agent mode
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateConversationRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: deleteConversation
+      tags:
+        - chat
+      summary: Permanently delete a conversation and its dependents
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteConversationResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /conversations/{id}/messages:
+    get:
+      operationId: listConversationMessages
+      tags:
+        - chat
+      summary: Conversation transcript
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Messages page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationMessageListResponse"
+    post:
+      operationId: appendConversationMessage
+      tags:
+        - chat
+      summary: Append a chat-mode message turn to a conversation
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppendConversationMessageRequest"
+      responses:
+        "200":
+          description: Appended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppendConversationMessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /conversations/{id}/export:
+    get:
+      operationId: exportConversation
+      tags:
+        - chat
+      summary: Export a conversation as markdown or JSON
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - markdown
+              - json
+              - pdf
+            default: markdown
+      responses:
+        "200":
+          description: Export payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationExportResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
   /agent/runs:
     get:
       operationId: listAgentRuns
@@ -4781,6 +5050,13 @@ components:
           type: string
         modelName:
           type: string
+        conversationId:
+          type: string
+          description: Optional conversation thread to attach this run to.
+        useKnowledgeBase:
+          type: boolean
+        knowledgeCollectionId:
+          type: string
     Message:
       type: object
       required:
@@ -4891,6 +5167,317 @@ components:
             - true
         data:
           $ref: "#/components/schemas/ToolCallListPage"
+    Conversation:
+      type: object
+      required:
+        - id
+        - title
+        - pinned
+        - archived
+        - messageCount
+        - agentMode
+        - desktopUsed
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        pinned:
+          type: boolean
+        archived:
+          type: boolean
+        pinnedAt:
+          type: string
+          format: date-time
+          nullable: true
+        archivedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastMessageAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastMessagePreview:
+          type: string
+          nullable: true
+        messageCount:
+          type: integer
+        agentMode:
+          type: boolean
+        modelName:
+          type: string
+          nullable: true
+        desktopUsed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ConversationListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Conversation"
+        nextCursor:
+          type: string
+          nullable: true
+    ConversationListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ConversationListPage"
+    ConversationResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/Conversation"
+    CreateConversationRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        agentMode:
+          type: boolean
+        modelName:
+          type: string
+    UpdateConversationRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        pinned:
+          type: boolean
+        archived:
+          type: boolean
+        agentMode:
+          type: boolean
+        modelName:
+          type: string
+          nullable: true
+    DeleteConversationReceipt:
+      type: object
+      required:
+        - deleted
+        - removedMessages
+        - removedRuns
+      properties:
+        deleted:
+          type: boolean
+        removedMessages:
+          type: integer
+        removedRuns:
+          type: integer
+    DeleteConversationResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/DeleteConversationReceipt"
+    ConversationMessage:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - createdAt
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+        content:
+          type: string
+        runId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    ConversationMessageListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationMessage"
+        nextCursor:
+          type: string
+          nullable: true
+    ConversationMessageListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ConversationMessageListPage"
+    AppendConversationMessageRequest:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum:
+            - user
+            - assistant
+            - system
+        content:
+          type: string
+        runId:
+          type: string
+          nullable: true
+    AppendConversationMessageReceipt:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+    AppendConversationMessageResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/AppendConversationMessageReceipt"
+    ConversationSearchHit:
+      type: object
+      required:
+        - conversationId
+        - conversationTitle
+        - matchType
+        - matchId
+        - preview
+        - createdAt
+      properties:
+        conversationId:
+          type: string
+        conversationTitle:
+          type: string
+        matchType:
+          type: string
+          enum:
+            - message
+            - run
+            - tool
+        matchId:
+          type: string
+        preview:
+          type: string
+        role:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    ConversationSearchPayload:
+      type: object
+      required:
+        - items
+        - query
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationSearchHit"
+        query:
+          type: string
+    ConversationSearchResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ConversationSearchPayload"
+    ConversationExportPayload:
+      type: object
+      required:
+        - format
+        - filename
+        - contentType
+        - body
+      properties:
+        format:
+          type: string
+          enum:
+            - markdown
+            - json
+            - pdf
+        filename:
+          type: string
+        contentType:
+          type: string
+        body:
+          type: string
+        encoding:
+          type: string
+          enum:
+            - base64
+          description: Present when `body` is base64-encoded (PDF export).
+    ConversationExportResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ConversationExportPayload"
     Approval:
       type: object
       required:

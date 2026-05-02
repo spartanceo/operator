@@ -329,6 +329,370 @@ export const ChatResponse = zod.object({
 });
 
 /**
+ * @summary List conversations (sidebar)
+ */
+export const listConversationsQueryLimitDefault = 20;
+export const listConversationsQueryLimitMax = 100;
+
+export const ListConversationsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listConversationsQueryLimitMax)
+    .default(listConversationsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  includeArchived: zod.coerce.boolean().optional(),
+  archivedOnly: zod.coerce.boolean().optional(),
+  q: zod.coerce.string().optional(),
+  since: zod
+    .date()
+    .optional()
+    .describe(
+      "ISO date — only conversations active on or after this timestamp.",
+    ),
+  agentOnly: zod.coerce
+    .boolean()
+    .optional()
+    .describe("Only conversations that ran the agent at least once."),
+  desktopOnly: zod.coerce
+    .boolean()
+    .optional()
+    .describe("Only conversations whose desktop control was invoked."),
+});
+
+export const ListConversationsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListConversationsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        title: zod.string(),
+        summary: zod.string().nullish(),
+        pinned: zod.boolean(),
+        archived: zod.boolean(),
+        pinnedAt: zod.coerce.date().nullish(),
+        archivedAt: zod.coerce.date().nullish(),
+        lastMessageAt: zod.coerce.date().nullish(),
+        lastMessagePreview: zod.string().nullish(),
+        messageCount: zod.number(),
+        agentMode: zod.boolean(),
+        modelName: zod.string().nullish(),
+        desktopUsed: zod.boolean(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a new conversation thread
+ */
+export const CreateConversationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateConversationBody = zod.object({
+  title: zod.string().optional(),
+  agentMode: zod.boolean().optional(),
+  modelName: zod.string().optional(),
+});
+
+export const CreateConversationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    title: zod.string(),
+    summary: zod.string().nullish(),
+    pinned: zod.boolean(),
+    archived: zod.boolean(),
+    pinnedAt: zod.coerce.date().nullish(),
+    archivedAt: zod.coerce.date().nullish(),
+    lastMessageAt: zod.coerce.date().nullish(),
+    lastMessagePreview: zod.string().nullish(),
+    messageCount: zod.number(),
+    agentMode: zod.boolean(),
+    modelName: zod.string().nullish(),
+    desktopUsed: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Full-text search across messages and runs
+ */
+export const searchConversationsQueryLimitMax = 50;
+
+export const SearchConversationsQueryParams = zod.object({
+  q: zod.coerce.string(),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(searchConversationsQueryLimitMax)
+    .optional(),
+});
+
+export const SearchConversationsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SearchConversationsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        conversationId: zod.string(),
+        conversationTitle: zod.string(),
+        matchType: zod.enum(["message", "run", "tool"]),
+        matchId: zod.string(),
+        preview: zod.string(),
+        role: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    query: zod.string(),
+  }),
+});
+
+/**
+ * @summary Fetch one conversation
+ */
+export const GetConversationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetConversationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetConversationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    title: zod.string(),
+    summary: zod.string().nullish(),
+    pinned: zod.boolean(),
+    archived: zod.boolean(),
+    pinnedAt: zod.coerce.date().nullish(),
+    archivedAt: zod.coerce.date().nullish(),
+    lastMessageAt: zod.coerce.date().nullish(),
+    lastMessagePreview: zod.string().nullish(),
+    messageCount: zod.number(),
+    agentMode: zod.boolean(),
+    modelName: zod.string().nullish(),
+    desktopUsed: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Rename, pin, archive, or set agent mode
+ */
+export const UpdateConversationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateConversationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateConversationBody = zod.object({
+  title: zod.string().optional(),
+  pinned: zod.boolean().optional(),
+  archived: zod.boolean().optional(),
+  agentMode: zod.boolean().optional(),
+  modelName: zod.string().nullish(),
+});
+
+export const UpdateConversationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    title: zod.string(),
+    summary: zod.string().nullish(),
+    pinned: zod.boolean(),
+    archived: zod.boolean(),
+    pinnedAt: zod.coerce.date().nullish(),
+    archivedAt: zod.coerce.date().nullish(),
+    lastMessageAt: zod.coerce.date().nullish(),
+    lastMessagePreview: zod.string().nullish(),
+    messageCount: zod.number(),
+    agentMode: zod.boolean(),
+    modelName: zod.string().nullish(),
+    desktopUsed: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Permanently delete a conversation and its dependents
+ */
+export const DeleteConversationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteConversationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteConversationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deleted: zod.boolean(),
+    removedMessages: zod.number(),
+    removedRuns: zod.number(),
+  }),
+});
+
+/**
+ * @summary Conversation transcript
+ */
+export const ListConversationMessagesParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listConversationMessagesQueryLimitDefault = 20;
+export const listConversationMessagesQueryLimitMax = 100;
+
+export const ListConversationMessagesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listConversationMessagesQueryLimitMax)
+    .default(listConversationMessagesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListConversationMessagesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListConversationMessagesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        role: zod.string(),
+        content: zod.string(),
+        runId: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Append a chat-mode message turn to a conversation
+ */
+export const AppendConversationMessageParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AppendConversationMessageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const AppendConversationMessageBody = zod.object({
+  role: zod.enum(["user", "assistant", "system"]),
+  content: zod.string(),
+  runId: zod.string().nullish(),
+});
+
+export const AppendConversationMessageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+  }),
+});
+
+/**
+ * @summary Export a conversation as markdown or JSON
+ */
+export const ExportConversationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const exportConversationQueryFormatDefault = `markdown`;
+
+export const ExportConversationQueryParams = zod.object({
+  format: zod
+    .enum(["markdown", "json", "pdf"])
+    .default(exportConversationQueryFormatDefault),
+});
+
+export const ExportConversationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ExportConversationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    format: zod.enum(["markdown", "json", "pdf"]),
+    filename: zod.string(),
+    contentType: zod.string(),
+    body: zod.string(),
+    encoding: zod
+      .enum(["base64"])
+      .optional()
+      .describe("Present when `body` is base64-encoded (PDF export)."),
+  }),
+});
+
+/**
  * @summary List recent agent runs in this workspace
  */
 export const listAgentRunsQueryLimitDefault = 20;
@@ -391,6 +755,12 @@ export const CreateAgentRunHeader = zod.object({
 export const CreateAgentRunBody = zod.object({
   goal: zod.string(),
   modelName: zod.string().optional(),
+  conversationId: zod
+    .string()
+    .optional()
+    .describe("Optional conversation thread to attach this run to."),
+  useKnowledgeBase: zod.boolean().optional(),
+  knowledgeCollectionId: zod.string().optional(),
 });
 
 export const CreateAgentRunResponse = zod.object({

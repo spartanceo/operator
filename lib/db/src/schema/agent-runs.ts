@@ -9,6 +9,7 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+import { conversations } from "./conversations";
 import { tenants } from "./tenants";
 import { workspaces } from "./workspaces";
 
@@ -18,6 +19,7 @@ export const agentRuns = sqliteTable(
     id: text("id").primaryKey(),
     tenantId: text("tenant_id").notNull().references(() => tenants.id),
     workspaceId: text("workspace_id").notNull().references(() => workspaces.id),
+    conversationId: text("conversation_id").references(() => conversations.id),
     goal: text("goal").notNull(),
     status: text("status").notNull().default("queued"),
     plan: text("plan"),
@@ -34,6 +36,7 @@ export const agentRuns = sqliteTable(
     tenantIdx: index("idx_agent_runs_tenant").on(t.tenantId),
     workspaceIdx: index("idx_agent_runs_workspace").on(t.workspaceId),
     statusIdx: index("idx_agent_runs_status").on(t.tenantId, t.status),
+    conversationIdx: index("idx_agent_runs_conversation").on(t.conversationId),
   }),
 );
 

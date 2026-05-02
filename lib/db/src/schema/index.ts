@@ -14,6 +14,7 @@ export * from "./tenants";
 export * from "./workspaces";
 export * from "./users";
 export * from "./sessions";
+export * from "./conversations";
 export * from "./agent-runs";
 export * from "./messages";
 export * from "./tool-calls";

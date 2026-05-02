@@ -233,6 +233,10 @@ export interface AgentRunResponse {
 export interface CreateAgentRunRequest {
   goal: string;
   modelName?: string;
+  /** Optional conversation thread to attach this run to. */
+  conversationId?: string;
+  useKnowledgeBase?: boolean;
+  knowledgeCollectionId?: string;
 }
 
 export interface Message {
@@ -276,6 +280,168 @@ export interface ToolCallListPage {
 export interface ToolCallListResponse {
   success: boolean;
   data: ToolCallListPage;
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  summary?: string | null;
+  pinned: boolean;
+  archived: boolean;
+  pinnedAt?: string | null;
+  archivedAt?: string | null;
+  lastMessageAt?: string | null;
+  lastMessagePreview?: string | null;
+  messageCount: number;
+  agentMode: boolean;
+  modelName?: string | null;
+  desktopUsed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConversationListPage {
+  items: Conversation[];
+  nextCursor: string | null;
+}
+
+export interface ConversationListResponse {
+  success: boolean;
+  data: ConversationListPage;
+}
+
+export interface ConversationResponse {
+  success: boolean;
+  data: Conversation;
+}
+
+export interface CreateConversationRequest {
+  title?: string;
+  agentMode?: boolean;
+  modelName?: string;
+}
+
+export interface UpdateConversationRequest {
+  title?: string;
+  pinned?: boolean;
+  archived?: boolean;
+  agentMode?: boolean;
+  modelName?: string | null;
+}
+
+export interface DeleteConversationReceipt {
+  deleted: boolean;
+  removedMessages: number;
+  removedRuns: number;
+}
+
+export interface DeleteConversationResponse {
+  success: boolean;
+  data: DeleteConversationReceipt;
+}
+
+export interface ConversationMessage {
+  id: string;
+  role: string;
+  content: string;
+  runId?: string | null;
+  createdAt: string;
+}
+
+export interface ConversationMessageListPage {
+  items: ConversationMessage[];
+  nextCursor: string | null;
+}
+
+export interface ConversationMessageListResponse {
+  success: boolean;
+  data: ConversationMessageListPage;
+}
+
+export type AppendConversationMessageRequestRole =
+  (typeof AppendConversationMessageRequestRole)[keyof typeof AppendConversationMessageRequestRole];
+
+export const AppendConversationMessageRequestRole = {
+  user: "user",
+  assistant: "assistant",
+  system: "system",
+} as const;
+
+export interface AppendConversationMessageRequest {
+  role: AppendConversationMessageRequestRole;
+  content: string;
+  runId?: string | null;
+}
+
+export interface AppendConversationMessageReceipt {
+  id: string;
+}
+
+export interface AppendConversationMessageResponse {
+  success: boolean;
+  data: AppendConversationMessageReceipt;
+}
+
+export type ConversationSearchHitMatchType =
+  (typeof ConversationSearchHitMatchType)[keyof typeof ConversationSearchHitMatchType];
+
+export const ConversationSearchHitMatchType = {
+  message: "message",
+  run: "run",
+  tool: "tool",
+} as const;
+
+export interface ConversationSearchHit {
+  conversationId: string;
+  conversationTitle: string;
+  matchType: ConversationSearchHitMatchType;
+  matchId: string;
+  preview: string;
+  role?: string | null;
+  createdAt: string;
+}
+
+export interface ConversationSearchPayload {
+  items: ConversationSearchHit[];
+  query: string;
+}
+
+export interface ConversationSearchResponse {
+  success: boolean;
+  data: ConversationSearchPayload;
+}
+
+export type ConversationExportPayloadFormat =
+  (typeof ConversationExportPayloadFormat)[keyof typeof ConversationExportPayloadFormat];
+
+export const ConversationExportPayloadFormat = {
+  markdown: "markdown",
+  json: "json",
+  pdf: "pdf",
+} as const;
+
+/**
+ * Present when `body` is base64-encoded (PDF export).
+ */
+export type ConversationExportPayloadEncoding =
+  (typeof ConversationExportPayloadEncoding)[keyof typeof ConversationExportPayloadEncoding];
+
+export const ConversationExportPayloadEncoding = {
+  base64: "base64",
+} as const;
+
+export interface ConversationExportPayload {
+  format: ConversationExportPayloadFormat;
+  filename: string;
+  contentType: string;
+  body: string;
+  /** Present when `body` is base64-encoded (PDF export). */
+  encoding?: ConversationExportPayloadEncoding;
+}
+
+export interface ConversationExportResponse {
+  success: boolean;
+  data: ConversationExportPayload;
 }
 
 export interface Approval {
@@ -3851,6 +4017,69 @@ export type ListModelsParams = {
    */
   limit?: LimitParamParameter;
 };
+
+export type ListConversationsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  includeArchived?: boolean;
+  archivedOnly?: boolean;
+  q?: string;
+  /**
+   * ISO date — only conversations active on or after this timestamp.
+   */
+  since?: string;
+  /**
+   * Only conversations that ran the agent at least once.
+   */
+  agentOnly?: boolean;
+  /**
+   * Only conversations whose desktop control was invoked.
+   */
+  desktopOnly?: boolean;
+};
+
+export type SearchConversationsParams = {
+  q: string;
+  /**
+   * @minimum 1
+   * @maximum 50
+   */
+  limit?: number;
+};
+
+export type ListConversationMessagesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ExportConversationParams = {
+  format?: ExportConversationFormat;
+};
+
+export type ExportConversationFormat =
+  (typeof ExportConversationFormat)[keyof typeof ExportConversationFormat];
+
+export const ExportConversationFormat = {
+  markdown: "markdown",
+  json: "json",
+  pdf: "pdf",
+} as const;
 
 export type ListAgentRunsParams = {
   /**

@@ -41,6 +41,10 @@ import { invokeTool, getToolByName } from "./tools.service";
 import { listMemories } from "./memory.service";
 import { logPrivacyEvent } from "./privacy.service";
 import { retrieveContext as retrieveKbContext } from "./kb.service";
+import {
+  markDesktopUsed,
+  touchConversation,
+} from "./conversation.service";
 
 export interface AgentRunRow {
   id: string;
@@ -91,6 +95,12 @@ export interface CreateAgentRunInput {
   useKnowledgeBase?: boolean;
   /** Optional collection scope for RAG retrieval. */
   knowledgeCollectionId?: string;
+  /**
+   * Optional conversation thread to attach this run to. Supplied by the
+   * chat UI so subsequent runs in the same thread share a sidebar entry,
+   * are searchable together, and export as one markdown file (Task #41).
+   */
+  conversationId?: string;
 }
 
 function toRunRow(r: typeof agentRuns.$inferSelect): AgentRunRow {
@@ -309,6 +319,7 @@ export async function createAgentRun(
       plan: planText,
       modelName: input.modelName ?? null,
       startedAt,
+      conversationId: input.conversationId ?? null,
     }),
   );
 
@@ -318,8 +329,16 @@ export async function createAgentRun(
       runId: id,
       role: "user",
       content: input.goal,
+      conversationId: input.conversationId ?? null,
     }),
   );
+
+  if (input.conversationId) {
+    await touchConversation(ctx, input.conversationId, input.goal, 1);
+    if (route === "desktop") {
+      await markDesktopUsed(ctx, input.conversationId);
+    }
+  }
   if (knowledgeSummary) {
     await db.insert(messagesTable).values(
       withTenantValues(ctx, {
@@ -422,8 +441,13 @@ export async function createAgentRun(
       runId: id,
       role: "assistant",
       content: verdict.summary,
+      conversationId: input.conversationId ?? null,
     }),
   );
+
+  if (input.conversationId) {
+    await touchConversation(ctx, input.conversationId, verdict.summary, 1);
+  }
 
   await logPrivacyEvent(ctx, {
     eventType: "agent.run",

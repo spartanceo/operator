@@ -39,6 +39,7 @@ const CreateRunSchema = z.object({
   modelName: z.string().min(1).max(200).optional(),
   useKnowledgeBase: z.boolean().optional(),
   knowledgeCollectionId: z.string().min(1).max(120).optional(),
+  conversationId: z.string().min(1).max(120).optional(),
 });
 
 const PageSchema = z.object({

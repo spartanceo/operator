@@ -38,6 +38,8 @@ import type {
   AgentRunListResponse,
   AgentRunResponse,
   ApiErrorResponse,
+  AppendConversationMessageRequest,
+  AppendConversationMessageResponse,
   ApprovalBatchDecideRequest,
   ApprovalBatchDecideResponse,
   ApprovalDecisionRequest,
@@ -67,12 +69,18 @@ import type {
   ContactDeleteResponse,
   ContactListResponse,
   ContactResponse,
+  ConversationExportResponse,
+  ConversationListResponse,
+  ConversationMessageListResponse,
+  ConversationResponse,
+  ConversationSearchResponse,
   CrashReportListResponse,
   CrashReportResponse,
   CreateActivityEventRequest,
   CreateAgentRunRequest,
   CreateCalendarEventRequest,
   CreateContactRequest,
+  CreateConversationRequest,
   CreateDesktopSessionRequest,
   CreateEmailDraftRequest,
   CreateIncidentReportRequest,
@@ -81,6 +89,7 @@ import type {
   CreateNotificationRequest,
   CreateOutreachSequenceRequest,
   CreatePrivacyEventRequest,
+  DeleteConversationResponse,
   DesktopFeatureResponse,
   DesktopScreenResponse,
   DesktopSessionListResponse,
@@ -98,6 +107,7 @@ import type {
   EmailMessageResponse,
   EmailStatusRequest,
   EnrolOutreachContactRequest,
+  ExportConversationParams,
   FileDeleteRequest,
   FileDeleteResponse,
   FileListResponse,
@@ -149,6 +159,8 @@ import type {
   ListCommAccountsParams,
   ListContactInteractionsParams,
   ListContactsParams,
+  ListConversationMessagesParams,
+  ListConversationsParams,
   ListCrashReportsParams,
   ListDesktopSessionStepsParams,
   ListDesktopSessionsParams,
@@ -246,6 +258,7 @@ import type {
   RegisterRequest,
   ScanSkillRequest,
   ScanSkillResponse,
+  SearchConversationsParams,
   SecurityAuditListParams,
   SecurityEventListResponse,
   SecurityEventsListParams,
@@ -269,6 +282,7 @@ import type {
   UpdateCalendarEventRequest,
   UpdateCheckResponse,
   UpdateContactRequest,
+  UpdateConversationRequest,
   UpdateTelemetryConsentRequest,
   UpdateVoipCallStatusRequest,
   UpscaleImageRequest,
@@ -1279,6 +1293,883 @@ export const useChat = <
 > => {
   return useMutation(getChatMutationOptions(options));
 };
+
+/**
+ * @summary List conversations (sidebar)
+ */
+export const getListConversationsUrl = (params?: ListConversationsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/conversations?${stringifiedParams}`
+    : `/api/conversations`;
+};
+
+export const listConversations = async (
+  params?: ListConversationsParams,
+  options?: RequestInit,
+): Promise<ConversationListResponse> => {
+  return customFetch<ConversationListResponse>(
+    getListConversationsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListConversationsQueryKey = (
+  params?: ListConversationsParams,
+) => {
+  return [`/api/conversations`, ...(params ? [params] : [])] as const;
+};
+
+export const getListConversationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listConversations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListConversationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listConversations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListConversationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listConversations>>
+  > = ({ signal }) => listConversations(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listConversations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListConversationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listConversations>>
+>;
+export type ListConversationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List conversations (sidebar)
+ */
+
+export function useListConversations<
+  TData = Awaited<ReturnType<typeof listConversations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListConversationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listConversations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListConversationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new conversation thread
+ */
+export const getCreateConversationUrl = () => {
+  return `/api/conversations`;
+};
+
+export const createConversation = async (
+  createConversationRequest?: CreateConversationRequest,
+  options?: RequestInit,
+): Promise<ConversationResponse> => {
+  return customFetch<ConversationResponse>(getCreateConversationUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createConversationRequest),
+  });
+};
+
+export const getCreateConversationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createConversation>>,
+    TError,
+    { data: BodyType<CreateConversationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createConversation>>,
+  TError,
+  { data: BodyType<CreateConversationRequest> },
+  TContext
+> => {
+  const mutationKey = ["createConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createConversation>>,
+    { data: BodyType<CreateConversationRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createConversation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createConversation>>
+>;
+export type CreateConversationMutationBody =
+  BodyType<CreateConversationRequest>;
+export type CreateConversationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new conversation thread
+ */
+export const useCreateConversation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createConversation>>,
+    TError,
+    { data: BodyType<CreateConversationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createConversation>>,
+  TError,
+  { data: BodyType<CreateConversationRequest> },
+  TContext
+> => {
+  return useMutation(getCreateConversationMutationOptions(options));
+};
+
+/**
+ * @summary Full-text search across messages and runs
+ */
+export const getSearchConversationsUrl = (
+  params: SearchConversationsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/conversations/search?${stringifiedParams}`
+    : `/api/conversations/search`;
+};
+
+export const searchConversations = async (
+  params: SearchConversationsParams,
+  options?: RequestInit,
+): Promise<ConversationSearchResponse> => {
+  return customFetch<ConversationSearchResponse>(
+    getSearchConversationsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getSearchConversationsQueryKey = (
+  params?: SearchConversationsParams,
+) => {
+  return [`/api/conversations/search`, ...(params ? [params] : [])] as const;
+};
+
+export const getSearchConversationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof searchConversations>>,
+  TError = ErrorType<unknown>,
+>(
+  params: SearchConversationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchConversations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSearchConversationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof searchConversations>>
+  > = ({ signal }) =>
+    searchConversations(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof searchConversations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SearchConversationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof searchConversations>>
+>;
+export type SearchConversationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Full-text search across messages and runs
+ */
+
+export function useSearchConversations<
+  TData = Awaited<ReturnType<typeof searchConversations>>,
+  TError = ErrorType<unknown>,
+>(
+  params: SearchConversationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchConversations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSearchConversationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch one conversation
+ */
+export const getGetConversationUrl = (id: string) => {
+  return `/api/conversations/${id}`;
+};
+
+export const getConversation = async (
+  id: string,
+  options?: RequestInit,
+): Promise<ConversationResponse> => {
+  return customFetch<ConversationResponse>(getGetConversationUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetConversationQueryKey = (id: string) => {
+  return [`/api/conversations/${id}`] as const;
+};
+
+export const getGetConversationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getConversation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConversation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetConversationQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getConversation>>> = ({
+    signal,
+  }) => getConversation(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getConversation>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetConversationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getConversation>>
+>;
+export type GetConversationQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one conversation
+ */
+
+export function useGetConversation<
+  TData = Awaited<ReturnType<typeof getConversation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConversation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetConversationQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Rename, pin, archive, or set agent mode
+ */
+export const getUpdateConversationUrl = (id: string) => {
+  return `/api/conversations/${id}`;
+};
+
+export const updateConversation = async (
+  id: string,
+  updateConversationRequest: UpdateConversationRequest,
+  options?: RequestInit,
+): Promise<ConversationResponse> => {
+  return customFetch<ConversationResponse>(getUpdateConversationUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateConversationRequest),
+  });
+};
+
+export const getUpdateConversationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateConversation>>,
+    TError,
+    { id: string; data: BodyType<UpdateConversationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateConversation>>,
+  TError,
+  { id: string; data: BodyType<UpdateConversationRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateConversation>>,
+    { id: string; data: BodyType<UpdateConversationRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateConversation(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateConversation>>
+>;
+export type UpdateConversationMutationBody =
+  BodyType<UpdateConversationRequest>;
+export type UpdateConversationMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Rename, pin, archive, or set agent mode
+ */
+export const useUpdateConversation = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateConversation>>,
+    TError,
+    { id: string; data: BodyType<UpdateConversationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateConversation>>,
+  TError,
+  { id: string; data: BodyType<UpdateConversationRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateConversationMutationOptions(options));
+};
+
+/**
+ * @summary Permanently delete a conversation and its dependents
+ */
+export const getDeleteConversationUrl = (id: string) => {
+  return `/api/conversations/${id}`;
+};
+
+export const deleteConversation = async (
+  id: string,
+  options?: RequestInit,
+): Promise<DeleteConversationResponse> => {
+  return customFetch<DeleteConversationResponse>(getDeleteConversationUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteConversationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteConversation>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteConversation>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteConversation>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteConversation(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteConversation>>
+>;
+
+export type DeleteConversationMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Permanently delete a conversation and its dependents
+ */
+export const useDeleteConversation = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteConversation>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteConversation>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteConversationMutationOptions(options));
+};
+
+/**
+ * @summary Conversation transcript
+ */
+export const getListConversationMessagesUrl = (
+  id: string,
+  params?: ListConversationMessagesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/conversations/${id}/messages?${stringifiedParams}`
+    : `/api/conversations/${id}/messages`;
+};
+
+export const listConversationMessages = async (
+  id: string,
+  params?: ListConversationMessagesParams,
+  options?: RequestInit,
+): Promise<ConversationMessageListResponse> => {
+  return customFetch<ConversationMessageListResponse>(
+    getListConversationMessagesUrl(id, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListConversationMessagesQueryKey = (
+  id: string,
+  params?: ListConversationMessagesParams,
+) => {
+  return [
+    `/api/conversations/${id}/messages`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListConversationMessagesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listConversationMessages>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  params?: ListConversationMessagesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listConversationMessages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListConversationMessagesQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listConversationMessages>>
+  > = ({ signal }) =>
+    listConversationMessages(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listConversationMessages>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListConversationMessagesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listConversationMessages>>
+>;
+export type ListConversationMessagesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Conversation transcript
+ */
+
+export function useListConversationMessages<
+  TData = Awaited<ReturnType<typeof listConversationMessages>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  params?: ListConversationMessagesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listConversationMessages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListConversationMessagesQueryOptions(
+    id,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Append a chat-mode message turn to a conversation
+ */
+export const getAppendConversationMessageUrl = (id: string) => {
+  return `/api/conversations/${id}/messages`;
+};
+
+export const appendConversationMessage = async (
+  id: string,
+  appendConversationMessageRequest: AppendConversationMessageRequest,
+  options?: RequestInit,
+): Promise<AppendConversationMessageResponse> => {
+  return customFetch<AppendConversationMessageResponse>(
+    getAppendConversationMessageUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(appendConversationMessageRequest),
+    },
+  );
+};
+
+export const getAppendConversationMessageMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof appendConversationMessage>>,
+    TError,
+    { id: string; data: BodyType<AppendConversationMessageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof appendConversationMessage>>,
+  TError,
+  { id: string; data: BodyType<AppendConversationMessageRequest> },
+  TContext
+> => {
+  const mutationKey = ["appendConversationMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof appendConversationMessage>>,
+    { id: string; data: BodyType<AppendConversationMessageRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return appendConversationMessage(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AppendConversationMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof appendConversationMessage>>
+>;
+export type AppendConversationMessageMutationBody =
+  BodyType<AppendConversationMessageRequest>;
+export type AppendConversationMessageMutationError =
+  ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Append a chat-mode message turn to a conversation
+ */
+export const useAppendConversationMessage = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof appendConversationMessage>>,
+    TError,
+    { id: string; data: BodyType<AppendConversationMessageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof appendConversationMessage>>,
+  TError,
+  { id: string; data: BodyType<AppendConversationMessageRequest> },
+  TContext
+> => {
+  return useMutation(getAppendConversationMessageMutationOptions(options));
+};
+
+/**
+ * @summary Export a conversation as markdown or JSON
+ */
+export const getExportConversationUrl = (
+  id: string,
+  params?: ExportConversationParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/conversations/${id}/export?${stringifiedParams}`
+    : `/api/conversations/${id}/export`;
+};
+
+export const exportConversation = async (
+  id: string,
+  params?: ExportConversationParams,
+  options?: RequestInit,
+): Promise<ConversationExportResponse> => {
+  return customFetch<ConversationExportResponse>(
+    getExportConversationUrl(id, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getExportConversationQueryKey = (
+  id: string,
+  params?: ExportConversationParams,
+) => {
+  return [
+    `/api/conversations/${id}/export`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getExportConversationQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportConversation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  params?: ExportConversationParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportConversation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getExportConversationQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportConversation>>
+  > = ({ signal }) =>
+    exportConversation(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportConversation>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportConversationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportConversation>>
+>;
+export type ExportConversationQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Export a conversation as markdown or JSON
+ */
+
+export function useExportConversation<
+  TData = Awaited<ReturnType<typeof exportConversation>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  params?: ExportConversationParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportConversation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportConversationQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List recent agent runs in this workspace
