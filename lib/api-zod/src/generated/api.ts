@@ -810,6 +810,562 @@ export const CreatePrivacyEventResponse = zod.object({
 });
 
 /**
+ * @summary List in-app notifications (newest first)
+ */
+export const listNotificationsQueryLimitDefault = 20;
+export const listNotificationsQueryLimitMax = 100;
+
+export const ListNotificationsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listNotificationsQueryLimitMax)
+    .default(listNotificationsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  unreadOnly: zod.coerce.boolean().optional(),
+});
+
+export const ListNotificationsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListNotificationsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        category: zod.string(),
+        severity: zod.string(),
+        title: zod.string(),
+        body: zod.string(),
+        actionLabel: zod.string().nullish(),
+        actionHref: zod.string().nullish(),
+        relatedRunId: zod.string().nullish(),
+        relatedApprovalId: zod.string().nullish(),
+        read: zod.boolean(),
+        readAt: zod.coerce.date().nullish(),
+        dispatchedToOs: zod.boolean(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a notification
+ */
+export const CreateNotificationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateNotificationBody = zod.object({
+  category: zod.enum(["task", "approval", "skill", "error", "system"]),
+  title: zod.string(),
+  body: zod.string(),
+  severity: zod.enum(["info", "success", "warning", "error"]).optional(),
+  actionLabel: zod.string().optional(),
+  actionHref: zod.string().optional(),
+  relatedRunId: zod.string().optional(),
+  relatedApprovalId: zod.string().optional(),
+});
+
+export const CreateNotificationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    notification: zod
+      .object({
+        id: zod.string(),
+        category: zod.string(),
+        severity: zod.string(),
+        title: zod.string(),
+        body: zod.string(),
+        actionLabel: zod.string().nullish(),
+        actionHref: zod.string().nullish(),
+        relatedRunId: zod.string().nullish(),
+        relatedApprovalId: zod.string().nullish(),
+        read: zod.boolean(),
+        readAt: zod.coerce.date().nullish(),
+        dispatchedToOs: zod.boolean(),
+        createdAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Bell-badge unread count
+ */
+export const GetNotificationUnreadCountHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetNotificationUnreadCountResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    count: zod.number(),
+  }),
+});
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const MarkNotificationReadHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const MarkNotificationReadResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    category: zod.string(),
+    severity: zod.string(),
+    title: zod.string(),
+    body: zod.string(),
+    actionLabel: zod.string().nullish(),
+    actionHref: zod.string().nullish(),
+    relatedRunId: zod.string().nullish(),
+    relatedApprovalId: zod.string().nullish(),
+    read: zod.boolean(),
+    readAt: zod.coerce.date().nullish(),
+    dispatchedToOs: zod.boolean(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Mark every unread notification as read
+ */
+export const MarkAllNotificationsReadHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const MarkAllNotificationsReadResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    updated: zod.number(),
+  }),
+});
+
+/**
+ * @summary Delete every notification (with confirmation in UI)
+ */
+export const ClearNotificationsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ClearNotificationsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deleted: zod.number(),
+  }),
+});
+
+/**
+ * @summary Per-category notification preferences
+ */
+export const GetNotificationPreferencesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetNotificationPreferencesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    preferences: zod.object({
+      task: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+      approval: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+      skill: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+      error: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+      system: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+    }),
+  }),
+});
+
+/**
+ * @summary Update notification preferences
+ */
+export const UpdateNotificationPreferencesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateNotificationPreferencesBody = zod.object({
+  task: zod
+    .object({
+      inApp: zod.boolean(),
+      os: zod.boolean(),
+    })
+    .optional(),
+  approval: zod
+    .object({
+      inApp: zod.boolean(),
+      os: zod.boolean(),
+    })
+    .optional(),
+  skill: zod
+    .object({
+      inApp: zod.boolean(),
+      os: zod.boolean(),
+    })
+    .optional(),
+  error: zod
+    .object({
+      inApp: zod.boolean(),
+      os: zod.boolean(),
+    })
+    .optional(),
+  system: zod
+    .object({
+      inApp: zod.boolean(),
+      os: zod.boolean(),
+    })
+    .optional(),
+});
+
+export const UpdateNotificationPreferencesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    preferences: zod.object({
+      task: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+      approval: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+      skill: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+      error: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+      system: zod.object({
+        inApp: zod.boolean(),
+        os: zod.boolean(),
+      }),
+    }),
+  }),
+});
+
+/**
+ * @summary Atomically claim undispatched rows for native OS dispatch
+ */
+export const ClaimNotificationDispatchHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ClaimNotificationDispatchResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        category: zod.string(),
+        severity: zod.string(),
+        title: zod.string(),
+        body: zod.string(),
+        actionLabel: zod.string().nullish(),
+        actionHref: zod.string().nullish(),
+        relatedRunId: zod.string().nullish(),
+        relatedApprovalId: zod.string().nullish(),
+        read: zod.boolean(),
+        readAt: zod.coerce.date().nullish(),
+        dispatchedToOs: zod.boolean(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Paginated activity feed
+ */
+export const listActivityEventsQueryLimitDefault = 20;
+export const listActivityEventsQueryLimitMax = 100;
+
+export const ListActivityEventsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listActivityEventsQueryLimitMax)
+    .default(listActivityEventsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  eventType: zod.coerce.string().optional(),
+  agent: zod.coerce.string().optional(),
+  search: zod.coerce.string().optional(),
+  fromMs: zod.coerce.number().optional(),
+  toMs: zod.coerce.number().optional(),
+});
+
+export const ListActivityEventsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListActivityEventsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        eventType: zod.string(),
+        actor: zod.string(),
+        agent: zod.string().nullish(),
+        skillName: zod.string().nullish(),
+        runId: zod.string().nullish(),
+        toolCallId: zod.string().nullish(),
+        approvalId: zod.string().nullish(),
+        summary: zod.string(),
+        outcome: zod.string(),
+        durationMs: zod.number().nullish(),
+        metadata: zod.record(zod.string(), zod.unknown()).nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Append an activity event
+ */
+export const RecordActivityEventHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RecordActivityEventBody = zod.object({
+  eventType: zod.string(),
+  actor: zod.string(),
+  agent: zod.string().optional(),
+  skillName: zod.string().optional(),
+  runId: zod.string().optional(),
+  toolCallId: zod.string().optional(),
+  approvalId: zod.string().optional(),
+  summary: zod.string(),
+  outcome: zod.enum(["success", "failure", "cancelled", "pending"]).optional(),
+  durationMs: zod.number().optional(),
+  metadata: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+export const RecordActivityEventResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    eventType: zod.string(),
+    actor: zod.string(),
+    agent: zod.string().nullish(),
+    skillName: zod.string().nullish(),
+    runId: zod.string().nullish(),
+    toolCallId: zod.string().nullish(),
+    approvalId: zod.string().nullish(),
+    summary: zod.string(),
+    outcome: zod.string(),
+    durationMs: zod.number().nullish(),
+    metadata: zod.record(zod.string(), zod.unknown()).nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Lookup a single activity event
+ */
+export const GetActivityEventParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetActivityEventHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetActivityEventResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    eventType: zod.string(),
+    actor: zod.string(),
+    agent: zod.string().nullish(),
+    skillName: zod.string().nullish(),
+    runId: zod.string().nullish(),
+    toolCallId: zod.string().nullish(),
+    approvalId: zod.string().nullish(),
+    summary: zod.string(),
+    outcome: zod.string(),
+    durationMs: zod.number().nullish(),
+    metadata: zod.record(zod.string(), zod.unknown()).nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List approvals across all runs
+ */
+export const listAgentApprovalsQueryLimitDefault = 20;
+export const listAgentApprovalsQueryLimitMax = 100;
+
+export const ListAgentApprovalsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listAgentApprovalsQueryLimitMax)
+    .default(listAgentApprovalsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  decision: zod.enum(["pending", "approved", "denied"]).optional(),
+});
+
+export const ListAgentApprovalsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListAgentApprovalsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        runId: zod.string(),
+        toolCallId: zod.string(),
+        reason: zod.string(),
+        summary: zod.string(),
+        decision: zod.string(),
+        decidedBy: zod.string().nullish(),
+        decidedAt: zod.coerce.date().nullish(),
+        note: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Approve or deny multiple pending approvals at once
+ */
+export const BatchDecideApprovalsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const BatchDecideApprovalsBody = zod.object({
+  ids: zod.array(zod.string()),
+  decision: zod.enum(["approved", "denied"]),
+  note: zod.string().optional(),
+});
+
+export const BatchDecideApprovalsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    decided: zod.array(
+      zod.object({
+        id: zod.string(),
+        runId: zod.string(),
+        toolCallId: zod.string(),
+        reason: zod.string(),
+        summary: zod.string(),
+        decision: zod.string(),
+        decidedBy: zod.string().nullish(),
+        decidedAt: zod.coerce.date().nullish(),
+        note: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    skipped: zod.array(
+      zod.object({
+        id: zod.string(),
+        reason: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
  * @summary List long-lived user memories
  */
 export const listMemoriesQueryLimitDefault = 20;

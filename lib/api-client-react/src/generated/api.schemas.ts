@@ -2494,6 +2494,232 @@ export interface SecurityNukeResponse {
   data: SecurityNukeReceipt;
 }
 
+export interface Notification {
+  id: string;
+  category: string;
+  severity: string;
+  title: string;
+  body: string;
+  actionLabel?: string | null;
+  actionHref?: string | null;
+  relatedRunId?: string | null;
+  relatedApprovalId?: string | null;
+  read: boolean;
+  readAt?: string | null;
+  dispatchedToOs: boolean;
+  createdAt: string;
+}
+
+export interface NotificationListPage {
+  items: Notification[];
+  nextCursor: string | null;
+}
+
+export interface NotificationListResponse {
+  success: boolean;
+  data: NotificationListPage;
+}
+
+export interface NotificationResponse {
+  success: boolean;
+  data: Notification;
+}
+
+export type NotificationCreateResponseData = {
+  notification: Notification | null;
+};
+
+export interface NotificationCreateResponse {
+  success: boolean;
+  data: NotificationCreateResponseData;
+}
+
+export type CreateNotificationRequestCategory =
+  (typeof CreateNotificationRequestCategory)[keyof typeof CreateNotificationRequestCategory];
+
+export const CreateNotificationRequestCategory = {
+  task: "task",
+  approval: "approval",
+  skill: "skill",
+  error: "error",
+  system: "system",
+} as const;
+
+export type CreateNotificationRequestSeverity =
+  (typeof CreateNotificationRequestSeverity)[keyof typeof CreateNotificationRequestSeverity];
+
+export const CreateNotificationRequestSeverity = {
+  info: "info",
+  success: "success",
+  warning: "warning",
+  error: "error",
+} as const;
+
+export interface CreateNotificationRequest {
+  category: CreateNotificationRequestCategory;
+  title: string;
+  body: string;
+  severity?: CreateNotificationRequestSeverity;
+  actionLabel?: string;
+  actionHref?: string;
+  relatedRunId?: string;
+  relatedApprovalId?: string;
+}
+
+export type NotificationUnreadCountResponseData = {
+  count: number;
+};
+
+export interface NotificationUnreadCountResponse {
+  success: boolean;
+  data: NotificationUnreadCountResponseData;
+}
+
+export type NotificationBulkUpdateResponseData = {
+  updated: number;
+};
+
+export interface NotificationBulkUpdateResponse {
+  success: boolean;
+  data: NotificationBulkUpdateResponseData;
+}
+
+export type NotificationBulkDeleteResponseData = {
+  deleted: number;
+};
+
+export interface NotificationBulkDeleteResponse {
+  success: boolean;
+  data: NotificationBulkDeleteResponseData;
+}
+
+export interface NotificationCategoryPreference {
+  inApp: boolean;
+  os: boolean;
+}
+
+export interface NotificationPreferenceMap {
+  task: NotificationCategoryPreference;
+  approval: NotificationCategoryPreference;
+  skill: NotificationCategoryPreference;
+  error: NotificationCategoryPreference;
+  system: NotificationCategoryPreference;
+}
+
+export type NotificationPreferencesResponseData = {
+  preferences: NotificationPreferenceMap;
+};
+
+export interface NotificationPreferencesResponse {
+  success: boolean;
+  data: NotificationPreferencesResponseData;
+}
+
+export interface NotificationPreferencesUpdateRequest {
+  task?: NotificationCategoryPreference;
+  approval?: NotificationCategoryPreference;
+  skill?: NotificationCategoryPreference;
+  error?: NotificationCategoryPreference;
+  system?: NotificationCategoryPreference;
+}
+
+export type NotificationClaimResponseData = {
+  items: Notification[];
+};
+
+export interface NotificationClaimResponse {
+  success: boolean;
+  data: NotificationClaimResponseData;
+}
+
+export type ActivityEventMetadata = { [key: string]: unknown } | null;
+
+export interface ActivityEvent {
+  id: string;
+  eventType: string;
+  actor: string;
+  agent?: string | null;
+  skillName?: string | null;
+  runId?: string | null;
+  toolCallId?: string | null;
+  approvalId?: string | null;
+  summary: string;
+  outcome: string;
+  durationMs?: number | null;
+  metadata?: ActivityEventMetadata;
+  createdAt: string;
+}
+
+export interface ActivityEventListPage {
+  items: ActivityEvent[];
+  nextCursor: string | null;
+}
+
+export interface ActivityEventListResponse {
+  success: boolean;
+  data: ActivityEventListPage;
+}
+
+export interface ActivityEventResponse {
+  success: boolean;
+  data: ActivityEvent;
+}
+
+export type CreateActivityEventRequestOutcome =
+  (typeof CreateActivityEventRequestOutcome)[keyof typeof CreateActivityEventRequestOutcome];
+
+export const CreateActivityEventRequestOutcome = {
+  success: "success",
+  failure: "failure",
+  cancelled: "cancelled",
+  pending: "pending",
+} as const;
+
+export type CreateActivityEventRequestMetadata = { [key: string]: unknown };
+
+export interface CreateActivityEventRequest {
+  eventType: string;
+  actor: string;
+  agent?: string;
+  skillName?: string;
+  runId?: string;
+  toolCallId?: string;
+  approvalId?: string;
+  summary: string;
+  outcome?: CreateActivityEventRequestOutcome;
+  durationMs?: number;
+  metadata?: CreateActivityEventRequestMetadata;
+}
+
+export type ApprovalBatchDecideRequestDecision =
+  (typeof ApprovalBatchDecideRequestDecision)[keyof typeof ApprovalBatchDecideRequestDecision];
+
+export const ApprovalBatchDecideRequestDecision = {
+  approved: "approved",
+  denied: "denied",
+} as const;
+
+export interface ApprovalBatchDecideRequest {
+  ids: string[];
+  decision: ApprovalBatchDecideRequestDecision;
+  note?: string;
+}
+
+export interface ApprovalBatchDecideSkipped {
+  id: string;
+  reason: string;
+}
+
+export interface ApprovalBatchDecideResult {
+  decided: Approval[];
+  skipped: ApprovalBatchDecideSkipped[];
+}
+
+export interface ApprovalBatchDecideResponse {
+  success: boolean;
+  data: ApprovalBatchDecideResult;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -2601,6 +2827,61 @@ export type ListPrivacyEventsParams = {
    */
   limit?: LimitParamParameter;
 };
+
+export type ListNotificationsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  unreadOnly?: boolean;
+};
+
+export type ListActivityEventsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  eventType?: string;
+  agent?: string;
+  search?: string;
+  fromMs?: number;
+  toMs?: number;
+};
+
+export type ListAgentApprovalsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  decision?: ListAgentApprovalsDecision;
+};
+
+export type ListAgentApprovalsDecision =
+  (typeof ListAgentApprovalsDecision)[keyof typeof ListAgentApprovalsDecision];
+
+export const ListAgentApprovalsDecision = {
+  pending: "pending",
+  approved: "approved",
+  denied: "denied",
+} as const;
 
 export type ListMemoriesParams = {
   /**

@@ -116,6 +116,68 @@ export async function listApprovalsForRun(
   );
 }
 
+export interface ApprovalListOptions {
+  cursor?: string;
+  limit?: number;
+  decision?: "pending" | "approved" | "denied";
+}
+
+export async function listApprovals(
+  ctx: TenantContext,
+  opts: ApprovalListOptions = {},
+): Promise<PaginatedData<ApprovalRow>> {
+  const limit = normaliseLimit(opts.limit);
+  const cursorTs = opts.cursor ? Number(decodeCursor(opts.cursor)) : null;
+  const filters = [tenantScope(ctx, approvals)];
+  if (opts.decision) filters.push(eq(approvals.decision, opts.decision));
+  if (cursorTs !== null && Number.isFinite(cursorTs)) {
+    filters.push(lt(approvals.createdAt, cursorTs));
+  }
+  const where = filters.length === 1 ? filters[0] : and(...filters);
+  const rows = await db
+    .select()
+    .from(approvals)
+    .where(where)
+    .orderBy(desc(approvals.createdAt))
+    .limit(limit + 1);
+  return buildPage(rows.map(toRow), limit, (r) =>
+    String(new Date(r.createdAt).getTime()),
+  );
+}
+
+export interface BatchDecideInput {
+  ids: ReadonlyArray<string>;
+  decision: "approved" | "denied";
+  note?: string;
+}
+
+export interface BatchDecideResult {
+  decided: ReadonlyArray<ApprovalRow>;
+  skipped: ReadonlyArray<{ id: string; reason: string }>;
+}
+
+export async function batchDecideApprovals(
+  ctx: TenantContext,
+  input: BatchDecideInput,
+): Promise<BatchDecideResult> {
+  const decided: ApprovalRow[] = [];
+  const skipped: Array<{ id: string; reason: string }> = [];
+  for (const id of input.ids) {
+    const decision = input.note
+      ? { decision: input.decision, note: input.note }
+      : { decision: input.decision };
+    const updated = await decideApproval(ctx, id, decision);
+    if (!updated) {
+      skipped.push({ id, reason: "not_found" });
+    } else if (updated.decision !== input.decision) {
+      skipped.push({ id, reason: "already_decided" });
+    } else {
+      decided.push(updated);
+    }
+  }
+  return { decided, skipped };
+}
+
 export async function decideApproval(
   ctx: TenantContext,
   id: string,

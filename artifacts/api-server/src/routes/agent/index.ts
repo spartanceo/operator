@@ -26,7 +26,9 @@ import {
   listRunToolCalls,
 } from "../../services/agent.service";
 import {
+  batchDecideApprovals,
   decideApproval,
+  listApprovals,
   listApprovalsForRun,
 } from "../../services/approvals.service";
 
@@ -45,6 +47,18 @@ const PageSchema = z.object({
 });
 
 const DecisionSchema = z.object({
+  decision: z.enum(["approved", "denied"]),
+  note: z.string().max(2000).optional(),
+});
+
+const ApprovalListSchema = z.object({
+  cursor: z.string().min(1).max(2048).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  decision: z.enum(["pending", "approved", "denied"]).optional(),
+});
+
+const BatchDecideSchema = z.object({
+  ids: z.array(z.string().min(1).max(120)).min(1).max(50),
   decision: z.enum(["approved", "denied"]),
   note: z.string().max(2000).optional(),
 });
@@ -147,6 +161,36 @@ router.get("/runs/:id/approvals", requireTenant(), async (req, res, next) => {
     }
     const page = await listApprovalsForRun(ctx, String(req.params.id), parsed.data);
     res.json(pageOk(page.items, page.nextCursor));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/approvals", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = ApprovalListSchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid approval-list params"));
+      return;
+    }
+    const page = await listApprovals(ctx, parsed.data);
+    res.json(pageOk(page.items, page.nextCursor));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/approvals/decide-batch", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = BatchDecideSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid batch-decide payload"));
+      return;
+    }
+    const result = await batchDecideApprovals(ctx, parsed.data);
+    res.json(ok(result));
   } catch (e) {
     next(e);
   }

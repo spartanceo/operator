@@ -34,6 +34,8 @@ import PrivacyPage from "@/pages/operator/privacy";
 import MemoryPage from "@/pages/operator/memory";
 import KnowledgePage from "@/pages/operator/knowledge";
 import CommunicationsPage from "@/pages/operator/communications";
+import ActivityPage from "@/pages/operator/activity";
+import ApprovalsPage from "@/pages/operator/approvals";
 import SettingsPage from "@/pages/operator/settings";
 import OnboardingPage from "@/pages/operator/onboarding";
 
@@ -52,6 +54,8 @@ const OPERATOR_ROUTES = new Set([
   "/memory",
   "/knowledge",
   "/communications",
+  "/approvals",
+  "/activity",
   "/settings",
 ]);
 
@@ -131,6 +135,8 @@ function OperatorShell() {
       <Route path="/memory" component={MemoryPage} />
       <Route path="/knowledge" component={KnowledgePage} />
       <Route path="/communications" component={CommunicationsPage} />
+      <Route path="/approvals" component={ApprovalsPage} />
+      <Route path="/activity" component={ActivityPage} />
       <Route path="/settings" component={SettingsPage} />
     </Switch>
   );

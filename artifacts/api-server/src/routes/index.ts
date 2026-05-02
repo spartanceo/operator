@@ -4,6 +4,7 @@
  */
 import { Router, type IRouter } from "express";
 
+import activityRouter from "./activity";
 import adminRouter from "./admin";
 import agentRouter from "./agent";
 import authRouter from "./auth";
@@ -17,6 +18,7 @@ import knowledgeRouter from "./knowledge";
 import mediaRouter from "./media";
 import memoryRouter from "./memory";
 import modelsRouter from "./models";
+import notificationsRouter from "./notifications";
 import onboardingRouter from "./onboarding";
 import privacyRouter from "./privacy";
 import securityRouter from "./security";
@@ -43,5 +45,7 @@ router.use("/updates", updatesRouter);
 router.use("/desktop", desktopRouter);
 router.use("/media", mediaRouter);
 router.use("/comm", commRouter);
+router.use("/notifications", notificationsRouter);
+router.use("/activity", activityRouter);
 
 export default router;

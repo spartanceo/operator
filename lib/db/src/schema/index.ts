@@ -46,3 +46,5 @@ export * from "./telemetry-consent";
 export * from "./auto-lock-state";
 export * from "./admin-2fa-secrets";
 export * from "./refresh-tokens";
+export * from "./notifications";
+export * from "./activity-events";

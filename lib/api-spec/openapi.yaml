@@ -544,6 +544,292 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PrivacyEventResponse"
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags:
+        - notifications
+      summary: List in-app notifications (newest first)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: unreadOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Notifications page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationListResponse"
+    post:
+      operationId: createNotification
+      tags:
+        - notifications
+      summary: Create a notification
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNotificationRequest"
+      responses:
+        "200":
+          description: Notification created (or null when suppressed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationCreateResponse"
+  /notifications/unread-count:
+    get:
+      operationId: getNotificationUnreadCount
+      tags:
+        - notifications
+      summary: Bell-badge unread count
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationUnreadCountResponse"
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags:
+        - notifications
+      summary: Mark a single notification as read
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationResponse"
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags:
+        - notifications
+      summary: Mark every unread notification as read
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Updated count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationBulkUpdateResponse"
+  /notifications/clear:
+    post:
+      operationId: clearNotifications
+      tags:
+        - notifications
+      summary: Delete every notification (with confirmation in UI)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Deleted count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationBulkDeleteResponse"
+  /notifications/preferences:
+    get:
+      operationId: getNotificationPreferences
+      tags:
+        - notifications
+      summary: Per-category notification preferences
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferencesResponse"
+    put:
+      operationId: updateNotificationPreferences
+      tags:
+        - notifications
+      summary: Update notification preferences
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationPreferencesUpdateRequest"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferencesResponse"
+  /notifications/dispatch-claim:
+    post:
+      operationId: claimNotificationDispatch
+      tags:
+        - notifications
+      summary: Atomically claim undispatched rows for native OS dispatch
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Newly-claimed notifications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationClaimResponse"
+  /activity/events:
+    get:
+      operationId: listActivityEvents
+      tags:
+        - activity
+      summary: Paginated activity feed
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: eventType
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: agent
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: fromMs
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: toMs
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Activity events page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityEventListResponse"
+    post:
+      operationId: recordActivityEvent
+      tags:
+        - activity
+      summary: Append an activity event
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateActivityEventRequest"
+      responses:
+        "200":
+          description: Event recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityEventResponse"
+  /activity/events/{id}:
+    get:
+      operationId: getActivityEvent
+      tags:
+        - activity
+      summary: Lookup a single activity event
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Activity event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityEventResponse"
+  /agent/approvals:
+    get:
+      operationId: listAgentApprovals
+      tags:
+        - agent
+      summary: List approvals across all runs
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: decision
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - pending
+              - approved
+              - denied
+      responses:
+        "200":
+          description: Approvals page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalListResponse"
+  /agent/approvals/decide-batch:
+    post:
+      operationId: batchDecideApprovals
+      tags:
+        - agent
+      summary: Approve or deny multiple pending approvals at once
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalBatchDecideRequest"
+      responses:
+        "200":
+          description: Batch decision result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalBatchDecideResponse"
   /memory:
     get:
       operationId: listMemories
@@ -7884,3 +8170,437 @@ components:
             - true
         data:
           $ref: "#/components/schemas/SecurityNukeReceipt"
+    Notification:
+      type: object
+      required:
+        - id
+        - category
+        - severity
+        - title
+        - body
+        - read
+        - dispatchedToOs
+        - createdAt
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        severity:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        actionLabel:
+          type: string
+          nullable: true
+        actionHref:
+          type: string
+          nullable: true
+        relatedRunId:
+          type: string
+          nullable: true
+        relatedApprovalId:
+          type: string
+          nullable: true
+        read:
+          type: boolean
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        dispatchedToOs:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    NotificationListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        nextCursor:
+          type: string
+          nullable: true
+    NotificationListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/NotificationListPage"
+    NotificationResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/Notification"
+    NotificationCreateResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - notification
+          properties:
+            notification:
+              allOf:
+                - $ref: "#/components/schemas/Notification"
+              nullable: true
+    CreateNotificationRequest:
+      type: object
+      required:
+        - category
+        - title
+        - body
+      properties:
+        category:
+          type: string
+          enum:
+            - task
+            - approval
+            - skill
+            - error
+            - system
+        title:
+          type: string
+        body:
+          type: string
+        severity:
+          type: string
+          enum:
+            - info
+            - success
+            - warning
+            - error
+        actionLabel:
+          type: string
+        actionHref:
+          type: string
+        relatedRunId:
+          type: string
+        relatedApprovalId:
+          type: string
+    NotificationUnreadCountResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - count
+          properties:
+            count:
+              type: integer
+    NotificationBulkUpdateResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - updated
+          properties:
+            updated:
+              type: integer
+    NotificationBulkDeleteResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - deleted
+          properties:
+            deleted:
+              type: integer
+    NotificationCategoryPreference:
+      type: object
+      required:
+        - inApp
+        - os
+      properties:
+        inApp:
+          type: boolean
+        os:
+          type: boolean
+    NotificationPreferenceMap:
+      type: object
+      required:
+        - task
+        - approval
+        - skill
+        - error
+        - system
+      properties:
+        task:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+        approval:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+        skill:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+        error:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+        system:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+    NotificationPreferencesResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - preferences
+          properties:
+            preferences:
+              $ref: "#/components/schemas/NotificationPreferenceMap"
+    NotificationPreferencesUpdateRequest:
+      type: object
+      properties:
+        task:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+        approval:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+        skill:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+        error:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+        system:
+          $ref: "#/components/schemas/NotificationCategoryPreference"
+    NotificationClaimResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Notification"
+    ActivityEvent:
+      type: object
+      required:
+        - id
+        - eventType
+        - actor
+        - summary
+        - outcome
+        - createdAt
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+        actor:
+          type: string
+        agent:
+          type: string
+          nullable: true
+        skillName:
+          type: string
+          nullable: true
+        runId:
+          type: string
+          nullable: true
+        toolCallId:
+          type: string
+          nullable: true
+        approvalId:
+          type: string
+          nullable: true
+        summary:
+          type: string
+        outcome:
+          type: string
+        durationMs:
+          type: integer
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    ActivityEventListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityEvent"
+        nextCursor:
+          type: string
+          nullable: true
+    ActivityEventListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ActivityEventListPage"
+    ActivityEventResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ActivityEvent"
+    CreateActivityEventRequest:
+      type: object
+      required:
+        - eventType
+        - actor
+        - summary
+      properties:
+        eventType:
+          type: string
+        actor:
+          type: string
+        agent:
+          type: string
+        skillName:
+          type: string
+        runId:
+          type: string
+        toolCallId:
+          type: string
+        approvalId:
+          type: string
+        summary:
+          type: string
+        outcome:
+          type: string
+          enum:
+            - success
+            - failure
+            - cancelled
+            - pending
+        durationMs:
+          type: integer
+        metadata:
+          type: object
+          additionalProperties: true
+    ApprovalBatchDecideRequest:
+      type: object
+      required:
+        - ids
+        - decision
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+        decision:
+          type: string
+          enum:
+            - approved
+            - denied
+        note:
+          type: string
+    ApprovalBatchDecideSkipped:
+      type: object
+      required:
+        - id
+        - reason
+      properties:
+        id:
+          type: string
+        reason:
+          type: string
+    ApprovalBatchDecideResult:
+      type: object
+      required:
+        - decided
+        - skipped
+      properties:
+        decided:
+          type: array
+          items:
+            $ref: "#/components/schemas/Approval"
+        skipped:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalBatchDecideSkipped"
+    ApprovalBatchDecideResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/ApprovalBatchDecideResult"

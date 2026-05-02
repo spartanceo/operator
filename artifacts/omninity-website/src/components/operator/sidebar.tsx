@@ -11,6 +11,8 @@ import {
   ArrowLeft,
   Monitor,
   Image as ImageIcon,
+  Activity,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -33,6 +35,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/memory", label: "Memory", icon: Brain },
   { href: "/knowledge", label: "Knowledge", icon: Library },
   { href: "/communications", label: "Communications", icon: Inbox },
+  { href: "/approvals", label: "Approvals", icon: ShieldCheck },
+  { href: "/activity", label: "Activity", icon: Activity },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

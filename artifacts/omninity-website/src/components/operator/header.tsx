@@ -10,6 +10,7 @@ import { useTheme } from "@/contexts/theme-context";
 import { useHealthCheck } from "@workspace/api-client-react";
 import { useSettings } from "@/contexts/settings-context";
 import { useHelp, FeatureHighlight } from "@/components/help";
+import { NotificationBell } from "@/components/operator/notification-bell";
 import { cn } from "@/lib/utils";
 
 interface OperatorHeaderProps {
@@ -135,6 +136,8 @@ export function OperatorHeader({
             <span className="text-xs">Shortcuts · ⌘/</span>
           </TooltipContent>
         </Tooltip>
+
+        <NotificationBell />
 
         <Button
           variant="outline"
