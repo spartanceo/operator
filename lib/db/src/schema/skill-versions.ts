@@ -41,6 +41,8 @@ export const skillVersions = sqliteTable(
     category: text("category").notNull().default("Productivity"),
     author: text("author").notNull().default("local"),
     installCount: integer("install_count").notNull().default(0),
+    /** Snapshot of the skill's configuration schema at this version. */
+    configurationSchema: text("configuration_schema").notNull().default("[]"),
     createdAt: integer("created_at")
       .notNull()
       .default(sql`(unixepoch() * 1000)`),

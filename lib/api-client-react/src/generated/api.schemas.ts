@@ -4379,6 +4379,49 @@ export interface ImportWorkspaceRequest {
   name?: string;
 }
 
+export type SkillConfigFieldType =
+  (typeof SkillConfigFieldType)[keyof typeof SkillConfigFieldType];
+
+export const SkillConfigFieldType = {
+  string: "string",
+  password: "password",
+  apiKey: "apiKey",
+  "folder-path": "folder-path",
+  select: "select",
+  toggle: "toggle",
+  number: "number",
+  url: "url",
+} as const;
+
+export interface SkillConfigSelectOption {
+  value: string;
+  label: string;
+}
+
+export interface SkillConfigField {
+  /** Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`. */
+  key: string;
+  type: SkillConfigFieldType;
+  label: string;
+  description?: string;
+  required: boolean;
+  defaultValue?: string | number | boolean | null;
+  options?: SkillConfigSelectOption[];
+  /** RegExp source applied to string values for inline validation. */
+  pattern?: string;
+  helpUrl?: string;
+  placeholder?: string;
+  /** True iff the field's value lives in the OS keychain vault and
+is never returned over the wire. Server-projected — clients
+ignore on input.
+ */
+  sensitive?: boolean;
+  /** True iff the user has supplied a value (or sealed a secret)
+for this field. Server-projected.
+ */
+  filled?: boolean;
+}
+
 export interface CreateSkillRequest {
   slug?: string;
   name: string;
@@ -4390,6 +4433,10 @@ export interface CreateSkillRequest {
   author?: string;
   isPremium?: boolean;
   previewUsesAllowed?: number;
+  /** Optional per-field configuration declarations (Task #43). Empty
+or omitted means the skill has no user-supplied configuration.
+ */
+  configurationSchema?: SkillConfigField[];
 }
 
 export interface Skill {
@@ -4877,6 +4924,110 @@ export interface UpdateSkillRequest {
   category?: string;
   /** Expected current version for optimistic concurrency control. */
   version?: number;
+  configurationSchema?: SkillConfigField[];
+}
+
+export type SkillConfigValue = string | number | boolean | null;
+
+/**
+ * Non-sensitive values keyed by field key.
+ */
+export type SkillConfigStatusValues = { [key: string]: SkillConfigValue };
+
+export interface SkillConfigStatus {
+  skillId: string;
+  schema: SkillConfigField[];
+  /** Non-sensitive values keyed by field key. */
+  values: SkillConfigStatusValues;
+  /** Sensitive field keys whose value is sealed in the vault. */
+  secretRefs: string[];
+  required: string[];
+  missingRequired: string[];
+  configured: boolean;
+  configuredAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface SkillConfigResponse {
+  success: boolean;
+  data: SkillConfigStatus;
+}
+
+/**
+ * Map of field key → user-supplied value (null clears).
+ */
+export type SkillConfigUpdateRequestValues = {
+  [key: string]: SkillConfigValue;
+};
+
+export interface SkillConfigUpdateRequest {
+  /** Map of field key → user-supplied value (null clears). */
+  values: SkillConfigUpdateRequestValues;
+  /** Required when any sensitive (password / apiKey) field is being
+written — used to seal the plaintext into the keychain vault.
+ */
+  masterPassword?: string;
+}
+
+export interface SkillConfigStatusEnvelope {
+  skillId: string;
+  configured: boolean;
+  missingRequired: string[];
+  configuredAt: string | null;
+}
+
+export interface SkillConfigStatusResponse {
+  success: boolean;
+  data: SkillConfigStatusEnvelope;
+}
+
+export type SkillConfigTemplateEntryValues = {
+  [key: string]: SkillConfigValue;
+};
+
+export interface SkillConfigTemplateEntry {
+  slug?: string;
+  skillId?: string;
+  values: SkillConfigTemplateEntryValues;
+}
+
+export type SkillConfigTemplateOmninityConfigTemplateVersion =
+  (typeof SkillConfigTemplateOmninityConfigTemplateVersion)[keyof typeof SkillConfigTemplateOmninityConfigTemplateVersion];
+
+export const SkillConfigTemplateOmninityConfigTemplateVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export interface SkillConfigTemplate {
+  omninityConfigTemplateVersion: SkillConfigTemplateOmninityConfigTemplateVersion;
+  entries: SkillConfigTemplateEntry[];
+}
+
+export interface SkillConfigImportRequest {
+  template: SkillConfigTemplate;
+  masterPassword?: string;
+}
+
+export type SkillConfigImportSummaryAppliedItem = {
+  skillId: string;
+  slug: string;
+  configured: boolean;
+};
+
+export type SkillConfigImportSummarySkippedItem = {
+  skillId?: string | null;
+  slug?: string | null;
+  reason: string;
+};
+
+export interface SkillConfigImportSummary {
+  applied: SkillConfigImportSummaryAppliedItem[];
+  skipped: SkillConfigImportSummarySkippedItem[];
+}
+
+export interface SkillConfigImportResponse {
+  success: boolean;
+  data: SkillConfigImportSummary;
 }
 
 /**

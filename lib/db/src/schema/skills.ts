@@ -94,6 +94,12 @@ export const skills = sqliteTable(
       .default(false),
     /** Free invocations granted before the paywall kicks in. Default = 2 (Task #6). */
     previewUsesAllowed: integer("preview_uses_allowed").notNull().default(2),
+    /**
+     * JSON-encoded array of `ConfigField` declarations (Task #43). Empty
+     * array means the skill has no user-supplied configuration and the
+     * first-run gate is bypassed.
+     */
+    configurationSchema: text("configuration_schema").notNull().default("[]"),
   },
   (t) => ({
     tenantIdx: index("idx_skills_tenant").on(t.tenantId),

@@ -4114,6 +4114,144 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "skill configuration: schema declared, missing required gates invoke",
+    run: async () => {
+      const created = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          name: "Configurable Helper",
+          content: "Use {{config.workspace_root}} when summarising files.",
+          configurationSchema: [
+            {
+              key: "workspace_root",
+              type: "folder-path",
+              label: "Workspace folder",
+              required: true,
+            },
+            {
+              key: "api_key",
+              type: "apiKey",
+              label: "Vendor API key",
+              required: true,
+            },
+            {
+              key: "verbose",
+              type: "toggle",
+              label: "Verbose output",
+              required: false,
+              defaultValue: false,
+            },
+          ],
+        });
+      assert.equal(created.status, 200, JSON.stringify(created.body));
+      const skillId = created.body.data.id;
+      assert.equal(created.body.data.configurationSchema.length, 3);
+
+      const status = await request(app)
+        .get(`/api/skills/${skillId}/config/status`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(status.status, 200);
+      assert.equal(status.body.data.configured, false);
+      assert.deepEqual(
+        status.body.data.missingRequired.sort(),
+        ["api_key", "workspace_root"],
+      );
+
+      await request(app).post(`/api/skills/${skillId}/install`).set("X-Tenant-ID", TENANT);
+
+      const blocked = await request(app)
+        .post(`/api/skills/${skillId}/invoke`)
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "do the thing" });
+      assert.equal(blocked.status, 409, JSON.stringify(blocked.body));
+      assert.equal(blocked.body.error.code, "SKILL_NOT_CONFIGURED");
+      assert.deepEqual(
+        (blocked.body.error.details.missingKeys as string[]).sort(),
+        ["api_key", "workspace_root"],
+      );
+
+      const put = await request(app)
+        .put(`/api/skills/${skillId}/config`)
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          values: {
+            workspace_root: "/tmp/work",
+            api_key: "sk-test-12345",
+            verbose: true,
+          },
+          masterPassword: "test-master-pw",
+        });
+      assert.equal(put.status, 200, JSON.stringify(put.body));
+      assert.equal(put.body.data.configured, true);
+      assert.deepEqual(put.body.data.missingRequired, []);
+      assert.ok(put.body.data.secretRefs.includes("api_key"));
+      assert.ok(!("api_key" in put.body.data.values), "secrets stay out of values");
+      assert.equal(put.body.data.values.workspace_root, "/tmp/work");
+
+      const ok = await request(app)
+        .post(`/api/skills/${skillId}/invoke`)
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "do the thing now" });
+      assert.equal(ok.status, 200, JSON.stringify(ok.body));
+
+      const reset = await request(app)
+        .delete(`/api/skills/${skillId}/config`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(reset.status, 200);
+      assert.equal(reset.body.data.configured, false);
+      assert.deepEqual(reset.body.data.secretRefs, []);
+
+      const blockedAgain = await request(app)
+        .post(`/api/skills/${skillId}/invoke`)
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "second attempt" });
+      assert.equal(blockedAgain.status, 409);
+      assert.equal(blockedAgain.body.error.code, "SKILL_NOT_CONFIGURED");
+    },
+  },
+  {
+    name: "skill configuration: bulk import applies template across skills",
+    run: async () => {
+      const a = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          name: "Bulk A",
+          content: "alpha",
+          configurationSchema: [
+            { key: "endpoint", type: "url", label: "Endpoint", required: true },
+          ],
+        });
+      const b = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          name: "Bulk B",
+          content: "beta",
+          configurationSchema: [
+            { key: "user", type: "string", label: "User", required: true },
+          ],
+        });
+
+      const result = await request(app)
+        .post("/api/skills/config/import")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          template: {
+            omninityConfigTemplateVersion: 1,
+            entries: [
+              { skillId: a.body.data.id, values: { endpoint: "https://api.example.com" } },
+              { skillId: b.body.data.id, values: { user: "alice" } },
+            ],
+          },
+        });
+      assert.equal(result.status, 200, JSON.stringify(result.body));
+      assert.equal(result.body.data.applied.length, 2);
+      assert.ok(result.body.data.applied.every((r: { configured: boolean }) => r.configured));
+    },
+  },
+  {
     name: "skills tenant isolation: tenant 2 cannot see tenant 1's skills",
     run: async () => {
       const created = await request(app)

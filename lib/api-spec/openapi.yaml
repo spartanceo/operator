@@ -5636,6 +5636,129 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SkillResponse'
+  /skills/{id}/config:
+    get:
+      operationId: getSkillConfig
+      tags:
+        - skills
+      summary: Read the configuration schema + filled status for a skill
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Skill configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillConfigResponse'
+        '404':
+          description: Unknown skill
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    put:
+      operationId: updateSkillConfig
+      tags:
+        - skills
+      summary: Persist user-supplied values for a skill's configuration
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillConfigUpdateRequest'
+      responses:
+        '200':
+          description: Updated configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillConfigResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    delete:
+      operationId: resetSkillConfig
+      tags:
+        - skills
+      summary: Wipe every configuration value (and vault entry) for a skill
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reset configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillConfigResponse'
+  /skills/{id}/config/status:
+    get:
+      operationId: getSkillConfigStatus
+      tags:
+        - skills
+      summary: Lightweight first-run-gate check (configured / missing keys)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Configuration status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillConfigStatusResponse'
+        '404':
+          description: Unknown skill
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /skills/config/import:
+    post:
+      operationId: importSkillConfigTemplate
+      tags:
+        - skills
+      summary: Apply a configuration template across multiple skills
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillConfigImportRequest'
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillConfigImportResponse'
   /skills/import:
     post:
       operationId: importSkill
@@ -16334,6 +16457,13 @@ components:
           type: boolean
         previewUsesAllowed:
           type: integer
+        configurationSchema:
+          type: array
+          description: |
+            Optional per-field configuration declarations (Task #43). Empty
+            or omitted means the skill has no user-supplied configuration.
+          items:
+            $ref: '#/components/schemas/SkillConfigField'
     Skill:
       type: object
       required:
@@ -16368,6 +16498,7 @@ components:
         - ratingCount
         - editorialPick
         - verifiedByOp
+        - configurationSchema
       properties:
         id:
           type: string
@@ -17214,6 +17345,252 @@ components:
         version:
           type: integer
           description: Expected current version for optimistic concurrency control.
+        configurationSchema:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillConfigField'
+    SkillConfigFieldType:
+      type: string
+      enum:
+        - string
+        - password
+        - apiKey
+        - folder-path
+        - select
+        - toggle
+        - number
+        - url
+    SkillConfigSelectOption:
+      type: object
+      required:
+        - value
+        - label
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+    SkillConfigField:
+      type: object
+      required:
+        - key
+        - type
+        - label
+        - required
+      properties:
+        key:
+          type: string
+          description: Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`.
+        type:
+          $ref: '#/components/schemas/SkillConfigFieldType'
+        label:
+          type: string
+        description:
+          type: string
+        required:
+          type: boolean
+        defaultValue:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: 'null'
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillConfigSelectOption'
+        pattern:
+          type: string
+          description: RegExp source applied to string values for inline validation.
+        helpUrl:
+          type: string
+        placeholder:
+          type: string
+        sensitive:
+          type: boolean
+          description: |
+            True iff the field's value lives in the OS keychain vault and
+            is never returned over the wire. Server-projected — clients
+            ignore on input.
+        filled:
+          type: boolean
+          description: |
+            True iff the user has supplied a value (or sealed a secret)
+            for this field. Server-projected.
+    SkillConfigValue:
+      oneOf:
+        - type: string
+        - type: number
+        - type: boolean
+        - type: 'null'
+    SkillConfigStatus:
+      type: object
+      required:
+        - skillId
+        - schema
+        - values
+        - secretRefs
+        - required
+        - missingRequired
+        - configured
+        - configuredAt
+        - updatedAt
+      properties:
+        skillId:
+          type: string
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillConfigField'
+        values:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SkillConfigValue'
+          description: Non-sensitive values keyed by field key.
+        secretRefs:
+          type: array
+          items:
+            type: string
+          description: Sensitive field keys whose value is sealed in the vault.
+        required:
+          type: array
+          items:
+            type: string
+        missingRequired:
+          type: array
+          items:
+            type: string
+        configured:
+          type: boolean
+        configuredAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    SkillConfigResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillConfigStatus'
+    SkillConfigUpdateRequest:
+      type: object
+      required:
+        - values
+      properties:
+        values:
+          type: object
+          description: Map of field key → user-supplied value (null clears).
+          additionalProperties:
+            $ref: '#/components/schemas/SkillConfigValue'
+        masterPassword:
+          type: string
+          description: |
+            Required when any sensitive (password / apiKey) field is being
+            written — used to seal the plaintext into the keychain vault.
+    SkillConfigStatusEnvelope:
+      type: object
+      required:
+        - skillId
+        - configured
+        - missingRequired
+        - configuredAt
+      properties:
+        skillId:
+          type: string
+        configured:
+          type: boolean
+        missingRequired:
+          type: array
+          items:
+            type: string
+        configuredAt:
+          type: string
+          format: date-time
+          nullable: true
+    SkillConfigStatusResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillConfigStatusEnvelope'
+    SkillConfigTemplateEntry:
+      type: object
+      required:
+        - values
+      properties:
+        slug:
+          type: string
+        skillId:
+          type: string
+        values:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SkillConfigValue'
+    SkillConfigTemplate:
+      type: object
+      required:
+        - omninityConfigTemplateVersion
+        - entries
+      properties:
+        omninityConfigTemplateVersion:
+          type: integer
+          enum: [1]
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillConfigTemplateEntry'
+    SkillConfigImportRequest:
+      type: object
+      required:
+        - template
+      properties:
+        template:
+          $ref: '#/components/schemas/SkillConfigTemplate'
+        masterPassword:
+          type: string
+    SkillConfigImportSummary:
+      type: object
+      required:
+        - applied
+        - skipped
+      properties:
+        applied:
+          type: array
+          items:
+            type: object
+            required: [skillId, slug, configured]
+            properties:
+              skillId: { type: string }
+              slug: { type: string }
+              configured: { type: boolean }
+        skipped:
+          type: array
+          items:
+            type: object
+            required: [reason]
+            properties:
+              skillId: { type: string, nullable: true }
+              slug: { type: string, nullable: true }
+              reason: { type: string }
+    SkillConfigImportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillConfigImportSummary'
     QueueEnqueueRequest:
       type: object
       required:

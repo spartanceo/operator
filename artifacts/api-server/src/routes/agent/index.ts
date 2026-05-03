@@ -15,6 +15,7 @@ import { Router, type IRouter } from "express";
 import { z } from "zod";
 
 import { err, ok, pageOk } from "../../lib/api-envelope";
+import { SkillNotConfiguredError } from "../../services/skill-config.service";
 import { requireTenantContext } from "../../lib/tenant-context";
 import { requireTenant } from "../../middlewares/tenant-context";
 import {
@@ -90,6 +91,17 @@ router.post("/runs", requireTenant(), async (req, res, next) => {
     const run = await createAgentRun(ctx, parsed.data);
     res.json(ok(run));
   } catch (e) {
+    if (e instanceof SkillNotConfiguredError) {
+      res
+        .status(409)
+        .json(
+          err("SKILL_NOT_CONFIGURED", e.message, {
+            skillId: e.skillId,
+            missingKeys: e.missingKeys,
+          }),
+        );
+      return;
+    }
     next(e);
   }
 });

@@ -387,6 +387,11 @@ import type {
   SkillAdoptionResponse,
   SkillAutoUpdateRequest,
   SkillBadgesResponse,
+  SkillConfigImportRequest,
+  SkillConfigImportResponse,
+  SkillConfigResponse,
+  SkillConfigStatusResponse,
+  SkillConfigUpdateRequest,
   SkillDeleteResponse,
   SkillDraftDeleteResponse,
   SkillDraftInterviewAnswerRequest,
@@ -22551,6 +22556,445 @@ export const useCreateSkill = <
   TContext
 > => {
   return useMutation(getCreateSkillMutationOptions(options));
+};
+
+/**
+ * @summary Read the configuration schema + filled status for a skill
+ */
+export const getGetSkillConfigUrl = (id: string) => {
+  return `/api/skills/${id}/config`;
+};
+
+export const getSkillConfig = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillConfigResponse> => {
+  return customFetch<SkillConfigResponse>(getGetSkillConfigUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSkillConfigQueryKey = (id: string) => {
+  return [`/api/skills/${id}/config`] as const;
+};
+
+export const getGetSkillConfigQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkillConfig>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillConfig>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSkillConfigQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSkillConfig>>> = ({
+    signal,
+  }) => getSkillConfig(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillConfig>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSkillConfigQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillConfig>>
+>;
+export type GetSkillConfigQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Read the configuration schema + filled status for a skill
+ */
+
+export function useGetSkillConfig<
+  TData = Awaited<ReturnType<typeof getSkillConfig>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillConfig>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillConfigQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Persist user-supplied values for a skill's configuration
+ */
+export const getUpdateSkillConfigUrl = (id: string) => {
+  return `/api/skills/${id}/config`;
+};
+
+export const updateSkillConfig = async (
+  id: string,
+  skillConfigUpdateRequest: SkillConfigUpdateRequest,
+  options?: RequestInit,
+): Promise<SkillConfigResponse> => {
+  return customFetch<SkillConfigResponse>(getUpdateSkillConfigUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(skillConfigUpdateRequest),
+  });
+};
+
+export const getUpdateSkillConfigMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSkillConfig>>,
+    TError,
+    { id: string; data: BodyType<SkillConfigUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSkillConfig>>,
+  TError,
+  { id: string; data: BodyType<SkillConfigUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateSkillConfig"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSkillConfig>>,
+    { id: string; data: BodyType<SkillConfigUpdateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSkillConfig(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSkillConfigMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSkillConfig>>
+>;
+export type UpdateSkillConfigMutationBody = BodyType<SkillConfigUpdateRequest>;
+export type UpdateSkillConfigMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Persist user-supplied values for a skill's configuration
+ */
+export const useUpdateSkillConfig = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSkillConfig>>,
+    TError,
+    { id: string; data: BodyType<SkillConfigUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSkillConfig>>,
+  TError,
+  { id: string; data: BodyType<SkillConfigUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateSkillConfigMutationOptions(options));
+};
+
+/**
+ * @summary Wipe every configuration value (and vault entry) for a skill
+ */
+export const getResetSkillConfigUrl = (id: string) => {
+  return `/api/skills/${id}/config`;
+};
+
+export const resetSkillConfig = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillConfigResponse> => {
+  return customFetch<SkillConfigResponse>(getResetSkillConfigUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getResetSkillConfigMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetSkillConfig>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resetSkillConfig>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["resetSkillConfig"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resetSkillConfig>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return resetSkillConfig(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResetSkillConfigMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resetSkillConfig>>
+>;
+
+export type ResetSkillConfigMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Wipe every configuration value (and vault entry) for a skill
+ */
+export const useResetSkillConfig = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetSkillConfig>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resetSkillConfig>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getResetSkillConfigMutationOptions(options));
+};
+
+/**
+ * @summary Lightweight first-run-gate check (configured / missing keys)
+ */
+export const getGetSkillConfigStatusUrl = (id: string) => {
+  return `/api/skills/${id}/config/status`;
+};
+
+export const getSkillConfigStatus = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillConfigStatusResponse> => {
+  return customFetch<SkillConfigStatusResponse>(
+    getGetSkillConfigStatusUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSkillConfigStatusQueryKey = (id: string) => {
+  return [`/api/skills/${id}/config/status`] as const;
+};
+
+export const getGetSkillConfigStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkillConfigStatus>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillConfigStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSkillConfigStatusQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSkillConfigStatus>>
+  > = ({ signal }) => getSkillConfigStatus(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillConfigStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSkillConfigStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillConfigStatus>>
+>;
+export type GetSkillConfigStatusQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Lightweight first-run-gate check (configured / missing keys)
+ */
+
+export function useGetSkillConfigStatus<
+  TData = Awaited<ReturnType<typeof getSkillConfigStatus>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillConfigStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillConfigStatusQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Apply a configuration template across multiple skills
+ */
+export const getImportSkillConfigTemplateUrl = () => {
+  return `/api/skills/config/import`;
+};
+
+export const importSkillConfigTemplate = async (
+  skillConfigImportRequest: SkillConfigImportRequest,
+  options?: RequestInit,
+): Promise<SkillConfigImportResponse> => {
+  return customFetch<SkillConfigImportResponse>(
+    getImportSkillConfigTemplateUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(skillConfigImportRequest),
+    },
+  );
+};
+
+export const getImportSkillConfigTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importSkillConfigTemplate>>,
+    TError,
+    { data: BodyType<SkillConfigImportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importSkillConfigTemplate>>,
+  TError,
+  { data: BodyType<SkillConfigImportRequest> },
+  TContext
+> => {
+  const mutationKey = ["importSkillConfigTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importSkillConfigTemplate>>,
+    { data: BodyType<SkillConfigImportRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importSkillConfigTemplate(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportSkillConfigTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importSkillConfigTemplate>>
+>;
+export type ImportSkillConfigTemplateMutationBody =
+  BodyType<SkillConfigImportRequest>;
+export type ImportSkillConfigTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Apply a configuration template across multiple skills
+ */
+export const useImportSkillConfigTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importSkillConfigTemplate>>,
+    TError,
+    { data: BodyType<SkillConfigImportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importSkillConfigTemplate>>,
+  TError,
+  { data: BodyType<SkillConfigImportRequest> },
+  TContext
+> => {
+  return useMutation(getImportSkillConfigTemplateMutationOptions(options));
 };
 
 /**

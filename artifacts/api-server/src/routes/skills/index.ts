@@ -11,7 +11,9 @@ import { err, ok, pageOk } from "../../lib/api-envelope";
 import { requireTenantContext } from "../../lib/tenant-context";
 import { requireTenant } from "../../middlewares/tenant-context";
 import { createAgentRun } from "../../services/agent.service";
+import configRouter from "./config";
 import draftsRouter from "./drafts";
+import { SkillNotConfiguredError } from "../../services/skill-config.service";
 import {
   applySkillUpdate,
   createSkill,
@@ -57,6 +59,10 @@ const router: IRouter = Router();
 // Mount the wizard sub-router FIRST so `/drafts/*` matches before
 // `/:id`-style fall-through routes below.
 router.use("/drafts", draftsRouter);
+// Configuration sub-router — handles GET/PUT/DELETE /:id/config and the
+// /config/import bulk endpoint. Mounted before the `/:id` catch-alls so
+// the config paths take precedence.
+router.use(configRouter);
 
 const PageSchema = z.object({
   cursor: z.string().min(1).max(2048).optional(),
@@ -129,6 +135,10 @@ function handleReviewError(
 
 const StringArray = z.array(z.string().min(1).max(120)).max(50);
 
+// Loose pass-through; the service layer's `validateConfigSchema` is the
+// single source of truth for shape, key uniqueness, and option lists.
+const ConfigSchemaWire = z.array(z.record(z.string(), z.unknown())).max(50);
+
 const CreateSchema = z.object({
   slug: z.string().min(1).max(80).optional(),
   name: z.string().min(1).max(200),
@@ -140,6 +150,7 @@ const CreateSchema = z.object({
   author: z.string().min(1).max(120).optional(),
   isPremium: z.boolean().optional(),
   previewUsesAllowed: z.number().int().min(0).max(1_000).optional(),
+  configurationSchema: ConfigSchemaWire.optional(),
 });
 
 const UpdateSchema = z.object({
@@ -151,6 +162,7 @@ const UpdateSchema = z.object({
   category: z.string().min(1).max(80).optional(),
   isPremium: z.boolean().optional(),
   previewUsesAllowed: z.number().int().min(0).max(1_000).optional(),
+  configurationSchema: ConfigSchemaWire.optional(),
 });
 
 const ManifestSchema = z.object({
@@ -168,6 +180,7 @@ const ManifestSchema = z.object({
   changelog: z.string().max(8_000).optional(),
   breakingChange: z.boolean().optional(),
   minOpVersion: z.string().max(40).optional(),
+  configurationSchema: ConfigSchemaWire.optional(),
 });
 
 const ImportSchema = z.object({
@@ -725,6 +738,17 @@ router.post("/:id/invoke", requireTenant(), async (req, res, next) => {
     });
     res.json(ok(run));
   } catch (e) {
+    if (e instanceof SkillNotConfiguredError) {
+      res
+        .status(409)
+        .json(
+          err("SKILL_NOT_CONFIGURED", e.message, {
+            skillId: e.skillId,
+            missingKeys: e.missingKeys,
+          }),
+        );
+      return;
+    }
     next(e);
   }
 });

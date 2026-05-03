@@ -10690,6 +10690,62 @@ export const CreateSkillBody = zod.object({
   author: zod.string().optional(),
   isPremium: zod.boolean().optional(),
   previewUsesAllowed: zod.number().optional(),
+  configurationSchema: zod
+    .array(
+      zod.object({
+        key: zod
+          .string()
+          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
+        type: zod.enum([
+          "string",
+          "password",
+          "apiKey",
+          "folder-path",
+          "select",
+          "toggle",
+          "number",
+          "url",
+        ]),
+        label: zod.string(),
+        description: zod.string().optional(),
+        required: zod.boolean(),
+        defaultValue: zod
+          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
+          .optional(),
+        options: zod
+          .array(
+            zod.object({
+              value: zod.string(),
+              label: zod.string(),
+            }),
+          )
+          .optional(),
+        pattern: zod
+          .string()
+          .optional()
+          .describe(
+            "RegExp source applied to string values for inline validation.",
+          ),
+        helpUrl: zod.string().optional(),
+        placeholder: zod.string().optional(),
+        sensitive: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
+          ),
+        filled: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
+          ),
+      }),
+    )
+    .optional()
+    .describe(
+      "Optional per-field configuration declarations (Task #43). Empty\nor omitted means the skill has no user-supplied configuration.\n",
+    ),
 });
 
 export const CreateSkillResponse = zod.object({
@@ -10766,6 +10822,355 @@ export const CreateSkillResponse = zod.object({
       ),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Read the configuration schema + filled status for a skill
+ */
+export const GetSkillConfigParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetSkillConfigHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSkillConfigResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skillId: zod.string(),
+    schema: zod.array(
+      zod.object({
+        key: zod
+          .string()
+          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
+        type: zod.enum([
+          "string",
+          "password",
+          "apiKey",
+          "folder-path",
+          "select",
+          "toggle",
+          "number",
+          "url",
+        ]),
+        label: zod.string(),
+        description: zod.string().optional(),
+        required: zod.boolean(),
+        defaultValue: zod
+          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
+          .optional(),
+        options: zod
+          .array(
+            zod.object({
+              value: zod.string(),
+              label: zod.string(),
+            }),
+          )
+          .optional(),
+        pattern: zod
+          .string()
+          .optional()
+          .describe(
+            "RegExp source applied to string values for inline validation.",
+          ),
+        helpUrl: zod.string().optional(),
+        placeholder: zod.string().optional(),
+        sensitive: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
+          ),
+        filled: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
+          ),
+      }),
+    ),
+    values: zod
+      .record(
+        zod.string(),
+        zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
+      )
+      .describe("Non-sensitive values keyed by field key."),
+    secretRefs: zod
+      .array(zod.string())
+      .describe("Sensitive field keys whose value is sealed in the vault."),
+    required: zod.array(zod.string()),
+    missingRequired: zod.array(zod.string()),
+    configured: zod.boolean(),
+    configuredAt: zod.coerce.date().nullable(),
+    updatedAt: zod.coerce.date().nullable(),
+  }),
+});
+
+/**
+ * @summary Persist user-supplied values for a skill's configuration
+ */
+export const UpdateSkillConfigParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateSkillConfigHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateSkillConfigBody = zod.object({
+  values: zod
+    .record(
+      zod.string(),
+      zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
+    )
+    .describe("Map of field key → user-supplied value (null clears)."),
+  masterPassword: zod
+    .string()
+    .optional()
+    .describe(
+      "Required when any sensitive (password \/ apiKey) field is being\nwritten — used to seal the plaintext into the keychain vault.\n",
+    ),
+});
+
+export const UpdateSkillConfigResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skillId: zod.string(),
+    schema: zod.array(
+      zod.object({
+        key: zod
+          .string()
+          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
+        type: zod.enum([
+          "string",
+          "password",
+          "apiKey",
+          "folder-path",
+          "select",
+          "toggle",
+          "number",
+          "url",
+        ]),
+        label: zod.string(),
+        description: zod.string().optional(),
+        required: zod.boolean(),
+        defaultValue: zod
+          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
+          .optional(),
+        options: zod
+          .array(
+            zod.object({
+              value: zod.string(),
+              label: zod.string(),
+            }),
+          )
+          .optional(),
+        pattern: zod
+          .string()
+          .optional()
+          .describe(
+            "RegExp source applied to string values for inline validation.",
+          ),
+        helpUrl: zod.string().optional(),
+        placeholder: zod.string().optional(),
+        sensitive: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
+          ),
+        filled: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
+          ),
+      }),
+    ),
+    values: zod
+      .record(
+        zod.string(),
+        zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
+      )
+      .describe("Non-sensitive values keyed by field key."),
+    secretRefs: zod
+      .array(zod.string())
+      .describe("Sensitive field keys whose value is sealed in the vault."),
+    required: zod.array(zod.string()),
+    missingRequired: zod.array(zod.string()),
+    configured: zod.boolean(),
+    configuredAt: zod.coerce.date().nullable(),
+    updatedAt: zod.coerce.date().nullable(),
+  }),
+});
+
+/**
+ * @summary Wipe every configuration value (and vault entry) for a skill
+ */
+export const ResetSkillConfigParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ResetSkillConfigHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ResetSkillConfigResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skillId: zod.string(),
+    schema: zod.array(
+      zod.object({
+        key: zod
+          .string()
+          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
+        type: zod.enum([
+          "string",
+          "password",
+          "apiKey",
+          "folder-path",
+          "select",
+          "toggle",
+          "number",
+          "url",
+        ]),
+        label: zod.string(),
+        description: zod.string().optional(),
+        required: zod.boolean(),
+        defaultValue: zod
+          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
+          .optional(),
+        options: zod
+          .array(
+            zod.object({
+              value: zod.string(),
+              label: zod.string(),
+            }),
+          )
+          .optional(),
+        pattern: zod
+          .string()
+          .optional()
+          .describe(
+            "RegExp source applied to string values for inline validation.",
+          ),
+        helpUrl: zod.string().optional(),
+        placeholder: zod.string().optional(),
+        sensitive: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
+          ),
+        filled: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
+          ),
+      }),
+    ),
+    values: zod
+      .record(
+        zod.string(),
+        zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
+      )
+      .describe("Non-sensitive values keyed by field key."),
+    secretRefs: zod
+      .array(zod.string())
+      .describe("Sensitive field keys whose value is sealed in the vault."),
+    required: zod.array(zod.string()),
+    missingRequired: zod.array(zod.string()),
+    configured: zod.boolean(),
+    configuredAt: zod.coerce.date().nullable(),
+    updatedAt: zod.coerce.date().nullable(),
+  }),
+});
+
+/**
+ * @summary Lightweight first-run-gate check (configured / missing keys)
+ */
+export const GetSkillConfigStatusParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetSkillConfigStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSkillConfigStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skillId: zod.string(),
+    configured: zod.boolean(),
+    missingRequired: zod.array(zod.string()),
+    configuredAt: zod.coerce.date().nullable(),
+  }),
+});
+
+/**
+ * @summary Apply a configuration template across multiple skills
+ */
+export const ImportSkillConfigTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ImportSkillConfigTemplateBody = zod.object({
+  template: zod.object({
+    omninityConfigTemplateVersion: zod.literal(1),
+    entries: zod.array(
+      zod.object({
+        slug: zod.string().optional(),
+        skillId: zod.string().optional(),
+        values: zod.record(
+          zod.string(),
+          zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
+        ),
+      }),
+    ),
+  }),
+  masterPassword: zod.string().optional(),
+});
+
+export const ImportSkillConfigTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    applied: zod.array(
+      zod.object({
+        skillId: zod.string(),
+        slug: zod.string(),
+        configured: zod.boolean(),
+      }),
+    ),
+    skipped: zod.array(
+      zod.object({
+        skillId: zod.string().nullish(),
+        slug: zod.string().nullish(),
+        reason: zod.string(),
+      }),
+    ),
   }),
 });
 
@@ -11003,6 +11408,59 @@ export const UpdateSkillBody = zod.object({
     .number()
     .optional()
     .describe("Expected current version for optimistic concurrency control."),
+  configurationSchema: zod
+    .array(
+      zod.object({
+        key: zod
+          .string()
+          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
+        type: zod.enum([
+          "string",
+          "password",
+          "apiKey",
+          "folder-path",
+          "select",
+          "toggle",
+          "number",
+          "url",
+        ]),
+        label: zod.string(),
+        description: zod.string().optional(),
+        required: zod.boolean(),
+        defaultValue: zod
+          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
+          .optional(),
+        options: zod
+          .array(
+            zod.object({
+              value: zod.string(),
+              label: zod.string(),
+            }),
+          )
+          .optional(),
+        pattern: zod
+          .string()
+          .optional()
+          .describe(
+            "RegExp source applied to string values for inline validation.",
+          ),
+        helpUrl: zod.string().optional(),
+        placeholder: zod.string().optional(),
+        sensitive: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
+          ),
+        filled: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
+          ),
+      }),
+    )
+    .optional(),
 });
 
 export const UpdateSkillResponse = zod.object({

@@ -34,6 +34,13 @@ import { emitOpEvent } from "../lib/event-bus";
 import { logger } from "../lib/logger";
 import { logPrivacyEvent } from "./privacy.service";
 import { recordSkillUsage } from "./skill-reviews.service";
+import {
+  type ConfigField,
+  decodeConfigSchema,
+  encodeConfigSchema,
+  validateConfigSchema,
+  ConfigSchemaError,
+} from "./skill-config.service";
 
 export const SKILL_MANIFEST_VERSION = 1 as const;
 
@@ -133,6 +140,8 @@ export interface SkillRow {
   previewUsesAllowed: number;
   createdAt: string;
   updatedAt: string;
+  /** Per-field configuration schema (Task #43). [] when no config required. */
+  configurationSchema: ConfigField[];
 }
 
 export interface SkillManifest {
@@ -150,6 +159,8 @@ export interface SkillManifest {
   changelog?: string;
   breakingChange?: boolean;
   minOpVersion?: string;
+  /** Schema declaration carried alongside the prompt content. */
+  configurationSchema?: ConfigField[];
 }
 
 export interface SkillVersionRow {
@@ -168,6 +179,7 @@ export interface SkillVersionRow {
   author: string;
   installCount: number;
   createdAt: string;
+  configurationSchema: ConfigField[];
 }
 
 export interface PublishVersionInput {
@@ -181,6 +193,7 @@ export interface PublishVersionInput {
   modelTags?: string[];
   triggers?: string[];
   category?: string;
+  configurationSchema?: ConfigField[];
 }
 
 export interface VersionAdoption {
@@ -207,6 +220,7 @@ export interface CreateSkillInput {
   minOpVersion?: string;
   isPremium?: boolean;
   previewUsesAllowed?: number;
+  configurationSchema?: ConfigField[];
 }
 
 export interface UpdateSkillInput {
@@ -218,6 +232,7 @@ export interface UpdateSkillInput {
   category?: string;
   isPremium?: boolean;
   previewUsesAllowed?: number;
+  configurationSchema?: ConfigField[];
 }
 
 export class SkillNotFoundError extends Error {
@@ -287,6 +302,7 @@ function toRow(r: typeof skills.$inferSelect): SkillRow {
     previewUsesAllowed: r.previewUsesAllowed ?? 2,
     createdAt: new Date(r.createdAt).toISOString(),
     updatedAt: new Date(r.updatedAt).toISOString(),
+    configurationSchema: decodeConfigSchema(r.configurationSchema),
   };
 }
 
@@ -307,6 +323,7 @@ function toVersionRow(r: typeof skillVersions.$inferSelect): SkillVersionRow {
     author: r.author,
     installCount: r.installCount,
     createdAt: new Date(r.createdAt).toISOString(),
+    configurationSchema: decodeConfigSchema(r.configurationSchema),
   };
 }
 
@@ -344,9 +361,26 @@ async function recordVersionSnapshot(
         category: skill.category,
         author: skill.author,
         installCount: 0,
+        configurationSchema: skill.configurationSchema ?? "[]",
       }),
     )
     .onConflictDoNothing();
+}
+
+/**
+ * Validate + serialise a configuration schema for storage. Centralised
+ * so create/update/import/publish all reuse the same gate and surface
+ * `SkillValidationError` to the route layer.
+ */
+function normaliseConfigSchemaForStorage(input: unknown): string {
+  try {
+    return encodeConfigSchema(validateConfigSchema(input ?? []));
+  } catch (e) {
+    if (e instanceof ConfigSchemaError) {
+      throw new SkillValidationError(e.message);
+    }
+    throw e;
+  }
 }
 
 function slugify(input: string): string {
@@ -487,6 +521,9 @@ export async function createSkill(
     input.minOpVersion && parseSemver(input.minOpVersion)
       ? input.minOpVersion
       : "0.0.0";
+  const configSchemaJson = normaliseConfigSchemaForStorage(
+    input.configurationSchema,
+  );
   await db.insert(skills).values(
     withTenantValues(ctx, {
       id,
@@ -512,6 +549,7 @@ export async function createSkill(
         typeof input.previewUsesAllowed === "number"
           ? Math.max(0, Math.floor(input.previewUsesAllowed))
           : 2,
+      configurationSchema: configSchemaJson,
     }),
   );
   // Seed the version-history snapshot — the row above is the canonical
@@ -562,6 +600,11 @@ export async function updateSkill(
   if (input.isPremium !== undefined) patch.isPremium = input.isPremium;
   if (input.previewUsesAllowed !== undefined) {
     patch.previewUsesAllowed = Math.max(0, Math.floor(input.previewUsesAllowed));
+  }
+  if (input.configurationSchema !== undefined) {
+    patch.configurationSchema = normaliseConfigSchemaForStorage(
+      input.configurationSchema,
+    );
   }
 
   await db
@@ -719,6 +762,7 @@ export async function exportSkill(
     changelog: row.changelog,
     breakingChange: row.breakingChange,
     minOpVersion: row.minOpVersion,
+    configurationSchema: row.configurationSchema,
   };
 }
 
@@ -753,6 +797,7 @@ export async function importSkill(
     initialVersion: importedSemver,
     initialChangelog: manifest.changelog ?? "",
     minOpVersion: importedMinOp,
+    configurationSchema: manifest.configurationSchema ?? [],
   });
   await logPrivacyEvent(ctx, {
     eventType: "skill.import",
@@ -816,6 +861,10 @@ export async function publishSkillVersion(
       ? JSON.stringify(input.triggers)
       : existing.triggers;
   const nextCategory = input.category ?? existing.category;
+  const nextConfigSchema =
+    input.configurationSchema !== undefined
+      ? normaliseConfigSchemaForStorage(input.configurationSchema)
+      : existing.configurationSchema;
 
   const installedShouldFollow =
     existing.isInstalled &&
@@ -836,6 +885,7 @@ export async function publishSkillVersion(
       modelTags: nextModelTags,
       triggers: nextTriggers,
       category: nextCategory,
+      configurationSchema: nextConfigSchema,
       latestVersion: input.version,
       installedVersion: nextInstalledVersion,
       changelog: input.changelog.trim(),
@@ -865,6 +915,7 @@ export async function publishSkillVersion(
       modelTags: nextModelTags,
       triggers: nextTriggers,
       category: nextCategory,
+      configurationSchema: nextConfigSchema,
     },
     {
       semver: input.version,
@@ -952,6 +1003,7 @@ export async function rollbackSkill(
       modelTags: snap.modelTags,
       triggers: snap.triggers,
       category: snap.category,
+      configurationSchema: snap.configurationSchema,
       installedVersion: targetSemver,
       // Dismiss the update card for this version (and anything below).
       updateDismissedVersion: live.latestVersion,

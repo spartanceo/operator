@@ -52,6 +52,10 @@ import {
   consumePreview,
   recordUsage,
 } from "./subscription.service";
+import {
+  assertSkillConfigured,
+  SkillNotConfiguredError,
+} from "./skill-config.service";
 
 export interface AgentRunRow {
   id: string;
@@ -341,6 +345,31 @@ export async function createAgentRun(
           `previewsUsed=${premiumDecision.previewsUsed}`,
       });
       activeSkill = null;
+    }
+  }
+
+  // First-run gate (Task #43). When the resolved skill declares any
+  // required configuration fields that the user has not supplied yet,
+  // refuse to start the run — the UI catches `SKILL_NOT_CONFIGURED`
+  // and pops the configuration panel before retrying. We only enforce
+  // the gate for explicit `skillId` invocations: an auto-routed skill
+  // that is unconfigured silently falls through to the generic Router
+  // so the user is never blocked for a skill they did not pick.
+  if (activeSkill && input.skillId) {
+    await assertSkillConfigured(ctx, activeSkill.id);
+  } else if (activeSkill && !input.skillId) {
+    try {
+      await assertSkillConfigured(ctx, activeSkill.id);
+    } catch (e) {
+      if (e instanceof SkillNotConfiguredError) {
+        logger.info(
+          { skillId: activeSkill.id, missing: e.missingKeys },
+          "Auto-routed skill skipped — required configuration missing",
+        );
+        activeSkill = null;
+      } else {
+        throw e;
+      }
     }
   }
 

@@ -75,6 +75,7 @@ export * from "./creator-accounts";
 export * from "./store-skills";
 export * from "./subscriptions";
 export * from "./skill-preview-counters";
+export * from "./skill-configurations";
 
 export * from "./referral-codes";
 export * from "./referrals";
