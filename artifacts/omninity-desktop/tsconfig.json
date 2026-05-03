@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@workspace/api-server/server": ["../api-server/src/server.ts"],
+      "@workspace/db": ["../../lib/db/src/index.ts"],
+      "@workspace/errors": ["../../lib/errors/src/index.ts"],
+      "@workspace/types": ["../../lib/types/src/index.ts"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

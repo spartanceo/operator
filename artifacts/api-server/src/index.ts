@@ -1,34 +1,19 @@
 /**
- * Server entrypoint.
+ * Server entrypoint — standalone process launcher.
  *
- * Binds to the host returned by `bindHost()` — `127.0.0.1` by default per
- * Standard 12. The Replit preview proxy reaches the artifact via loopback
- * inside the same container, so `127.0.0.1` is correct in dev and prod.
- *
- * On startup we apply versioned schema migrations against the SQLite database
- * `@workspace/db` resolves to (env-var override or `./data/omninity.db`).
- * `runMigrations({ safeMode: true })` returns a result envelope: on failure
- * it sets the global safe-mode flag and we boot anyway — the safe-mode
- * middleware will reject mutating requests so the user can inspect data,
- * back it up, or downgrade the app version.
+ * Reads PORT from the environment, delegates all startup logic to
+ * `startServer()` (which is also called by the Electron main process), and
+ * wires the POSIX signal handlers for graceful shutdown.
  */
-import {
-  getMigrationStatus,
-  getRawSqlite,
-  getSafeMode,
-  runMigrations,
-} from "@workspace/db";
+import { getSafeMode } from "@workspace/db";
 
-import app from "./app";
 import { logger } from "./lib/logger";
-import { bindHost } from "./lib/security";
 import {
-  findInterruptedTasks,
   pauseRunningTasksForShutdown,
-  purgeArchivedCheckpoints,
   recordCleanShutdown,
 } from "./services/crash-recovery.service";
-import { startScheduler } from "./services/schedules.service";
+import { startServer } from "./server";
+import type { ServerHandle } from "./server";
 
 const rawPort = process.env["PORT"];
 
@@ -44,83 +29,7 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const host = bindHost();
-
-const sqlite = getRawSqlite();
-const migrationResult = runMigrations(sqlite, { safeMode: true });
-const status = getMigrationStatus(sqlite);
-
-if (migrationResult.success) {
-  logger.info(
-    {
-      applied: migrationResult.applied,
-      skipped: migrationResult.skipped,
-      currentVersion: status.currentVersion,
-      latestVersion: status.latestVersion,
-    },
-    "Database migrations applied",
-  );
-} else {
-  const safe = getSafeMode();
-  logger.error(
-    {
-      failure: migrationResult.failure,
-      currentVersion: status.currentVersion,
-      latestVersion: status.latestVersion,
-      safeMode: safe,
-    },
-    "Database migration failed — booting in SAFE MODE (read-only). Mutating requests will return 503.",
-  );
-}
-
-const server = app.listen(port, host, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
-
-  // Boot the scheduled-tasks engine (Task #45). The interval is unref'd
-  // so it never holds the process open during graceful shutdown.
-  if (getSafeMode().active) {
-    logger.warn("Scheduler not started — booting in SAFE MODE");
-  } else {
-    startScheduler();
-    logger.info("Scheduler started");
-  }
-
-  // Task #58 — Crash detection on startup. Anything still in `running`
-  // whose updatedAt comes after the last clean-shutdown row was either
-  // crashed or paused at shutdown. We only LOG here; the recovery
-  // prompt is delivered via the /api/recovery/interrupted endpoint that
-  // the desktop UI hits before showing the main interface.
-  findInterruptedTasks()
-    .then((interrupted) => {
-      if (interrupted.length === 0) return;
-      logger.warn(
-        {
-          count: interrupted.length,
-          taskIds: interrupted.map((i) => i.taskId),
-        },
-        "Crash detection: interrupted tasks found from previous session — surfaced via /api/recovery",
-      );
-    })
-    .catch((e) => {
-      logger.error(
-        { err: e instanceof Error ? e.message : String(e) },
-        "Crash detection probe failed",
-      );
-    });
-
-  // Best-effort archive purge (30 day retention).
-  purgeArchivedCheckpoints().catch((e) =>
-    logger.warn(
-      { err: e instanceof Error ? e.message : String(e) },
-      "Checkpoint archive purge failed",
-    ),
-  );
-
-  logger.info({ host, port }, "Server listening");
-});
+let handle: ServerHandle | null = null;
 
 // Task #58 — Clean shutdown handler. Pauses any running queue rows then
 // writes a clean_shutdown_log row before exiting. The next process to
@@ -149,12 +58,28 @@ async function gracefulShutdown(signal: string): Promise<void> {
       "Clean shutdown handler failed — next launch may flag tasks as crashed",
     );
   } finally {
-    server.close(() => process.exit(0));
-    // Hard cap: if Express doesn't drain in 5s, exit anyway so the OS
-    // sees a clean exit code rather than killing us with SIGKILL.
+    if (handle) {
+      await handle.close();
+    }
     setTimeout(() => process.exit(0), 5000).unref();
+    process.exit(0);
   }
 }
 
 process.once("SIGINT", () => void gracefulShutdown("SIGINT"));
 process.once("SIGTERM", () => void gracefulShutdown("SIGTERM"));
+
+startServer(port)
+  .then((h) => {
+    handle = h;
+    if (getSafeMode().active) {
+      logger.warn("Running in SAFE MODE — mutating requests blocked");
+    }
+  })
+  .catch((err: unknown) => {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      "Server failed to start",
+    );
+    process.exit(1);
+  });

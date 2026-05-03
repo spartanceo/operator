@@ -3,6 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": {
+      "workspace": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./server": {
+      "workspace": "./src/server.ts",
+      "default": "./dist/server.mjs"
+    }
+  },
   "scripts": {
     "dev": "export NODE_ENV=development && export HOST=\"${HOST:-0.0.0.0}\" && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",

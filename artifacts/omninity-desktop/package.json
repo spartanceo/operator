@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/omninity-desktop",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names \"web,electron\" \"pnpm --filter @workspace/omninity-website run dev\" \"wait-on http://127.0.0.1:20599 && electron .\"",
+    "build": "pnpm --filter @workspace/omninity-website run build && node build.mjs && electron-builder",
+    "build:code": "node build.mjs",
+    "preview": "vite --config vite.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'ok'"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "catalog:",
+    "concurrently": "^9.1.2",
+    "electron": "^36.3.2",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.27.3",
+    "esbuild-plugin-pino": "^2.3.3",
+    "tsx": "catalog:",
+    "vite": "catalog:",
+    "wait-on": "^8.0.3"
+  }
+}

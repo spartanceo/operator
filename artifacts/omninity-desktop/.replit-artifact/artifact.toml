@@ -1,0 +1,22 @@
+kind = "web"
+previewPath = "/omninity-desktop/"
+title = "Omninity Desktop"
+version = "1.0.0"
+id = "artifacts/omninity-desktop"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/omninity-desktop/" ]
+localPort = 8099
+
+[services.development]
+run = "pnpm --filter @workspace/omninity-desktop run preview"
+
+[services.env]
+PORT = "8099"
+BASE_PATH = "/omninity-desktop/"

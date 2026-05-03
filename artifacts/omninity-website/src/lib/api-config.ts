@@ -1,4 +1,5 @@
 import {
+  setBaseUrl,
   setDefaultHeaders,
   setDefaultCredentials,
 } from "@workspace/api-client-react";
@@ -55,9 +56,32 @@ function reapplyHeaders(): void {
 
 let initialized = false;
 
+/**
+ * Initialise the API client with tenant headers and — when running inside
+ * the Electron desktop shell — redirect all API calls to the embedded
+ * Express server's localhost port.
+ *
+ * The `electronAPI` surface is injected by the Electron preload script
+ * (`artifacts/omninity-desktop/src/preload.ts`) via `contextBridge`. In the
+ * standard web build the property is absent and the client uses the
+ * Vite-proxied relative-URL path (no change from previous behaviour).
+ */
 export function initApiClient(): void {
   if (initialized) return;
   initialized = true;
+
+  const win = window as Window &
+    typeof globalThis & {
+      electronAPI?: {
+        getApiPort?: () => number | null;
+      };
+    };
+
+  const electronPort = win.electronAPI?.getApiPort?.();
+  if (electronPort) {
+    setBaseUrl(`http://127.0.0.1:${electronPort}`);
+  }
+
   setDefaultCredentials("include");
   reapplyHeaders();
 }

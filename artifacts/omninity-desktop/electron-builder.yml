@@ -1,0 +1,51 @@
+appId: com.omninity.operator
+productName: Omninity Operator
+copyright: "Copyright © 2026 Omninity"
+
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - dist/main.js
+  - dist/preload.js
+  - node_modules/**/*
+  - package.json
+
+extraResources:
+  - from: "../omninity-website/dist/public"
+    to: "renderer"
+    filter:
+      - "**/*"
+  - from: "assets/tray-icon.png"
+    to: "tray-icon.png"
+
+asar: true
+
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  entitlementsInherit: build/entitlements.mac.plist
+  hardenedRuntime: true
+  gatekeeperAssess: false
+
+dmg:
+  title: "Omninity Operator ${version}"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: true
+  deleteAppDataOnUninstall: false
+
+publish:
+  provider: generic
+  url: "https://releases.omninity.app/desktop"
