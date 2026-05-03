@@ -127,3 +127,11 @@ export * from "./app-versions";
 export * from "./enterprise-orgs";
 export * from "./abuse-reports";
 export * from "./skill-moderation";
+
+export * from "./dr-replicas";
+export * from "./dr-snapshots";
+export * from "./dr-runbooks";
+export * from "./dr-drills";
+export * from "./dr-storage-nodes";
+export * from "./dr-incidents";
+export * from "./dr-alerts";
