@@ -2012,11 +2012,52 @@ export function findUnpaginatedListRoutes(src: string): PaginationProblem[] {
   // and is unique enough in practice that property-name collisions are
   // tolerated. Top-level $refs are chased up to 3 levels deep.
   //
-  // Documented heuristic limit: `oneOf`/`anyOf` schemas with a mix of
-  // envelope and bare-array branches are not validated branch-by-branch;
-  // the first branch that produces a recognisable shape wins. The standard
-  // documents this and recommends extracting each branch to its own
-  // component schema.
+  // `oneOf`/`anyOf` schemas are walked branch-by-branch: each list item is
+  // classified independently and the worst-case result wins. Any bare-array
+  // branch fails the route, even if siblings are envelopes — callers cannot
+  // rely on a cursor when one branch omits the envelope.
+  function collectListItemBranches(
+    lines: string[],
+    headerLine: number,
+    headerIndent: number,
+  ): string[] {
+    const branches: string[] = [];
+    let i = headerLine + 1;
+    let buf: string[] = [];
+    let branchIndent = -1;
+    const pushBranch = () => {
+      if (buf.length > 0) branches.push(buf.join("\n"));
+      buf = [];
+    };
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (trimmed === "") {
+        if (buf.length > 0) buf.push(line);
+        i++;
+        continue;
+      }
+      const ind = line.length - line.trimStart().length;
+      // Stop when we exit the oneOf/anyOf block (indent <= header indent).
+      if (ind <= headerIndent) break;
+      // A new list item starts at the smallest indent we see, marked by `-`.
+      if (/^\s*-\s/.test(line)) {
+        if (branchIndent < 0) branchIndent = ind;
+        if (ind === branchIndent) {
+          pushBranch();
+          // Strip the leading "- " so the branch reads like a normal schema
+          buf.push(line.replace(/^(\s*)-\s/, "$1  "));
+          i++;
+          continue;
+        }
+      }
+      buf.push(line);
+      i++;
+    }
+    pushBranch();
+    return branches;
+  }
+
   function classify(text: string, depth = 0): "envelope" | "bare-array" | "singleton" {
     if (!text) return "singleton";
     const lines = text.split("\n");
@@ -2030,10 +2071,13 @@ export function findUnpaginatedListRoutes(src: string): PaginationProblem[] {
     }
     if (baseIndent < 0) return "singleton";
 
-    // Scan top-level keys: top-level `type:` and top-level `$ref:` win first.
+    // Scan top-level keys: top-level `type:` / `$ref:` / `oneOf:` / `anyOf:`.
     let topLevelType = "";
     let topLevelRef = "";
-    for (const line of lines) {
+    let oneOfHeaderLine = -1;
+    let anyOfHeaderLine = -1;
+    for (let li = 0; li < lines.length; li++) {
+      const line = lines[li];
       if (line.trim() === "") continue;
       const ind = line.length - line.trimStart().length;
       if (ind !== baseIndent) continue;
@@ -2046,9 +2090,39 @@ export function findUnpaginatedListRoutes(src: string): PaginationProblem[] {
         const refMatch = /["']#\/components\/schemas\/(\w+)["']/.exec(valuePart);
         if (refMatch) topLevelRef = refMatch[1];
       }
+      if (key === "oneOf" && oneOfHeaderLine < 0) oneOfHeaderLine = li;
+      if (key === "anyOf" && anyOfHeaderLine < 0) anyOfHeaderLine = li;
     }
 
     if (topLevelType === "array") return "bare-array";
+
+    // ── oneOf / anyOf branch walker ─────────────────────────────────────────
+    // Walk every combinator block at the top level (both oneOf AND anyOf if
+    // they coexist) and aggregate their branches with worst-case-wins.
+    const branchHeaders: number[] = [];
+    if (oneOfHeaderLine >= 0) branchHeaders.push(oneOfHeaderLine);
+    if (anyOfHeaderLine >= 0) branchHeaders.push(anyOfHeaderLine);
+    if (branchHeaders.length > 0 && depth < 3) {
+      let sawEnvelope = false;
+      let sawBare = false;
+      let sawSingleton = false;
+      let totalBranches = 0;
+      for (const headerLine of branchHeaders) {
+        const branches = collectListItemBranches(lines, headerLine, baseIndent);
+        totalBranches += branches.length;
+        for (const branchText of branches) {
+          const k = classify(branchText, depth + 1);
+          if (k === "bare-array") sawBare = true;
+          else if (k === "envelope") sawEnvelope = true;
+          else sawSingleton = true;
+        }
+      }
+      if (totalBranches > 0) {
+        if (sawBare) return "bare-array";
+        if (sawEnvelope) return "envelope";
+        if (sawSingleton) return "singleton";
+      }
+    }
 
     // Follow a top-level $ref before doing any global text scan
     if (topLevelRef && depth < 3) {
@@ -2102,12 +2176,6 @@ export function findUnpaginatedListRoutes(src: string): PaginationProblem[] {
         reason: "bare `type: array` 2xx response — use `{ items, nextCursor }` envelope",
       });
     }
-    // For oneOf branches: if ANY branch is bare-array, the route is unpaginated
-    // because the caller cannot rely on a cursor. The classify() call above
-    // walks $refs but treats `oneOf` as multiple inline siblings — those
-    // siblings are part of the same schema text, so a mixed oneOf with one
-    // bare branch will already be detected as bare-array (items missing in
-    // the bare branch). Acceptable for v1; documented in the standard.
     reset();
   }
 

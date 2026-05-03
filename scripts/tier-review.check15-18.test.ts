@@ -295,6 +295,140 @@ test("follows $ref to detect envelope wrapper", () => {
   assert.strictEqual(out.length, 0, JSON.stringify(out));
 });
 
+// Architect-flagged fragility: a oneOf/anyOf response that mixes one
+// envelope branch with one bare-array branch used to slip past the gate
+// because only one branch won classification. The branch walker now
+// validates every branch independently; ANY bare-array branch fails the route.
+test("flags a GET endpoint whose oneOf has one envelope and one bare-array branch", () => {
+  const yaml = [
+    `paths:`,
+    `  /skills:`,
+    `    get:`,
+    `      responses:`,
+    `        "200":`,
+    `          content:`,
+    `            application/json:`,
+    `              schema:`,
+    `                oneOf:`,
+    `                  - type: object`,
+    `                    properties:`,
+    `                      items:`,
+    `                        type: array`,
+    `                        items: { $ref: "#/components/schemas/Skill" }`,
+    `                      nextCursor: { type: string }`,
+    `                  - type: array`,
+    `                    items: { $ref: "#/components/schemas/Skill" }`,
+    `components:`,
+    `  schemas:`,
+    `    Skill:`,
+    `      type: object`,
+  ].join("\n");
+  const out = findUnpaginatedListRoutes(yaml);
+  assert.strictEqual(out.length, 1, JSON.stringify(out));
+  assert.strictEqual(out[0].path, "/skills");
+});
+
+test("flags a GET endpoint whose anyOf branches include a bare-array $ref", () => {
+  const yaml = [
+    `paths:`,
+    `  /skills:`,
+    `    get:`,
+    `      responses:`,
+    `        "200":`,
+    `          content:`,
+    `            application/json:`,
+    `              schema:`,
+    `                anyOf:`,
+    `                  - $ref: "#/components/schemas/SkillEnvelope"`,
+    `                  - $ref: "#/components/schemas/SkillBareArray"`,
+    `components:`,
+    `  schemas:`,
+    `    SkillEnvelope:`,
+    `      type: object`,
+    `      properties:`,
+    `        items:`,
+    `          type: array`,
+    `          items: { $ref: "#/components/schemas/Skill" }`,
+    `        nextCursor: { type: string }`,
+    `    SkillBareArray:`,
+    `      type: array`,
+    `      items: { $ref: "#/components/schemas/Skill" }`,
+    `    Skill:`,
+    `      type: object`,
+  ].join("\n");
+  const out = findUnpaginatedListRoutes(yaml);
+  assert.strictEqual(out.length, 1, JSON.stringify(out));
+});
+
+// Coexisting oneOf + anyOf at the same level: the walker must aggregate
+// branches from BOTH combinators. A bare-array branch hidden inside a
+// sibling anyOf must still fail the route.
+test("flags a GET endpoint with coexisting oneOf and anyOf when one anyOf branch is bare-array", () => {
+  const yaml = [
+    `paths:`,
+    `  /skills:`,
+    `    get:`,
+    `      responses:`,
+    `        "200":`,
+    `          content:`,
+    `            application/json:`,
+    `              schema:`,
+    `                oneOf:`,
+    `                  - type: object`,
+    `                    properties:`,
+    `                      items:`,
+    `                        type: array`,
+    `                        items: { $ref: "#/components/schemas/Skill" }`,
+    `                      nextCursor: { type: string }`,
+    `                anyOf:`,
+    `                  - $ref: "#/components/schemas/SkillBareArray"`,
+    `components:`,
+    `  schemas:`,
+    `    SkillBareArray:`,
+    `      type: array`,
+    `      items: { $ref: "#/components/schemas/Skill" }`,
+    `    Skill:`,
+    `      type: object`,
+  ].join("\n");
+  const out = findUnpaginatedListRoutes(yaml);
+  assert.strictEqual(out.length, 1, JSON.stringify(out));
+  assert.strictEqual(out[0].path, "/skills");
+});
+
+test("does NOT flag a oneOf where every branch is the envelope shape", () => {
+  const yaml = [
+    `paths:`,
+    `  /skills:`,
+    `    get:`,
+    `      responses:`,
+    `        "200":`,
+    `          content:`,
+    `            application/json:`,
+    `              schema:`,
+    `                oneOf:`,
+    `                  - type: object`,
+    `                    properties:`,
+    `                      items:`,
+    `                        type: array`,
+    `                        items: { $ref: "#/components/schemas/Skill" }`,
+    `                      nextCursor: { type: string }`,
+    `                  - $ref: "#/components/schemas/SkillEnvelope"`,
+    `components:`,
+    `  schemas:`,
+    `    SkillEnvelope:`,
+    `      type: object`,
+    `      properties:`,
+    `        items:`,
+    `          type: array`,
+    `          items: { $ref: "#/components/schemas/Skill" }`,
+    `        nextCursor: { type: string }`,
+    `    Skill:`,
+    `      type: object`,
+  ].join("\n");
+  const out = findUnpaginatedListRoutes(yaml);
+  assert.strictEqual(out.length, 0, JSON.stringify(out));
+});
+
 test("flags $ref pointing at a bare-array schema", () => {
   const yaml = [
     `paths:`,
