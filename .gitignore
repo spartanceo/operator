@@ -57,3 +57,5 @@ data/
 test-results/
 playwright-report/
 .last-run.json
+*.bench-results.json
+.bench-results.json
