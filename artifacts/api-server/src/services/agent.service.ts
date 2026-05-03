@@ -47,6 +47,11 @@ import {
   touchConversation,
 } from "./conversation.service";
 import { getSkill, matchSkillForGoal, type SkillRow } from "./skill.service";
+import {
+  checkPremiumAccess,
+  consumePreview,
+  recordUsage,
+} from "./subscription.service";
 
 export interface AgentRunRow {
   id: string;
@@ -303,6 +308,42 @@ export async function createAgentRun(
     activeSkill = await matchSkillForGoal(ctx, input.goal);
   }
 
+  // Premium gating (Task #6) — when the resolved skill is paid we check
+  // the subscription + preview counter before letting the orchestrator
+  // inject its content. A denied premium skill drops back to a no-skill
+  // run and surfaces a permission card via a system message.
+  let premiumDecision: Awaited<ReturnType<typeof checkPremiumAccess>> | null = null;
+  let premiumSkillForLogging: { id: string; slug: string; author: string } | null = null;
+  if (activeSkill) {
+    premiumDecision = await checkPremiumAccess(ctx, {
+      skillId: activeSkill.id,
+      slug: activeSkill.slug,
+      isPremium: activeSkill.isPremium,
+      previewUsesAllowed: activeSkill.previewUsesAllowed,
+      creatorHandle: activeSkill.author,
+    });
+    if (activeSkill.isPremium) {
+      premiumSkillForLogging = {
+        id: activeSkill.id,
+        slug: activeSkill.slug,
+        author: activeSkill.author,
+      };
+    }
+    if (activeSkill.isPremium && !premiumDecision.allowed) {
+      // Drop the skill — the user must subscribe before it can be injected.
+      await logPrivacyEvent(ctx, {
+        eventType: "skill.permission.denied",
+        actor: ctx.userId ?? ctx.tenantId,
+        target: activeSkill.id,
+        severity: "info",
+        detail:
+          `slug=${activeSkill.slug} reason=${premiumDecision.reason} ` +
+          `previewsUsed=${premiumDecision.previewsUsed}`,
+      });
+      activeSkill = null;
+    }
+  }
+
   const route = routerAgent(input.goal, activeSkill !== null);
   const memorySummary = route === "memory" ? await memoryAgent(ctx) : null;
   const researchSummary = route === "research" ? researchAgent(input.goal) : null;
@@ -380,12 +421,47 @@ export async function createAgentRun(
     );
   }
   if (activeSkill) {
+    const banner =
+      premiumDecision && activeSkill.isPremium
+        ? premiumDecision.reason === "preview"
+          ? `Premium skill preview ${premiumDecision.previewsUsed + 1}/${activeSkill.previewUsesAllowed} — subscribe at /subscription to keep using it.\n`
+          : premiumDecision.reason === "subscription"
+            ? `Premium skill (covered by your subscription).\n`
+            : ""
+        : "";
     await db.insert(messagesTable).values(
       withTenantValues(ctx, {
         id: `msg_${nanoid()}`,
         runId: id,
         role: "system",
-        content: `Skill "${activeSkill.name}" (${activeSkill.slug}) injected by Router:\n${activeSkill.content}`,
+        content: `${banner}Skill "${activeSkill.name}" (${activeSkill.slug}) injected by Router:\n${activeSkill.content}`,
+      }),
+    );
+    if (activeSkill.isPremium && premiumDecision?.reason === "preview") {
+      await consumePreview(ctx, activeSkill.id);
+    }
+    if (activeSkill.isPremium) {
+      await recordUsage(ctx, {
+        skillId: activeSkill.id,
+        skillSlug: activeSkill.slug,
+        creatorHandle: activeSkill.author,
+        modelName: input.modelName ?? null,
+        runId: id,
+        approvedByUser: true,
+        wasPreview: premiumDecision?.reason === "preview",
+      });
+    }
+  } else if (premiumSkillForLogging) {
+    // Surface the paywall as a system message so the chat UI can render
+    // the permission card without an extra round-trip.
+    await db.insert(messagesTable).values(
+      withTenantValues(ctx, {
+        id: `msg_${nanoid()}`,
+        runId: id,
+        role: "system",
+        content:
+          `Premium skill "${premiumSkillForLogging.slug}" requires a Creator Pro subscription. ` +
+          `Open /subscription to start a checkout, or pick a different skill.`,
       }),
     );
   }

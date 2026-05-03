@@ -4187,6 +4187,8 @@ export interface CreateSkillRequest {
   triggers?: string[];
   category?: string;
   author?: string;
+  isPremium?: boolean;
+  previewUsesAllowed?: number;
 }
 
 export interface Skill {
@@ -4206,6 +4208,10 @@ export interface Skill {
   ratingCount: number;
   editorialPick: boolean;
   verifiedByOp: boolean;
+  /** True iff this skill requires a Creator Pro subscription past its preview allowance. */
+  isPremium: boolean;
+  /** Free invocations granted before the paywall kicks in. */
+  previewUsesAllowed: number;
   version: number;
   /** Latest published semantic version of this skill. */
   latestVersion: string;
@@ -5273,6 +5279,8 @@ export interface StoreSkill {
   isLatest: boolean;
   installCount: number;
   documentation: string;
+  isPremium: boolean;
+  previewUsesAllowed: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -5335,6 +5343,8 @@ export interface PublishStoreSkillRequest {
   draftId: string;
   apiToken: string;
   documentation?: string;
+  isPremium?: boolean;
+  previewUsesAllowed?: number;
 }
 
 export interface StoreCreatorExternalLink {
@@ -5402,6 +5412,139 @@ export interface StoreCreatorDashboardPayload {
 export interface StoreCreatorDashboardResponse {
   success: boolean;
   data: StoreCreatorDashboardPayload;
+}
+
+export type SubscriptionRowStatus =
+  (typeof SubscriptionRowStatus)[keyof typeof SubscriptionRowStatus];
+
+export const SubscriptionRowStatus = {
+  inactive: "inactive",
+  trialing: "trialing",
+  active: "active",
+  past_due: "past_due",
+  cancelled: "cancelled",
+} as const;
+
+export interface SubscriptionRow {
+  id: string;
+  status: SubscriptionRowStatus;
+  planId: string;
+  priceCents: number;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriptionStatusPayload {
+  subscription: SubscriptionRow;
+  hasAccess: boolean;
+  stripeStubMode: boolean;
+}
+
+export interface SubscriptionStatusResponse {
+  success: boolean;
+  data: SubscriptionStatusPayload;
+}
+
+export interface SubscriptionCheckoutRequest {
+  successPath?: string;
+  cancelPath?: string;
+}
+
+export interface SubscriptionCheckoutPayload {
+  checkoutUrl: string;
+  sessionId: string;
+  stripeStubMode: boolean;
+}
+
+export interface SubscriptionCheckoutResponse {
+  success: boolean;
+  data: SubscriptionCheckoutPayload;
+}
+
+export interface SubscriptionConfirmRequest {
+  sessionId: string;
+}
+
+export type SubscriptionWebhookRequestData = { [key: string]: unknown };
+
+export interface SubscriptionWebhookRequest {
+  type: string;
+  data?: SubscriptionWebhookRequestData;
+}
+
+export interface SubscriptionWebhookPayload {
+  processed: boolean;
+  type: string;
+}
+
+export interface SubscriptionWebhookResponse {
+  success: boolean;
+  data: SubscriptionWebhookPayload;
+}
+
+export interface SubscriptionUsageItem {
+  id: string;
+  skillId: string;
+  skillSlug: string;
+  creatorHandle: string | null;
+  modelName: string | null;
+  wasPreview: boolean;
+  approvedByUser: boolean;
+  createdAt: string;
+}
+
+export interface SubscriptionUsagePerSkill {
+  skillId: string;
+  skillSlug: string;
+  count: number;
+}
+
+export interface SubscriptionUsagePayload {
+  totalThisMonth: number;
+  totalAllTime: number;
+  perSkill: SubscriptionUsagePerSkill[];
+  recent: SubscriptionUsageItem[];
+}
+
+export interface SubscriptionUsageResponse {
+  success: boolean;
+  data: SubscriptionUsagePayload;
+}
+
+export interface CreatorEarningsRequest {
+  apiToken: string;
+}
+
+export interface CreatorEarningsCreator {
+  handle: string;
+  displayName: string;
+}
+
+export interface CreatorEarningsPerSkill {
+  skillSlug: string;
+  uses: number;
+  earningsCents: number;
+}
+
+export interface CreatorEarningsPayload {
+  creator: CreatorEarningsCreator;
+  creatorHandle: string;
+  periodStart: string;
+  periodEnd: string;
+  totalUses: number;
+  globalUses: number;
+  poolCents: number;
+  estimatedEarningsCents: number;
+  perSkill: CreatorEarningsPerSkill[];
+}
+
+export interface CreatorEarningsResponse {
+  success: boolean;
+  data: CreatorEarningsPayload;
 }
 
 export interface ReferralCode {

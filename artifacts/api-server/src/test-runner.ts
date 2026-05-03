@@ -4926,6 +4926,129 @@ const cases: TestCase[] = [
       assert.equal(otherSwarms.body.data.swarms.length, 0);
     },
   },
+  // ─── Task #6: Subscription & Creator Monetisation ──────────
+  {
+    name: "subscription: default status is inactive without access",
+    run: async () => {
+      const tenant = `tenant_sub_default_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const res = await request(app)
+        .get("/api/subscription/status")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(res.body.data.subscription.status, "inactive");
+      assert.equal(res.body.data.hasAccess, false);
+      assert.equal(typeof res.body.data.stripeStubMode, "boolean");
+    },
+  },
+  {
+    name: "subscription: premium skill consumes preview, denies on overage, unlocks on subscribe",
+    run: async () => {
+      const tenant = `tenant_sub_premium_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const created = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", tenant)
+        .send({
+          name: "Premium Helper",
+          content: "PREMIUM_CONTENT_MARKER",
+          triggers: ["premium-trigger-token"],
+          isPremium: true,
+          previewUsesAllowed: 2,
+        })
+        .expect(200);
+      const skillId = created.body.data.id;
+      assert.equal(created.body.data.isPremium, true);
+      assert.equal(created.body.data.previewUsesAllowed, 2);
+      await request(app)
+        .post(`/api/skills/${skillId}/install`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+
+      const invokeOnce = async () => {
+        const r = await request(app)
+          .post(`/api/skills/${skillId}/invoke`)
+          .set("X-Tenant-ID", tenant)
+          .send({ goal: "premium goal" })
+          .expect(200);
+        const m = await request(app)
+          .get(`/api/agent/runs/${r.body.data.id}/messages?limit=20`)
+          .set("X-Tenant-ID", tenant)
+          .expect(200);
+        return m.body.data.items
+          .map((x: { content: string }) => x.content)
+          .join("\n");
+      };
+
+      const first = await invokeOnce();
+      assert.ok(first.includes("PREMIUM_CONTENT_MARKER"), "1st preview must inject");
+      assert.ok(first.includes("preview 1/2"), "1st preview banner");
+      const second = await invokeOnce();
+      assert.ok(second.includes("PREMIUM_CONTENT_MARKER"), "2nd preview must inject");
+      assert.ok(second.includes("preview 2/2"), "2nd preview banner");
+      const third = await invokeOnce();
+      assert.ok(
+        !third.includes("PREMIUM_CONTENT_MARKER"),
+        "3rd run must not inject premium content",
+      );
+      assert.ok(
+        third.includes("requires a Creator Pro subscription"),
+        "3rd run surfaces paywall system message",
+      );
+
+      const events = await request(app)
+        .get("/api/privacy/events?limit=50")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.ok(
+        events.body.data.items.some(
+          (e: { eventType: string }) => e.eventType === "skill.permission.denied",
+        ),
+        "permission.denied logged",
+      );
+
+      const checkout = await request(app)
+        .post("/api/subscription/checkout")
+        .set("X-Tenant-ID", tenant)
+        .send({})
+        .expect(200);
+      await request(app)
+        .post("/api/subscription/checkout/confirm")
+        .set("X-Tenant-ID", tenant)
+        .send({ sessionId: checkout.body.data.sessionId })
+        .expect(200);
+      const status = await request(app)
+        .get("/api/subscription/status")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(status.body.data.hasAccess, true);
+
+      const after = await invokeOnce();
+      assert.ok(
+        after.includes("PREMIUM_CONTENT_MARKER"),
+        "subscriber regains premium content access",
+      );
+
+      const usage = await request(app)
+        .get("/api/subscription/usage")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.ok(usage.body.data.totalAllTime >= 3, "usage tracked across preview + paid runs");
+      assert.ok(usage.body.data.perSkill.some((s: { skillId: string }) => s.skillId === skillId));
+    },
+  },
+  {
+    name: "creator earnings: requires valid api token",
+    run: async () => {
+      const tenant = `tenant_creator_auth_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      await request(app)
+        .post("/api/creator/earnings")
+        .set("X-Tenant-ID", tenant)
+        .send({ apiToken: "definitely-not-a-real-token" })
+        .expect(401);
+    },
+  },
 ];
 
 async function main() {

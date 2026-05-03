@@ -38,6 +38,7 @@ import { migration as m0024 } from "./0024_p2p_distribution";
 import { migration as m0025 } from "./0025_referral_growth";
 import { migration as m0026 } from "./0026_developer_sdk";
 import { migration as m0027 } from "./0027_integrations";
+import { migration as m0028 } from "./0028_subscription_monetisation";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -76,6 +77,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0025,
   m0026,
   m0027,
+  m0028,
 ];
 
 /**

@@ -10269,6 +10269,14 @@ export const ListSkillsResponse = zod.object({
         ratingCount: zod.number(),
         editorialPick: zod.boolean(),
         verifiedByOp: zod.boolean(),
+        isPremium: zod
+          .boolean()
+          .describe(
+            "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+          ),
+        previewUsesAllowed: zod
+          .number()
+          .describe("Free invocations granted before the paywall kicks in."),
         version: zod.number(),
         latestVersion: zod
           .string()
@@ -10342,6 +10350,8 @@ export const CreateSkillBody = zod.object({
   triggers: zod.array(zod.string()).optional(),
   category: zod.string().optional(),
   author: zod.string().optional(),
+  isPremium: zod.boolean().optional(),
+  previewUsesAllowed: zod.number().optional(),
 });
 
 export const CreateSkillResponse = zod.object({
@@ -10363,6 +10373,14 @@ export const CreateSkillResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10471,6 +10489,14 @@ export const ImportSkillResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10555,6 +10581,14 @@ export const GetSkillResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10652,6 +10686,14 @@ export const UpdateSkillResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10802,6 +10844,14 @@ export const InstallSkillResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10926,6 +10976,14 @@ export const UninstallSkillResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11008,6 +11066,14 @@ export const ListSkillUpdatesResponse = zod.object({
         ratingCount: zod.number(),
         editorialPick: zod.boolean(),
         verifiedByOp: zod.boolean(),
+        isPremium: zod
+          .boolean()
+          .describe(
+            "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+          ),
+        previewUsesAllowed: zod
+          .number()
+          .describe("Free invocations granted before the paywall kicks in."),
         version: zod.number(),
         latestVersion: zod
           .string()
@@ -11119,6 +11185,14 @@ export const PublishSkillVersionResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11249,6 +11323,14 @@ export const RollbackSkillVersionResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11340,6 +11422,14 @@ export const ApplySkillUpdateResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11424,6 +11514,14 @@ export const DismissSkillUpdateResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11512,6 +11610,14 @@ export const SetSkillAutoUpdateResponse = zod.object({
     ratingCount: zod.number(),
     editorialPick: zod.boolean(),
     verifiedByOp: zod.boolean(),
+    isPremium: zod
+      .boolean()
+      .describe(
+        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
+      ),
+    previewUsesAllowed: zod
+      .number()
+      .describe("Free invocations granted before the paywall kicks in."),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -13030,6 +13136,8 @@ export const ListStoreSkillsResponse = zod.object({
         isLatest: zod.boolean(),
         installCount: zod.number(),
         documentation: zod.string(),
+        isPremium: zod.boolean(),
+        previewUsesAllowed: zod.number(),
         createdAt: zod.coerce.date(),
         updatedAt: zod.coerce.date(),
       }),
@@ -13053,6 +13161,8 @@ export const PublishSkillDraftBody = zod.object({
   draftId: zod.string(),
   apiToken: zod.string(),
   documentation: zod.string().optional(),
+  isPremium: zod.boolean().optional(),
+  previewUsesAllowed: zod.number().optional(),
 });
 
 export const PublishSkillDraftResponse = zod.object({
@@ -13073,6 +13183,8 @@ export const PublishSkillDraftResponse = zod.object({
     isLatest: zod.boolean(),
     installCount: zod.number(),
     documentation: zod.string(),
+    isPremium: zod.boolean(),
+    previewUsesAllowed: zod.number(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -13141,6 +13253,8 @@ export const GetStoreSkillResponse = zod.object({
       isLatest: zod.boolean(),
       installCount: zod.number(),
       documentation: zod.string(),
+      isPremium: zod.boolean(),
+      previewUsesAllowed: zod.number(),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
     }),
@@ -13161,6 +13275,8 @@ export const GetStoreSkillResponse = zod.object({
         isLatest: zod.boolean(),
         installCount: zod.number(),
         documentation: zod.string(),
+        isPremium: zod.boolean(),
+        previewUsesAllowed: zod.number(),
         createdAt: zod.coerce.date(),
         updatedAt: zod.coerce.date(),
       }),
@@ -13204,6 +13320,8 @@ export const InstallStoreSkillResponse = zod.object({
       isLatest: zod.boolean(),
       installCount: zod.number(),
       documentation: zod.string(),
+      isPremium: zod.boolean(),
+      previewUsesAllowed: zod.number(),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
     }),
@@ -13365,6 +13483,8 @@ export const GetStoreCreatorDashboardResponse = zod.object({
         isLatest: zod.boolean(),
         installCount: zod.number(),
         documentation: zod.string(),
+        isPremium: zod.boolean(),
+        previewUsesAllowed: zod.number(),
         createdAt: zod.coerce.date(),
         updatedAt: zod.coerce.date(),
       }),
@@ -13407,6 +13527,284 @@ export const GetStoreCreatorResponse = zod.object({
     totalInstalls: zod.number(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Current subscription status + computed access flag
+ */
+export const GetSubscriptionStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSubscriptionStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    subscription: zod.object({
+      id: zod.string(),
+      status: zod.enum([
+        "inactive",
+        "trialing",
+        "active",
+        "past_due",
+        "cancelled",
+      ]),
+      planId: zod.string(),
+      priceCents: zod.number(),
+      currentPeriodEnd: zod.coerce.date().nullable(),
+      cancelAtPeriodEnd: zod.boolean(),
+      stripeCustomerId: zod.string().nullable(),
+      stripeSubscriptionId: zod.string().nullable(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    hasAccess: zod.boolean(),
+    stripeStubMode: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Create a Stripe checkout session (or local stub)
+ */
+export const CreateSubscriptionCheckoutHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateSubscriptionCheckoutBody = zod.object({
+  successPath: zod.string().optional(),
+  cancelPath: zod.string().optional(),
+});
+
+export const CreateSubscriptionCheckoutResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    checkoutUrl: zod.string(),
+    sessionId: zod.string(),
+    stripeStubMode: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Confirm a checkout session (stub mode flips to active immediately)
+ */
+export const ConfirmSubscriptionCheckoutHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ConfirmSubscriptionCheckoutBody = zod.object({
+  sessionId: zod.string(),
+});
+
+export const ConfirmSubscriptionCheckoutResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    subscription: zod.object({
+      id: zod.string(),
+      status: zod.enum([
+        "inactive",
+        "trialing",
+        "active",
+        "past_due",
+        "cancelled",
+      ]),
+      planId: zod.string(),
+      priceCents: zod.number(),
+      currentPeriodEnd: zod.coerce.date().nullable(),
+      cancelAtPeriodEnd: zod.boolean(),
+      stripeCustomerId: zod.string().nullable(),
+      stripeSubscriptionId: zod.string().nullable(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    hasAccess: zod.boolean(),
+    stripeStubMode: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Cancel at period end (keeps access until currentPeriodEnd)
+ */
+export const CancelSubscriptionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CancelSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    subscription: zod.object({
+      id: zod.string(),
+      status: zod.enum([
+        "inactive",
+        "trialing",
+        "active",
+        "past_due",
+        "cancelled",
+      ]),
+      planId: zod.string(),
+      priceCents: zod.number(),
+      currentPeriodEnd: zod.coerce.date().nullable(),
+      cancelAtPeriodEnd: zod.boolean(),
+      stripeCustomerId: zod.string().nullable(),
+      stripeSubscriptionId: zod.string().nullable(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    hasAccess: zod.boolean(),
+    stripeStubMode: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Reverse a pending cancellation
+ */
+export const ReactivateSubscriptionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ReactivateSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    subscription: zod.object({
+      id: zod.string(),
+      status: zod.enum([
+        "inactive",
+        "trialing",
+        "active",
+        "past_due",
+        "cancelled",
+      ]),
+      planId: zod.string(),
+      priceCents: zod.number(),
+      currentPeriodEnd: zod.coerce.date().nullable(),
+      cancelAtPeriodEnd: zod.boolean(),
+      stripeCustomerId: zod.string().nullable(),
+      stripeSubscriptionId: zod.string().nullable(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    hasAccess: zod.boolean(),
+    stripeStubMode: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Stripe webhook ingest (idempotent)
+ */
+export const SubscriptionWebhookHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SubscriptionWebhookBody = zod.object({
+  type: zod.string(),
+  data: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+export const SubscriptionWebhookResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    processed: zod.boolean(),
+    type: zod.string(),
+  }),
+});
+
+/**
+ * @summary Premium skill usage rollup for the current tenant
+ */
+export const GetSubscriptionUsageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSubscriptionUsageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    totalThisMonth: zod.number(),
+    totalAllTime: zod.number(),
+    perSkill: zod.array(
+      zod.object({
+        skillId: zod.string(),
+        skillSlug: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    recent: zod.array(
+      zod.object({
+        id: zod.string(),
+        skillId: zod.string(),
+        skillSlug: zod.string(),
+        creatorHandle: zod.string().nullable(),
+        modelName: zod.string().nullable(),
+        wasPreview: zod.boolean(),
+        approvedByUser: zod.boolean(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Creator revenue dashboard (token-authenticated)
+ */
+export const GetCreatorEarningsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetCreatorEarningsBody = zod.object({
+  apiToken: zod.string(),
+});
+
+export const GetCreatorEarningsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    creator: zod.object({
+      handle: zod.string(),
+      displayName: zod.string(),
+    }),
+    creatorHandle: zod.string(),
+    periodStart: zod.coerce.date(),
+    periodEnd: zod.coerce.date(),
+    totalUses: zod.number(),
+    globalUses: zod.number(),
+    poolCents: zod.number(),
+    estimatedEarningsCents: zod.number(),
+    perSkill: zod.array(
+      zod.object({
+        skillSlug: zod.string(),
+        uses: zod.number(),
+        earningsCents: zod.number(),
+      }),
+    ),
   }),
 });
 

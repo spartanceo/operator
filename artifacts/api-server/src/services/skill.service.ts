@@ -127,6 +127,10 @@ export interface SkillRow {
   opIncompatible: boolean;
   /** True iff `publishedAt` is older than the unmaintained threshold. */
   unmaintained: boolean;
+  /** Premium skills require a subscription past their preview allowance. */
+  isPremium: boolean;
+  /** Free invocations granted before the paywall kicks in (default 2). */
+  previewUsesAllowed: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -201,6 +205,8 @@ export interface CreateSkillInput {
   initialVersion?: string;
   initialChangelog?: string;
   minOpVersion?: string;
+  isPremium?: boolean;
+  previewUsesAllowed?: number;
 }
 
 export interface UpdateSkillInput {
@@ -210,6 +216,8 @@ export interface UpdateSkillInput {
   modelTags?: string[];
   triggers?: string[];
   category?: string;
+  isPremium?: boolean;
+  previewUsesAllowed?: number;
 }
 
 export class SkillNotFoundError extends Error {
@@ -275,6 +283,8 @@ function toRow(r: typeof skills.$inferSelect): SkillRow {
     hasUpdate,
     opIncompatible: compareSemver(r.minOpVersion || "0.0.0", getOpVersion()) > 0,
     unmaintained: Date.now() - r.publishedAt > UNMAINTAINED_THRESHOLD_MS,
+    isPremium: Boolean(r.isPremium),
+    previewUsesAllowed: r.previewUsesAllowed ?? 2,
     createdAt: new Date(r.createdAt).toISOString(),
     updatedAt: new Date(r.updatedAt).toISOString(),
   };
@@ -497,6 +507,11 @@ export async function createSkill(
       minOpVersion: initialMinOpVersion,
       autoUpdate: false,
       publishedAt: Date.now(),
+      isPremium: input.isPremium ?? false,
+      previewUsesAllowed:
+        typeof input.previewUsesAllowed === "number"
+          ? Math.max(0, Math.floor(input.previewUsesAllowed))
+          : 2,
     }),
   );
   // Seed the version-history snapshot — the row above is the canonical
@@ -544,6 +559,10 @@ export async function updateSkill(
   if (input.modelTags !== undefined) patch.modelTags = JSON.stringify(input.modelTags);
   if (input.triggers !== undefined) patch.triggers = JSON.stringify(input.triggers);
   if (input.category !== undefined) patch.category = input.category;
+  if (input.isPremium !== undefined) patch.isPremium = input.isPremium;
+  if (input.previewUsesAllowed !== undefined) {
+    patch.previewUsesAllowed = Math.max(0, Math.floor(input.previewUsesAllowed));
+  }
 
   await db
     .update(skills)

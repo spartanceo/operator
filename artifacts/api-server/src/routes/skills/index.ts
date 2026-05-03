@@ -138,6 +138,8 @@ const CreateSchema = z.object({
   triggers: StringArray.optional(),
   category: z.string().min(1).max(80).optional(),
   author: z.string().min(1).max(120).optional(),
+  isPremium: z.boolean().optional(),
+  previewUsesAllowed: z.number().int().min(0).max(1_000).optional(),
 });
 
 const UpdateSchema = z.object({
@@ -147,6 +149,8 @@ const UpdateSchema = z.object({
   modelTags: StringArray.optional(),
   triggers: StringArray.optional(),
   category: z.string().min(1).max(80).optional(),
+  isPremium: z.boolean().optional(),
+  previewUsesAllowed: z.number().int().min(0).max(1_000).optional(),
 });
 
 const ManifestSchema = z.object({

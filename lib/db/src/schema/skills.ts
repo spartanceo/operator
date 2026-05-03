@@ -88,6 +88,12 @@ export const skills = sqliteTable(
       .default(false),
     /** Last time we notified the creator about a low-rating drop. */
     lowRatingAlertAt: integer("low_rating_alert_at"),
+    /** Premium skills require a creator-pro subscription past their preview allowance. */
+    isPremium: integer("is_premium", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    /** Free invocations granted before the paywall kicks in. Default = 2 (Task #6). */
+    previewUsesAllowed: integer("preview_uses_allowed").notNull().default(2),
   },
   (t) => ({
     tenantIdx: index("idx_skills_tenant").on(t.tenantId),

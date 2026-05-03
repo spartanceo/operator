@@ -788,6 +788,29 @@ function AgentTranscript({
         // Each assistant turn carries an attribution receipt so users can see
         // which skill (if any) and which local model produced the response.
         const showAttribution = m.role === "assistant";
+        const isPaywall =
+          m.role === "system" && m.content.includes("requires a Creator Pro subscription");
+        if (isPaywall) {
+          return (
+            <div
+              key={m.id}
+              className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4"
+              data-testid="agent-message-paywall"
+            >
+              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-amber-600">
+                Premium skill locked
+              </div>
+              <p className="mb-3 whitespace-pre-wrap text-sm text-foreground">{m.content}</p>
+              <a
+                href="/subscription"
+                className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
+                data-testid="link-subscribe"
+              >
+                Subscribe to unlock
+              </a>
+            </div>
+          );
+        }
         return (
           <div
             key={m.id}

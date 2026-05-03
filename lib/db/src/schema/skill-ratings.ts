@@ -31,10 +31,23 @@ export const skillUsageEvents = sqliteTable(
     workspaceId: text("workspace_id").notNull().references(() => workspaces.id),
     skillId: text("skill_id").notNull().references(() => skills.id),
     userId: text("user_id").notNull(),
+    skillSlug: text("skill_slug"),
+    creatorHandle: text("creator_handle"),
+    modelName: text("model_name"),
     runId: text("run_id"),
     createdAt: integer("created_at")
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
+    updatedAt: integer("updated_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    version: integer("version").notNull().default(1),
+    approvedByUser: integer("approved_by_user", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    wasPreview: integer("was_preview", { mode: "boolean" })
+      .notNull()
+      .default(false),
   },
   (t) => ({
     tenantIdx: index("idx_skill_usage_tenant").on(t.tenantId),
@@ -46,6 +59,7 @@ export const skillUsageEvents = sqliteTable(
       t.userId,
     ),
     recentIdx: index("idx_skill_usage_recent").on(t.tenantId, t.createdAt),
+    creatorIdx: index("idx_skill_usage_creator").on(t.creatorHandle),
   }),
 );
 

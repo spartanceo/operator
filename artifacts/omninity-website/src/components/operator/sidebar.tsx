@@ -19,6 +19,8 @@ import {
   ListTodo,
   LayoutTemplate,
   CalendarClock,
+  CreditCard,
+  Coins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -49,6 +51,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/skills", label: "Skills", icon: Sparkles },
   { href: "/integrations", label: "Integrations", icon: Plug },
+  { href: "/subscription", label: "Subscription", icon: CreditCard },
+  { href: "/creator", label: "Creator", icon: Coins },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

@@ -47,6 +47,12 @@ export const storeSkills = sqliteTable(
     installCount: integer("install_count").notNull().default(0),
     /** Free-form documentation markdown the creator can attach. */
     documentation: text("documentation").notNull().default(""),
+    /** Premium skills are paywalled past their preview allowance. */
+    isPremium: integer("is_premium", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    /** Free invocations every installer gets before the paywall. */
+    previewUsesAllowed: integer("preview_uses_allowed").notNull().default(2),
   },
   (t) => ({
     tenantIdx: index("idx_store_skills_tenant").on(t.tenantId),

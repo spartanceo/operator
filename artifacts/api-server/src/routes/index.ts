@@ -38,6 +38,8 @@ import tasksRouter from "./tasks";
 import taskTemplatesRouter from "./task-templates";
 
 import storeRouter from "./store";
+import subscriptionRouter from "./subscription";
+import creatorRevenueRouter from "./creator-revenue";
 
 import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
@@ -93,6 +95,8 @@ router.use("/creators", creatorProfilesRouter);
 router.use("/waitlist", waitlistRouter);
 
 router.use("/store", storeRouter);
+router.use("/subscription", subscriptionRouter);
+router.use("/creator", creatorRevenueRouter);
 
 router.use("/plugins", pluginsRouter);
 router.use("/webhooks", webhooksRouter);

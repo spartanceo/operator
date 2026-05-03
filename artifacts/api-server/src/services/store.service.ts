@@ -82,6 +82,8 @@ export interface StoreSkillRow {
   isLatest: boolean;
   installCount: number;
   documentation: string;
+  isPremium: boolean;
+  previewUsesAllowed: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -228,6 +230,8 @@ function toStoreSkillRow(r: typeof storeSkills.$inferSelect): StoreSkillRow {
     isLatest: Boolean(r.isLatest),
     installCount: r.installCount,
     documentation: r.documentation,
+    isPremium: Boolean(r.isPremium),
+    previewUsesAllowed: r.previewUsesAllowed ?? 2,
     createdAt: new Date(r.createdAt).toISOString(),
     updatedAt: new Date(r.updatedAt).toISOString(),
   };
@@ -352,6 +356,8 @@ export interface PublishDraftInput {
   draftId: string;
   apiToken: string;
   documentation?: string;
+  isPremium?: boolean;
+  previewUsesAllowed?: number;
 }
 
 export async function publishDraft(
@@ -410,6 +416,11 @@ export async function publishDraft(
           isLatest: true,
           installCount: 0,
           documentation: (input.documentation ?? "").slice(0, 8_000),
+          isPremium: input.isPremium ?? false,
+          previewUsesAllowed:
+            typeof input.previewUsesAllowed === "number"
+              ? Math.max(0, Math.floor(input.previewUsesAllowed))
+              : 2,
         }),
       )
       .run();
@@ -553,6 +564,8 @@ export async function installStoreSkill(
           category: store.category,
           author: store.creatorHandle,
           isInstalled: true,
+          isPremium: store.isPremium,
+          previewUsesAllowed: store.previewUsesAllowed,
           updatedAt: Date.now(),
         })
         .where(and(tenantScope(ctx, skills), eq(skills.id, localSkillId)))
@@ -594,6 +607,8 @@ export async function installStoreSkill(
             author: store.creatorHandle,
             isInstalled: true,
             installCount: 1,
+            isPremium: store.isPremium,
+            previewUsesAllowed: store.previewUsesAllowed,
           }),
         )
         .run();

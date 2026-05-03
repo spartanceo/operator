@@ -6820,6 +6820,156 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /subscription/status:
+    get:
+      operationId: getSubscriptionStatus
+      tags:
+        - subscription
+      summary: Current subscription status + computed access flag
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionStatusResponse'
+  /subscription/checkout:
+    post:
+      operationId: createSubscriptionCheckout
+      tags:
+        - subscription
+      summary: Create a Stripe checkout session (or local stub)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionCheckoutRequest'
+      responses:
+        '200':
+          description: Checkout session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionCheckoutResponse'
+  /subscription/checkout/confirm:
+    post:
+      operationId: confirmSubscriptionCheckout
+      tags:
+        - subscription
+      summary: Confirm a checkout session (stub mode flips to active immediately)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionConfirmRequest'
+      responses:
+        '200':
+          description: Updated status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionStatusResponse'
+  /subscription/cancel:
+    post:
+      operationId: cancelSubscription
+      tags:
+        - subscription
+      summary: Cancel at period end (keeps access until currentPeriodEnd)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Updated status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionStatusResponse'
+  /subscription/reactivate:
+    post:
+      operationId: reactivateSubscription
+      tags:
+        - subscription
+      summary: Reverse a pending cancellation
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Updated status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionStatusResponse'
+  /subscription/webhook:
+    post:
+      operationId: subscriptionWebhook
+      tags:
+        - subscription
+      summary: Stripe webhook ingest (idempotent)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionWebhookRequest'
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionWebhookResponse'
+  /subscription/usage:
+    get:
+      operationId: getSubscriptionUsage
+      tags:
+        - subscription
+      summary: Premium skill usage rollup for the current tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Usage rollup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionUsageResponse'
+  /creator/earnings:
+    post:
+      operationId: getCreatorEarnings
+      tags:
+        - creator
+      summary: Creator revenue dashboard (token-authenticated)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatorEarningsRequest'
+      responses:
+        '200':
+          description: Earnings rollup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorEarningsResponse'
+        '401':
+          description: Invalid creator token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
   /referrals/code:
     get:
       operationId: getReferralCode
@@ -15700,6 +15850,10 @@ components:
           type: string
         author:
           type: string
+        isPremium:
+          type: boolean
+        previewUsesAllowed:
+          type: integer
     Skill:
       type: object
       required:
@@ -15725,6 +15879,8 @@ components:
         - hasUpdate
         - opIncompatible
         - unmaintained
+        - isPremium
+        - previewUsesAllowed
         - createdAt
         - updatedAt
         - usageCount
@@ -15770,6 +15926,12 @@ components:
           type: boolean
         verifiedByOp:
           type: boolean
+        isPremium:
+          type: boolean
+          description: True iff this skill requires a Creator Pro subscription past its preview allowance.
+        previewUsesAllowed:
+          type: integer
+          description: Free invocations granted before the paywall kicks in.
         version:
           type: integer
         latestVersion:
@@ -17458,6 +17620,8 @@ components:
         - isLatest
         - installCount
         - documentation
+        - isPremium
+        - previewUsesAllowed
         - createdAt
         - updatedAt
       properties:
@@ -17497,6 +17661,10 @@ components:
           type: integer
         documentation:
           type: string
+        isPremium:
+          type: boolean
+        previewUsesAllowed:
+          type: integer
         createdAt:
           type: string
           format: date-time
@@ -17644,6 +17812,10 @@ components:
           type: string
         documentation:
           type: string
+        isPremium:
+          type: boolean
+        previewUsesAllowed:
+          type: integer
     StoreCreatorExternalLink:
       type: object
       required:
@@ -17806,6 +17978,192 @@ components:
             - true
         data:
           $ref: '#/components/schemas/StoreCreatorDashboardPayload'
+    SubscriptionRow:
+      type: object
+      required:
+        - id
+        - status
+        - planId
+        - priceCents
+        - currentPeriodEnd
+        - cancelAtPeriodEnd
+        - stripeCustomerId
+        - stripeSubscriptionId
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        status:
+          type: string
+          enum: [inactive, trialing, active, past_due, cancelled]
+        planId: { type: string }
+        priceCents: { type: integer }
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+        cancelAtPeriodEnd: { type: boolean }
+        stripeCustomerId:
+          type: string
+          nullable: true
+        stripeSubscriptionId:
+          type: string
+          nullable: true
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    SubscriptionStatusPayload:
+      type: object
+      required: [subscription, hasAccess, stripeStubMode]
+      properties:
+        subscription: { $ref: '#/components/schemas/SubscriptionRow' }
+        hasAccess: { type: boolean }
+        stripeStubMode: { type: boolean }
+    SubscriptionStatusResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/SubscriptionStatusPayload' }
+    SubscriptionCheckoutRequest:
+      type: object
+      properties:
+        successPath: { type: string }
+        cancelPath: { type: string }
+    SubscriptionCheckoutPayload:
+      type: object
+      required: [checkoutUrl, sessionId, stripeStubMode]
+      properties:
+        checkoutUrl: { type: string }
+        sessionId: { type: string }
+        stripeStubMode: { type: boolean }
+    SubscriptionCheckoutResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/SubscriptionCheckoutPayload' }
+    SubscriptionConfirmRequest:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId: { type: string }
+    SubscriptionWebhookRequest:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string }
+        data:
+          type: object
+          additionalProperties: true
+    SubscriptionWebhookPayload:
+      type: object
+      required: [processed, type]
+      properties:
+        processed: { type: boolean }
+        type: { type: string }
+    SubscriptionWebhookResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/SubscriptionWebhookPayload' }
+    SubscriptionUsageItem:
+      type: object
+      required:
+        - id
+        - skillId
+        - skillSlug
+        - creatorHandle
+        - modelName
+        - wasPreview
+        - approvedByUser
+        - createdAt
+      properties:
+        id: { type: string }
+        skillId: { type: string }
+        skillSlug: { type: string }
+        creatorHandle:
+          type: string
+          nullable: true
+        modelName:
+          type: string
+          nullable: true
+        wasPreview: { type: boolean }
+        approvedByUser: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    SubscriptionUsagePerSkill:
+      type: object
+      required: [skillId, skillSlug, count]
+      properties:
+        skillId: { type: string }
+        skillSlug: { type: string }
+        count: { type: integer }
+    SubscriptionUsagePayload:
+      type: object
+      required: [totalThisMonth, totalAllTime, perSkill, recent]
+      properties:
+        totalThisMonth: { type: integer }
+        totalAllTime: { type: integer }
+        perSkill:
+          type: array
+          items: { $ref: '#/components/schemas/SubscriptionUsagePerSkill' }
+        recent:
+          type: array
+          items: { $ref: '#/components/schemas/SubscriptionUsageItem' }
+    SubscriptionUsageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/SubscriptionUsagePayload' }
+    CreatorEarningsRequest:
+      type: object
+      required: [apiToken]
+      properties:
+        apiToken: { type: string }
+    CreatorEarningsCreator:
+      type: object
+      required: [handle, displayName]
+      properties:
+        handle: { type: string }
+        displayName: { type: string }
+    CreatorEarningsPerSkill:
+      type: object
+      required: [skillSlug, uses, earningsCents]
+      properties:
+        skillSlug: { type: string }
+        uses: { type: integer }
+        earningsCents: { type: integer }
+    CreatorEarningsPayload:
+      type: object
+      required:
+        - creator
+        - creatorHandle
+        - periodStart
+        - periodEnd
+        - totalUses
+        - globalUses
+        - poolCents
+        - estimatedEarningsCents
+        - perSkill
+      properties:
+        creator: { $ref: '#/components/schemas/CreatorEarningsCreator' }
+        creatorHandle: { type: string }
+        periodStart: { type: string, format: date-time }
+        periodEnd: { type: string, format: date-time }
+        totalUses: { type: integer }
+        globalUses: { type: integer }
+        poolCents: { type: integer }
+        estimatedEarningsCents: { type: integer }
+        perSkill:
+          type: array
+          items: { $ref: '#/components/schemas/CreatorEarningsPerSkill' }
+    CreatorEarningsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/CreatorEarningsPayload' }
     ReferralCode:
       type: object
       required: [code, shareUrl, createdAt]

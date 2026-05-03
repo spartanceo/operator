@@ -50,6 +50,8 @@ const QueuePage = lazy(() => import("@/pages/operator/queue"));
 const SchedulesPage = lazy(() => import("@/pages/operator/schedules"));
 const IntegrationsPage = lazy(() => import("@/pages/operator/integrations"));
 const SettingsPage = lazy(() => import("@/pages/operator/settings"));
+const SubscriptionPage = lazy(() => import("@/pages/operator/subscription"));
+const CreatorRevenuePage = lazy(() => import("@/pages/operator/creator"));
 import OnboardingPage from "@/pages/operator/onboarding";
 import MobilePage from "@/pages/mobile";
 import LegalPage from "@/pages/legal";
@@ -79,6 +81,8 @@ const OPERATOR_ROUTES = new Set([
   "/queue",
   "/integrations",
   "/settings",
+  "/subscription",
+  "/creator",
 ]);
 
 function isOperatorPath(path: string): boolean {
@@ -204,6 +208,8 @@ function OperatorRoutes() {
         <Route path="/queue" component={QueuePage} />
         <Route path="/integrations" component={IntegrationsPage} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/subscription" component={SubscriptionPage} />
+        <Route path="/creator" component={CreatorRevenuePage} />
       </Switch>
     </Suspense>
   );
