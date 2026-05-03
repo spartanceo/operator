@@ -22,6 +22,7 @@ import pinoHttp from "pino-http";
 import { logger } from "./lib/logger";
 import { allowedOrigins, cspDirectives } from "./lib/security";
 import {
+  auditEmitter,
   defaultLimiter,
   errorHandler,
   notFoundHandler,
@@ -106,6 +107,12 @@ app.use(tenantContext());
 //     mutating request with 503 + SAFE_MODE error so the user can still
 //     read data and back things up.
 app.use(safeModeGuard());
+
+// 8c. Compliance-grade audit emitter — appends a hash-chained entry to
+//     `audit_log_entries` for every mutating request against tools,
+//     files, agent, desktop, browser, and integrations routes. Reads
+//     are intentionally skipped (covered by structured request logs).
+app.use(auditEmitter());
 
 // 9. Application routes.
 app.use("/api", router);

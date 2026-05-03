@@ -706,6 +706,253 @@ paths:
           content:
             text/csv:
               schema: { type: string }
+  /admin/enterprise/audit/v2:
+    get:
+      operationId: listEnterpriseAuditV2
+      tags: [admin]
+      summary: Compliance-grade filterable audit log (Task #53)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - { name: actionType, in: query, required: false, schema: { type: string } }
+        - { name: action, in: query, required: false, schema: { type: string } }
+        - { name: actor, in: query, required: false, schema: { type: string } }
+        - { name: agentId, in: query, required: false, schema: { type: string } }
+        - { name: userId, in: query, required: false, schema: { type: string } }
+        - { name: since, in: query, required: false, schema: { type: integer } }
+        - { name: until, in: query, required: false, schema: { type: integer } }
+        - { name: q, in: query, required: false, schema: { type: string } }
+      responses:
+        '200':
+          description: Page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseAuditPageResponse'
+  /admin/enterprise/audit/verify:
+    get:
+      operationId: verifyEnterpriseAuditChain
+      tags: [admin]
+      summary: Walk the audit hash chain end-to-end and report integrity
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditVerifyResponse'
+  /admin/enterprise/audit/export.json:
+    post:
+      operationId: exportEnterpriseAuditSignedJson
+      tags: [admin]
+      summary: Download the filtered audit log as a signed JSON bundle (POST keeps the secret out of the URL)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                secret: { type: string, minLength: 16 }
+                actionType: { type: string, nullable: true }
+                since: { type: integer }
+                until: { type: integer }
+                max: { type: integer }
+      responses:
+        '200':
+          description: Signed JSON export
+          content:
+            application/json:
+              schema: { type: object }
+        '400':
+          description: Missing or weak secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /admin/enterprise/audit/scheduler/tick:
+    post:
+      operationId: tickEnterpriseAuditScheduler
+      tags: [admin]
+      summary: Run the daily retention purge across every tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditSchedulerTickResponse'
+  /admin/enterprise/audit/retention:
+    get:
+      operationId: getEnterpriseAuditRetention
+      tags: [admin]
+      summary: Read the audit-log retention policy
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditRetentionResponse'
+    put:
+      operationId: setEnterpriseAuditRetention
+      tags: [admin]
+      summary: Update the audit-log retention window (in days)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [retentionDays]
+              properties:
+                retentionDays: { type: integer, minimum: 7, maximum: 3650 }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditRetentionResponse'
+  /admin/enterprise/audit/purge:
+    post:
+      operationId: purgeEnterpriseAuditLog
+      tags: [admin]
+      summary: Manually purge audit entries older than the retention window
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm: { type: string, enum: [PURGE] }
+      responses:
+        '200':
+          description: Purge result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPurgeResponse'
+  /admin/enterprise/audit/alert-rules:
+    get:
+      operationId: listEnterpriseAuditAlertRules
+      tags: [admin]
+      summary: List audit alert rules
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditAlertRuleListResponse'
+    post:
+      operationId: createEnterpriseAuditAlertRule
+      tags: [admin]
+      summary: Create an audit alert rule
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, thresholdCount, windowSeconds]
+              properties:
+                name: { type: string }
+                actionType: { type: string, nullable: true }
+                actor: { type: string, nullable: true }
+                thresholdCount: { type: integer, minimum: 1, maximum: 100000 }
+                windowSeconds: { type: integer, minimum: 1, maximum: 86400 }
+                enabled: { type: boolean }
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditAlertRuleResponse'
+  /admin/enterprise/audit/alert-rules/{id}:
+    patch:
+      operationId: updateEnterpriseAuditAlertRule
+      tags: [admin]
+      summary: Update an audit alert rule
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                actionType: { type: string, nullable: true }
+                actor: { type: string, nullable: true }
+                thresholdCount: { type: integer }
+                windowSeconds: { type: integer }
+                enabled: { type: boolean }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditAlertRuleResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    delete:
+      operationId: deleteEnterpriseAuditAlertRule
+      tags: [admin]
+      summary: Delete an audit alert rule
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBoolResponse'
+  /admin/enterprise/audit/alerts:
+    get:
+      operationId: listEnterpriseAuditAlerts
+      tags: [admin]
+      summary: Triggered audit alerts
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditAlertPageResponse'
   /admin/enterprise/usage:
     get:
       operationId: getEnterpriseUsage
@@ -24065,9 +24312,127 @@ components:
         resourceType: { type: string }
         resourceId: { type: string, nullable: true }
         summary: { type: string }
+        actionType: { type: string, nullable: true }
+        agentId: { type: string, nullable: true }
+        skillId: { type: string, nullable: true }
+        toolId: { type: string, nullable: true }
+        userId: { type: string, nullable: true }
+        sessionId: { type: string, nullable: true }
+        inputHash: { type: string, nullable: true }
+        outputSummary: { type: string, nullable: true }
+        approvalStatus: { type: string, nullable: true }
         previousHash: { type: string, nullable: true }
         entryHash: { type: string }
         createdAt: { type: string }
+    AuditVerifyResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [intact, checkedRows, verifiedAt]
+          properties:
+            intact: { type: boolean }
+            checkedRows: { type: integer }
+            firstBrokenSequence: { type: integer, nullable: true }
+            verifiedAt: { type: string }
+    AuditRetentionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [id, retentionDays, lastPurgeCount, updatedAt]
+          properties:
+            id: { type: string }
+            retentionDays: { type: integer }
+            lastPurgeAt: { type: string, nullable: true }
+            lastPurgeCount: { type: integer }
+            updatedAt: { type: string }
+    AuditSchedulerTickResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [tenantsScanned, tenantsPurged, totalPurgedCount, errors, tickedAt]
+          properties:
+            tenantsScanned: { type: integer }
+            tenantsPurged: { type: integer }
+            totalPurgedCount: { type: integer }
+            errors: { type: integer }
+            tickedAt: { type: string }
+    AuditPurgeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [purgedCount, retentionDays, purgedAt]
+          properties:
+            purgedCount: { type: integer }
+            retentionDays: { type: integer }
+            purgedAt: { type: string }
+    AuditAlertRule:
+      type: object
+      required: [id, name, thresholdCount, windowSeconds, enabled, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        actionType: { type: string, nullable: true }
+        actor: { type: string, nullable: true }
+        thresholdCount: { type: integer }
+        windowSeconds: { type: integer }
+        enabled: { type: boolean }
+        lastTriggeredAt: { type: string, nullable: true }
+        createdAt: { type: string }
+    AuditAlertRuleResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/AuditAlertRule' }
+    AuditAlertRuleListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/AuditAlertRule' }
+    AuditAlert:
+      type: object
+      required: [id, ruleId, ruleName, triggeredCount, thresholdCount, windowSeconds, summary, createdAt]
+      properties:
+        id: { type: string }
+        ruleId: { type: string }
+        ruleName: { type: string }
+        triggeredCount: { type: integer }
+        thresholdCount: { type: integer }
+        windowSeconds: { type: integer }
+        summary: { type: string }
+        createdAt: { type: string }
+    AuditAlertPageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/AuditAlert' }
+            nextCursor: { type: string, nullable: true }
     EnterpriseAuditPageResponse:
       type: object
       required: [success, data]

@@ -27,7 +27,7 @@ export default defineConfig({
       client: "react-query",
       mode: "split",
       baseUrl: "/api",
-      clean: true,
+      clean: false,
       prettier: true,
       override: {
         fetch: {
@@ -61,7 +61,7 @@ export default defineConfig({
       client: "zod",
       target: "generated",
       mode: "split",
-      clean: true,
+      clean: false,
       prettier: true,
       // Prevent orval from auto-(re)writing `lib/api-zod/src/index.ts` on
       // every codegen run. We curate that file by hand so the package

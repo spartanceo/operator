@@ -9,6 +9,7 @@
 import { Router, type IRouter } from "express";
 
 import enterpriseRouter from "./enterprise";
+import enterpriseAuditRouter from "./enterprise-audit";
 import superRouter from "./super";
 import tenantDataRouter from "./tenant-data";
 
@@ -16,6 +17,10 @@ const router: IRouter = Router();
 
 router.use("/", tenantDataRouter);
 router.use("/", superRouter);
+// Compliance-grade audit endpoints must mount before the legacy
+// enterprise router so the more-specific `/enterprise/audit/*` paths
+// are matched first.
+router.use("/", enterpriseAuditRouter);
 router.use("/", enterpriseRouter);
 
 export default router;

@@ -5,5 +5,6 @@ export { defaultLimiter, adminLimiter } from "./rate-limit";
 export { authLimiter, llmLimiter, webhookLimiter } from "./auth-rate-limit";
 export { hmacVerify } from "./hmac-verify";
 export { autoLockGuard } from "./auto-lock-guard";
+export { auditEmitter } from "./audit-emitter";
 export { jwtAuth } from "./jwt-auth";
 export { safeModeGuard } from "./safe-mode";
