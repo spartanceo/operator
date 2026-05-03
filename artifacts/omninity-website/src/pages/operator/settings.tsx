@@ -437,6 +437,7 @@ export default function SettingsPage() {
                 checked={draft.voiceMode}
                 onCheckedChange={(v) => setDraft({ ...draft, voiceMode: v })}
                 data-testid="switch-voice-mode-settings"
+                aria-label="Voice mode"
               />
             </div>
             <div className="flex items-center justify-between rounded-md border border-border p-3">
@@ -452,6 +453,7 @@ export default function SettingsPage() {
                   setDraft({ ...draft, voiceAutoplay: v })
                 }
                 data-testid="switch-voice-autoplay"
+                aria-label="Speak replies"
               />
             </div>
             <div>
@@ -462,7 +464,7 @@ export default function SettingsPage() {
                 value={draft.voiceName}
                 onValueChange={(v) => setDraft({ ...draft, voiceName: v })}
               >
-                <SelectTrigger data-testid="select-voice" className="mt-1">
+                <SelectTrigger data-testid="select-voice" className="mt-1" aria-label="Voice">
                   <SelectValue placeholder="Pick a voice" />
                 </SelectTrigger>
                 <SelectContent>
@@ -512,6 +514,7 @@ export default function SettingsPage() {
                   setDraft({ ...draft, wakeWordEnabled: v })
                 }
                 data-testid="switch-wake-word"
+                aria-label="Wake word listening"
               />
             </div>
             <div>

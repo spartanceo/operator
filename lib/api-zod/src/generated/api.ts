@@ -98,26 +98,26 @@ export const EraseTenantDataResponse = zod.object({
 /**
  * @summary Platform-wide aggregate counts (anonymised)
  */
-export const GetSuperAdminOverviewResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSuperAdminOverviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Revenue, MRR, platform/creator split
  */
-export const GetSuperAdminRevenueResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSuperAdminRevenueResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Top skills, creators, trending categories
  */
-export const GetSuperAdminSkillAnalyticsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSuperAdminSkillAnalyticsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Skill submissions awaiting review
@@ -138,10 +138,10 @@ export const ListModerationQueueQueryParams = zod.object({
     .describe("Page size, default 20, max 100."),
 });
 
-export const ListModerationQueueResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListModerationQueueResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Approve a queued skill submission
@@ -154,10 +154,10 @@ export const ApproveModerationItemBody = zod.object({
   notes: zod.string().optional(),
 });
 
-export const ApproveModerationItemResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ApproveModerationItemResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Reject a queued skill submission
@@ -170,10 +170,10 @@ export const RejectModerationItemBody = zod.object({
   reason: zod.string(),
 });
 
-export const RejectModerationItemResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const RejectModerationItemResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Take down a published store skill
@@ -186,7 +186,10 @@ export const RemoveStoreSkillBody = zod.object({
   reason: zod.string(),
 });
 
-export const RemoveStoreSkillResponse = zod.record(zod.string(), zod.unknown());
+export const RemoveStoreSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary All creator accounts (paginated)
@@ -235,7 +238,10 @@ export const BanCreatorBody = zod.object({
   reason: zod.string(),
 });
 
-export const BanCreatorResponse = zod.record(zod.string(), zod.unknown());
+export const BanCreatorResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List all feature flags
@@ -440,10 +446,10 @@ export const ResolveAbuseReportBody = zod.object({
   notes: zod.string().optional(),
 });
 
-export const ResolveAbuseReportResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ResolveAbuseReportResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Get the calling tenant's enterprise org row
@@ -638,10 +644,10 @@ export const RemoveEnterpriseSeatHeader = zod.object({
     ),
 });
 
-export const RemoveEnterpriseSeatResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const RemoveEnterpriseSeatResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Get the org's skill whitelist
@@ -1109,10 +1115,10 @@ export const DeleteEnterpriseAuditAlertRuleHeader = zod.object({
     ),
 });
 
-export const DeleteEnterpriseAuditAlertRuleResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const DeleteEnterpriseAuditAlertRuleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Triggered audit alerts
@@ -3532,7 +3538,10 @@ export const DeleteWorkspaceHeader = zod.object({
     ),
 });
 
-export const DeleteWorkspaceResponse = zod.record(zod.string(), zod.unknown());
+export const DeleteWorkspaceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Touch lastActiveAt when the user switches into a workspace
@@ -3579,10 +3588,10 @@ export const GetWorkspaceOverviewHeader = zod.object({
     ),
 });
 
-export const GetWorkspaceOverviewResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetWorkspaceOverviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Export workspace configuration (no personal data)
@@ -3599,10 +3608,10 @@ export const ExportWorkspaceTemplateHeader = zod.object({
     ),
 });
 
-export const ExportWorkspaceTemplateResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ExportWorkspaceTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List task templates in the current workspace
@@ -3634,10 +3643,10 @@ export const ListTaskTemplatesHeader = zod.object({
     ),
 });
 
-export const ListTaskTemplatesResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListTaskTemplatesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Create a task template (typically "Save this run as a template")
@@ -3652,10 +3661,10 @@ export const CreateTaskTemplateHeader = zod.object({
 
 export const CreateTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const CreateTaskTemplateResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CreateTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Quick-launch row — up to 5 pinned templates
@@ -3668,10 +3677,10 @@ export const ListPinnedTaskTemplatesHeader = zod.object({
     ),
 });
 
-export const ListPinnedTaskTemplatesResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListPinnedTaskTemplatesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List user-defined template categories
@@ -3684,10 +3693,10 @@ export const ListTaskTemplateCategoriesHeader = zod.object({
     ),
 });
 
-export const ListTaskTemplateCategoriesResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListTaskTemplateCategoriesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Create a template category
@@ -3705,10 +3714,10 @@ export const CreateTaskTemplateCategoryBody = zod.record(
   zod.unknown(),
 );
 
-export const CreateTaskTemplateCategoryResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CreateTaskTemplateCategoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Delete a category (templates inside detach to "Uncategorised")
@@ -3725,10 +3734,10 @@ export const DeleteTaskTemplateCategoryHeader = zod.object({
     ),
 });
 
-export const DeleteTaskTemplateCategoryResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const DeleteTaskTemplateCategoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Import a previously-exported template
@@ -3743,10 +3752,10 @@ export const ImportTaskTemplateHeader = zod.object({
 
 export const ImportTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const ImportTaskTemplateResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ImportTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Fetch one template
@@ -3763,7 +3772,10 @@ export const GetTaskTemplateHeader = zod.object({
     ),
 });
 
-export const GetTaskTemplateResponse = zod.record(zod.string(), zod.unknown());
+export const GetTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Edit name / prompt / variables / category
@@ -3782,10 +3794,10 @@ export const UpdateTaskTemplateHeader = zod.object({
 
 export const UpdateTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const UpdateTaskTemplateResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const UpdateTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Delete a template
@@ -3802,10 +3814,10 @@ export const DeleteTaskTemplateHeader = zod.object({
     ),
 });
 
-export const DeleteTaskTemplateResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const DeleteTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Substitute variables and bump usage stats
@@ -3824,7 +3836,10 @@ export const RunTaskTemplateHeader = zod.object({
 
 export const RunTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const RunTaskTemplateResponse = zod.record(zod.string(), zod.unknown());
+export const RunTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Pin or unpin a template (max 5 pinned per workspace)
@@ -3843,7 +3858,10 @@ export const PinTaskTemplateHeader = zod.object({
 
 export const PinTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const PinTaskTemplateResponse = zod.record(zod.string(), zod.unknown());
+export const PinTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Export a template as a portable file
@@ -3860,10 +3878,10 @@ export const ExportTaskTemplateHeader = zod.object({
     ),
 });
 
-export const ExportTaskTemplateResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ExportTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List entries inside the workspace sandbox
@@ -11383,7 +11401,10 @@ export const ListQueuedTasksHeader = zod.object({
     ),
 });
 
-export const ListQueuedTasksResponse = zod.record(zod.string(), zod.unknown());
+export const ListQueuedTasksResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Enqueue a new task; runs immediately if a slot is free
@@ -11398,7 +11419,10 @@ export const EnqueueTaskHeader = zod.object({
 
 export const EnqueueTaskBody = zod.record(zod.string(), zod.unknown());
 
-export const EnqueueTaskResponse = zod.record(zod.string(), zod.unknown());
+export const EnqueueTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Fetch one undo action
@@ -11450,7 +11474,10 @@ export const GetQueueSnapshotHeader = zod.object({
     ),
 });
 
-export const GetQueueSnapshotResponse = zod.record(zod.string(), zod.unknown());
+export const GetQueueSnapshotResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Cancel every still-queued task (active runs are left alone)
@@ -11465,7 +11492,10 @@ export const ClearQueuedTasksHeader = zod.object({
 
 export const ClearQueuedTasksBody = zod.record(zod.string(), zod.unknown());
 
-export const ClearQueuedTasksResponse = zod.record(zod.string(), zod.unknown());
+export const ClearQueuedTasksResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Fetch a single task by id
@@ -11482,7 +11512,10 @@ export const GetQueuedTaskHeader = zod.object({
     ),
 });
 
-export const GetQueuedTaskResponse = zod.record(zod.string(), zod.unknown());
+export const GetQueuedTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Reverse one recorded action
@@ -11538,7 +11571,10 @@ export const CancelQueuedTaskHeader = zod.object({
     ),
 });
 
-export const CancelQueuedTaskResponse = zod.record(zod.string(), zod.unknown());
+export const CancelQueuedTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Reverse every reversible action belonging to a task
@@ -11615,10 +11651,10 @@ export const SetQueuedTaskPriorityBody = zod.record(
   zod.unknown(),
 );
 
-export const SetQueuedTaskPriorityResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SetQueuedTaskPriorityResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List the undo actions belonging to a task
@@ -12105,7 +12141,10 @@ export const GetSkillConfigHeader = zod.object({
     ),
 });
 
-export const GetSkillConfigResponse = zod.record(zod.string(), zod.unknown());
+export const GetSkillConfigResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Persist user-supplied values for a skill's configuration
@@ -12124,10 +12163,10 @@ export const UpdateSkillConfigHeader = zod.object({
 
 export const UpdateSkillConfigBody = zod.record(zod.string(), zod.unknown());
 
-export const UpdateSkillConfigResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const UpdateSkillConfigResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Wipe every configuration value (and vault entry) for a skill
@@ -12144,7 +12183,10 @@ export const ResetSkillConfigHeader = zod.object({
     ),
 });
 
-export const ResetSkillConfigResponse = zod.record(zod.string(), zod.unknown());
+export const ResetSkillConfigResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Lightweight first-run-gate check (configured / missing keys)
@@ -12161,10 +12203,10 @@ export const GetSkillConfigStatusHeader = zod.object({
     ),
 });
 
-export const GetSkillConfigStatusResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSkillConfigStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Apply a configuration template across multiple skills
@@ -12182,10 +12224,10 @@ export const ImportSkillConfigTemplateBody = zod.record(
   zod.unknown(),
 );
 
-export const ImportSkillConfigTemplateResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ImportSkillConfigTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Import a skill from a .skill JSON file
@@ -12334,7 +12376,10 @@ export const DeleteSkillHeader = zod.object({
     ),
 });
 
-export const DeleteSkillResponse = zod.record(zod.string(), zod.unknown());
+export const DeleteSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Export a skill as a .skill JSON manifest
@@ -12351,7 +12396,10 @@ export const ExportSkillHeader = zod.object({
     ),
 });
 
-export const ExportSkillResponse = zod.record(zod.string(), zod.unknown());
+export const ExportSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Install a skill into this workspace
@@ -12488,7 +12536,10 @@ export const ListSkillUpdatesHeader = zod.object({
     ),
 });
 
-export const ListSkillUpdatesResponse = zod.record(zod.string(), zod.unknown());
+export const ListSkillUpdatesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Publish a new semantic version of a skill (creator flow)
@@ -12551,10 +12602,10 @@ export const ListSkillVersionsHeader = zod.object({
     ),
 });
 
-export const ListSkillVersionsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListSkillVersionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Roll an installed skill back to a previous version
@@ -12753,10 +12804,10 @@ export const GetSkillAdoptionStatsHeader = zod.object({
     ),
 });
 
-export const GetSkillAdoptionStatsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSkillAdoptionStatsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List trending skills (highest install velocity in last 7 days)
@@ -12773,10 +12824,10 @@ export const ListTrendingSkillsHeader = zod.object({
     ),
 });
 
-export const ListTrendingSkillsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListTrendingSkillsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Skills similar to ones the requesting user already uses
@@ -12793,10 +12844,10 @@ export const ListSimilarSkillsHeader = zod.object({
     ),
 });
 
-export const ListSimilarSkillsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListSimilarSkillsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List flagged review reports awaiting moderation
@@ -12826,10 +12877,10 @@ export const ListFlaggedReviewsHeader = zod.object({
     ),
 });
 
-export const ListFlaggedReviewsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListFlaggedReviewsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Moderate a flagged skill review
@@ -12848,10 +12899,10 @@ export const ModerateSkillReviewHeader = zod.object({
 
 export const ModerateSkillReviewBody = zod.record(zod.string(), zod.unknown());
 
-export const ModerateSkillReviewResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ModerateSkillReviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Mark a review as helpful or not
@@ -12873,10 +12924,10 @@ export const VoteSkillReviewHelpfulBody = zod.record(
   zod.unknown(),
 );
 
-export const VoteSkillReviewHelpfulResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const VoteSkillReviewHelpfulResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Author response to a review
@@ -12895,10 +12946,10 @@ export const RespondToSkillReviewHeader = zod.object({
 
 export const RespondToSkillReviewBody = zod.record(zod.string(), zod.unknown());
 
-export const RespondToSkillReviewResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const RespondToSkillReviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Report a review for moderation
@@ -12917,7 +12968,10 @@ export const FlagSkillReviewHeader = zod.object({
 
 export const FlagSkillReviewBody = zod.record(zod.string(), zod.unknown());
 
-export const FlagSkillReviewResponse = zod.record(zod.string(), zod.unknown());
+export const FlagSkillReviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Record a verified usage event for a skill (gates rating eligibility)
@@ -12936,7 +12990,10 @@ export const RecordSkillUsageHeader = zod.object({
 
 export const RecordSkillUsageBody = zod.record(zod.string(), zod.unknown());
 
-export const RecordSkillUsageResponse = zod.record(zod.string(), zod.unknown());
+export const RecordSkillUsageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List reviews for a skill (paginated)
@@ -12971,7 +13028,10 @@ export const ListSkillReviewsHeader = zod.object({
     ),
 });
 
-export const ListSkillReviewsResponse = zod.record(zod.string(), zod.unknown());
+export const ListSkillReviewsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Submit a rating + optional review (requires verified usage)
@@ -12990,10 +13050,10 @@ export const SubmitSkillRatingHeader = zod.object({
 
 export const SubmitSkillRatingBody = zod.record(zod.string(), zod.unknown());
 
-export const SubmitSkillRatingResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SubmitSkillRatingResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Aggregate rating summary (avg, count, breakdown)
@@ -13010,10 +13070,10 @@ export const GetSkillRatingSummaryHeader = zod.object({
     ),
 });
 
-export const GetSkillRatingSummaryResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSkillRatingSummaryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Trust badges for a skill (Verified / OP Pick / Top Creator / Active)
@@ -13030,7 +13090,10 @@ export const GetSkillBadgesHeader = zod.object({
     ),
 });
 
-export const GetSkillBadgesResponse = zod.record(zod.string(), zod.unknown());
+export const GetSkillBadgesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Set editorial trust flags (OP Pick / Verified by OP)
@@ -13049,10 +13112,10 @@ export const SetSkillTrustFlagsHeader = zod.object({
 
 export const SetSkillTrustFlagsBody = zod.record(zod.string(), zod.unknown());
 
-export const SetSkillTrustFlagsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SetSkillTrustFlagsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Export a skill (alternate path-shape required by spec)
@@ -13069,10 +13132,10 @@ export const ExportSkillByIdPathHeader = zod.object({
     ),
 });
 
-export const ExportSkillByIdPathResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ExportSkillByIdPathResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List scheduled tasks (newest first)
@@ -13101,7 +13164,10 @@ export const ListSchedulesHeader = zod.object({
     ),
 });
 
-export const ListSchedulesResponse = zod.record(zod.string(), zod.unknown());
+export const ListSchedulesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Create a scheduled task (NL or cron)
@@ -13116,7 +13182,10 @@ export const CreateScheduleHeader = zod.object({
 
 export const CreateScheduleBody = zod.record(zod.string(), zod.unknown());
 
-export const CreateScheduleResponse = zod.record(zod.string(), zod.unknown());
+export const CreateScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Parse a NL or cron expression and return the next 3 fires
@@ -13131,7 +13200,10 @@ export const PreviewScheduleHeader = zod.object({
 
 export const PreviewScheduleBody = zod.record(zod.string(), zod.unknown());
 
-export const PreviewScheduleResponse = zod.record(zod.string(), zod.unknown());
+export const PreviewScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Per-tenant scheduler settings (singleton)
@@ -13144,10 +13216,10 @@ export const GetScheduleSettingsHeader = zod.object({
     ),
 });
 
-export const GetScheduleSettingsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetScheduleSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Update the global pause flag
@@ -13165,10 +13237,10 @@ export const UpdateScheduleSettingsBody = zod.record(
   zod.unknown(),
 );
 
-export const UpdateScheduleSettingsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const UpdateScheduleSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Fetch one schedule
@@ -13185,7 +13257,10 @@ export const GetScheduleHeader = zod.object({
     ),
 });
 
-export const GetScheduleResponse = zod.record(zod.string(), zod.unknown());
+export const GetScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Update a schedule (re-cron, rename, pause, edit prompt)
@@ -13204,7 +13279,10 @@ export const UpdateScheduleHeader = zod.object({
 
 export const UpdateScheduleBody = zod.record(zod.string(), zod.unknown());
 
-export const UpdateScheduleResponse = zod.record(zod.string(), zod.unknown());
+export const UpdateScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Delete a schedule and its run history
@@ -13221,7 +13299,10 @@ export const DeleteScheduleHeader = zod.object({
     ),
 });
 
-export const DeleteScheduleResponse = zod.record(zod.string(), zod.unknown());
+export const DeleteScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Trigger one execution immediately
@@ -13238,7 +13319,10 @@ export const RunScheduleNowHeader = zod.object({
     ),
 });
 
-export const RunScheduleNowResponse = zod.record(zod.string(), zod.unknown());
+export const RunScheduleNowResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Pause or resume one schedule
@@ -13257,7 +13341,10 @@ export const PauseScheduleHeader = zod.object({
 
 export const PauseScheduleBody = zod.record(zod.string(), zod.unknown());
 
-export const PauseScheduleResponse = zod.record(zod.string(), zod.unknown());
+export const PauseScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Execution history for one schedule (newest first)
@@ -13290,7 +13377,10 @@ export const ListScheduleRunsHeader = zod.object({
     ),
 });
 
-export const ListScheduleRunsResponse = zod.record(zod.string(), zod.unknown());
+export const ListScheduleRunsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List in-progress skill creator drafts
@@ -13319,7 +13409,10 @@ export const ListSkillDraftsHeader = zod.object({
     ),
 });
 
-export const ListSkillDraftsResponse = zod.record(zod.string(), zod.unknown());
+export const ListSkillDraftsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Create a draft from an uploaded file (PDF/EPUB/DOCX/TXT/MD)
@@ -13337,10 +13430,10 @@ export const CreateSkillDraftFromUploadBody = zod.record(
   zod.unknown(),
 );
 
-export const CreateSkillDraftFromUploadResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CreateSkillDraftFromUploadResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Create a draft from pasted text
@@ -13358,10 +13451,10 @@ export const CreateSkillDraftFromPasteBody = zod.record(
   zod.unknown(),
 );
 
-export const CreateSkillDraftFromPasteResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CreateSkillDraftFromPasteResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Start a guided interview that produces a draft
@@ -13374,10 +13467,10 @@ export const StartSkillDraftInterviewHeader = zod.object({
     ),
 });
 
-export const StartSkillDraftInterviewResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const StartSkillDraftInterviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Fixed list of interview questions
@@ -13390,10 +13483,10 @@ export const GetSkillDraftInterviewQuestionsHeader = zod.object({
     ),
 });
 
-export const GetSkillDraftInterviewQuestionsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSkillDraftInterviewQuestionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Fetch a draft
@@ -13410,7 +13503,10 @@ export const GetSkillDraftHeader = zod.object({
     ),
 });
 
-export const GetSkillDraftResponse = zod.record(zod.string(), zod.unknown());
+export const GetSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Edit a draft
@@ -13429,7 +13525,10 @@ export const UpdateSkillDraftHeader = zod.object({
 
 export const UpdateSkillDraftBody = zod.record(zod.string(), zod.unknown());
 
-export const UpdateSkillDraftResponse = zod.record(zod.string(), zod.unknown());
+export const UpdateSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Delete a draft
@@ -13446,7 +13545,10 @@ export const DeleteSkillDraftHeader = zod.object({
     ),
 });
 
-export const DeleteSkillDraftResponse = zod.record(zod.string(), zod.unknown());
+export const DeleteSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Submit the next interview answer
@@ -13468,10 +13570,10 @@ export const AnswerSkillDraftInterviewBody = zod.record(
   zod.unknown(),
 );
 
-export const AnswerSkillDraftInterviewResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const AnswerSkillDraftInterviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Run the draft against the local LLM with a sample message
@@ -13490,7 +13592,10 @@ export const TestSkillDraftHeader = zod.object({
 
 export const TestSkillDraftBody = zod.record(zod.string(), zod.unknown());
 
-export const TestSkillDraftResponse = zod.record(zod.string(), zod.unknown());
+export const TestSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Browse the hosted skill store
@@ -13522,7 +13627,10 @@ export const ListStoreSkillsHeader = zod.object({
     ),
 });
 
-export const ListStoreSkillsResponse = zod.record(zod.string(), zod.unknown());
+export const ListStoreSkillsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Publish a draft to the store
@@ -13537,10 +13645,10 @@ export const PublishSkillDraftHeader = zod.object({
 
 export const PublishSkillDraftBody = zod.record(zod.string(), zod.unknown());
 
-export const PublishSkillDraftResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const PublishSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List installed store skills with newer versions available
@@ -13553,10 +13661,10 @@ export const CheckStoreSkillUpdatesHeader = zod.object({
     ),
 });
 
-export const CheckStoreSkillUpdatesResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CheckStoreSkillUpdatesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Fetch a published store skill (latest version) plus version history
@@ -13574,7 +13682,10 @@ export const GetStoreSkillHeader = zod.object({
     ),
 });
 
-export const GetStoreSkillResponse = zod.record(zod.string(), zod.unknown());
+export const GetStoreSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Install a store skill into the local workspace
@@ -13592,10 +13703,10 @@ export const InstallStoreSkillHeader = zod.object({
     ),
 });
 
-export const InstallStoreSkillResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const InstallStoreSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Browse store creators
@@ -13624,10 +13735,10 @@ export const ListStoreCreatorsHeader = zod.object({
     ),
 });
 
-export const ListStoreCreatorsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListStoreCreatorsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Create a creator account and receive a one-time API token
@@ -13642,10 +13753,10 @@ export const SignupStoreCreatorHeader = zod.object({
 
 export const SignupStoreCreatorBody = zod.record(zod.string(), zod.unknown());
 
-export const SignupStoreCreatorResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SignupStoreCreatorResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Authenticated creator portal summary
@@ -13663,10 +13774,10 @@ export const GetStoreCreatorDashboardBody = zod.record(
   zod.unknown(),
 );
 
-export const GetStoreCreatorDashboardResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetStoreCreatorDashboardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Public creator profile
@@ -13683,7 +13794,10 @@ export const GetStoreCreatorHeader = zod.object({
     ),
 });
 
-export const GetStoreCreatorResponse = zod.record(zod.string(), zod.unknown());
+export const GetStoreCreatorResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Current subscription status + computed access flag
@@ -13696,10 +13810,10 @@ export const GetSubscriptionStatusHeader = zod.object({
     ),
 });
 
-export const GetSubscriptionStatusResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSubscriptionStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Create a Stripe checkout session (or local stub)
@@ -13717,10 +13831,10 @@ export const CreateSubscriptionCheckoutBody = zod.record(
   zod.unknown(),
 );
 
-export const CreateSubscriptionCheckoutResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CreateSubscriptionCheckoutResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Confirm a checkout session (stub mode flips to active immediately)
@@ -13738,10 +13852,10 @@ export const ConfirmSubscriptionCheckoutBody = zod.record(
   zod.unknown(),
 );
 
-export const ConfirmSubscriptionCheckoutResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ConfirmSubscriptionCheckoutResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Cancel at period end (keeps access until currentPeriodEnd)
@@ -13754,10 +13868,10 @@ export const CancelSubscriptionHeader = zod.object({
     ),
 });
 
-export const CancelSubscriptionResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CancelSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Reverse a pending cancellation
@@ -13770,10 +13884,10 @@ export const ReactivateSubscriptionHeader = zod.object({
     ),
 });
 
-export const ReactivateSubscriptionResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ReactivateSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Stripe webhook ingest (idempotent)
@@ -13788,10 +13902,10 @@ export const SubscriptionWebhookHeader = zod.object({
 
 export const SubscriptionWebhookBody = zod.record(zod.string(), zod.unknown());
 
-export const SubscriptionWebhookResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SubscriptionWebhookResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Premium skill usage rollup for the current tenant
@@ -13804,10 +13918,10 @@ export const GetSubscriptionUsageHeader = zod.object({
     ),
 });
 
-export const GetSubscriptionUsageResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSubscriptionUsageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Creator revenue dashboard (token-authenticated)
@@ -13822,10 +13936,10 @@ export const GetCreatorEarningsHeader = zod.object({
 
 export const GetCreatorEarningsBody = zod.record(zod.string(), zod.unknown());
 
-export const GetCreatorEarningsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetCreatorEarningsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Get (or lazily create) the tenant's referral code.
@@ -13838,7 +13952,10 @@ export const GetReferralCodeHeader = zod.object({
     ),
 });
 
-export const GetReferralCodeResponse = zod.record(zod.string(), zod.unknown());
+export const GetReferralCodeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Referral dashboard — code, totals, rewards, beta status.
@@ -13851,10 +13968,10 @@ export const GetReferralDashboardHeader = zod.object({
     ),
 });
 
-export const GetReferralDashboardResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetReferralDashboardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List the tenant's currently-active referral rewards.
@@ -13867,10 +13984,10 @@ export const ListReferralRewardsHeader = zod.object({
     ),
 });
 
-export const ListReferralRewardsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListReferralRewardsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Beta-access status (auto-unlocks at 3 completed referrals).
@@ -13883,10 +14000,10 @@ export const GetReferralBetaAccessHeader = zod.object({
     ),
 });
 
-export const GetReferralBetaAccessResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetReferralBetaAccessResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Record a referral attribution from a referral code.
@@ -13901,10 +14018,10 @@ export const AttributeReferralHeader = zod.object({
 
 export const AttributeReferralBody = zod.record(zod.string(), zod.unknown());
 
-export const AttributeReferralResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const AttributeReferralResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Public — check whether a referral code is valid.
@@ -13913,10 +14030,10 @@ export const LookupReferralCodeParams = zod.object({
   code: zod.coerce.string(),
 });
 
-export const LookupReferralCodeResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const LookupReferralCodeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Get the tenant's "how did you hear about us" survey answer.
@@ -13929,10 +14046,10 @@ export const GetAcquisitionChannelHeader = zod.object({
     ),
 });
 
-export const GetAcquisitionChannelResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetAcquisitionChannelResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Set the tenant's acquisition-channel survey answer.
@@ -13950,10 +14067,10 @@ export const SetAcquisitionChannelBody = zod.record(
   zod.unknown(),
 );
 
-export const SetAcquisitionChannelResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SetAcquisitionChannelResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List enterprise trial invites the tenant has sent.
@@ -13966,10 +14083,10 @@ export const ListEnterpriseTrialInvitesHeader = zod.object({
     ),
 });
 
-export const ListEnterpriseTrialInvitesResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListEnterpriseTrialInvitesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Invite a colleague to start an OP-for-Teams enterprise trial.
@@ -13987,10 +14104,10 @@ export const CreateEnterpriseTrialInviteBody = zod.record(
   zod.unknown(),
 );
 
-export const CreateEnterpriseTrialInviteResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CreateEnterpriseTrialInviteResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List share events for the tenant (filterable by target).
@@ -14008,7 +14125,10 @@ export const ListShareEventsHeader = zod.object({
     ),
 });
 
-export const ListShareEventsResponse = zod.record(zod.string(), zod.unknown());
+export const ListShareEventsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Append a share event (skill / task / creator).
@@ -14023,7 +14143,10 @@ export const RecordShareEventHeader = zod.object({
 
 export const RecordShareEventBody = zod.record(zod.string(), zod.unknown());
 
-export const RecordShareEventResponse = zod.record(zod.string(), zod.unknown());
+export const RecordShareEventResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Build a privacy-safe social card for a skill (id or slug).
@@ -14040,10 +14163,10 @@ export const GetSkillShareCardHeader = zod.object({
     ),
 });
 
-export const GetSkillShareCardResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSkillShareCardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Web URL, deep-link URL, and short URL for a skill.
@@ -14052,10 +14175,10 @@ export const GetSkillShareLinksParams = zod.object({
   slug: zod.coerce.string(),
 });
 
-export const GetSkillShareLinksResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetSkillShareLinksResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Build a privacy-safe text share card for a completed task.
@@ -14070,10 +14193,10 @@ export const BuildTaskShareCardHeader = zod.object({
 
 export const BuildTaskShareCardBody = zod.record(zod.string(), zod.unknown());
 
-export const BuildTaskShareCardResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const BuildTaskShareCardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List post-task satisfaction ratings (filter by runId).
@@ -14090,10 +14213,10 @@ export const ListSatisfactionRatingsHeader = zod.object({
     ),
 });
 
-export const ListSatisfactionRatingsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListSatisfactionRatingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Record a post-task satisfaction rating (up/down).
@@ -14108,10 +14231,10 @@ export const RecordSatisfactionHeader = zod.object({
 
 export const RecordSatisfactionBody = zod.record(zod.string(), zod.unknown());
 
-export const RecordSatisfactionResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const RecordSatisfactionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Get the tenant's creator profile (singleton-per-tenant).
@@ -14124,10 +14247,10 @@ export const GetMyCreatorProfileHeader = zod.object({
     ),
 });
 
-export const GetMyCreatorProfileResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetMyCreatorProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Create or update the tenant's creator profile.
@@ -14142,10 +14265,10 @@ export const UpsertCreatorProfileHeader = zod.object({
 
 export const UpsertCreatorProfileBody = zod.record(zod.string(), zod.unknown());
 
-export const UpsertCreatorProfileResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const UpsertCreatorProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Embeddable "Built with Omninity" badge for the tenant.
@@ -14158,7 +14281,10 @@ export const GetCreatorBadgeHeader = zod.object({
     ),
 });
 
-export const GetCreatorBadgeResponse = zod.record(zod.string(), zod.unknown());
+export const GetCreatorBadgeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Marketplace leaderboard (top earners, most used, highest rated).
@@ -14178,10 +14304,10 @@ export const GetCreatorLeaderboardQueryParams = zod.object({
     .default(getCreatorLeaderboardQueryLimitDefault),
 });
 
-export const GetCreatorLeaderboardResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetCreatorLeaderboardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List recorded creator-milestone events.
@@ -14198,10 +14324,10 @@ export const ListCreatorMilestonesHeader = zod.object({
     ),
 });
 
-export const ListCreatorMilestonesResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListCreatorMilestonesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Recompute milestones for the tenant's skills.
@@ -14214,10 +14340,10 @@ export const SyncCreatorMilestonesHeader = zod.object({
     ),
 });
 
-export const SyncCreatorMilestonesResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SyncCreatorMilestonesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Mark a milestone card as dismissed.
@@ -14234,10 +14360,10 @@ export const DismissCreatorMilestoneHeader = zod.object({
     ),
 });
 
-export const DismissCreatorMilestoneResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const DismissCreatorMilestoneResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Public creator profile lookup by slug.
@@ -14246,10 +14372,10 @@ export const GetCreatorProfileBySlugParams = zod.object({
   slug: zod.coerce.string(),
 });
 
-export const GetCreatorProfileBySlugResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetCreatorProfileBySlugResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Admin — list waitlist signups (paginated).
@@ -14279,25 +14405,28 @@ export const ListWaitlistSignupsHeader = zod.object({
     ),
 });
 
-export const ListWaitlistSignupsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListWaitlistSignupsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Public marketing-site waitlist email capture (unauthenticated).
  */
 export const CreateWaitlistSignupBody = zod.record(zod.string(), zod.unknown());
 
-export const CreateWaitlistSignupResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CreateWaitlistSignupResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Public — total signups per feature bucket.
  */
-export const GetWaitlistStatsResponse = zod.record(zod.string(), zod.unknown());
+export const GetWaitlistStatsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List developer-registered plugin tools
@@ -14310,7 +14439,10 @@ export const ListPluginToolsHeader = zod.object({
     ),
 });
 
-export const ListPluginToolsResponse = zod.record(zod.string(), zod.unknown());
+export const ListPluginToolsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Register a new plugin tool (loopback invokeUrl only)
@@ -14325,10 +14457,10 @@ export const RegisterPluginToolHeader = zod.object({
 
 export const RegisterPluginToolBody = zod.record(zod.string(), zod.unknown());
 
-export const RegisterPluginToolResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const RegisterPluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 export const GetPluginToolParams = zod.object({
   id: zod.coerce.string(),
@@ -14342,7 +14474,10 @@ export const GetPluginToolHeader = zod.object({
     ),
 });
 
-export const GetPluginToolResponse = zod.record(zod.string(), zod.unknown());
+export const GetPluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 export const UpdatePluginToolParams = zod.object({
   id: zod.coerce.string(),
@@ -14358,7 +14493,10 @@ export const UpdatePluginToolHeader = zod.object({
 
 export const UpdatePluginToolBody = zod.record(zod.string(), zod.unknown());
 
-export const UpdatePluginToolResponse = zod.record(zod.string(), zod.unknown());
+export const UpdatePluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 export const DeletePluginToolParams = zod.object({
   id: zod.coerce.string(),
@@ -14372,7 +14510,10 @@ export const DeletePluginToolHeader = zod.object({
     ),
 });
 
-export const DeletePluginToolResponse = zod.record(zod.string(), zod.unknown());
+export const DeletePluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Invoke a registered plugin tool — proxies to its loopback sidecar
@@ -14391,7 +14532,10 @@ export const InvokePluginToolHeader = zod.object({
 
 export const InvokePluginToolBody = zod.record(zod.string(), zod.unknown());
 
-export const InvokePluginToolResponse = zod.record(zod.string(), zod.unknown());
+export const InvokePluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 export const ListWebhookSubscriptionsHeader = zod.object({
   "X-Tenant-ID": zod
@@ -14401,10 +14545,10 @@ export const ListWebhookSubscriptionsHeader = zod.object({
     ),
 });
 
-export const ListWebhookSubscriptionsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListWebhookSubscriptionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 export const CreateWebhookSubscriptionHeader = zod.object({
   "X-Tenant-ID": zod
@@ -14419,10 +14563,10 @@ export const CreateWebhookSubscriptionBody = zod.record(
   zod.unknown(),
 );
 
-export const CreateWebhookSubscriptionResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CreateWebhookSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 export const GetWebhookSubscriptionParams = zod.object({
   id: zod.coerce.string(),
@@ -14436,10 +14580,10 @@ export const GetWebhookSubscriptionHeader = zod.object({
     ),
 });
 
-export const GetWebhookSubscriptionResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetWebhookSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 export const UpdateWebhookSubscriptionParams = zod.object({
   id: zod.coerce.string(),
@@ -14458,10 +14602,10 @@ export const UpdateWebhookSubscriptionBody = zod.record(
   zod.unknown(),
 );
 
-export const UpdateWebhookSubscriptionResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const UpdateWebhookSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 export const DeleteWebhookSubscriptionParams = zod.object({
   id: zod.coerce.string(),
@@ -14475,10 +14619,10 @@ export const DeleteWebhookSubscriptionHeader = zod.object({
     ),
 });
 
-export const DeleteWebhookSubscriptionResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const DeleteWebhookSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Recent in-process events for the calling tenant
@@ -14504,7 +14648,10 @@ export const ListRecentEventsHeader = zod.object({
     ),
 });
 
-export const ListRecentEventsResponse = zod.record(zod.string(), zod.unknown());
+export const ListRecentEventsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary List available integration providers (catalogue)
@@ -15385,10 +15532,10 @@ export const ExportSettingsConfigResponse = zod.object({
 /**
  * @summary Fetch the current Creator Agreement (versioned, public).
  */
-export const GetCreatorAgreementDocResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetCreatorAgreementDocResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Has the current creator accepted the latest agreement?
@@ -15405,10 +15552,10 @@ export const GetCreatorAgreementStateHeader = zod.object({
     ),
 });
 
-export const GetCreatorAgreementStateResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetCreatorAgreementStateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Record a digital signature for the current agreement.
@@ -15423,20 +15570,20 @@ export const SignCreatorAgreementHeader = zod.object({
 
 export const SignCreatorAgreementBody = zod.record(zod.string(), zod.unknown());
 
-export const SignCreatorAgreementResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SignCreatorAgreementResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Public DMCA takedown notice submission.
  */
 export const SubmitDmcaTakedownBody = zod.record(zod.string(), zod.unknown());
 
-export const SubmitDmcaTakedownResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SubmitDmcaTakedownResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Admin — list DMCA takedowns (paginated).
@@ -15464,10 +15611,10 @@ export const ListDmcaTakedownsHeader = zod.object({
     ),
 });
 
-export const ListDmcaTakedownsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListDmcaTakedownsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Admin — uphold or reject a DMCA takedown.
@@ -15486,10 +15633,10 @@ export const DecideDmcaTakedownHeader = zod.object({
 
 export const DecideDmcaTakedownBody = zod.record(zod.string(), zod.unknown());
 
-export const DecideDmcaTakedownResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const DecideDmcaTakedownResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Submit a counter-notice for a DMCA takedown.
@@ -15499,10 +15646,10 @@ export const SubmitDmcaCounterNoticeBody = zod.record(
   zod.unknown(),
 );
 
-export const SubmitDmcaCounterNoticeResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const SubmitDmcaCounterNoticeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Current creator's W-9 / W-8BEN state.
@@ -15927,7 +16074,10 @@ export const GetPrivacyMeterHeader = zod.object({
     ),
 });
 
-export const GetPrivacyMeterResponse = zod.record(zod.string(), zod.unknown());
+export const GetPrivacyMeterResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Read per-feature privacy toggles
@@ -15940,10 +16090,10 @@ export const GetPrivacySettingsHeader = zod.object({
     ),
 });
 
-export const GetPrivacySettingsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetPrivacySettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Update privacy toggles (partial)
@@ -15963,10 +16113,10 @@ export const UpdatePrivacySettingsBody = zod.object({
   allowSkillNetworkCalls: zod.boolean().optional(),
 });
 
-export const UpdatePrivacySettingsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const UpdatePrivacySettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Inventory of locally-held data ("what's on my machine")
@@ -16021,7 +16171,10 @@ export const ListNetworkCallsHeader = zod.object({
     ),
 });
 
-export const ListNetworkCallsResponse = zod.record(zod.string(), zod.unknown());
+export const ListNetworkCallsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary 30-day aggregate of outbound network calls
@@ -16034,10 +16187,10 @@ export const GetNetworkCallsSummaryHeader = zod.object({
     ),
 });
 
-export const GetNetworkCallsSummaryResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const GetNetworkCallsSummaryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Per-skill granular permission grid
@@ -16127,10 +16280,10 @@ export const ExportPrivacyBundleHeader = zod.object({
     ),
 });
 
-export const ExportPrivacyBundleResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ExportPrivacyBundleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Enumerate categories that can be deleted individually
@@ -16213,10 +16366,10 @@ export const ListErasureRequestsHeader = zod.object({
     ),
 });
 
-export const ListErasureRequestsResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const ListErasureRequestsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary File a GDPR erasure request
@@ -16235,10 +16388,10 @@ export const CreateErasureRequestBody = zod.object({
   reason: zod.string().optional(),
 });
 
-export const CreateErasureRequestResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CreateErasureRequestResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Cancel a pending erasure request
@@ -16255,10 +16408,10 @@ export const CancelErasureRequestHeader = zod.object({
     ),
 });
 
-export const CancelErasureRequestResponse = zod.record(
-  zod.string(),
-  zod.unknown(),
-);
+export const CancelErasureRequestResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
 
 /**
  * @summary Read the org-private skill registry settings

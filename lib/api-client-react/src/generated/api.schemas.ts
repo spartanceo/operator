@@ -6718,12 +6718,18 @@ export interface ResidencySignalResponse {
 
 export type QueuedTaskStatus = string;
 
+export type AcquisitionChannelResponseData = { [key: string]: unknown };
+
 export interface AcquisitionChannelResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: AcquisitionChannelResponseData;
 }
 
+export type AdminBoolResponseData = { [key: string]: unknown };
+
 export interface AdminBoolResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: AdminBoolResponseData;
 }
 
 export interface ApplySkillUpdateRequest {
@@ -6734,8 +6740,11 @@ export interface AttributeReferralRequest {
   [key: string]: unknown;
 }
 
+export type BetaAccessResponseData = { [key: string]: unknown };
+
 export interface BetaAccessResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: BetaAccessResponseData;
 }
 
 export interface BuildTaskShareCardRequest {
@@ -6778,84 +6787,132 @@ export interface CreateWebhookSubscriptionRequest {
   [key: string]: unknown;
 }
 
+export type CreatorAgreementResponseData = { [key: string]: unknown };
+
 export interface CreatorAgreementResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: CreatorAgreementResponseData;
 }
+
+export type CreatorAgreementStateResponseData = { [key: string]: unknown };
 
 export interface CreatorAgreementStateResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: CreatorAgreementStateResponseData;
 }
 
+export type CreatorBadgeResponseData = { [key: string]: unknown };
+
 export interface CreatorBadgeResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: CreatorBadgeResponseData;
 }
 
 export interface CreatorEarningsRequest {
   [key: string]: unknown;
 }
 
+export type CreatorEarningsResponseData = { [key: string]: unknown };
+
 export interface CreatorEarningsResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: CreatorEarningsResponseData;
 }
+
+export type CreatorLeaderboardResponseData = { [key: string]: unknown };
 
 export interface CreatorLeaderboardResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: CreatorLeaderboardResponseData;
 }
+
+export type CreatorMilestoneListResponseData = { [key: string]: unknown };
 
 export interface CreatorMilestoneListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: CreatorMilestoneListResponseData;
 }
+
+export type CreatorMilestoneResponseData = { [key: string]: unknown };
 
 export interface CreatorMilestoneResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: CreatorMilestoneResponseData;
 }
+
+export type CreatorProfileResponseData = { [key: string]: unknown };
 
 export interface CreatorProfileResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: CreatorProfileResponseData;
 }
 
+export type DeleteScheduleResponseData = { [key: string]: unknown };
+
 export interface DeleteScheduleResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: DeleteScheduleResponseData;
 }
 
 export interface DmcaCounterNoticeRequest {
   [key: string]: unknown;
 }
 
+export type DmcaCounterNoticeResponseData = { [key: string]: unknown };
+
 export interface DmcaCounterNoticeResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: DmcaCounterNoticeResponseData;
 }
 
 export interface DmcaDecideRequest {
   [key: string]: unknown;
 }
 
+export type DmcaTakedownListResponseData = { [key: string]: unknown };
+
 export interface DmcaTakedownListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: DmcaTakedownListResponseData;
 }
 
 export interface DmcaTakedownRequest {
   [key: string]: unknown;
 }
 
+export type DmcaTakedownResponseData = { [key: string]: unknown };
+
 export interface DmcaTakedownResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: DmcaTakedownResponseData;
 }
+
+export type EnterpriseTrialInviteListResponseData = { [key: string]: unknown };
 
 export interface EnterpriseTrialInviteListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: EnterpriseTrialInviteListResponseData;
 }
+
+export type EnterpriseTrialInviteResponseData = { [key: string]: unknown };
 
 export interface EnterpriseTrialInviteResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: EnterpriseTrialInviteResponseData;
 }
+
+export type ErasureRequestListResponseData = { [key: string]: unknown };
 
 export interface ErasureRequestListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ErasureRequestListResponseData;
 }
 
+export type ErasureRequestResponseData = { [key: string]: unknown };
+
 export interface ErasureRequestResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ErasureRequestResponseData;
 }
 
 export interface FlagReviewRequest {
@@ -6878,20 +6935,32 @@ export interface ModerateReviewRequest {
   [key: string]: unknown;
 }
 
+export type ModerationQueuePageResponseData = { [key: string]: unknown };
+
 export interface ModerationQueuePageResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ModerationQueuePageResponseData;
 }
+
+export type NetworkCallListResponseData = { [key: string]: unknown };
 
 export interface NetworkCallListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: NetworkCallListResponseData;
 }
+
+export type NetworkCallSummaryResponseData = { [key: string]: unknown };
 
 export interface NetworkCallSummaryResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: NetworkCallSummaryResponseData;
 }
 
+export type OpEventListResponseData = { [key: string]: unknown };
+
 export interface OpEventListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: OpEventListResponseData;
 }
 
 export interface PauseScheduleRequest {
@@ -6906,44 +6975,71 @@ export interface PluginInvokeRequest {
   [key: string]: unknown;
 }
 
+export type PluginInvokeResponseData = { [key: string]: unknown };
+
 export interface PluginInvokeResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: PluginInvokeResponseData;
 }
+
+export type PluginToolDeleteResponseData = { [key: string]: unknown };
 
 export interface PluginToolDeleteResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: PluginToolDeleteResponseData;
 }
+
+export type PluginToolListResponseData = { [key: string]: unknown };
 
 export interface PluginToolListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: PluginToolListResponseData;
 }
 
+export type PluginToolResponseData = { [key: string]: unknown };
+
 export interface PluginToolResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: PluginToolResponseData;
 }
 
 export interface PreviewScheduleRequest {
   [key: string]: unknown;
 }
 
+export type PreviewScheduleResponseData = { [key: string]: unknown };
+
 export interface PreviewScheduleResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: PreviewScheduleResponseData;
 }
+
+export type PrivacyExportResponseData = { [key: string]: unknown };
 
 export interface PrivacyExportResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: PrivacyExportResponseData;
 }
+
+export type PrivacyMeterResponseData = { [key: string]: unknown };
 
 export interface PrivacyMeterResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: PrivacyMeterResponseData;
 }
+
+export type PrivacySettingsResponseData = { [key: string]: unknown };
 
 export interface PrivacySettingsResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: PrivacySettingsResponseData;
 }
 
+export type PublicCreatorProfileResponseData = { [key: string]: unknown };
+
 export interface PublicCreatorProfileResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: PublicCreatorProfileResponseData;
 }
 
 export interface PublishSkillVersionRequest {
@@ -6958,16 +7054,25 @@ export interface QueueClearRequest {
   [key: string]: unknown;
 }
 
+export type QueueClearResponseData = { [key: string]: unknown };
+
 export interface QueueClearResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: QueueClearResponseData;
 }
+
+export type QueuedTaskListResponseData = { [key: string]: unknown };
 
 export interface QueuedTaskListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: QueuedTaskListResponseData;
 }
 
+export type QueuedTaskResponseData = { [key: string]: unknown };
+
 export interface QueuedTaskResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: QueuedTaskResponseData;
 }
 
 export interface QueueEnqueueRequest {
@@ -6978,8 +7083,11 @@ export interface QueueSetPriorityRequest {
   [key: string]: unknown;
 }
 
+export type QueueSnapshotResponseData = { [key: string]: unknown };
+
 export interface QueueSnapshotResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: QueueSnapshotResponseData;
 }
 
 export interface RecordSatisfactionRequest {
@@ -6994,28 +7102,46 @@ export interface RecordSkillUsageRequest {
   [key: string]: unknown;
 }
 
+export type RecordSkillUsageResponseData = { [key: string]: unknown };
+
 export interface RecordSkillUsageResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: RecordSkillUsageResponseData;
 }
+
+export type ReferralCodeResponseData = { [key: string]: unknown };
 
 export interface ReferralCodeResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ReferralCodeResponseData;
 }
+
+export type ReferralDashboardResponseData = { [key: string]: unknown };
 
 export interface ReferralDashboardResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ReferralDashboardResponseData;
 }
+
+export type ReferralLookupResponseData = { [key: string]: unknown };
 
 export interface ReferralLookupResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ReferralLookupResponseData;
 }
+
+export type ReferralResponseData = { [key: string]: unknown };
 
 export interface ReferralResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ReferralResponseData;
 }
 
+export type ReferralRewardListResponseData = { [key: string]: unknown };
+
 export interface ReferralRewardListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ReferralRewardListResponseData;
 }
 
 export interface RegisterPluginToolRequest {
@@ -7034,28 +7160,46 @@ export interface RunTaskTemplateRequest {
   [key: string]: unknown;
 }
 
+export type RunTaskTemplateResponseData = { [key: string]: unknown };
+
 export interface RunTaskTemplateResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: RunTaskTemplateResponseData;
 }
+
+export type ScheduledTaskListResponseData = { [key: string]: unknown };
 
 export interface ScheduledTaskListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ScheduledTaskListResponseData;
 }
+
+export type ScheduledTaskResponseData = { [key: string]: unknown };
 
 export interface ScheduledTaskResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ScheduledTaskResponseData;
 }
+
+export type ScheduledTaskRunListResponseData = { [key: string]: unknown };
 
 export interface ScheduledTaskRunListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ScheduledTaskRunListResponseData;
 }
+
+export type ScheduledTaskRunResponseData = { [key: string]: unknown };
 
 export interface ScheduledTaskRunResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ScheduledTaskRunResponseData;
 }
 
+export type ScheduleSettingsResponseData = { [key: string]: unknown };
+
 export interface ScheduleSettingsResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ScheduleSettingsResponseData;
 }
 
 export interface SetAcquisitionChannelRequest {
@@ -7066,88 +7210,135 @@ export interface SetSkillTrustFlagsRequest {
   [key: string]: unknown;
 }
 
+export type ShareEventListResponseData = { [key: string]: unknown };
+
 export interface ShareEventListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ShareEventListResponseData;
 }
 
+export type ShareEventResponseData = { [key: string]: unknown };
+
 export interface ShareEventResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: ShareEventResponseData;
 }
 
 export interface SignCreatorAgreementRequest {
   [key: string]: unknown;
 }
 
+export type SimilarSkillsResponseData = { [key: string]: unknown };
+
 export interface SimilarSkillsResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SimilarSkillsResponseData;
 }
 
+export type SkillAdoptionResponseData = { [key: string]: unknown };
+
 export interface SkillAdoptionResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillAdoptionResponseData;
 }
 
 export interface SkillAutoUpdateRequest {
   [key: string]: unknown;
 }
 
+export type SkillBadgesResponseData = { [key: string]: unknown };
+
 export interface SkillBadgesResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillBadgesResponseData;
 }
 
 export interface SkillConfigImportRequest {
   [key: string]: unknown;
 }
 
+export type SkillConfigImportResponseData = { [key: string]: unknown };
+
 export interface SkillConfigImportResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillConfigImportResponseData;
 }
+
+export type SkillConfigResponseData = { [key: string]: unknown };
 
 export interface SkillConfigResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillConfigResponseData;
 }
 
+export type SkillConfigStatusResponseData = { [key: string]: unknown };
+
 export interface SkillConfigStatusResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillConfigStatusResponseData;
 }
 
 export interface SkillConfigUpdateRequest {
   [key: string]: unknown;
 }
 
+export type SkillDeleteResponseData = { [key: string]: unknown };
+
 export interface SkillDeleteResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillDeleteResponseData;
 }
 
+export type SkillDraftDeleteResponseData = { [key: string]: unknown };
+
 export interface SkillDraftDeleteResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillDraftDeleteResponseData;
 }
 
 export interface SkillDraftInterviewAnswerRequest {
   [key: string]: unknown;
 }
 
-export interface SkillDraftInterviewQuestionsResponse {
+export type SkillDraftInterviewQuestionsResponseData = {
   [key: string]: unknown;
+};
+
+export interface SkillDraftInterviewQuestionsResponse {
+  success: boolean;
+  data: SkillDraftInterviewQuestionsResponseData;
 }
+
+export type SkillDraftListResponseData = { [key: string]: unknown };
 
 export interface SkillDraftListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillDraftListResponseData;
 }
 
+export type SkillDraftResponseData = { [key: string]: unknown };
+
 export interface SkillDraftResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillDraftResponseData;
 }
 
 export interface SkillDraftTestRequest {
   [key: string]: unknown;
 }
 
+export type SkillDraftTestResponseData = { [key: string]: unknown };
+
 export interface SkillDraftTestResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillDraftTestResponseData;
 }
 
+export type SkillExportResponseData = { [key: string]: unknown };
+
 export interface SkillExportResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillExportResponseData;
 }
 
 export interface SkillImportRequest {
@@ -7158,88 +7349,145 @@ export interface SkillInvokeRequest {
   [key: string]: unknown;
 }
 
+export type SkillRatingListResponseData = { [key: string]: unknown };
+
 export interface SkillRatingListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillRatingListResponseData;
 }
+
+export type SkillRatingResponseData = { [key: string]: unknown };
 
 export interface SkillRatingResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillRatingResponseData;
 }
+
+export type SkillRatingSummaryResponseData = { [key: string]: unknown };
 
 export interface SkillRatingSummaryResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillRatingSummaryResponseData;
 }
+
+export type SkillReviewFlagListResponseData = { [key: string]: unknown };
 
 export interface SkillReviewFlagListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillReviewFlagListResponseData;
 }
+
+export type SkillReviewFlagResponseData = { [key: string]: unknown };
 
 export interface SkillReviewFlagResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillReviewFlagResponseData;
 }
+
+export type SkillReviewResponseResponseData = { [key: string]: unknown };
 
 export interface SkillReviewResponseResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillReviewResponseResponseData;
 }
+
+export type SkillShareLinksResponseData = { [key: string]: unknown };
 
 export interface SkillShareLinksResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillShareLinksResponseData;
 }
+
+export type SkillSocialCardResponseData = { [key: string]: unknown };
 
 export interface SkillSocialCardResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillSocialCardResponseData;
 }
+
+export type SkillUpdatesResponseData = { [key: string]: unknown };
 
 export interface SkillUpdatesResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillUpdatesResponseData;
 }
 
+export type SkillVersionListResponseData = { [key: string]: unknown };
+
 export interface SkillVersionListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SkillVersionListResponseData;
 }
 
 export interface StoreCreatorDashboardRequest {
   [key: string]: unknown;
 }
 
+export type StoreCreatorDashboardResponseData = { [key: string]: unknown };
+
 export interface StoreCreatorDashboardResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: StoreCreatorDashboardResponseData;
 }
+
+export type StoreCreatorListResponseData = { [key: string]: unknown };
 
 export interface StoreCreatorListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: StoreCreatorListResponseData;
 }
 
+export type StoreCreatorResponseData = { [key: string]: unknown };
+
 export interface StoreCreatorResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: StoreCreatorResponseData;
 }
 
 export interface StoreCreatorSignupRequest {
   [key: string]: unknown;
 }
 
+export type StoreCreatorSignupResponseData = { [key: string]: unknown };
+
 export interface StoreCreatorSignupResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: StoreCreatorSignupResponseData;
 }
+
+export type StoreSkillDetailResponseData = { [key: string]: unknown };
 
 export interface StoreSkillDetailResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: StoreSkillDetailResponseData;
 }
+
+export type StoreSkillInstallResponseData = { [key: string]: unknown };
 
 export interface StoreSkillInstallResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: StoreSkillInstallResponseData;
 }
+
+export type StoreSkillListResponseData = { [key: string]: unknown };
 
 export interface StoreSkillListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: StoreSkillListResponseData;
 }
+
+export type StoreSkillResponseData = { [key: string]: unknown };
 
 export interface StoreSkillResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: StoreSkillResponseData;
 }
 
+export type StoreSkillUpdatesResponseData = { [key: string]: unknown };
+
 export interface StoreSkillUpdatesResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: StoreSkillUpdatesResponseData;
 }
 
 export interface SubmitCreatorTaxFormRequest {
@@ -7254,84 +7502,138 @@ export interface SubscriptionCheckoutRequest {
   [key: string]: unknown;
 }
 
+export type SubscriptionCheckoutResponseData = { [key: string]: unknown };
+
 export interface SubscriptionCheckoutResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SubscriptionCheckoutResponseData;
 }
 
 export interface SubscriptionConfirmRequest {
   [key: string]: unknown;
 }
 
+export type SubscriptionStatusResponseData = { [key: string]: unknown };
+
 export interface SubscriptionStatusResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SubscriptionStatusResponseData;
 }
 
+export type SubscriptionUsageResponseData = { [key: string]: unknown };
+
 export interface SubscriptionUsageResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SubscriptionUsageResponseData;
 }
 
 export interface SubscriptionWebhookRequest {
   [key: string]: unknown;
 }
 
+export type SubscriptionWebhookResponseData = { [key: string]: unknown };
+
 export interface SubscriptionWebhookResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SubscriptionWebhookResponseData;
 }
+
+export type SuperAdminOverviewResponseData = { [key: string]: unknown };
 
 export interface SuperAdminOverviewResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SuperAdminOverviewResponseData;
 }
+
+export type SuperAdminRevenueResponseData = { [key: string]: unknown };
 
 export interface SuperAdminRevenueResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SuperAdminRevenueResponseData;
 }
+
+export type SuperAdminSkillAnalyticsResponseData = { [key: string]: unknown };
 
 export interface SuperAdminSkillAnalyticsResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: SuperAdminSkillAnalyticsResponseData;
 }
+
+export type TaskSatisfactionListResponseData = { [key: string]: unknown };
 
 export interface TaskSatisfactionListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskSatisfactionListResponseData;
 }
+
+export type TaskSatisfactionResponseData = { [key: string]: unknown };
 
 export interface TaskSatisfactionResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskSatisfactionResponseData;
 }
+
+export type TaskShareCardResponseData = { [key: string]: unknown };
 
 export interface TaskShareCardResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskShareCardResponseData;
 }
+
+export type TaskTemplateCategoryListResponseData = { [key: string]: unknown };
 
 export interface TaskTemplateCategoryListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskTemplateCategoryListResponseData;
 }
+
+export type TaskTemplateCategoryResponseData = { [key: string]: unknown };
 
 export interface TaskTemplateCategoryResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskTemplateCategoryResponseData;
 }
+
+export type TaskTemplateCollectionResponseData = { [key: string]: unknown };
 
 export interface TaskTemplateCollectionResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskTemplateCollectionResponseData;
 }
+
+export type TaskTemplateDeleteResponseData = { [key: string]: unknown };
 
 export interface TaskTemplateDeleteResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskTemplateDeleteResponseData;
 }
+
+export type TaskTemplateExportResponseData = { [key: string]: unknown };
 
 export interface TaskTemplateExportResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskTemplateExportResponseData;
 }
+
+export type TaskTemplateListResponseData = { [key: string]: unknown };
 
 export interface TaskTemplateListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskTemplateListResponseData;
 }
+
+export type TaskTemplateResponseData = { [key: string]: unknown };
 
 export interface TaskTemplateResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TaskTemplateResponseData;
 }
 
+export type TrendingSkillsResponseData = { [key: string]: unknown };
+
 export interface TrendingSkillsResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: TrendingSkillsResponseData;
 }
 
 export interface UpdatePluginToolRequest {
@@ -7366,40 +7668,67 @@ export interface UpsertCreatorProfileRequest {
   [key: string]: unknown;
 }
 
+export type WaitlistSignupListResponseData = { [key: string]: unknown };
+
 export interface WaitlistSignupListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: WaitlistSignupListResponseData;
 }
+
+export type WaitlistSignupResponseData = { [key: string]: unknown };
 
 export interface WaitlistSignupResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: WaitlistSignupResponseData;
 }
+
+export type WaitlistStatsResponseData = { [key: string]: unknown };
 
 export interface WaitlistStatsResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: WaitlistStatsResponseData;
 }
+
+export type WebhookSubscriptionDeleteResponseData = { [key: string]: unknown };
 
 export interface WebhookSubscriptionDeleteResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: WebhookSubscriptionDeleteResponseData;
 }
+
+export type WebhookSubscriptionListResponseData = { [key: string]: unknown };
 
 export interface WebhookSubscriptionListResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: WebhookSubscriptionListResponseData;
 }
+
+export type WebhookSubscriptionResponseData = { [key: string]: unknown };
 
 export interface WebhookSubscriptionResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: WebhookSubscriptionResponseData;
 }
+
+export type WorkspaceDeleteResponseData = { [key: string]: unknown };
 
 export interface WorkspaceDeleteResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: WorkspaceDeleteResponseData;
 }
+
+export type WorkspaceOverviewResponseData = { [key: string]: unknown };
 
 export interface WorkspaceOverviewResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: WorkspaceOverviewResponseData;
 }
 
+export type WorkspaceTemplateResponseData = { [key: string]: unknown };
+
 export interface WorkspaceTemplateResponse {
-  [key: string]: unknown;
+  success: boolean;
+  data: WorkspaceTemplateResponseData;
 }
 
 /**
