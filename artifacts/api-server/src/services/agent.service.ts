@@ -274,7 +274,7 @@ function plannerAgent(goal: string): PlanStep[] {
  * Short wall-clock deadline for background Ollama plan/research calls (ms).
  *
  * Passed as `timeoutMs` directly to ollamaChat so the underlying AbortController
- * fires after 3 s and cleanly resolves the fetch() — no dangling I/O, no
+ * fires after 3 s and cleanly cancels the network call — no dangling I/O, no
  * process-exit delay in the test suite. Generous enough for a local model
  * that IS running; a missing host gets a TCP RST in <1 ms anyway.
  */
