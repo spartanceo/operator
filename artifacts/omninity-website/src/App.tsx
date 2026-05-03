@@ -37,6 +37,7 @@ const MediaPage = lazy(() => import("@/pages/operator/media"));
 const PrivacyPage = lazy(() => import("@/pages/operator/privacy"));
 const MemoryPage = lazy(() => import("@/pages/operator/memory"));
 const KnowledgePage = lazy(() => import("@/pages/operator/knowledge"));
+const TemplatesPage = lazy(() => import("@/pages/operator/templates"));
 const CommunicationsPage = lazy(() => import("@/pages/operator/communications"));
 const ActivityPage = lazy(() => import("@/pages/operator/activity"));
 const ApprovalsPage = lazy(() => import("@/pages/operator/approvals"));
@@ -63,6 +64,7 @@ const OPERATOR_ROUTES = new Set([
   "/privacy",
   "/memory",
   "/knowledge",
+  "/templates",
   "/communications",
   "/approvals",
   "/undo",
@@ -182,6 +184,7 @@ function OperatorRoutes() {
         <Route path="/privacy" component={PrivacyPage} />
         <Route path="/memory" component={MemoryPage} />
         <Route path="/knowledge" component={KnowledgePage} />
+        <Route path="/templates" component={TemplatesPage} />
         <Route path="/communications" component={CommunicationsPage} />
         <Route path="/approvals" component={ApprovalsPage} />
         <Route path="/undo" component={UndoPage} />

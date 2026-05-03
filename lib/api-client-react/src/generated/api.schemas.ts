@@ -4405,6 +4405,215 @@ export interface QueuedTaskListResponse {
   data: QueuedTaskListPage;
 }
 
+export interface TaskTemplateVariable {
+  /**
+   * @minLength 1
+   * @maxLength 40
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  label: string;
+  /** @maxLength 2000 */
+  defaultValue?: string;
+  required?: boolean;
+}
+
+export interface TaskTemplateSkillConfig {
+  agentMode?: boolean;
+  /** @maxLength 200 */
+  model?: string;
+  conversationId?: string | null;
+  [key: string]: unknown;
+}
+
+export interface TaskTemplate {
+  id: string;
+  name: string;
+  description?: string | null;
+  prompt: string;
+  variables: TaskTemplateVariable[];
+  skillConfig: TaskTemplateSkillConfig;
+  categoryId?: string | null;
+  pinnedOrder?: number | null;
+  usageCount: number;
+  lastUsedAt?: string | null;
+  sourceRunId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskTemplatePage {
+  items: TaskTemplate[];
+  nextCursor: string | null;
+}
+
+export interface TaskTemplateListResponse {
+  success: boolean;
+  data: TaskTemplatePage;
+}
+
+export interface TaskTemplateCollection {
+  items: TaskTemplate[];
+}
+
+export interface TaskTemplateCollectionResponse {
+  success: boolean;
+  data: TaskTemplateCollection;
+}
+
+export interface TaskTemplateResponse {
+  success: boolean;
+  data: TaskTemplate;
+}
+
+export interface CreateTaskTemplateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  name: string;
+  /** @maxLength 1000 */
+  description?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 20000
+   */
+  prompt: string;
+  /** @maxItems 32 */
+  variables?: TaskTemplateVariable[];
+  skillConfig?: TaskTemplateSkillConfig;
+  categoryId?: string | null;
+  sourceRunId?: string | null;
+}
+
+export interface UpdateTaskTemplateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  name?: string;
+  /** @maxLength 1000 */
+  description?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 20000
+   */
+  prompt?: string;
+  /** @maxItems 32 */
+  variables?: TaskTemplateVariable[];
+  skillConfig?: TaskTemplateSkillConfig;
+  categoryId?: string | null;
+}
+
+export interface TaskTemplateDeleteReceipt {
+  deleted: boolean;
+}
+
+export interface TaskTemplateDeleteResponse {
+  success: boolean;
+  data: TaskTemplateDeleteReceipt;
+}
+
+export type RunTaskTemplateRequestValues = { [key: string]: string };
+
+export interface RunTaskTemplateRequest {
+  values?: RunTaskTemplateRequestValues;
+}
+
+export interface RunTaskTemplateResult {
+  template: TaskTemplate;
+  resolvedPrompt: string;
+}
+
+export interface RunTaskTemplateResponse {
+  success: boolean;
+  data: RunTaskTemplateResult;
+}
+
+export interface PinTaskTemplateRequest {
+  pinned: boolean;
+}
+
+export interface TaskTemplateCategory {
+  id: string;
+  name: string;
+  color?: string | null;
+  icon?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskTemplateCategoryList {
+  items: TaskTemplateCategory[];
+}
+
+export interface TaskTemplateCategoryListResponse {
+  success: boolean;
+  data: TaskTemplateCategoryList;
+}
+
+export interface TaskTemplateCategoryResponse {
+  success: boolean;
+  data: TaskTemplateCategory;
+}
+
+export interface CreateTaskTemplateCategoryRequest {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+  /** @maxLength 40 */
+  color?: string | null;
+  /** @maxLength 40 */
+  icon?: string | null;
+}
+
+export type TaskTemplateExportSchemaVersion =
+  (typeof TaskTemplateExportSchemaVersion)[keyof typeof TaskTemplateExportSchemaVersion];
+
+export const TaskTemplateExportSchemaVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type TaskTemplateExportTemplateCategory = {
+  name: string;
+  color?: string | null;
+  icon?: string | null;
+} | null;
+
+export type TaskTemplateExportTemplate = {
+  name: string;
+  description?: string | null;
+  prompt: string;
+  variables: TaskTemplateVariable[];
+  skillConfig: TaskTemplateSkillConfig;
+  category?: TaskTemplateExportTemplateCategory;
+};
+
+export interface TaskTemplateExport {
+  schemaVersion: TaskTemplateExportSchemaVersion;
+  exportedAt: string;
+  template: TaskTemplateExportTemplate;
+}
+
+export interface TaskTemplateExportResponse {
+  success: boolean;
+  data: TaskTemplateExport;
+}
+
+export interface ImportTaskTemplateRequest {
+  template: TaskTemplateExport;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  name?: string;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -4654,6 +4863,32 @@ export type DeleteWorkspaceConfirm =
 export const DeleteWorkspaceConfirm = {
   true: "true",
   NUMBER_1: "1",
+} as const;
+
+export type ListTaskTemplatesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  categoryId?: string;
+  pinnedOnly?: ListTaskTemplatesPinnedOnly;
+  q?: string;
+};
+
+export type ListTaskTemplatesPinnedOnly =
+  (typeof ListTaskTemplatesPinnedOnly)[keyof typeof ListTaskTemplatesPinnedOnly];
+
+export const ListTaskTemplatesPinnedOnly = {
+  true: "true",
+  NUMBER_1: "1",
+  false: "false",
+  NUMBER_0: "0",
 } as const;
 
 export type ListFilesParams = {

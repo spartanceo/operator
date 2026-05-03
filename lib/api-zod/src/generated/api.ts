@@ -2215,6 +2215,905 @@ export const ExportWorkspaceTemplateResponse = zod.object({
 });
 
 /**
+ * @summary List task templates in the current workspace
+ */
+export const listTaskTemplatesQueryLimitDefault = 20;
+export const listTaskTemplatesQueryLimitMax = 100;
+
+export const ListTaskTemplatesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listTaskTemplatesQueryLimitMax)
+    .default(listTaskTemplatesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  categoryId: zod.coerce.string().optional(),
+  pinnedOnly: zod.enum(["true", "1", "false", "0"]).optional(),
+  q: zod.coerce.string().optional(),
+});
+
+export const ListTaskTemplatesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const listTaskTemplatesResponseDataItemsItemVariablesItemNameMax = 40;
+
+export const listTaskTemplatesResponseDataItemsItemVariablesItemLabelMax = 120;
+
+export const listTaskTemplatesResponseDataItemsItemVariablesItemDefaultValueMax = 2000;
+
+export const listTaskTemplatesResponseDataItemsItemSkillConfigModelMax = 200;
+
+export const ListTaskTemplatesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        prompt: zod.string(),
+        variables: zod.array(
+          zod.object({
+            name: zod
+              .string()
+              .min(1)
+              .max(listTaskTemplatesResponseDataItemsItemVariablesItemNameMax),
+            label: zod
+              .string()
+              .min(1)
+              .max(listTaskTemplatesResponseDataItemsItemVariablesItemLabelMax),
+            defaultValue: zod
+              .string()
+              .max(
+                listTaskTemplatesResponseDataItemsItemVariablesItemDefaultValueMax,
+              )
+              .optional(),
+            required: zod.boolean().optional(),
+          }),
+        ),
+        skillConfig: zod.object({
+          agentMode: zod.boolean().optional(),
+          model: zod
+            .string()
+            .max(listTaskTemplatesResponseDataItemsItemSkillConfigModelMax)
+            .optional(),
+          conversationId: zod.string().nullish(),
+        }),
+        categoryId: zod.string().nullish(),
+        pinnedOrder: zod.number().nullish(),
+        usageCount: zod.number(),
+        lastUsedAt: zod.coerce.date().nullish(),
+        sourceRunId: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a task template (typically "Save this run as a template")
+ */
+export const CreateTaskTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const createTaskTemplateBodyNameMax = 120;
+
+export const createTaskTemplateBodyDescriptionMax = 1000;
+
+export const createTaskTemplateBodyPromptMax = 20000;
+
+export const createTaskTemplateBodyVariablesItemNameMax = 40;
+
+export const createTaskTemplateBodyVariablesItemLabelMax = 120;
+
+export const createTaskTemplateBodyVariablesItemDefaultValueMax = 2000;
+
+export const createTaskTemplateBodyVariablesMax = 32;
+
+export const createTaskTemplateBodySkillConfigModelMax = 200;
+
+export const CreateTaskTemplateBody = zod.object({
+  name: zod.string().min(1).max(createTaskTemplateBodyNameMax),
+  description: zod.string().max(createTaskTemplateBodyDescriptionMax).nullish(),
+  prompt: zod.string().min(1).max(createTaskTemplateBodyPromptMax),
+  variables: zod
+    .array(
+      zod.object({
+        name: zod
+          .string()
+          .min(1)
+          .max(createTaskTemplateBodyVariablesItemNameMax),
+        label: zod
+          .string()
+          .min(1)
+          .max(createTaskTemplateBodyVariablesItemLabelMax),
+        defaultValue: zod
+          .string()
+          .max(createTaskTemplateBodyVariablesItemDefaultValueMax)
+          .optional(),
+        required: zod.boolean().optional(),
+      }),
+    )
+    .max(createTaskTemplateBodyVariablesMax)
+    .optional(),
+  skillConfig: zod
+    .object({
+      agentMode: zod.boolean().optional(),
+      model: zod
+        .string()
+        .max(createTaskTemplateBodySkillConfigModelMax)
+        .optional(),
+      conversationId: zod.string().nullish(),
+    })
+    .optional(),
+  categoryId: zod.string().nullish(),
+  sourceRunId: zod.string().nullish(),
+});
+
+export const createTaskTemplateResponseDataVariablesItemNameMax = 40;
+
+export const createTaskTemplateResponseDataVariablesItemLabelMax = 120;
+
+export const createTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
+
+export const createTaskTemplateResponseDataSkillConfigModelMax = 200;
+
+export const CreateTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    prompt: zod.string(),
+    variables: zod.array(
+      zod.object({
+        name: zod
+          .string()
+          .min(1)
+          .max(createTaskTemplateResponseDataVariablesItemNameMax),
+        label: zod
+          .string()
+          .min(1)
+          .max(createTaskTemplateResponseDataVariablesItemLabelMax),
+        defaultValue: zod
+          .string()
+          .max(createTaskTemplateResponseDataVariablesItemDefaultValueMax)
+          .optional(),
+        required: zod.boolean().optional(),
+      }),
+    ),
+    skillConfig: zod.object({
+      agentMode: zod.boolean().optional(),
+      model: zod
+        .string()
+        .max(createTaskTemplateResponseDataSkillConfigModelMax)
+        .optional(),
+      conversationId: zod.string().nullish(),
+    }),
+    categoryId: zod.string().nullish(),
+    pinnedOrder: zod.number().nullish(),
+    usageCount: zod.number(),
+    lastUsedAt: zod.coerce.date().nullish(),
+    sourceRunId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Quick-launch row — up to 5 pinned templates
+ */
+export const ListPinnedTaskTemplatesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const listPinnedTaskTemplatesResponseDataItemsItemVariablesItemNameMax = 40;
+
+export const listPinnedTaskTemplatesResponseDataItemsItemVariablesItemLabelMax = 120;
+
+export const listPinnedTaskTemplatesResponseDataItemsItemVariablesItemDefaultValueMax = 2000;
+
+export const listPinnedTaskTemplatesResponseDataItemsItemSkillConfigModelMax = 200;
+
+export const ListPinnedTaskTemplatesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        prompt: zod.string(),
+        variables: zod.array(
+          zod.object({
+            name: zod
+              .string()
+              .min(1)
+              .max(
+                listPinnedTaskTemplatesResponseDataItemsItemVariablesItemNameMax,
+              ),
+            label: zod
+              .string()
+              .min(1)
+              .max(
+                listPinnedTaskTemplatesResponseDataItemsItemVariablesItemLabelMax,
+              ),
+            defaultValue: zod
+              .string()
+              .max(
+                listPinnedTaskTemplatesResponseDataItemsItemVariablesItemDefaultValueMax,
+              )
+              .optional(),
+            required: zod.boolean().optional(),
+          }),
+        ),
+        skillConfig: zod.object({
+          agentMode: zod.boolean().optional(),
+          model: zod
+            .string()
+            .max(
+              listPinnedTaskTemplatesResponseDataItemsItemSkillConfigModelMax,
+            )
+            .optional(),
+          conversationId: zod.string().nullish(),
+        }),
+        categoryId: zod.string().nullish(),
+        pinnedOrder: zod.number().nullish(),
+        usageCount: zod.number(),
+        lastUsedAt: zod.coerce.date().nullish(),
+        sourceRunId: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary List user-defined template categories
+ */
+export const ListTaskTemplateCategoriesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListTaskTemplateCategoriesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        color: zod.string().nullish(),
+        icon: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Create a template category
+ */
+export const CreateTaskTemplateCategoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const createTaskTemplateCategoryBodyNameMax = 80;
+
+export const createTaskTemplateCategoryBodyColorMax = 40;
+
+export const createTaskTemplateCategoryBodyIconMax = 40;
+
+export const CreateTaskTemplateCategoryBody = zod.object({
+  name: zod.string().min(1).max(createTaskTemplateCategoryBodyNameMax),
+  color: zod.string().max(createTaskTemplateCategoryBodyColorMax).nullish(),
+  icon: zod.string().max(createTaskTemplateCategoryBodyIconMax).nullish(),
+});
+
+export const CreateTaskTemplateCategoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    color: zod.string().nullish(),
+    icon: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Delete a category (templates inside detach to "Uncategorised")
+ */
+export const DeleteTaskTemplateCategoryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteTaskTemplateCategoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteTaskTemplateCategoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Import a previously-exported template
+ */
+export const ImportTaskTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const importTaskTemplateBodyTemplateTemplateVariablesItemNameMax = 40;
+
+export const importTaskTemplateBodyTemplateTemplateVariablesItemLabelMax = 120;
+
+export const importTaskTemplateBodyTemplateTemplateVariablesItemDefaultValueMax = 2000;
+
+export const importTaskTemplateBodyTemplateTemplateSkillConfigModelMax = 200;
+
+export const importTaskTemplateBodyNameMax = 120;
+
+export const ImportTaskTemplateBody = zod.object({
+  template: zod.object({
+    schemaVersion: zod.literal(1),
+    exportedAt: zod.coerce.date(),
+    template: zod.object({
+      name: zod.string(),
+      description: zod.string().nullish(),
+      prompt: zod.string(),
+      variables: zod.array(
+        zod.object({
+          name: zod
+            .string()
+            .min(1)
+            .max(importTaskTemplateBodyTemplateTemplateVariablesItemNameMax),
+          label: zod
+            .string()
+            .min(1)
+            .max(importTaskTemplateBodyTemplateTemplateVariablesItemLabelMax),
+          defaultValue: zod
+            .string()
+            .max(
+              importTaskTemplateBodyTemplateTemplateVariablesItemDefaultValueMax,
+            )
+            .optional(),
+          required: zod.boolean().optional(),
+        }),
+      ),
+      skillConfig: zod.object({
+        agentMode: zod.boolean().optional(),
+        model: zod
+          .string()
+          .max(importTaskTemplateBodyTemplateTemplateSkillConfigModelMax)
+          .optional(),
+        conversationId: zod.string().nullish(),
+      }),
+      category: zod
+        .object({
+          name: zod.string(),
+          color: zod.string().nullish(),
+          icon: zod.string().nullish(),
+        })
+        .nullish(),
+    }),
+  }),
+  name: zod.string().min(1).max(importTaskTemplateBodyNameMax).optional(),
+});
+
+export const importTaskTemplateResponseDataVariablesItemNameMax = 40;
+
+export const importTaskTemplateResponseDataVariablesItemLabelMax = 120;
+
+export const importTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
+
+export const importTaskTemplateResponseDataSkillConfigModelMax = 200;
+
+export const ImportTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    prompt: zod.string(),
+    variables: zod.array(
+      zod.object({
+        name: zod
+          .string()
+          .min(1)
+          .max(importTaskTemplateResponseDataVariablesItemNameMax),
+        label: zod
+          .string()
+          .min(1)
+          .max(importTaskTemplateResponseDataVariablesItemLabelMax),
+        defaultValue: zod
+          .string()
+          .max(importTaskTemplateResponseDataVariablesItemDefaultValueMax)
+          .optional(),
+        required: zod.boolean().optional(),
+      }),
+    ),
+    skillConfig: zod.object({
+      agentMode: zod.boolean().optional(),
+      model: zod
+        .string()
+        .max(importTaskTemplateResponseDataSkillConfigModelMax)
+        .optional(),
+      conversationId: zod.string().nullish(),
+    }),
+    categoryId: zod.string().nullish(),
+    pinnedOrder: zod.number().nullish(),
+    usageCount: zod.number(),
+    lastUsedAt: zod.coerce.date().nullish(),
+    sourceRunId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one template
+ */
+export const GetTaskTemplateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetTaskTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const getTaskTemplateResponseDataVariablesItemNameMax = 40;
+
+export const getTaskTemplateResponseDataVariablesItemLabelMax = 120;
+
+export const getTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
+
+export const getTaskTemplateResponseDataSkillConfigModelMax = 200;
+
+export const GetTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    prompt: zod.string(),
+    variables: zod.array(
+      zod.object({
+        name: zod
+          .string()
+          .min(1)
+          .max(getTaskTemplateResponseDataVariablesItemNameMax),
+        label: zod
+          .string()
+          .min(1)
+          .max(getTaskTemplateResponseDataVariablesItemLabelMax),
+        defaultValue: zod
+          .string()
+          .max(getTaskTemplateResponseDataVariablesItemDefaultValueMax)
+          .optional(),
+        required: zod.boolean().optional(),
+      }),
+    ),
+    skillConfig: zod.object({
+      agentMode: zod.boolean().optional(),
+      model: zod
+        .string()
+        .max(getTaskTemplateResponseDataSkillConfigModelMax)
+        .optional(),
+      conversationId: zod.string().nullish(),
+    }),
+    categoryId: zod.string().nullish(),
+    pinnedOrder: zod.number().nullish(),
+    usageCount: zod.number(),
+    lastUsedAt: zod.coerce.date().nullish(),
+    sourceRunId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Edit name / prompt / variables / category
+ */
+export const UpdateTaskTemplateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateTaskTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const updateTaskTemplateBodyNameMax = 120;
+
+export const updateTaskTemplateBodyDescriptionMax = 1000;
+
+export const updateTaskTemplateBodyPromptMax = 20000;
+
+export const updateTaskTemplateBodyVariablesItemNameMax = 40;
+
+export const updateTaskTemplateBodyVariablesItemLabelMax = 120;
+
+export const updateTaskTemplateBodyVariablesItemDefaultValueMax = 2000;
+
+export const updateTaskTemplateBodyVariablesMax = 32;
+
+export const updateTaskTemplateBodySkillConfigModelMax = 200;
+
+export const UpdateTaskTemplateBody = zod.object({
+  name: zod.string().min(1).max(updateTaskTemplateBodyNameMax).optional(),
+  description: zod.string().max(updateTaskTemplateBodyDescriptionMax).nullish(),
+  prompt: zod.string().min(1).max(updateTaskTemplateBodyPromptMax).optional(),
+  variables: zod
+    .array(
+      zod.object({
+        name: zod
+          .string()
+          .min(1)
+          .max(updateTaskTemplateBodyVariablesItemNameMax),
+        label: zod
+          .string()
+          .min(1)
+          .max(updateTaskTemplateBodyVariablesItemLabelMax),
+        defaultValue: zod
+          .string()
+          .max(updateTaskTemplateBodyVariablesItemDefaultValueMax)
+          .optional(),
+        required: zod.boolean().optional(),
+      }),
+    )
+    .max(updateTaskTemplateBodyVariablesMax)
+    .optional(),
+  skillConfig: zod
+    .object({
+      agentMode: zod.boolean().optional(),
+      model: zod
+        .string()
+        .max(updateTaskTemplateBodySkillConfigModelMax)
+        .optional(),
+      conversationId: zod.string().nullish(),
+    })
+    .optional(),
+  categoryId: zod.string().nullish(),
+});
+
+export const updateTaskTemplateResponseDataVariablesItemNameMax = 40;
+
+export const updateTaskTemplateResponseDataVariablesItemLabelMax = 120;
+
+export const updateTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
+
+export const updateTaskTemplateResponseDataSkillConfigModelMax = 200;
+
+export const UpdateTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    prompt: zod.string(),
+    variables: zod.array(
+      zod.object({
+        name: zod
+          .string()
+          .min(1)
+          .max(updateTaskTemplateResponseDataVariablesItemNameMax),
+        label: zod
+          .string()
+          .min(1)
+          .max(updateTaskTemplateResponseDataVariablesItemLabelMax),
+        defaultValue: zod
+          .string()
+          .max(updateTaskTemplateResponseDataVariablesItemDefaultValueMax)
+          .optional(),
+        required: zod.boolean().optional(),
+      }),
+    ),
+    skillConfig: zod.object({
+      agentMode: zod.boolean().optional(),
+      model: zod
+        .string()
+        .max(updateTaskTemplateResponseDataSkillConfigModelMax)
+        .optional(),
+      conversationId: zod.string().nullish(),
+    }),
+    categoryId: zod.string().nullish(),
+    pinnedOrder: zod.number().nullish(),
+    usageCount: zod.number(),
+    lastUsedAt: zod.coerce.date().nullish(),
+    sourceRunId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Delete a template
+ */
+export const DeleteTaskTemplateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteTaskTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Substitute variables and bump usage stats
+ */
+export const RunTaskTemplateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RunTaskTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const runTaskTemplateBodyValuesMaxOne = 4000;
+
+export const RunTaskTemplateBody = zod.object({
+  values: zod
+    .record(zod.string(), zod.string().max(runTaskTemplateBodyValuesMaxOne))
+    .optional(),
+});
+
+export const runTaskTemplateResponseDataTemplateVariablesItemNameMax = 40;
+
+export const runTaskTemplateResponseDataTemplateVariablesItemLabelMax = 120;
+
+export const runTaskTemplateResponseDataTemplateVariablesItemDefaultValueMax = 2000;
+
+export const runTaskTemplateResponseDataTemplateSkillConfigModelMax = 200;
+
+export const RunTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    template: zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      prompt: zod.string(),
+      variables: zod.array(
+        zod.object({
+          name: zod
+            .string()
+            .min(1)
+            .max(runTaskTemplateResponseDataTemplateVariablesItemNameMax),
+          label: zod
+            .string()
+            .min(1)
+            .max(runTaskTemplateResponseDataTemplateVariablesItemLabelMax),
+          defaultValue: zod
+            .string()
+            .max(
+              runTaskTemplateResponseDataTemplateVariablesItemDefaultValueMax,
+            )
+            .optional(),
+          required: zod.boolean().optional(),
+        }),
+      ),
+      skillConfig: zod.object({
+        agentMode: zod.boolean().optional(),
+        model: zod
+          .string()
+          .max(runTaskTemplateResponseDataTemplateSkillConfigModelMax)
+          .optional(),
+        conversationId: zod.string().nullish(),
+      }),
+      categoryId: zod.string().nullish(),
+      pinnedOrder: zod.number().nullish(),
+      usageCount: zod.number(),
+      lastUsedAt: zod.coerce.date().nullish(),
+      sourceRunId: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    resolvedPrompt: zod.string(),
+  }),
+});
+
+/**
+ * @summary Pin or unpin a template (max 5 pinned per workspace)
+ */
+export const PinTaskTemplateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PinTaskTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PinTaskTemplateBody = zod.object({
+  pinned: zod.boolean(),
+});
+
+export const pinTaskTemplateResponseDataVariablesItemNameMax = 40;
+
+export const pinTaskTemplateResponseDataVariablesItemLabelMax = 120;
+
+export const pinTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
+
+export const pinTaskTemplateResponseDataSkillConfigModelMax = 200;
+
+export const PinTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    prompt: zod.string(),
+    variables: zod.array(
+      zod.object({
+        name: zod
+          .string()
+          .min(1)
+          .max(pinTaskTemplateResponseDataVariablesItemNameMax),
+        label: zod
+          .string()
+          .min(1)
+          .max(pinTaskTemplateResponseDataVariablesItemLabelMax),
+        defaultValue: zod
+          .string()
+          .max(pinTaskTemplateResponseDataVariablesItemDefaultValueMax)
+          .optional(),
+        required: zod.boolean().optional(),
+      }),
+    ),
+    skillConfig: zod.object({
+      agentMode: zod.boolean().optional(),
+      model: zod
+        .string()
+        .max(pinTaskTemplateResponseDataSkillConfigModelMax)
+        .optional(),
+      conversationId: zod.string().nullish(),
+    }),
+    categoryId: zod.string().nullish(),
+    pinnedOrder: zod.number().nullish(),
+    usageCount: zod.number(),
+    lastUsedAt: zod.coerce.date().nullish(),
+    sourceRunId: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Export a template as a portable file
+ */
+export const ExportTaskTemplateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ExportTaskTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const exportTaskTemplateResponseDataTemplateVariablesItemNameMax = 40;
+
+export const exportTaskTemplateResponseDataTemplateVariablesItemLabelMax = 120;
+
+export const exportTaskTemplateResponseDataTemplateVariablesItemDefaultValueMax = 2000;
+
+export const exportTaskTemplateResponseDataTemplateSkillConfigModelMax = 200;
+
+export const ExportTaskTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    schemaVersion: zod.literal(1),
+    exportedAt: zod.coerce.date(),
+    template: zod.object({
+      name: zod.string(),
+      description: zod.string().nullish(),
+      prompt: zod.string(),
+      variables: zod.array(
+        zod.object({
+          name: zod
+            .string()
+            .min(1)
+            .max(exportTaskTemplateResponseDataTemplateVariablesItemNameMax),
+          label: zod
+            .string()
+            .min(1)
+            .max(exportTaskTemplateResponseDataTemplateVariablesItemLabelMax),
+          defaultValue: zod
+            .string()
+            .max(
+              exportTaskTemplateResponseDataTemplateVariablesItemDefaultValueMax,
+            )
+            .optional(),
+          required: zod.boolean().optional(),
+        }),
+      ),
+      skillConfig: zod.object({
+        agentMode: zod.boolean().optional(),
+        model: zod
+          .string()
+          .max(exportTaskTemplateResponseDataTemplateSkillConfigModelMax)
+          .optional(),
+        conversationId: zod.string().nullish(),
+      }),
+      category: zod
+        .object({
+          name: zod.string(),
+          color: zod.string().nullish(),
+          icon: zod.string().nullish(),
+        })
+        .nullish(),
+    }),
+  }),
+});
+
+/**
  * @summary List entries inside the workspace sandbox
  */
 export const listFilesQueryLimitDefault = 20;

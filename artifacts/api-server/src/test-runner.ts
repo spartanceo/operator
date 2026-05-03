@@ -4025,6 +4025,212 @@ const cases: TestCase[] = [
       assert.equal(after?.status, "cancelled", `expected cancelled, got ${after?.status}`);
     },
   },
+  {
+    name: "task-templates: create + list + run substitutes variables and bumps usage",
+    run: async () => {
+      const tenant = `tenant_tpl_run_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const created = await request(app)
+        .post("/api/task-templates")
+        .set("X-Tenant-ID", tenant)
+        .send({
+          name: "Weekly client report",
+          description: "Drafts a Friday status report",
+          prompt: "Write a status report for {{client}} covering {{week}}.",
+          variables: [
+            { name: "client", label: "Client", required: true },
+            { name: "week", label: "Week", defaultValue: "this week" },
+          ],
+          skillConfig: { agentMode: true, model: "llama3.1:8b" },
+        })
+        .expect(200);
+      assert.equal(created.body.data.usageCount, 0);
+      const id = created.body.data.id;
+
+      const list = await request(app)
+        .get("/api/task-templates")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.ok(list.body.data.items.some((t: { id: string }) => t.id === id));
+
+      // Missing required variable yields 422.
+      const missing = await request(app)
+        .post(`/api/task-templates/${id}/run`)
+        .set("X-Tenant-ID", tenant)
+        .send({ values: {} })
+        .expect(422);
+      assert.equal(missing.body.error.code, "MISSING_VARIABLE");
+
+      // Successful run substitutes both required and defaulted variables.
+      const ran = await request(app)
+        .post(`/api/task-templates/${id}/run`)
+        .set("X-Tenant-ID", tenant)
+        .send({ values: { client: "Acme" } })
+        .expect(200);
+      assert.equal(
+        ran.body.data.resolvedPrompt,
+        "Write a status report for Acme covering this week.",
+      );
+      assert.equal(ran.body.data.template.usageCount, 1);
+      assert.ok(ran.body.data.template.lastUsedAt);
+    },
+  },
+  {
+    name: "task-templates: pin enforces 5-template quick-launch cap",
+    run: async () => {
+      const tenant = `tenant_tpl_pin_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const ids: string[] = [];
+      for (let i = 0; i < 6; i++) {
+        const created = await request(app)
+          .post("/api/task-templates")
+          .set("X-Tenant-ID", tenant)
+          .send({ name: `Template ${i}`, prompt: `Do thing ${i}` })
+          .expect(200);
+        ids.push(created.body.data.id);
+      }
+      for (let i = 0; i < 5; i++) {
+        await request(app)
+          .post(`/api/task-templates/${ids[i]}/pin`)
+          .set("X-Tenant-ID", tenant)
+          .send({ pinned: true })
+          .expect(200);
+      }
+      const sixth = await request(app)
+        .post(`/api/task-templates/${ids[5]}/pin`)
+        .set("X-Tenant-ID", tenant)
+        .send({ pinned: true })
+        .expect(409);
+      assert.equal(sixth.body.error.code, "PIN_LIMIT_REACHED");
+
+      const pinned = await request(app)
+        .get("/api/task-templates/pinned")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(pinned.body.data.items.length, 5);
+
+      // Unpinning frees a slot and the sixth pin succeeds.
+      await request(app)
+        .post(`/api/task-templates/${ids[0]}/pin`)
+        .set("X-Tenant-ID", tenant)
+        .send({ pinned: false })
+        .expect(200);
+      await request(app)
+        .post(`/api/task-templates/${ids[5]}/pin`)
+        .set("X-Tenant-ID", tenant)
+        .send({ pinned: true })
+        .expect(200);
+    },
+  },
+  {
+    name: "task-templates: categories scope and detach on delete",
+    run: async () => {
+      const tenant = `tenant_tpl_cat_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const cat = await request(app)
+        .post("/api/task-templates/categories")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Clients", color: "blue", icon: "briefcase" })
+        .expect(200);
+      const catId = cat.body.data.id;
+      const created = await request(app)
+        .post("/api/task-templates")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Acme intro", prompt: "Email Acme", categoryId: catId })
+        .expect(200);
+      assert.equal(created.body.data.categoryId, catId);
+
+      // Bad category reference is rejected.
+      const bad = await request(app)
+        .post("/api/task-templates")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "x", prompt: "y", categoryId: "tcat_bogus" })
+        .expect(404);
+      assert.equal(bad.body.error.code, "CATEGORY_NOT_FOUND");
+
+      // Deleting the category detaches the template instead of cascading.
+      await request(app)
+        .delete(`/api/task-templates/categories/${catId}`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      const reloaded = await request(app)
+        .get(`/api/task-templates/${created.body.data.id}`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(reloaded.body.data.categoryId, null);
+    },
+  },
+  {
+    name: "task-templates: export + import round-trips variables and category",
+    run: async () => {
+      const tenant = `tenant_tpl_io_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const cat = await request(app)
+        .post("/api/task-templates/categories")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Work" })
+        .expect(200);
+      const created = await request(app)
+        .post("/api/task-templates")
+        .set("X-Tenant-ID", tenant)
+        .send({
+          name: "Competitor research",
+          prompt: "Research competitors of {{company}}",
+          variables: [{ name: "company", label: "Company", required: true }],
+          categoryId: cat.body.data.id,
+        })
+        .expect(200);
+      const exported = await request(app)
+        .get(`/api/task-templates/${created.body.data.id}/export`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(exported.body.data.schemaVersion, 1);
+      assert.equal(exported.body.data.template.category.name, "Work");
+
+      const imported = await request(app)
+        .post("/api/task-templates/import")
+        .set("X-Tenant-ID", tenant)
+        .send({ template: exported.body.data, name: "Competitor research (copy)" })
+        .expect(200);
+      assert.equal(imported.body.data.name, "Competitor research (copy)");
+      assert.ok(imported.body.data.categoryId);
+      assert.equal(imported.body.data.variables.length, 1);
+
+      const badImport = await request(app)
+        .post("/api/task-templates/import")
+        .set("X-Tenant-ID", tenant)
+        .send({ template: { not: "valid" } })
+        .expect(400);
+      assert.equal(badImport.body.error.code, "INVALID_TEMPLATE");
+    },
+  },
+  {
+    name: "task-templates: tenant isolation",
+    run: async () => {
+      const a = `tenant_tpl_iso_a_${Date.now()}`;
+      const b = `tenant_tpl_iso_b_${Date.now()}`;
+      await bootstrapTenant(a);
+      await bootstrapTenant(b);
+      const made = await request(app)
+        .post("/api/task-templates")
+        .set("X-Tenant-ID", a)
+        .send({ name: "Private", prompt: "secret" })
+        .expect(200);
+      const bView = await request(app)
+        .get("/api/task-templates")
+        .set("X-Tenant-ID", b)
+        .expect(200);
+      assert.ok(
+        !bView.body.data.items.some(
+          (t: { id: string }) => t.id === made.body.data.id,
+        ),
+      );
+      await request(app)
+        .get(`/api/task-templates/${made.body.data.id}`)
+        .set("X-Tenant-ID", b)
+        .expect(404);
+    },
+  },
 ];
 
 async function main() {

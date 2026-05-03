@@ -29,6 +29,7 @@ import privacyRouter from "./privacy";
 import securityRouter from "./security";
 import skillsRouter from "./skills";
 import tasksRouter from "./tasks";
+import taskTemplatesRouter from "./task-templates";
 import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
 import undoRouter from "./undo";
@@ -67,5 +68,6 @@ router.use("/undo", undoRouter);
 router.use("/workspaces", workspacesRouter);
 router.use("/skills", skillsRouter);
 router.use("/tasks", tasksRouter);
+router.use("/task-templates", taskTemplatesRouter);
 
 export default router;

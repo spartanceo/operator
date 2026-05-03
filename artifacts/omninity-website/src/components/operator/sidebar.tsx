@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Undo2,
   ListTodo,
+  LayoutTemplate,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -37,6 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/privacy", label: "Privacy", icon: Shield },
   { href: "/memory", label: "Memory", icon: Brain },
   { href: "/knowledge", label: "Knowledge", icon: Library },
+  { href: "/templates", label: "Templates", icon: LayoutTemplate },
   { href: "/communications", label: "Communications", icon: Inbox },
   { href: "/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/undo", label: "Undo", icon: Undo2 },

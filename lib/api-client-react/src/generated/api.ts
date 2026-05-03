@@ -90,6 +90,8 @@ import type {
   CreateOutreachSequenceRequest,
   CreatePrivacyEventRequest,
   CreateSkillRequest,
+  CreateTaskTemplateCategoryRequest,
+  CreateTaskTemplateRequest,
   CreateWorkspaceRequest,
   DeleteConversationResponse,
   DeleteWorkspaceParams,
@@ -124,6 +126,7 @@ import type {
   GenerateVideoRequest,
   HardwareCapabilitiesResponse,
   HealthCheckResponse,
+  ImportTaskTemplateRequest,
   ImportWorkspaceRequest,
   IncidentReportListResponse,
   IncidentReportResponse,
@@ -189,6 +192,7 @@ import type {
   ListPrivacyEventsParams,
   ListQueuedTasksParams,
   ListSkillsParams,
+  ListTaskTemplatesParams,
   ListTelemetryEventsParams,
   ListToolsParams,
   ListUndoTaskActionsParams,
@@ -255,6 +259,7 @@ import type {
   PermissionListResponse,
   PermissionReportRequest,
   PermissionViewResponse,
+  PinTaskTemplateRequest,
   PlaceVoipCallRequest,
   PrivacyEventListResponse,
   PrivacyEventResponse,
@@ -269,6 +274,8 @@ import type {
   RecordTelemetryEventsResponse,
   RecordVoipCallRequest,
   RegisterRequest,
+  RunTaskTemplateRequest,
+  RunTaskTemplateResponse,
   ScanSkillRequest,
   ScanSkillResponse,
   SearchConversationsParams,
@@ -287,6 +294,13 @@ import type {
   SkillListResponse,
   SkillResponse,
   SubmitCrashReportRequest,
+  TaskTemplateCategoryListResponse,
+  TaskTemplateCategoryResponse,
+  TaskTemplateCollectionResponse,
+  TaskTemplateDeleteResponse,
+  TaskTemplateExportResponse,
+  TaskTemplateListResponse,
+  TaskTemplateResponse,
   TelemetryConsentResponse,
   TelemetryConsentUpdateRequest,
   TelemetryErasureResponse,
@@ -308,6 +322,7 @@ import type {
   UpdateContactRequest,
   UpdateConversationRequest,
   UpdateSkillRequest,
+  UpdateTaskTemplateRequest,
   UpdateTelemetryConsentRequest,
   UpdateVoipCallStatusRequest,
   UpdateWorkspaceRequest,
@@ -5728,6 +5743,1135 @@ export function useExportWorkspaceTemplate<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getExportWorkspaceTemplateQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List task templates in the current workspace
+ */
+export const getListTaskTemplatesUrl = (params?: ListTaskTemplatesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/task-templates?${stringifiedParams}`
+    : `/api/task-templates`;
+};
+
+export const listTaskTemplates = async (
+  params?: ListTaskTemplatesParams,
+  options?: RequestInit,
+): Promise<TaskTemplateListResponse> => {
+  return customFetch<TaskTemplateListResponse>(
+    getListTaskTemplatesUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListTaskTemplatesQueryKey = (
+  params?: ListTaskTemplatesParams,
+) => {
+  return [`/api/task-templates`, ...(params ? [params] : [])] as const;
+};
+
+export const getListTaskTemplatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTaskTemplates>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListTaskTemplatesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTaskTemplates>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTaskTemplatesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTaskTemplates>>
+  > = ({ signal }) => listTaskTemplates(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTaskTemplates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTaskTemplatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTaskTemplates>>
+>;
+export type ListTaskTemplatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List task templates in the current workspace
+ */
+
+export function useListTaskTemplates<
+  TData = Awaited<ReturnType<typeof listTaskTemplates>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListTaskTemplatesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTaskTemplates>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTaskTemplatesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a task template (typically "Save this run as a template")
+ */
+export const getCreateTaskTemplateUrl = () => {
+  return `/api/task-templates`;
+};
+
+export const createTaskTemplate = async (
+  createTaskTemplateRequest: CreateTaskTemplateRequest,
+  options?: RequestInit,
+): Promise<TaskTemplateResponse> => {
+  return customFetch<TaskTemplateResponse>(getCreateTaskTemplateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTaskTemplateRequest),
+  });
+};
+
+export const getCreateTaskTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTaskTemplate>>,
+    TError,
+    { data: BodyType<CreateTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTaskTemplate>>,
+  TError,
+  { data: BodyType<CreateTaskTemplateRequest> },
+  TContext
+> => {
+  const mutationKey = ["createTaskTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTaskTemplate>>,
+    { data: BodyType<CreateTaskTemplateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createTaskTemplate(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTaskTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createTaskTemplate>>
+>;
+export type CreateTaskTemplateMutationBody =
+  BodyType<CreateTaskTemplateRequest>;
+export type CreateTaskTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a task template (typically "Save this run as a template")
+ */
+export const useCreateTaskTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTaskTemplate>>,
+    TError,
+    { data: BodyType<CreateTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createTaskTemplate>>,
+  TError,
+  { data: BodyType<CreateTaskTemplateRequest> },
+  TContext
+> => {
+  return useMutation(getCreateTaskTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Quick-launch row — up to 5 pinned templates
+ */
+export const getListPinnedTaskTemplatesUrl = () => {
+  return `/api/task-templates/pinned`;
+};
+
+export const listPinnedTaskTemplates = async (
+  options?: RequestInit,
+): Promise<TaskTemplateCollectionResponse> => {
+  return customFetch<TaskTemplateCollectionResponse>(
+    getListPinnedTaskTemplatesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListPinnedTaskTemplatesQueryKey = () => {
+  return [`/api/task-templates/pinned`] as const;
+};
+
+export const getListPinnedTaskTemplatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPinnedTaskTemplates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPinnedTaskTemplates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPinnedTaskTemplatesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPinnedTaskTemplates>>
+  > = ({ signal }) => listPinnedTaskTemplates({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPinnedTaskTemplates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPinnedTaskTemplatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPinnedTaskTemplates>>
+>;
+export type ListPinnedTaskTemplatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Quick-launch row — up to 5 pinned templates
+ */
+
+export function useListPinnedTaskTemplates<
+  TData = Awaited<ReturnType<typeof listPinnedTaskTemplates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPinnedTaskTemplates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPinnedTaskTemplatesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List user-defined template categories
+ */
+export const getListTaskTemplateCategoriesUrl = () => {
+  return `/api/task-templates/categories`;
+};
+
+export const listTaskTemplateCategories = async (
+  options?: RequestInit,
+): Promise<TaskTemplateCategoryListResponse> => {
+  return customFetch<TaskTemplateCategoryListResponse>(
+    getListTaskTemplateCategoriesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListTaskTemplateCategoriesQueryKey = () => {
+  return [`/api/task-templates/categories`] as const;
+};
+
+export const getListTaskTemplateCategoriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTaskTemplateCategories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTaskTemplateCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTaskTemplateCategoriesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTaskTemplateCategories>>
+  > = ({ signal }) => listTaskTemplateCategories({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTaskTemplateCategories>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTaskTemplateCategoriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTaskTemplateCategories>>
+>;
+export type ListTaskTemplateCategoriesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List user-defined template categories
+ */
+
+export function useListTaskTemplateCategories<
+  TData = Awaited<ReturnType<typeof listTaskTemplateCategories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTaskTemplateCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTaskTemplateCategoriesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a template category
+ */
+export const getCreateTaskTemplateCategoryUrl = () => {
+  return `/api/task-templates/categories`;
+};
+
+export const createTaskTemplateCategory = async (
+  createTaskTemplateCategoryRequest: CreateTaskTemplateCategoryRequest,
+  options?: RequestInit,
+): Promise<TaskTemplateCategoryResponse> => {
+  return customFetch<TaskTemplateCategoryResponse>(
+    getCreateTaskTemplateCategoryUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createTaskTemplateCategoryRequest),
+    },
+  );
+};
+
+export const getCreateTaskTemplateCategoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTaskTemplateCategory>>,
+    TError,
+    { data: BodyType<CreateTaskTemplateCategoryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTaskTemplateCategory>>,
+  TError,
+  { data: BodyType<CreateTaskTemplateCategoryRequest> },
+  TContext
+> => {
+  const mutationKey = ["createTaskTemplateCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTaskTemplateCategory>>,
+    { data: BodyType<CreateTaskTemplateCategoryRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createTaskTemplateCategory(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTaskTemplateCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createTaskTemplateCategory>>
+>;
+export type CreateTaskTemplateCategoryMutationBody =
+  BodyType<CreateTaskTemplateCategoryRequest>;
+export type CreateTaskTemplateCategoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a template category
+ */
+export const useCreateTaskTemplateCategory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTaskTemplateCategory>>,
+    TError,
+    { data: BodyType<CreateTaskTemplateCategoryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createTaskTemplateCategory>>,
+  TError,
+  { data: BodyType<CreateTaskTemplateCategoryRequest> },
+  TContext
+> => {
+  return useMutation(getCreateTaskTemplateCategoryMutationOptions(options));
+};
+
+/**
+ * @summary Delete a category (templates inside detach to "Uncategorised")
+ */
+export const getDeleteTaskTemplateCategoryUrl = (id: string) => {
+  return `/api/task-templates/categories/${id}`;
+};
+
+export const deleteTaskTemplateCategory = async (
+  id: string,
+  options?: RequestInit,
+): Promise<TaskTemplateDeleteResponse> => {
+  return customFetch<TaskTemplateDeleteResponse>(
+    getDeleteTaskTemplateCategoryUrl(id),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteTaskTemplateCategoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTaskTemplateCategory>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTaskTemplateCategory>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteTaskTemplateCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTaskTemplateCategory>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteTaskTemplateCategory(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTaskTemplateCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTaskTemplateCategory>>
+>;
+
+export type DeleteTaskTemplateCategoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a category (templates inside detach to "Uncategorised")
+ */
+export const useDeleteTaskTemplateCategory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTaskTemplateCategory>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTaskTemplateCategory>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteTaskTemplateCategoryMutationOptions(options));
+};
+
+/**
+ * @summary Import a previously-exported template
+ */
+export const getImportTaskTemplateUrl = () => {
+  return `/api/task-templates/import`;
+};
+
+export const importTaskTemplate = async (
+  importTaskTemplateRequest: ImportTaskTemplateRequest,
+  options?: RequestInit,
+): Promise<TaskTemplateResponse> => {
+  return customFetch<TaskTemplateResponse>(getImportTaskTemplateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importTaskTemplateRequest),
+  });
+};
+
+export const getImportTaskTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importTaskTemplate>>,
+    TError,
+    { data: BodyType<ImportTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importTaskTemplate>>,
+  TError,
+  { data: BodyType<ImportTaskTemplateRequest> },
+  TContext
+> => {
+  const mutationKey = ["importTaskTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importTaskTemplate>>,
+    { data: BodyType<ImportTaskTemplateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importTaskTemplate(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportTaskTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importTaskTemplate>>
+>;
+export type ImportTaskTemplateMutationBody =
+  BodyType<ImportTaskTemplateRequest>;
+export type ImportTaskTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Import a previously-exported template
+ */
+export const useImportTaskTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importTaskTemplate>>,
+    TError,
+    { data: BodyType<ImportTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importTaskTemplate>>,
+  TError,
+  { data: BodyType<ImportTaskTemplateRequest> },
+  TContext
+> => {
+  return useMutation(getImportTaskTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Fetch one template
+ */
+export const getGetTaskTemplateUrl = (id: string) => {
+  return `/api/task-templates/${id}`;
+};
+
+export const getTaskTemplate = async (
+  id: string,
+  options?: RequestInit,
+): Promise<TaskTemplateResponse> => {
+  return customFetch<TaskTemplateResponse>(getGetTaskTemplateUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTaskTemplateQueryKey = (id: string) => {
+  return [`/api/task-templates/${id}`] as const;
+};
+
+export const getGetTaskTemplateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTaskTemplate>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTaskTemplate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTaskTemplateQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTaskTemplate>>> = ({
+    signal,
+  }) => getTaskTemplate(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTaskTemplate>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTaskTemplateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTaskTemplate>>
+>;
+export type GetTaskTemplateQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one template
+ */
+
+export function useGetTaskTemplate<
+  TData = Awaited<ReturnType<typeof getTaskTemplate>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTaskTemplate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTaskTemplateQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Edit name / prompt / variables / category
+ */
+export const getUpdateTaskTemplateUrl = (id: string) => {
+  return `/api/task-templates/${id}`;
+};
+
+export const updateTaskTemplate = async (
+  id: string,
+  updateTaskTemplateRequest: UpdateTaskTemplateRequest,
+  options?: RequestInit,
+): Promise<TaskTemplateResponse> => {
+  return customFetch<TaskTemplateResponse>(getUpdateTaskTemplateUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateTaskTemplateRequest),
+  });
+};
+
+export const getUpdateTaskTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTaskTemplate>>,
+    TError,
+    { id: string; data: BodyType<UpdateTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTaskTemplate>>,
+  TError,
+  { id: string; data: BodyType<UpdateTaskTemplateRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateTaskTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTaskTemplate>>,
+    { id: string; data: BodyType<UpdateTaskTemplateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateTaskTemplate(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTaskTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTaskTemplate>>
+>;
+export type UpdateTaskTemplateMutationBody =
+  BodyType<UpdateTaskTemplateRequest>;
+export type UpdateTaskTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Edit name / prompt / variables / category
+ */
+export const useUpdateTaskTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTaskTemplate>>,
+    TError,
+    { id: string; data: BodyType<UpdateTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateTaskTemplate>>,
+  TError,
+  { id: string; data: BodyType<UpdateTaskTemplateRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateTaskTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Delete a template
+ */
+export const getDeleteTaskTemplateUrl = (id: string) => {
+  return `/api/task-templates/${id}`;
+};
+
+export const deleteTaskTemplate = async (
+  id: string,
+  options?: RequestInit,
+): Promise<TaskTemplateDeleteResponse> => {
+  return customFetch<TaskTemplateDeleteResponse>(getDeleteTaskTemplateUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteTaskTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTaskTemplate>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTaskTemplate>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteTaskTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTaskTemplate>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteTaskTemplate(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTaskTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTaskTemplate>>
+>;
+
+export type DeleteTaskTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a template
+ */
+export const useDeleteTaskTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTaskTemplate>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTaskTemplate>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteTaskTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Substitute variables and bump usage stats
+ */
+export const getRunTaskTemplateUrl = (id: string) => {
+  return `/api/task-templates/${id}/run`;
+};
+
+export const runTaskTemplate = async (
+  id: string,
+  runTaskTemplateRequest: RunTaskTemplateRequest,
+  options?: RequestInit,
+): Promise<RunTaskTemplateResponse> => {
+  return customFetch<RunTaskTemplateResponse>(getRunTaskTemplateUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(runTaskTemplateRequest),
+  });
+};
+
+export const getRunTaskTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runTaskTemplate>>,
+    TError,
+    { id: string; data: BodyType<RunTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof runTaskTemplate>>,
+  TError,
+  { id: string; data: BodyType<RunTaskTemplateRequest> },
+  TContext
+> => {
+  const mutationKey = ["runTaskTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof runTaskTemplate>>,
+    { id: string; data: BodyType<RunTaskTemplateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return runTaskTemplate(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RunTaskTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof runTaskTemplate>>
+>;
+export type RunTaskTemplateMutationBody = BodyType<RunTaskTemplateRequest>;
+export type RunTaskTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Substitute variables and bump usage stats
+ */
+export const useRunTaskTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runTaskTemplate>>,
+    TError,
+    { id: string; data: BodyType<RunTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof runTaskTemplate>>,
+  TError,
+  { id: string; data: BodyType<RunTaskTemplateRequest> },
+  TContext
+> => {
+  return useMutation(getRunTaskTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Pin or unpin a template (max 5 pinned per workspace)
+ */
+export const getPinTaskTemplateUrl = (id: string) => {
+  return `/api/task-templates/${id}/pin`;
+};
+
+export const pinTaskTemplate = async (
+  id: string,
+  pinTaskTemplateRequest: PinTaskTemplateRequest,
+  options?: RequestInit,
+): Promise<TaskTemplateResponse> => {
+  return customFetch<TaskTemplateResponse>(getPinTaskTemplateUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pinTaskTemplateRequest),
+  });
+};
+
+export const getPinTaskTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pinTaskTemplate>>,
+    TError,
+    { id: string; data: BodyType<PinTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pinTaskTemplate>>,
+  TError,
+  { id: string; data: BodyType<PinTaskTemplateRequest> },
+  TContext
+> => {
+  const mutationKey = ["pinTaskTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pinTaskTemplate>>,
+    { id: string; data: BodyType<PinTaskTemplateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return pinTaskTemplate(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PinTaskTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pinTaskTemplate>>
+>;
+export type PinTaskTemplateMutationBody = BodyType<PinTaskTemplateRequest>;
+export type PinTaskTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Pin or unpin a template (max 5 pinned per workspace)
+ */
+export const usePinTaskTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pinTaskTemplate>>,
+    TError,
+    { id: string; data: BodyType<PinTaskTemplateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pinTaskTemplate>>,
+  TError,
+  { id: string; data: BodyType<PinTaskTemplateRequest> },
+  TContext
+> => {
+  return useMutation(getPinTaskTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Export a template as a portable file
+ */
+export const getExportTaskTemplateUrl = (id: string) => {
+  return `/api/task-templates/${id}/export`;
+};
+
+export const exportTaskTemplate = async (
+  id: string,
+  options?: RequestInit,
+): Promise<TaskTemplateExportResponse> => {
+  return customFetch<TaskTemplateExportResponse>(getExportTaskTemplateUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportTaskTemplateQueryKey = (id: string) => {
+  return [`/api/task-templates/${id}/export`] as const;
+};
+
+export const getExportTaskTemplateQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportTaskTemplate>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportTaskTemplate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getExportTaskTemplateQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportTaskTemplate>>
+  > = ({ signal }) => exportTaskTemplate(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportTaskTemplate>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportTaskTemplateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportTaskTemplate>>
+>;
+export type ExportTaskTemplateQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Export a template as a portable file
+ */
+
+export function useExportTaskTemplate<
+  TData = Awaited<ReturnType<typeof exportTaskTemplate>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportTaskTemplate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportTaskTemplateQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

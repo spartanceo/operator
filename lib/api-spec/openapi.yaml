@@ -66,6 +66,8 @@ tags:
     description: Workspace switcher — create, rename, delete, customise, overview, template export/import (Task #42)
   - name: tasks
     description: Multi-task queue, priority controls, and concurrent task management (Task #38)
+  - name: task-templates
+    description: Reusable task templates — save / browse / run / export parameterised prompts and quick-launch pins (Task #46)
 paths:
   /healthz:
     get:
@@ -1397,6 +1399,268 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkspaceTemplateResponse'
+  /task-templates:
+    get:
+      operationId: listTaskTemplates
+      tags: [task-templates]
+      summary: List task templates in the current workspace
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: categoryId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: pinnedOnly
+          in: query
+          required: false
+          schema: { type: string, enum: ["true", "1", "false", "0"] }
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Templates page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateListResponse"
+    post:
+      operationId: createTaskTemplate
+      tags: [task-templates]
+      summary: Create a task template (typically "Save this run as a template")
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskTemplateRequest"
+      responses:
+        "200":
+          description: Template created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateResponse"
+  /task-templates/pinned:
+    get:
+      operationId: listPinnedTaskTemplates
+      tags: [task-templates]
+      summary: Quick-launch row — up to 5 pinned templates
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Pinned templates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateCollectionResponse"
+  /task-templates/categories:
+    get:
+      operationId: listTaskTemplateCategories
+      tags: [task-templates]
+      summary: List user-defined template categories
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateCategoryListResponse"
+    post:
+      operationId: createTaskTemplateCategory
+      tags: [task-templates]
+      summary: Create a template category
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskTemplateCategoryRequest"
+      responses:
+        "200":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateCategoryResponse"
+  /task-templates/categories/{id}:
+    delete:
+      operationId: deleteTaskTemplateCategory
+      tags: [task-templates]
+      summary: Delete a category (templates inside detach to "Uncategorised")
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Deletion receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateDeleteResponse"
+  /task-templates/import:
+    post:
+      operationId: importTaskTemplate
+      tags: [task-templates]
+      summary: Import a previously-exported template
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportTaskTemplateRequest"
+      responses:
+        "200":
+          description: Template imported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateResponse"
+  /task-templates/{id}:
+    get:
+      operationId: getTaskTemplate
+      tags: [task-templates]
+      summary: Fetch one template
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateResponse"
+        "404":
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    patch:
+      operationId: updateTaskTemplate
+      tags: [task-templates]
+      summary: Edit name / prompt / variables / category
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskTemplateRequest"
+      responses:
+        "200":
+          description: Updated template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateResponse"
+    delete:
+      operationId: deleteTaskTemplate
+      tags: [task-templates]
+      summary: Delete a template
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Deletion receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateDeleteResponse"
+  /task-templates/{id}/run:
+    post:
+      operationId: runTaskTemplate
+      tags: [task-templates]
+      summary: Substitute variables and bump usage stats
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunTaskTemplateRequest"
+      responses:
+        "200":
+          description: Resolved prompt + updated template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunTaskTemplateResponse"
+  /task-templates/{id}/pin:
+    post:
+      operationId: pinTaskTemplate
+      tags: [task-templates]
+      summary: Pin or unpin a template (max 5 pinned per workspace)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PinTaskTemplateRequest"
+      responses:
+        "200":
+          description: Updated template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateResponse"
+  /task-templates/{id}/export:
+    get:
+      operationId: exportTaskTemplate
+      tags: [task-templates]
+      summary: Export a template as a portable file
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Template export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskTemplateExportResponse"
   /files/list:
     get:
       operationId: listFiles
@@ -13661,6 +13925,214 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/QueuedTaskListPage"
+    TaskTemplateVariable:
+      type: object
+      required: [name, label]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        defaultValue: { type: string, maxLength: 2000 }
+        required: { type: boolean }
+    TaskTemplateSkillConfig:
+      type: object
+      additionalProperties: true
+      properties:
+        agentMode: { type: boolean }
+        model: { type: string, maxLength: 200 }
+        conversationId: { type: string, nullable: true }
+    TaskTemplate:
+      type: object
+      required:
+        - id
+        - name
+        - prompt
+        - variables
+        - skillConfig
+        - usageCount
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        prompt: { type: string }
+        variables:
+          type: array
+          items: { $ref: "#/components/schemas/TaskTemplateVariable" }
+        skillConfig: { $ref: "#/components/schemas/TaskTemplateSkillConfig" }
+        categoryId: { type: string, nullable: true }
+        pinnedOrder: { type: integer, nullable: true }
+        usageCount: { type: integer }
+        lastUsedAt: { type: string, format: date-time, nullable: true }
+        sourceRunId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TaskTemplatePage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/TaskTemplate" }
+        nextCursor: { type: string, nullable: true }
+    TaskTemplateListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/TaskTemplatePage" }
+    TaskTemplateCollection:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/TaskTemplate" }
+    TaskTemplateCollectionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/TaskTemplateCollection" }
+    TaskTemplateResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/TaskTemplate" }
+    CreateTaskTemplateRequest:
+      type: object
+      required: [name, prompt]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, nullable: true, maxLength: 1000 }
+        prompt: { type: string, minLength: 1, maxLength: 20000 }
+        variables:
+          type: array
+          maxItems: 32
+          items: { $ref: "#/components/schemas/TaskTemplateVariable" }
+        skillConfig: { $ref: "#/components/schemas/TaskTemplateSkillConfig" }
+        categoryId: { type: string, nullable: true }
+        sourceRunId: { type: string, nullable: true }
+    UpdateTaskTemplateRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, nullable: true, maxLength: 1000 }
+        prompt: { type: string, minLength: 1, maxLength: 20000 }
+        variables:
+          type: array
+          maxItems: 32
+          items: { $ref: "#/components/schemas/TaskTemplateVariable" }
+        skillConfig: { $ref: "#/components/schemas/TaskTemplateSkillConfig" }
+        categoryId: { type: string, nullable: true }
+    TaskTemplateDeleteReceipt:
+      type: object
+      required: [deleted]
+      properties:
+        deleted: { type: boolean }
+    TaskTemplateDeleteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/TaskTemplateDeleteReceipt" }
+    RunTaskTemplateRequest:
+      type: object
+      properties:
+        values:
+          type: object
+          additionalProperties: { type: string, maxLength: 4000 }
+    RunTaskTemplateResult:
+      type: object
+      required: [template, resolvedPrompt]
+      properties:
+        template: { $ref: "#/components/schemas/TaskTemplate" }
+        resolvedPrompt: { type: string }
+    RunTaskTemplateResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/RunTaskTemplateResult" }
+    PinTaskTemplateRequest:
+      type: object
+      required: [pinned]
+      properties:
+        pinned: { type: boolean }
+    TaskTemplateCategory:
+      type: object
+      required: [id, name, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        color: { type: string, nullable: true }
+        icon: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TaskTemplateCategoryList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/TaskTemplateCategory" }
+    TaskTemplateCategoryListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/TaskTemplateCategoryList" }
+    TaskTemplateCategoryResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/TaskTemplateCategory" }
+    CreateTaskTemplateCategoryRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        color: { type: string, nullable: true, maxLength: 40 }
+        icon: { type: string, nullable: true, maxLength: 40 }
+    TaskTemplateExport:
+      type: object
+      required: [schemaVersion, exportedAt, template]
+      properties:
+        schemaVersion: { type: integer, enum: [1] }
+        exportedAt: { type: string, format: date-time }
+        template:
+          type: object
+          required: [name, prompt, variables, skillConfig]
+          properties:
+            name: { type: string }
+            description: { type: string, nullable: true }
+            prompt: { type: string }
+            variables:
+              type: array
+              items: { $ref: "#/components/schemas/TaskTemplateVariable" }
+            skillConfig: { $ref: "#/components/schemas/TaskTemplateSkillConfig" }
+            category:
+              type: object
+              nullable: true
+              required: [name]
+              properties:
+                name: { type: string }
+                color: { type: string, nullable: true }
+                icon: { type: string, nullable: true }
+    TaskTemplateExportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/TaskTemplateExport" }
+    ImportTaskTemplateRequest:
+      type: object
+      required: [template]
+      properties:
+        template: { $ref: "#/components/schemas/TaskTemplateExport" }
+        name: { type: string, minLength: 1, maxLength: 120 }
   responses: {}
   requestBodies: {}
   headers: {}

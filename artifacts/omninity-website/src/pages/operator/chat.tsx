@@ -21,7 +21,7 @@ import {
   type ConversationMessage,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, Square, RefreshCw, Sparkles } from "lucide-react";
+import { Send, Square, RefreshCw, Sparkles, Bookmark } from "lucide-react";
 import { OperatorLayout } from "@/components/operator/layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +41,8 @@ import { PlanCard } from "@/components/operator/plan-card";
 import { ApprovalModal } from "@/components/operator/approval-modal";
 import { ExecutionTimeline } from "@/components/operator/timeline";
 import { ConversationSidebar } from "@/components/operator/conversation-sidebar";
+import { QuickLaunchBar } from "@/components/operator/quick-launch-bar";
+import { SaveTemplateDialog } from "@/components/operator/save-template-dialog";
 import { StarterChips } from "@/components/onboarding/starter-chips";
 import { SuccessSparkle } from "@/components/onboarding/success-sparkle";
 import {
@@ -77,6 +79,8 @@ export default function ChatPage() {
     useState<Conversation | null>(null);
   const [model, setModel] = useState<string>(settings.defaultModel);
   const [showSparkle, setShowSparkle] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [lastSentPrompt, setLastSentPrompt] = useState<string>("");
   const sparkleFiredFor = useRef<string | null>(null);
   const [skillId, setSkillId] = useState<string>("auto");
   // The skill that was active when the current run was kicked off — captured
@@ -310,6 +314,7 @@ export default function ChatPage() {
           ...(skillId !== "auto" ? { skillId } : {}),
         },
       });
+      setLastSentPrompt(text);
       setInput("");
     } else {
       // Build the message history from the persisted conversation transcript so
@@ -330,9 +335,27 @@ export default function ChatPage() {
           ...(model ? { model } : {}),
         },
       });
+      setLastSentPrompt(text);
       setInput("");
     }
   };
+
+  // Pick up resolved prompt from Templates page hand-off.
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem("omninity:pendingPrompt");
+      if (pending) {
+        setInput(pending);
+        const wantAgent =
+          sessionStorage.getItem("omninity:pendingPromptAgent") === "1";
+        if (wantAgent) setAgentMode(true);
+        sessionStorage.removeItem("omninity:pendingPrompt");
+        sessionStorage.removeItem("omninity:pendingPromptAgent");
+      }
+    } catch {
+      // sessionStorage may be unavailable; safe to ignore.
+    }
+  }, []);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -509,6 +532,12 @@ export default function ChatPage() {
                   ) : null}
                 </div>
               ) : null}
+              <QuickLaunchBar
+                onResolved={(resolvedPrompt, tpl) => {
+                  setInput(resolvedPrompt);
+                  if (tpl.skillConfig?.agentMode) setAgentMode(true);
+                }}
+              />
               <div className="flex items-end gap-2">
                 <Textarea
                   data-testid="input-chat"
@@ -524,6 +553,17 @@ export default function ChatPage() {
                   disabled={chatMutation.isPending || createRun.isPending}
                 />
                 <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setSaveTemplateOpen(true)}
+                    disabled={!input.trim() && !lastSentPrompt}
+                    aria-label="Save as template"
+                    title="Save as template"
+                    data-testid="button-save-as-template"
+                  >
+                    <Bookmark className="h-4 w-4" />
+                  </Button>
                   {agentMode &&
                   activeRunId &&
                   run &&
@@ -648,6 +688,14 @@ export default function ChatPage() {
       />
 
       <SuccessSparkle show={showSparkle} onDone={() => setShowSparkle(false)} />
+      <SaveTemplateDialog
+        open={saveTemplateOpen}
+        onOpenChange={setSaveTemplateOpen}
+        initialPrompt={input.trim() || lastSentPrompt}
+        initialAgentMode={agentMode}
+        initialModel={model}
+        initialConversationId={activeConversation?.id ?? null}
+      />
 
       <ChatReadyMarker />
     </OperatorLayout>
