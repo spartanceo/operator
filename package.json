@@ -9,7 +9,12 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
     "bench": "pnpm -r --if-present run bench",
-    "tier-review": "pnpm --filter @workspace/scripts run tier-review"
+    "lint": "pnpm --filter @workspace/scripts run lint",
+    "tier-review": "pnpm --filter @workspace/scripts run tier-review",
+    "coverage": "pnpm --filter @workspace/scripts run coverage",
+    "coverage:check": "pnpm --filter @workspace/scripts run coverage:check",
+    "flaky-detect": "pnpm --filter @workspace/scripts run flaky-detect",
+    "qa": "pnpm --filter @workspace/scripts run qa"
   },
   "private": true,
   "devDependencies": {

@@ -1,0 +1,134 @@
+name: CI
+
+# Block merges to the protected branches unless typecheck, tests, coverage,
+# and tier-review (the 18 enforcement gates) all pass. Runs on every PR and
+# every push to main so contributors get fast feedback and the merge queue
+# never inherits a broken main.
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Nightly at 03:17 UTC (off-the-hour to avoid GH cron contention).
+    # Drives the `flaky-detect` job below.
+    - cron: "17 3 * * *"
+
+concurrency:
+  # Cancel in-progress runs for the same PR/branch when a new commit arrives —
+  # CI minutes are wasted re-running the prior commit.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 24
+  PNPM_VERSION: 10
+  # Make pnpm logs less chatty in CI.
+  NO_COLOR: "0"
+  CI: "true"
+
+jobs:
+  qa:
+    name: QA Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      # Tier-review check #1 (typecheck) and #2 (tests) are also exercised
+      # below by `pnpm tier-review`, but we run them as separate steps first
+      # so the GitHub Actions UI gives an actionable failure name instead of
+      # the generic "tier-review failed".
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint (tier-review structural rules)
+        # The project's "lint" stage is the structural half of tier-review:
+        # no console.log, no hardcoded hex colours, no raw fetch without
+        # privacy log, no eval / new Function, no dangerouslySetInnerHTML,
+        # no raw SQL string interpolation, no unbounded module-level caches,
+        # and required Drizzle schema invariants. We keep this as a separate
+        # step so a lint failure has its own actionable name in the GH UI.
+        run: pnpm lint
+
+      - name: Unit & integration tests
+        run: pnpm test
+
+      - name: Coverage report
+        # Soft gate — keep the step running even if a package falls under the
+        # 80% threshold; the explicit Coverage gate below decides the build.
+        continue-on-error: true
+        run: pnpm coverage
+
+      - name: Coverage gate (lib/** ≥ 80%)
+        run: pnpm coverage:check
+        env:
+          COVERAGE_MIN_PCT: "80"
+
+      - name: Tier-review (18 quality gates)
+        run: pnpm tier-review
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Append coverage summary to PR
+        # Surfaces the Markdown summary in the GitHub PR/job UI so reviewers
+        # can see coverage deltas without downloading the artifact.
+        if: always() && hashFiles('coverage/summary.md') != ''
+        run: |
+          {
+            echo "## Coverage Summary"
+            echo ""
+            cat coverage/summary.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  flaky-detect:
+    name: Flaky test detection (nightly)
+    # Only run on the nightly schedule or manual dispatch — running on every
+    # PR would multiply CI cost by N and rarely catches anything new.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Detect flaky tests (5 runs)
+        run: pnpm flaky-detect --runs=5
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flaky-report
+          path: coverage/flaky.md
+          if-no-files-found: ignore

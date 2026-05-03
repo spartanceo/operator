@@ -3,15 +3,23 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./bench-runner": "./src/bench-runner.ts"
+  },
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "tier-review": "tsx ./tier-review.ts",
     "i18n-check": "tsx ./i18n-check.ts",
     "a11y-check": "tsx ./a11y-check.ts",
+    "lint": "tsx ./src/lint.ts",
     "tier-review:test": "tsx ./tier-review.check6.test.ts",
     "tier-review:check9-test": "tsx ./tier-review.check9.test.ts",
     "tier-review:check11-14-test": "tsx ./tier-review.check11-14.test.ts",
     "tier-review:check15-18-test": "tsx ./tier-review.check15-18.test.ts",
+    "coverage": "tsx ./src/coverage.ts",
+    "coverage:check": "tsx ./src/coverage.ts --check",
+    "flaky-detect": "tsx ./src/flaky-detect.ts",
+    "qa": "tsx ./src/qa.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

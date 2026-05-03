@@ -11,7 +11,8 @@
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
-    "test": "tsx ./src/helpers.test.ts && tsx ./src/migrate.test.ts"
+    "test": "tsx ./src/helpers.test.ts && tsx ./src/migrate.test.ts",
+    "bench": "tsx ./src/helpers.bench.ts"
   },
   "dependencies": {
     "@workspace/types": "workspace:*",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "catalog:",
+    "@workspace/scripts": "workspace:*",
     "drizzle-kit": "^0.31.9",
     "tsx": "catalog:"
   }

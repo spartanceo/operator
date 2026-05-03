@@ -1,0 +1,38 @@
+{
+  "files": [
+    {
+      "tasks": [
+        {
+          "name": "withTimeout (already-resolved)",
+          "result": {
+            "benchmark": {
+              "mean": 0.0020597429257073617,
+              "p95": 0.002529999999978827,
+              "samples": 10001
+            }
+          }
+        },
+        {
+          "name": "defaultShouldRetry on validation",
+          "result": {
+            "benchmark": {
+              "mean": 0.00022060693930563415,
+              "p95": 0.00027000000000043656,
+              "samples": 10001
+            }
+          }
+        },
+        {
+          "name": "toApiError mapping",
+          "result": {
+            "benchmark": {
+              "mean": 0.0004901729827013036,
+              "p95": 0.0005199999999945248,
+              "samples": 10001
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

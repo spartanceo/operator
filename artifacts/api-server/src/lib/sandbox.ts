@@ -60,6 +60,13 @@ export function resolveSandboxedPath(ctx: TenantContext, rel: string): string {
   if (typeof rel !== "string" || rel.length === 0) {
     throw new SandboxEscapeError("Path must be a non-empty string");
   }
+  // Null-byte injection: a NUL terminator inside the path string lets a
+  // caller write `notes/innocent.txt\0../../../etc/passwd` and have the OS
+  // truncate the syscall arg at the NUL while our string-based traversal
+  // check still sees the harmless prefix. Reject up front.
+  if (rel.indexOf("\u0000") !== -1) {
+    throw new SandboxEscapeError("Path contains a NUL byte");
+  }
   if (path.isAbsolute(rel)) {
     throw new SandboxEscapeError("Absolute paths are not allowed inside the sandbox");
   }

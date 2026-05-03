@@ -8,7 +8,9 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx ./src/test-runner.ts"
+    "test": "tsx ./src/test-runner.ts && tsx ./src/security.test.ts",
+    "test:integration": "tsx ./src/test-runner.ts",
+    "test:security": "tsx ./src/security.test.ts"
   },
   "dependencies": {
     "@swc/helpers": "^0.5.21",

@@ -1,0 +1,58 @@
+{
+  "files": [
+    {
+      "tasks": [
+        {
+          "name": "encode cursor",
+          "result": {
+            "benchmark": {
+              "mean": 0.001238163083693134,
+              "p95": 0.003089999999929205,
+              "samples": 10001
+            }
+          }
+        },
+        {
+          "name": "decode cursor",
+          "result": {
+            "benchmark": {
+              "mean": 0.0009854784521552968,
+              "p95": 0.0009000000000014552,
+              "samples": 10001
+            }
+          }
+        },
+        {
+          "name": "normalise limit",
+          "result": {
+            "benchmark": {
+              "mean": 0.00024435846415329416,
+              "p95": 0.00025999999979831045,
+              "samples": 10001
+            }
+          }
+        },
+        {
+          "name": "buildPage 200 rows",
+          "result": {
+            "benchmark": {
+              "mean": 0.0010883701629839356,
+              "p95": 0.0011400000000776345,
+              "samples": 10001
+            }
+          }
+        },
+        {
+          "name": "tenantScope SQL build",
+          "result": {
+            "benchmark": {
+              "mean": 0.013529098390160147,
+              "p95": 0.018039999999928114,
+              "samples": 10001
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

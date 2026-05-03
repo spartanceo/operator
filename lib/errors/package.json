@@ -7,13 +7,15 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "tsx ./src/errors.test.ts"
+    "test": "tsx ./src/errors.test.ts",
+    "bench": "tsx ./src/errors.bench.ts"
   },
   "dependencies": {
     "@workspace/types": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@workspace/scripts": "workspace:*",
     "tsx": "catalog:"
   }
 }

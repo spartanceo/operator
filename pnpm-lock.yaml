@@ -641,6 +641,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+      '@workspace/scripts':
+        specifier: workspace:*
+        version: link:../../scripts
       drizzle-kit:
         specifier: ^0.31.9
         version: 0.31.9
@@ -657,6 +660,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+      '@workspace/scripts':
+        specifier: workspace:*
+        version: link:../../scripts
       tsx:
         specifier: 'catalog:'
         version: 4.21.0
