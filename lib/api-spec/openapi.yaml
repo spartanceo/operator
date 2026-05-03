@@ -161,6 +161,584 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /admin/super/overview:
+    get:
+      operationId: getSuperAdminOverview
+      tags: [admin]
+      summary: Platform-wide aggregate counts (anonymised)
+      responses:
+        '200':
+          description: Overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuperAdminOverviewResponse'
+  /admin/super/revenue:
+    get:
+      operationId: getSuperAdminRevenue
+      tags: [admin]
+      summary: Revenue, MRR, platform/creator split
+      responses:
+        '200':
+          description: Revenue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuperAdminRevenueResponse'
+  /admin/super/skill-analytics:
+    get:
+      operationId: getSuperAdminSkillAnalytics
+      tags: [admin]
+      summary: Top skills, creators, trending categories
+      responses:
+        '200':
+          description: Analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuperAdminSkillAnalyticsResponse'
+  /admin/super/moderation/queue:
+    get:
+      operationId: listModerationQueue
+      tags: [admin]
+      summary: Skill submissions awaiting review
+      parameters:
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Queue page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationQueuePageResponse'
+  /admin/super/moderation/{id}/approve:
+    post:
+      operationId: approveModerationItem
+      tags: [admin]
+      summary: Approve a queued skill submission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes: { type: string }
+      responses:
+        '200':
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBoolResponse'
+  /admin/super/moderation/{id}/reject:
+    post:
+      operationId: rejectModerationItem
+      tags: [admin]
+      summary: Reject a queued skill submission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBoolResponse'
+  /admin/super/moderation/store/{id}/remove:
+    post:
+      operationId: removeStoreSkill
+      tags: [admin]
+      summary: Take down a published store skill
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBoolResponse'
+  /admin/super/creators:
+    get:
+      operationId: listCreators
+      tags: [admin]
+      summary: All creator accounts (paginated)
+      parameters:
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Page of creators
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorPageResponse'
+  /admin/super/creators/{id}/ban:
+    post:
+      operationId: banCreator
+      tags: [admin]
+      summary: Ban a creator account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Banned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBoolResponse'
+  /admin/super/feature-flags:
+    get:
+      operationId: listFeatureFlags
+      tags: [admin]
+      summary: List all feature flags
+      responses:
+        '200':
+          description: Flags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlagsListResponse'
+  /admin/super/feature-flags/{key}:
+    put:
+      operationId: setFeatureFlag
+      tags: [admin]
+      summary: Create or update a feature flag
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+                segment: { type: string }
+                description: { type: string }
+                rolloutPercent: { type: integer, minimum: 0, maximum: 100 }
+      responses:
+        '200':
+          description: Upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlagResponse'
+  /admin/super/versions:
+    get:
+      operationId: listAppVersions
+      tags: [admin]
+      summary: List recent desktop releases
+      responses:
+        '200':
+          description: Versions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppVersionsListResponse'
+    post:
+      operationId: publishAppVersion
+      tags: [admin]
+      summary: Publish a new desktop release
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [versionString]
+              properties:
+                versionString: { type: string }
+                channel: { type: string }
+                isCurrent: { type: boolean }
+                isMinRequired: { type: boolean }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppVersionResponse'
+  /admin/super/versions/current:
+    get:
+      operationId: getCurrentAppVersion
+      tags: [admin]
+      summary: Current release on a channel
+      parameters:
+        - name: channel
+          in: query
+          required: false
+          schema: { type: string, default: stable }
+      responses:
+        '200':
+          description: Current version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppVersionResponse'
+        '404':
+          description: No current version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /admin/super/abuse:
+    get:
+      operationId: listAbuseReports
+      tags: [admin]
+      summary: Abuse reports (filterable by status)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [open, resolved, dismissed] }
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbuseReportPageResponse'
+    post:
+      operationId: createAbuseReport
+      tags: [admin]
+      summary: File an abuse report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetType, targetId, reason]
+              properties:
+                targetType: { type: string }
+                targetId: { type: string }
+                targetLabel: { type: string }
+                reason: { type: string }
+                severity: { type: string }
+                reporterLabel: { type: string }
+      responses:
+        '200':
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbuseReportResponse'
+  /admin/super/abuse/{id}/resolve:
+    post:
+      operationId: resolveAbuseReport
+      tags: [admin]
+      summary: Resolve or dismiss an abuse report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [resolved, dismissed] }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBoolResponse'
+  /admin/enterprise/org:
+    get:
+      operationId: getEnterpriseOrg
+      tags: [admin]
+      summary: Get the calling tenant's enterprise org row
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Org
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseOrgResponse'
+    patch:
+      operationId: updateEnterpriseOrg
+      tags: [admin]
+      summary: Update org branding / SSO / plan
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                logoUrl: { type: string, nullable: true }
+                primaryColor: { type: string }
+                plan: { type: string }
+                seatLimit: { type: integer }
+                airGapped: { type: boolean }
+                ssoProvider: { type: string, nullable: true }
+                ssoDomain: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseOrgResponse'
+  /admin/enterprise/seats:
+    get:
+      operationId: listEnterpriseSeats
+      tags: [admin]
+      summary: List seats for the calling tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseSeatPageResponse'
+    post:
+      operationId: inviteEnterpriseSeat
+      tags: [admin]
+      summary: Invite a new seat (returns 409 when limit exceeded)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string }
+                displayName: { type: string }
+                role: { type: string, enum: [admin, standard, readonly] }
+      responses:
+        '200':
+          description: Invited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseSeatResponse'
+        '409':
+          description: Seat limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /admin/enterprise/seats/{id}:
+    patch:
+      operationId: updateEnterpriseSeat
+      tags: [admin]
+      summary: Update a seat's role or status
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role: { type: string }
+                status: { type: string }
+                displayName: { type: string }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseSeatResponse'
+    delete:
+      operationId: removeEnterpriseSeat
+      tags: [admin]
+      summary: Remove a seat
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBoolResponse'
+  /admin/enterprise/whitelist:
+    get:
+      operationId: getEnterpriseWhitelist
+      tags: [admin]
+      summary: Get the org's skill whitelist
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhitelistListResponse'
+  /admin/enterprise/whitelist/{slug}:
+    put:
+      operationId: setEnterpriseWhitelistEntry
+      tags: [admin]
+      summary: Allow / block a skill for the org
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [allowed]
+              properties:
+                allowed: { type: boolean }
+                skillName: { type: string }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhitelistEntryResponse'
+  /admin/enterprise/audit:
+    get:
+      operationId: listEnterpriseAudit
+      tags: [admin]
+      summary: List org audit-log entries
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseAuditPageResponse'
+  /admin/enterprise/audit/export.csv:
+    get:
+      operationId: exportEnterpriseAuditCsv
+      tags: [admin]
+      summary: Download the audit log as CSV
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: CSV
+          content:
+            text/csv:
+              schema: { type: string }
+  /admin/enterprise/usage:
+    get:
+      operationId: getEnterpriseUsage
+      tags: [admin]
+      summary: Anonymised tenant usage report
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: days
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 180 }
+      responses:
+        '200':
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseUsageResponse'
+  /admin/enterprise/usage/export.csv:
+    get:
+      operationId: exportEnterpriseUsageCsv
+      tags: [admin]
+      summary: Download the usage report as CSV
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: days
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: CSV
+          content:
+            text/csv:
+              schema: { type: string }
   /auth/register:
     post:
       operationId: registerUser
@@ -22422,906 +23000,6 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/IntegrationActionResult"
-    SystemIntegrationSettings:
-      type: object
-      required:
-        - hotkeyMac
-        - hotkeyWindows
-        - hotkeyEnabled
-        - trayEnabled
-        - trayBadgeMode
-        - loginItemEnabled
-        - focusModeActive
-        - rightClickMacEnabled
-        - rightClickWindowsEnabled
-        - updatedAt
-      properties:
-        hotkeyMac:
-          type: string
-        hotkeyWindows:
-          type: string
-        hotkeyEnabled:
-          type: boolean
-        hotkeyConflict:
-          type: string
-          nullable: true
-        trayEnabled:
-          type: boolean
-        trayBadgeMode:
-          type: string
-          enum: [count, dot, none]
-        loginItemEnabled:
-          type: boolean
-        loginItemConsentAt:
-          type: string
-          format: date-time
-          nullable: true
-        focusModeActive:
-          type: boolean
-        focusModeSource:
-          type: string
-          nullable: true
-          enum: [macos, windows, manual, null]
-        focusModeUpdatedAt:
-          type: string
-          format: date-time
-          nullable: true
-        rightClickMacEnabled:
-          type: boolean
-        rightClickWindowsEnabled:
-          type: boolean
-        updatedAt:
-          type: string
-          format: date-time
-    SystemIntegrationSettingsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [settings]
-          properties:
-            settings:
-              $ref: '#/components/schemas/SystemIntegrationSettings'
-    UpdateSystemIntegrationSettingsRequest:
-      type: object
-      properties:
-        hotkeyMac:
-          type: string
-        hotkeyWindows:
-          type: string
-        hotkeyEnabled:
-          type: boolean
-        trayEnabled:
-          type: boolean
-        trayBadgeMode:
-          type: string
-          enum: [count, dot, none]
-        rightClickMacEnabled:
-          type: boolean
-        rightClickWindowsEnabled:
-          type: boolean
-    SystemIntegrationHotkeyConflictRequest:
-      type: object
-      required: [binding]
-      properties:
-        binding:
-          type: string
-        detail:
-          type: string
-    SystemIntegrationLoginItemRequest:
-      type: object
-      required: [enabled]
-      properties:
-        enabled:
-          type: boolean
-    SystemIntegrationFocusModeRequest:
-      type: object
-      required: [active, source]
-      properties:
-        active:
-          type: boolean
-        source:
-          type: string
-          enum: [macos, windows, manual]
-    SystemIntegrationQuickInvocation:
-      type: object
-      required:
-        - id
-        - source
-        - surface
-        - prompt
-        - contextKind
-        - expanded
-        - createdAt
-      properties:
-        id:
-          type: string
-        source:
-          type: string
-        surface:
-          type: string
-        prompt:
-          type: string
-        contextKind:
-          type: string
-        contextText:
-          type: string
-          nullable: true
-        applicationHint:
-          type: string
-          nullable: true
-        relatedTaskId:
-          type: string
-          nullable: true
-        relatedRunId:
-          type: string
-          nullable: true
-        notificationId:
-          type: string
-          nullable: true
-        expanded:
-          type: boolean
-        createdAt:
-          type: string
-          format: date-time
-    SystemIntegrationQuickInvocationRequest:
-      type: object
-      required: [prompt, source]
-      properties:
-        prompt:
-          type: string
-        source:
-          type: string
-          enum: [hotkey, tray, menu_bar, context_menu_macos, context_menu_windows]
-        surface:
-          type: string
-          enum: [quick_input, tray_dropdown, service_menu, shell_extension]
-        contextKind:
-          type: string
-          enum: [none, clipboard, selection]
-        contextText:
-          type: string
-        applicationHint:
-          type: string
-        expanded:
-          type: boolean
-        enqueue:
-          type: boolean
-    SystemIntegrationQuickInvocationResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [invocation, relatedTaskId]
-          properties:
-            invocation:
-              $ref: '#/components/schemas/SystemIntegrationQuickInvocation'
-            relatedTaskId:
-              type: string
-              nullable: true
-    SystemIntegrationQuickInvocationPage:
-      type: object
-      required: [items, nextCursor]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/SystemIntegrationQuickInvocation'
-        nextCursor:
-          type: string
-          nullable: true
-    SystemIntegrationQuickInvocationListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SystemIntegrationQuickInvocationPage'
-    SystemIntegrationTrayBadge:
-      type: object
-      required: [mode, count, iconState]
-      properties:
-        mode:
-          type: string
-          enum: [count, dot, none]
-        count:
-          type: integer
-          nullable: true
-        iconState:
-          type: string
-          enum: [idle, active, error]
-    SystemIntegrationTrayStatus:
-      type: object
-      required:
-        - badge
-        - unreadNotifications
-        - pendingApprovals
-        - activeTasks
-        - recentInvocations
-        - focusModeActive
-        - hotkeyEnabled
-      properties:
-        badge:
-          $ref: '#/components/schemas/SystemIntegrationTrayBadge'
-        unreadNotifications:
-          type: integer
-        pendingApprovals:
-          type: integer
-        activeTasks:
-          type: integer
-        recentInvocations:
-          type: array
-          items:
-            $ref: '#/components/schemas/SystemIntegrationQuickInvocation'
-        focusModeActive:
-          type: boolean
-        hotkeyEnabled:
-          type: boolean
-    SystemIntegrationTrayStatusResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SystemIntegrationTrayStatus'
-    BackupSettings:
-      type: object
-      required:
-        [
-          schedule,
-          targetDirectory,
-          retentionCount,
-          cloudProvider,
-          cloudSettings,
-          cloudEnabled,
-          lastBackupAt,
-          nextBackupAt,
-        ]
-      properties:
-        schedule:
-          type: string
-          enum: [off, daily, weekly]
-        targetDirectory:
-          type: string
-          nullable: true
-        retentionCount:
-          type: integer
-          minimum: 1
-          maximum: 365
-        cloudProvider:
-          type: string
-          enum: [icloud, googleDrive, dropbox, s3]
-          nullable: true
-        cloudSettings:
-          type: object
-          additionalProperties: true
-          nullable: true
-        cloudEnabled:
-          type: boolean
-        lastBackupAt:
-          type: string
-          format: date-time
-          nullable: true
-        nextBackupAt:
-          type: string
-          format: date-time
-          nullable: true
-
-    BackupSettingsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/BackupSettings"
-
-    UpdateBackupSettingsRequest:
-      type: object
-      properties:
-        schedule:
-          type: string
-          enum: [off, daily, weekly]
-        targetDirectory:
-          type: string
-          nullable: true
-        retentionCount:
-          type: integer
-          minimum: 1
-          maximum: 365
-        cloudProvider:
-          type: string
-          enum: [icloud, googleDrive, dropbox, s3]
-          nullable: true
-        cloudSettings:
-          type: object
-          additionalProperties: true
-          nullable: true
-        cloudEnabled:
-          type: boolean
-
-    BackupJob:
-      type: object
-      required:
-        [
-          id,
-          trigger,
-          status,
-          encryption,
-          filePath,
-          cloudTarget,
-          sizeBytes,
-          checksum,
-          documentCount,
-          memoryCount,
-          messageCount,
-          snapshotVersion,
-          schemaVersion,
-          error,
-          startedAt,
-          completedAt,
-          createdAt,
-          updatedAt,
-        ]
-      properties:
-        id:
-          type: string
-        trigger:
-          type: string
-          enum: [manual, scheduled, cloud]
-        status:
-          type: string
-          enum: [pending, running, completed, failed]
-        encryption:
-          type: string
-        filePath:
-          type: string
-          nullable: true
-        cloudTarget:
-          type: string
-          nullable: true
-        sizeBytes:
-          type: integer
-        checksum:
-          type: string
-          nullable: true
-        documentCount:
-          type: integer
-        memoryCount:
-          type: integer
-        messageCount:
-          type: integer
-        snapshotVersion:
-          type: string
-        schemaVersion:
-          type: integer
-        error:
-          type: string
-          nullable: true
-        startedAt:
-          type: string
-          format: date-time
-          nullable: true
-        completedAt:
-          type: string
-          format: date-time
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    BackupJobResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/BackupJob"
-
-    BackupJobPage:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/BackupJob"
-        nextCursor:
-          type: string
-          nullable: true
-
-    BackupJobPageResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/BackupJobPage"
-
-    CreateBackupRequest:
-      type: object
-      required: [password]
-      properties:
-        password:
-          type: string
-          minLength: 1
-        uploadToCloud:
-          type: boolean
-
-    CreateBackupResult:
-      type: object
-      required: [job, archiveBase64, filePath, checksum, sizeBytes]
-      properties:
-        job:
-          $ref: "#/components/schemas/BackupJob"
-        archiveBase64:
-          type: string
-        filePath:
-          type: string
-        checksum:
-          type: string
-        sizeBytes:
-          type: integer
-
-    CreateBackupResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/CreateBackupResult"
-
-    BackupSnapshotEnvelope:
-      type: object
-      required:
-        [
-          snapshotVersion,
-          schemaVersion,
-          appVersion,
-          createdAt,
-          tenantId,
-          workspaceId,
-          sourceHost,
-          counts,
-        ]
-      properties:
-        snapshotVersion:
-          type: string
-        schemaVersion:
-          type: integer
-        appVersion:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        tenantId:
-          type: string
-        workspaceId:
-          type: string
-        sourceHost:
-          type: string
-        counts:
-          type: object
-          required: [memories, messages, kbDocuments, kbChunks, agentRuns]
-          properties:
-            memories:
-              type: integer
-            messages:
-              type: integer
-            kbDocuments:
-              type: integer
-            kbChunks:
-              type: integer
-            agentRuns:
-              type: integer
-
-    VerifyBackupRequest:
-      type: object
-      required: [password, archiveBase64]
-      properties:
-        password:
-          type: string
-          minLength: 1
-        archiveBase64:
-          type: string
-          minLength: 1
-
-    VerifyBackupResult:
-      type: object
-      required:
-        [
-          ok,
-          checksum,
-          sizeBytes,
-          envelope,
-          problems,
-          needsModelDownload,
-          appliedSchemaMatchesArchive,
-        ]
-      properties:
-        ok:
-          type: boolean
-        checksum:
-          type: string
-        sizeBytes:
-          type: integer
-        envelope:
-          allOf:
-            - $ref: "#/components/schemas/BackupSnapshotEnvelope"
-          nullable: true
-        problems:
-          type: array
-          items:
-            type: string
-        needsModelDownload:
-          type: boolean
-        appliedSchemaMatchesArchive:
-          type: boolean
-
-    VerifyBackupResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/VerifyBackupResult"
-
-    RestoreBackupRequest:
-      type: object
-      required: [password, archiveBase64]
-      properties:
-        password:
-          type: string
-          minLength: 1
-        archiveBase64:
-          type: string
-          minLength: 1
-        scopes:
-          type: array
-          items:
-            type: string
-            enum: [all, knowledge, memories, settings, conversations]
-        replaceExisting:
-          type: boolean
-
-    RestoreBackupResult:
-      type: object
-      required: [scopes, imported, needsModelDownload, envelope]
-      properties:
-        scopes:
-          type: array
-          items:
-            type: string
-            enum: [all, knowledge, memories, settings, conversations]
-        imported:
-          type: object
-          required:
-            [
-              memories,
-              kbCollections,
-              kbDocuments,
-              kbChunks,
-              messages,
-              agentRuns,
-              toolCalls,
-              approvals,
-              onboardingProfiles,
-              modelPreferences,
-            ]
-          properties:
-            memories:
-              type: integer
-            kbCollections:
-              type: integer
-            kbDocuments:
-              type: integer
-            kbChunks:
-              type: integer
-            messages:
-              type: integer
-            agentRuns:
-              type: integer
-            toolCalls:
-              type: integer
-            approvals:
-              type: integer
-            onboardingProfiles:
-              type: integer
-            modelPreferences:
-              type: integer
-        needsModelDownload:
-          type: boolean
-        envelope:
-          $ref: "#/components/schemas/BackupSnapshotEnvelope"
-
-    RestoreBackupResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/RestoreBackupResult"
-
-    SchedulerTickRequest:
-      type: object
-      properties:
-        now:
-          type: integer
-          description: Optional unix-ms timestamp; defaults to server time.
-
-    SchedulerTickCandidate:
-      type: object
-      required: [tenantId, workspaceId, nextBackupAt]
-      properties:
-        tenantId:
-          type: string
-        workspaceId:
-          type: string
-        nextBackupAt:
-          type: integer
-
-    SchedulerTickResult:
-      type: object
-      required: [now, due]
-      properties:
-        now:
-          type: string
-          format: date-time
-        due:
-          type: array
-          items:
-            $ref: "#/components/schemas/SchedulerTickCandidate"
-
-    SchedulerTickResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/SchedulerTickResult"
-
-    PruneBackupsResult:
-      type: object
-      required: [kept, pruned]
-      properties:
-        kept:
-          type: integer
-        pruned:
-          type: integer
-
-    PruneBackupsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/PruneBackupsResult"
-
-    ConversationExportEntry:
-      type: object
-      required: [runId, goal, startedAt, messages]
-      properties:
-        runId:
-          type: string
-          nullable: true
-        goal:
-          type: string
-          nullable: true
-        startedAt:
-          type: string
-          format: date-time
-          nullable: true
-        messages:
-          type: array
-          items:
-            type: object
-            required: [id, role, content, createdAt, tokensIn, tokensOut]
-            properties:
-              id:
-                type: string
-              role:
-                type: string
-              content:
-                type: string
-              createdAt:
-                type: string
-                format: date-time
-              tokensIn:
-                type: integer
-                nullable: true
-              tokensOut:
-                type: integer
-                nullable: true
-
-    ConversationExport:
-      type: object
-      required: [format, exportedAt]
-      properties:
-        format:
-          type: string
-          enum: [json, markdown]
-        exportedAt:
-          type: string
-          format: date-time
-        markdown:
-          type: string
-        conversationCount:
-          type: integer
-        conversations:
-          type: array
-          items:
-            $ref: "#/components/schemas/ConversationExportEntry"
-
-    ExportConversationsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/ConversationExport"
-
-    MemoryExportEntry:
-      type: object
-      required:
-        [id, kind, title, content, importance, source, createdAt, updatedAt]
-      properties:
-        id:
-          type: string
-        kind:
-          type: string
-        title:
-          type: string
-        content:
-          type: string
-        importance:
-          type: integer
-        source:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    MemoriesExport:
-      type: object
-      required: [exportedAt, memories]
-      properties:
-        exportedAt:
-          type: string
-          format: date-time
-        memories:
-          type: array
-          items:
-            $ref: "#/components/schemas/MemoryExportEntry"
-
-    MemoriesExportResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/MemoriesExport"
-
-    SettingsExport:
-      type: object
-      required:
-        [version, exportedAt, onboarding, modelPreferences, backupSettings]
-      properties:
-        version:
-          type: string
-        exportedAt:
-          type: string
-          format: date-time
-        onboarding:
-          type: object
-          additionalProperties: true
-          nullable: true
-        modelPreferences:
-          type: object
-          additionalProperties: true
-          nullable: true
-        backupSettings:
-          $ref: "#/components/schemas/BackupSettings"
-
-    SettingsExportResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/SettingsExport"
-
-    FullDataExport:
-      type: object
-      required:
-        [
-          envelope,
-          conversations,
-          memories,
-          knowledgeBase,
-          settings,
-          privacyEvents,
-        ]
-      properties:
-        envelope:
-          $ref: "#/components/schemas/BackupSnapshotEnvelope"
-        conversations:
-          type: array
-          items:
-            $ref: "#/components/schemas/ConversationExportEntry"
-        memories:
-          type: array
-          items:
-            $ref: "#/components/schemas/MemoryExportEntry"
-        knowledgeBase:
-          type: object
-          required: [collections, documents]
-          properties:
-            collections:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-            documents:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-        settings:
-          $ref: "#/components/schemas/SettingsExport"
-        privacyEvents:
-          type: array
-          items:
-            type: object
-            additionalProperties: true
-
-    FullDataExportResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/FullDataExport"
 
     CreatorAgreementDoc:
       type: object
@@ -23343,6 +23021,93 @@ components:
           required: [agreement]
           properties:
             agreement: { $ref: '#/components/schemas/CreatorAgreementDoc' }
+
+    AdminBoolEnvelope:
+      type: object
+      additionalProperties: true
+    AdminBoolResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: "#/components/schemas/AdminBoolEnvelope"
+
+    SuperAdminOverview:
+      type: object
+      required:
+        - totalInstalls
+        - totalUsers
+        - enterpriseOrgs
+        - paidSubscribers
+        - dailyActiveUsers
+        - weeklyActiveUsers
+        - monthlyActiveUsers
+        - churnRate
+        - conversationsThisMonth
+        - agentRunsThisMonth
+        - growthSeries
+      properties:
+        totalInstalls: { type: integer }
+        totalUsers: { type: integer }
+        enterpriseOrgs: { type: integer }
+        paidSubscribers: { type: integer }
+        dailyActiveUsers: { type: integer }
+        weeklyActiveUsers: { type: integer }
+        monthlyActiveUsers: { type: integer }
+        churnRate: { type: number }
+        conversationsThisMonth: { type: integer }
+        agentRunsThisMonth: { type: integer }
+        growthSeries:
+          type: array
+          items:
+            type: object
+            required: [date, installs]
+            properties:
+              date: { type: string }
+              installs: { type: integer }
+    SuperAdminOverviewResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/SuperAdminOverview" }
+
+    SuperAdminRevenue:
+      type: object
+      required:
+        - totalSubscribers
+        - monthlyRecurringCents
+        - platformCutCents
+        - creatorPoolCents
+        - pendingPayoutCents
+        - stripePayoutStatus
+        - recentInvoices
+      properties:
+        totalSubscribers: { type: integer }
+        monthlyRecurringCents: { type: integer }
+        platformCutCents: { type: integer }
+        creatorPoolCents: { type: integer }
+        pendingPayoutCents: { type: integer }
+        stripePayoutStatus: { type: string }
+        recentInvoices:
+          type: array
+          items:
+            type: object
+            required: [id, tenantId, amountCents, status, createdAt]
+            properties:
+              id: { type: string }
+              tenantId: { type: string }
+              amountCents: { type: integer }
+              status: { type: string }
+              createdAt: { type: string }
+    SuperAdminRevenueResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/SuperAdminRevenue" }
+
     CreatorAgreementState:
       type: object
       required: [state, currentVersion, currentHash, title, summary]
@@ -23362,6 +23127,43 @@ components:
       properties:
         success: { type: boolean, enum: [true] }
         data: { $ref: '#/components/schemas/CreatorAgreementState' }
+
+    SuperAdminSkillAnalytics:
+      type: object
+      required: [topInstalled, topEarning, trendingCategories]
+      properties:
+        topInstalled:
+          type: array
+          items:
+            type: object
+            required: [slug, name, installs]
+            properties:
+              slug: { type: string }
+              name: { type: string }
+              installs: { type: integer }
+        topEarning:
+          type: array
+          items:
+            type: object
+            required: [creatorHandle, usage]
+            properties:
+              creatorHandle: { type: string }
+              usage: { type: integer }
+        trendingCategories:
+          type: array
+          items:
+            type: object
+            required: [category, installs]
+            properties:
+              category: { type: string }
+              installs: { type: integer }
+    SuperAdminSkillAnalyticsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/SuperAdminSkillAnalytics" }
+
     SignCreatorAgreementRequest:
       type: object
       required: [signedName]
@@ -23441,6 +23243,32 @@ components:
               type: array
               items: { $ref: '#/components/schemas/DmcaTakedown' }
             nextCursor: { type: string, nullable: true }
+
+    ModerationItem:
+      type: object
+      required: [id, name, description, category, status, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        category: { type: string }
+        status: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    ModerationQueuePageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/ModerationItem" }
+            nextCursor: { type: string, nullable: true }
+
     DmcaDecideRequest:
       type: object
       required: [decision]
@@ -23562,6 +23390,136 @@ components:
               type: array
               items: { $ref: '#/components/schemas/CreatorTaxDocument' }
 
+    Creator:
+      type: object
+      required: [id, handle, displayName, verified, banned, createdAt]
+      properties:
+        id: { type: string }
+        handle: { type: string }
+        displayName: { type: string }
+        verified: { type: boolean }
+        banned: { type: boolean }
+        createdAt: { type: string }
+    CreatorPageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/Creator" }
+            nextCursor: { type: string, nullable: true }
+
+    FeatureFlag:
+      type: object
+      required: [id, flagKey, enabled, segment, description, rolloutPercent, updatedAt]
+      properties:
+        id: { type: string }
+        flagKey: { type: string }
+        enabled: { type: boolean }
+        segment: { type: string }
+        description: { type: string }
+        rolloutPercent: { type: integer }
+        updatedAt: { type: string }
+    FeatureFlagResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/FeatureFlag" }
+    FeatureFlagsListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/FeatureFlag" }
+
+    AppVersion:
+      type: object
+      required: [id, versionString, channel, isCurrent, isMinRequired, notes, releasedAt]
+      properties:
+        id: { type: string }
+        versionString: { type: string }
+        channel: { type: string }
+        isCurrent: { type: boolean }
+        isMinRequired: { type: boolean }
+        notes: { type: string }
+        releasedAt: { type: string }
+    AppVersionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/AppVersion" }
+    AppVersionsListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/AppVersion" }
+
+    AbuseReport:
+      type: object
+      required:
+        - id
+        - targetType
+        - targetId
+        - targetLabel
+        - reason
+        - severity
+        - status
+        - reporterLabel
+        - resolutionNotes
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        targetType: { type: string }
+        targetId: { type: string }
+        targetLabel: { type: string }
+        reason: { type: string }
+        severity: { type: string }
+        status: { type: string }
+        reporterLabel: { type: string }
+        resolutionNotes: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    AbuseReportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/AbuseReport" }
+    AbuseReportPageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/AbuseReport" }
+            nextCursor: { type: string, nullable: true }
+
     TaxQuoteRequest:
       type: object
       required: [buyerCountry, netAmountCents]
@@ -23609,6 +23567,69 @@ components:
             jurisdiction:
               nullable: true
               allOf: [{ $ref: '#/components/schemas/TaxJurisdiction' }]
+
+    EnterpriseOrg:
+      type: object
+      required:
+        - id
+        - name
+        - primaryColor
+        - plan
+        - seatLimit
+        - airGapped
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        name: { type: string }
+        logoUrl: { type: string, nullable: true }
+        primaryColor: { type: string }
+        plan: { type: string }
+        seatLimit: { type: integer }
+        airGapped: { type: boolean }
+        ssoProvider: { type: string, nullable: true }
+        ssoDomain: { type: string, nullable: true }
+        stripeCustomerId: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    EnterpriseOrgResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/EnterpriseOrg" }
+
+    EnterpriseSeat:
+      type: object
+      required: [id, email, displayName, role, status, invitedAt]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        displayName: { type: string }
+        role: { type: string }
+        status: { type: string }
+        invitedAt: { type: string }
+        lastActiveAt: { type: string, nullable: true }
+    EnterpriseSeatResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/EnterpriseSeat" }
+    EnterpriseSeatPageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/EnterpriseSeat" }
+            nextCursor: { type: string, nullable: true }
+
     TaxJurisdictionListResponse:
       type: object
       required: [success, data]
@@ -23621,6 +23642,34 @@ components:
             items:
               type: array
               items: { $ref: '#/components/schemas/TaxJurisdiction' }
+
+    WhitelistEntry:
+      type: object
+      required: [skillSlug, skillName, allowed, updatedAt]
+      properties:
+        skillSlug: { type: string }
+        skillName: { type: string }
+        allowed: { type: boolean }
+        updatedAt: { type: string }
+    WhitelistEntryResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/WhitelistEntry" }
+    WhitelistListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/WhitelistEntry" }
+
     RecordTaxCollectionRequest:
       type: object
       required: [source, buyerCountry, netAmountCents]
@@ -23659,6 +23708,35 @@ components:
           required: [collection]
           properties:
             collection: { $ref: '#/components/schemas/TaxCollection' }
+
+    EnterpriseAuditEntry:
+      type: object
+      required: [id, sequence, actor, action, resourceType, summary, createdAt]
+      properties:
+        id: { type: string }
+        sequence: { type: integer }
+        actor: { type: string }
+        action: { type: string }
+        resourceType: { type: string }
+        resourceId: { type: string, nullable: true }
+        summary: { type: string }
+        previousHash: { type: string, nullable: true }
+        entryHash: { type: string }
+        createdAt: { type: string }
+    EnterpriseAuditPageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/EnterpriseAuditEntry" }
+            nextCursor: { type: string, nullable: true }
+
     TaxRemittanceReportItem:
       type: object
       required: [bucket, buyerCountry, netAmountCents, taxAmountCents, transactionCount]
@@ -23680,6 +23758,44 @@ components:
             items:
               type: array
               items: { $ref: '#/components/schemas/TaxRemittanceReportItem' }
+
+    EnterpriseUsage:
+      type: object
+      required:
+        - rangeDays
+        - tasksAutomated
+        - conversationsStarted
+        - topSkills
+        - estimatedTimeSavedMinutes
+        - perDay
+      properties:
+        rangeDays: { type: integer }
+        tasksAutomated: { type: integer }
+        conversationsStarted: { type: integer }
+        estimatedTimeSavedMinutes: { type: integer }
+        topSkills:
+          type: array
+          items:
+            type: object
+            required: [slug, name, runs]
+            properties:
+              slug: { type: string }
+              name: { type: string }
+              runs: { type: integer }
+        perDay:
+          type: array
+          items:
+            type: object
+            required: [date, runs]
+            properties:
+              date: { type: string }
+              runs: { type: integer }
+    EnterpriseUsageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/EnterpriseUsage" }
 
     CreatorPayoutSettings:
       type: object
@@ -23723,12 +23839,10 @@ components:
         minimumThresholdCents: { type: integer }
         schedule: { type: string, enum: [monthly, weekly, manual] }
         publishStatus: { type: string, enum: [active, suspended, ban] }
-    ScreenCreatorPayoutRequest:
+    ByCountrySanctionsScreeningRequest:
       type: object
-      required: [fullName, country]
+      required: [country]
       properties:
-        creatorId: { type: string }
-        fullName: { type: string }
         country: { type: string }
     SanctionsScreeningOutcome:
       type: object
@@ -23739,6 +23853,13 @@ components:
         matchedName: { type: string, nullable: true }
         matchedCountry: { type: string, nullable: true }
         notes: { type: string }
+    ScreenCreatorPayoutRequest:
+      type: object
+      required: [fullName, country]
+      properties:
+        creatorId: { type: string }
+        fullName: { type: string }
+        country: { type: string }
     ScreenCreatorPayoutResponse:
       type: object
       required: [success, data]

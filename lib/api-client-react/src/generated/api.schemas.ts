@@ -7551,593 +7551,6 @@ export interface IntegrationActionResponse {
   data: IntegrationActionResult;
 }
 
-export type SystemIntegrationSettingsTrayBadgeMode =
-  (typeof SystemIntegrationSettingsTrayBadgeMode)[keyof typeof SystemIntegrationSettingsTrayBadgeMode];
-
-export const SystemIntegrationSettingsTrayBadgeMode = {
-  count: "count",
-  dot: "dot",
-  none: "none",
-} as const;
-
-export type SystemIntegrationSettingsFocusModeSource =
-  | (typeof SystemIntegrationSettingsFocusModeSource)[keyof typeof SystemIntegrationSettingsFocusModeSource]
-  | null;
-
-export const SystemIntegrationSettingsFocusModeSource = {
-  macos: "macos",
-  windows: "windows",
-  manual: "manual",
-} as const;
-
-export interface SystemIntegrationSettings {
-  hotkeyMac: string;
-  hotkeyWindows: string;
-  hotkeyEnabled: boolean;
-  hotkeyConflict?: string | null;
-  trayEnabled: boolean;
-  trayBadgeMode: SystemIntegrationSettingsTrayBadgeMode;
-  loginItemEnabled: boolean;
-  loginItemConsentAt?: string | null;
-  focusModeActive: boolean;
-  focusModeSource?: SystemIntegrationSettingsFocusModeSource;
-  focusModeUpdatedAt?: string | null;
-  rightClickMacEnabled: boolean;
-  rightClickWindowsEnabled: boolean;
-  updatedAt: string;
-}
-
-export type SystemIntegrationSettingsResponseData = {
-  settings: SystemIntegrationSettings;
-};
-
-export interface SystemIntegrationSettingsResponse {
-  success: boolean;
-  data: SystemIntegrationSettingsResponseData;
-}
-
-export type UpdateSystemIntegrationSettingsRequestTrayBadgeMode =
-  (typeof UpdateSystemIntegrationSettingsRequestTrayBadgeMode)[keyof typeof UpdateSystemIntegrationSettingsRequestTrayBadgeMode];
-
-export const UpdateSystemIntegrationSettingsRequestTrayBadgeMode = {
-  count: "count",
-  dot: "dot",
-  none: "none",
-} as const;
-
-export interface UpdateSystemIntegrationSettingsRequest {
-  hotkeyMac?: string;
-  hotkeyWindows?: string;
-  hotkeyEnabled?: boolean;
-  trayEnabled?: boolean;
-  trayBadgeMode?: UpdateSystemIntegrationSettingsRequestTrayBadgeMode;
-  rightClickMacEnabled?: boolean;
-  rightClickWindowsEnabled?: boolean;
-}
-
-export interface SystemIntegrationHotkeyConflictRequest {
-  binding: string;
-  detail?: string;
-}
-
-export interface SystemIntegrationLoginItemRequest {
-  enabled: boolean;
-}
-
-export type SystemIntegrationFocusModeRequestSource =
-  (typeof SystemIntegrationFocusModeRequestSource)[keyof typeof SystemIntegrationFocusModeRequestSource];
-
-export const SystemIntegrationFocusModeRequestSource = {
-  macos: "macos",
-  windows: "windows",
-  manual: "manual",
-} as const;
-
-export interface SystemIntegrationFocusModeRequest {
-  active: boolean;
-  source: SystemIntegrationFocusModeRequestSource;
-}
-
-export interface SystemIntegrationQuickInvocation {
-  id: string;
-  source: string;
-  surface: string;
-  prompt: string;
-  contextKind: string;
-  contextText?: string | null;
-  applicationHint?: string | null;
-  relatedTaskId?: string | null;
-  relatedRunId?: string | null;
-  notificationId?: string | null;
-  expanded: boolean;
-  createdAt: string;
-}
-
-export type SystemIntegrationQuickInvocationRequestSource =
-  (typeof SystemIntegrationQuickInvocationRequestSource)[keyof typeof SystemIntegrationQuickInvocationRequestSource];
-
-export const SystemIntegrationQuickInvocationRequestSource = {
-  hotkey: "hotkey",
-  tray: "tray",
-  menu_bar: "menu_bar",
-  context_menu_macos: "context_menu_macos",
-  context_menu_windows: "context_menu_windows",
-} as const;
-
-export type SystemIntegrationQuickInvocationRequestSurface =
-  (typeof SystemIntegrationQuickInvocationRequestSurface)[keyof typeof SystemIntegrationQuickInvocationRequestSurface];
-
-export const SystemIntegrationQuickInvocationRequestSurface = {
-  quick_input: "quick_input",
-  tray_dropdown: "tray_dropdown",
-  service_menu: "service_menu",
-  shell_extension: "shell_extension",
-} as const;
-
-export type SystemIntegrationQuickInvocationRequestContextKind =
-  (typeof SystemIntegrationQuickInvocationRequestContextKind)[keyof typeof SystemIntegrationQuickInvocationRequestContextKind];
-
-export const SystemIntegrationQuickInvocationRequestContextKind = {
-  none: "none",
-  clipboard: "clipboard",
-  selection: "selection",
-} as const;
-
-export interface SystemIntegrationQuickInvocationRequest {
-  prompt: string;
-  source: SystemIntegrationQuickInvocationRequestSource;
-  surface?: SystemIntegrationQuickInvocationRequestSurface;
-  contextKind?: SystemIntegrationQuickInvocationRequestContextKind;
-  contextText?: string;
-  applicationHint?: string;
-  expanded?: boolean;
-  enqueue?: boolean;
-}
-
-export type SystemIntegrationQuickInvocationResponseData = {
-  invocation: SystemIntegrationQuickInvocation;
-  relatedTaskId: string | null;
-};
-
-export interface SystemIntegrationQuickInvocationResponse {
-  success: boolean;
-  data: SystemIntegrationQuickInvocationResponseData;
-}
-
-export interface SystemIntegrationQuickInvocationPage {
-  items: SystemIntegrationQuickInvocation[];
-  nextCursor: string | null;
-}
-
-export interface SystemIntegrationQuickInvocationListResponse {
-  success: boolean;
-  data: SystemIntegrationQuickInvocationPage;
-}
-
-export type SystemIntegrationTrayBadgeMode =
-  (typeof SystemIntegrationTrayBadgeMode)[keyof typeof SystemIntegrationTrayBadgeMode];
-
-export const SystemIntegrationTrayBadgeMode = {
-  count: "count",
-  dot: "dot",
-  none: "none",
-} as const;
-
-export type SystemIntegrationTrayBadgeIconState =
-  (typeof SystemIntegrationTrayBadgeIconState)[keyof typeof SystemIntegrationTrayBadgeIconState];
-
-export const SystemIntegrationTrayBadgeIconState = {
-  idle: "idle",
-  active: "active",
-  error: "error",
-} as const;
-
-export interface SystemIntegrationTrayBadge {
-  mode: SystemIntegrationTrayBadgeMode;
-  count: number | null;
-  iconState: SystemIntegrationTrayBadgeIconState;
-}
-
-export interface SystemIntegrationTrayStatus {
-  badge: SystemIntegrationTrayBadge;
-  unreadNotifications: number;
-  pendingApprovals: number;
-  activeTasks: number;
-  recentInvocations: SystemIntegrationQuickInvocation[];
-  focusModeActive: boolean;
-  hotkeyEnabled: boolean;
-}
-
-export interface SystemIntegrationTrayStatusResponse {
-  success: boolean;
-  data: SystemIntegrationTrayStatus;
-}
-
-export type BackupSettingsSchedule =
-  (typeof BackupSettingsSchedule)[keyof typeof BackupSettingsSchedule];
-
-export const BackupSettingsSchedule = {
-  off: "off",
-  daily: "daily",
-  weekly: "weekly",
-} as const;
-
-export type BackupSettingsCloudProvider =
-  | (typeof BackupSettingsCloudProvider)[keyof typeof BackupSettingsCloudProvider]
-  | null;
-
-export const BackupSettingsCloudProvider = {
-  icloud: "icloud",
-  googleDrive: "googleDrive",
-  dropbox: "dropbox",
-  s3: "s3",
-} as const;
-
-export type BackupSettingsCloudSettings = { [key: string]: unknown } | null;
-
-export interface BackupSettings {
-  schedule: BackupSettingsSchedule;
-  targetDirectory: string | null;
-  /**
-   * @minimum 1
-   * @maximum 365
-   */
-  retentionCount: number;
-  cloudProvider: BackupSettingsCloudProvider;
-  cloudSettings: BackupSettingsCloudSettings;
-  cloudEnabled: boolean;
-  lastBackupAt: string | null;
-  nextBackupAt: string | null;
-}
-
-export interface BackupSettingsResponse {
-  success: boolean;
-  data: BackupSettings;
-}
-
-export type UpdateBackupSettingsRequestSchedule =
-  (typeof UpdateBackupSettingsRequestSchedule)[keyof typeof UpdateBackupSettingsRequestSchedule];
-
-export const UpdateBackupSettingsRequestSchedule = {
-  off: "off",
-  daily: "daily",
-  weekly: "weekly",
-} as const;
-
-export type UpdateBackupSettingsRequestCloudProvider =
-  | (typeof UpdateBackupSettingsRequestCloudProvider)[keyof typeof UpdateBackupSettingsRequestCloudProvider]
-  | null;
-
-export const UpdateBackupSettingsRequestCloudProvider = {
-  icloud: "icloud",
-  googleDrive: "googleDrive",
-  dropbox: "dropbox",
-  s3: "s3",
-} as const;
-
-export type UpdateBackupSettingsRequestCloudSettings = {
-  [key: string]: unknown;
-} | null;
-
-export interface UpdateBackupSettingsRequest {
-  schedule?: UpdateBackupSettingsRequestSchedule;
-  targetDirectory?: string | null;
-  /**
-   * @minimum 1
-   * @maximum 365
-   */
-  retentionCount?: number;
-  cloudProvider?: UpdateBackupSettingsRequestCloudProvider;
-  cloudSettings?: UpdateBackupSettingsRequestCloudSettings;
-  cloudEnabled?: boolean;
-}
-
-export type BackupJobTrigger =
-  (typeof BackupJobTrigger)[keyof typeof BackupJobTrigger];
-
-export const BackupJobTrigger = {
-  manual: "manual",
-  scheduled: "scheduled",
-  cloud: "cloud",
-} as const;
-
-export type BackupJobStatus =
-  (typeof BackupJobStatus)[keyof typeof BackupJobStatus];
-
-export const BackupJobStatus = {
-  pending: "pending",
-  running: "running",
-  completed: "completed",
-  failed: "failed",
-} as const;
-
-export interface BackupJob {
-  id: string;
-  trigger: BackupJobTrigger;
-  status: BackupJobStatus;
-  encryption: string;
-  filePath: string | null;
-  cloudTarget: string | null;
-  sizeBytes: number;
-  checksum: string | null;
-  documentCount: number;
-  memoryCount: number;
-  messageCount: number;
-  snapshotVersion: string;
-  schemaVersion: number;
-  error: string | null;
-  startedAt: string | null;
-  completedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface BackupJobResponse {
-  success: boolean;
-  data: BackupJob;
-}
-
-export interface BackupJobPage {
-  items: BackupJob[];
-  nextCursor?: string | null;
-}
-
-export interface BackupJobPageResponse {
-  success: boolean;
-  data: BackupJobPage;
-}
-
-export interface CreateBackupRequest {
-  /** @minLength 1 */
-  password: string;
-  uploadToCloud?: boolean;
-}
-
-export interface CreateBackupResult {
-  job: BackupJob;
-  archiveBase64: string;
-  filePath: string;
-  checksum: string;
-  sizeBytes: number;
-}
-
-export interface CreateBackupResponse {
-  success: boolean;
-  data: CreateBackupResult;
-}
-
-export type BackupSnapshotEnvelopeCounts = {
-  memories: number;
-  messages: number;
-  kbDocuments: number;
-  kbChunks: number;
-  agentRuns: number;
-};
-
-export interface BackupSnapshotEnvelope {
-  snapshotVersion: string;
-  schemaVersion: number;
-  appVersion: string;
-  createdAt: string;
-  tenantId: string;
-  workspaceId: string;
-  sourceHost: string;
-  counts: BackupSnapshotEnvelopeCounts;
-}
-
-export interface VerifyBackupRequest {
-  /** @minLength 1 */
-  password: string;
-  /** @minLength 1 */
-  archiveBase64: string;
-}
-
-export interface VerifyBackupResult {
-  ok: boolean;
-  checksum: string;
-  sizeBytes: number;
-  envelope: BackupSnapshotEnvelope | null;
-  problems: string[];
-  needsModelDownload: boolean;
-  appliedSchemaMatchesArchive: boolean;
-}
-
-export interface VerifyBackupResponse {
-  success: boolean;
-  data: VerifyBackupResult;
-}
-
-export type RestoreBackupRequestScopesItem =
-  (typeof RestoreBackupRequestScopesItem)[keyof typeof RestoreBackupRequestScopesItem];
-
-export const RestoreBackupRequestScopesItem = {
-  all: "all",
-  knowledge: "knowledge",
-  memories: "memories",
-  settings: "settings",
-  conversations: "conversations",
-} as const;
-
-export interface RestoreBackupRequest {
-  /** @minLength 1 */
-  password: string;
-  /** @minLength 1 */
-  archiveBase64: string;
-  scopes?: RestoreBackupRequestScopesItem[];
-  replaceExisting?: boolean;
-}
-
-export type RestoreBackupResultScopesItem =
-  (typeof RestoreBackupResultScopesItem)[keyof typeof RestoreBackupResultScopesItem];
-
-export const RestoreBackupResultScopesItem = {
-  all: "all",
-  knowledge: "knowledge",
-  memories: "memories",
-  settings: "settings",
-  conversations: "conversations",
-} as const;
-
-export type RestoreBackupResultImported = {
-  memories: number;
-  kbCollections: number;
-  kbDocuments: number;
-  kbChunks: number;
-  messages: number;
-  agentRuns: number;
-  toolCalls: number;
-  approvals: number;
-  onboardingProfiles: number;
-  modelPreferences: number;
-};
-
-export interface RestoreBackupResult {
-  scopes: RestoreBackupResultScopesItem[];
-  imported: RestoreBackupResultImported;
-  needsModelDownload: boolean;
-  envelope: BackupSnapshotEnvelope;
-}
-
-export interface RestoreBackupResponse {
-  success: boolean;
-  data: RestoreBackupResult;
-}
-
-export interface SchedulerTickRequest {
-  /** Optional unix-ms timestamp; defaults to server time. */
-  now?: number;
-}
-
-export interface SchedulerTickCandidate {
-  tenantId: string;
-  workspaceId: string;
-  nextBackupAt: number;
-}
-
-export interface SchedulerTickResult {
-  now: string;
-  due: SchedulerTickCandidate[];
-}
-
-export interface SchedulerTickResponse {
-  success: boolean;
-  data: SchedulerTickResult;
-}
-
-export interface PruneBackupsResult {
-  kept: number;
-  pruned: number;
-}
-
-export interface PruneBackupsResponse {
-  success: boolean;
-  data: PruneBackupsResult;
-}
-
-export type ConversationExportEntryMessagesItem = {
-  id: string;
-  role: string;
-  content: string;
-  createdAt: string;
-  tokensIn: number | null;
-  tokensOut: number | null;
-};
-
-export interface ConversationExportEntry {
-  runId: string | null;
-  goal: string | null;
-  startedAt: string | null;
-  messages: ConversationExportEntryMessagesItem[];
-}
-
-export type ConversationExportFormat =
-  (typeof ConversationExportFormat)[keyof typeof ConversationExportFormat];
-
-export const ConversationExportFormat = {
-  json: "json",
-  markdown: "markdown",
-} as const;
-
-export interface ConversationExport {
-  format: ConversationExportFormat;
-  exportedAt: string;
-  markdown?: string;
-  conversationCount?: number;
-  conversations?: ConversationExportEntry[];
-}
-
-export interface ExportConversationsResponse {
-  success: boolean;
-  data: ConversationExport;
-}
-
-export interface MemoryExportEntry {
-  id: string;
-  kind: string;
-  title: string;
-  content: string;
-  importance: number;
-  source: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MemoriesExport {
-  exportedAt: string;
-  memories: MemoryExportEntry[];
-}
-
-export interface MemoriesExportResponse {
-  success: boolean;
-  data: MemoriesExport;
-}
-
-export type SettingsExportOnboarding = { [key: string]: unknown } | null;
-
-export type SettingsExportModelPreferences = { [key: string]: unknown } | null;
-
-export interface SettingsExport {
-  version: string;
-  exportedAt: string;
-  onboarding: SettingsExportOnboarding;
-  modelPreferences: SettingsExportModelPreferences;
-  backupSettings: BackupSettings;
-}
-
-export interface SettingsExportResponse {
-  success: boolean;
-  data: SettingsExport;
-}
-
-export type FullDataExportKnowledgeBaseCollectionsItem = {
-  [key: string]: unknown;
-};
-
-export type FullDataExportKnowledgeBaseDocumentsItem = {
-  [key: string]: unknown;
-};
-
-export type FullDataExportKnowledgeBase = {
-  collections: FullDataExportKnowledgeBaseCollectionsItem[];
-  documents: FullDataExportKnowledgeBaseDocumentsItem[];
-};
-
-export type FullDataExportPrivacyEventsItem = { [key: string]: unknown };
-
-export interface FullDataExport {
-  envelope: BackupSnapshotEnvelope;
-  conversations: ConversationExportEntry[];
-  memories: MemoryExportEntry[];
-  knowledgeBase: FullDataExportKnowledgeBase;
-  settings: SettingsExport;
-  privacyEvents: FullDataExportPrivacyEventsItem[];
-}
-
-export interface FullDataExportResponse {
-  success: boolean;
-  data: FullDataExport;
-}
-
 export interface CreatorAgreementDoc {
   version: string;
   hash: string;
@@ -8154,6 +7567,62 @@ export type CreatorAgreementResponseData = {
 export interface CreatorAgreementResponse {
   success: boolean;
   data: CreatorAgreementResponseData;
+}
+
+export interface AdminBoolEnvelope {
+  [key: string]: unknown;
+}
+
+export interface AdminBoolResponse {
+  success: boolean;
+  data: AdminBoolEnvelope;
+}
+
+export type SuperAdminOverviewGrowthSeriesItem = {
+  date: string;
+  installs: number;
+};
+
+export interface SuperAdminOverview {
+  totalInstalls: number;
+  totalUsers: number;
+  enterpriseOrgs: number;
+  paidSubscribers: number;
+  dailyActiveUsers: number;
+  weeklyActiveUsers: number;
+  monthlyActiveUsers: number;
+  churnRate: number;
+  conversationsThisMonth: number;
+  agentRunsThisMonth: number;
+  growthSeries: SuperAdminOverviewGrowthSeriesItem[];
+}
+
+export interface SuperAdminOverviewResponse {
+  success: boolean;
+  data: SuperAdminOverview;
+}
+
+export type SuperAdminRevenueRecentInvoicesItem = {
+  id: string;
+  tenantId: string;
+  amountCents: number;
+  status: string;
+  createdAt: string;
+};
+
+export interface SuperAdminRevenue {
+  totalSubscribers: number;
+  monthlyRecurringCents: number;
+  platformCutCents: number;
+  creatorPoolCents: number;
+  pendingPayoutCents: number;
+  stripePayoutStatus: string;
+  recentInvoices: SuperAdminRevenueRecentInvoicesItem[];
+}
+
+export interface SuperAdminRevenueResponse {
+  success: boolean;
+  data: SuperAdminRevenue;
 }
 
 export type CreatorAgreementStateState =
@@ -8179,6 +7648,33 @@ export interface CreatorAgreementState {
 export interface CreatorAgreementStateResponse {
   success: boolean;
   data: CreatorAgreementState;
+}
+
+export type SuperAdminSkillAnalyticsTopInstalledItem = {
+  slug: string;
+  name: string;
+  installs: number;
+};
+
+export type SuperAdminSkillAnalyticsTopEarningItem = {
+  creatorHandle: string;
+  usage: number;
+};
+
+export type SuperAdminSkillAnalyticsTrendingCategoriesItem = {
+  category: string;
+  installs: number;
+};
+
+export interface SuperAdminSkillAnalytics {
+  topInstalled: SuperAdminSkillAnalyticsTopInstalledItem[];
+  topEarning: SuperAdminSkillAnalyticsTopEarningItem[];
+  trendingCategories: SuperAdminSkillAnalyticsTrendingCategoriesItem[];
+}
+
+export interface SuperAdminSkillAnalyticsResponse {
+  success: boolean;
+  data: SuperAdminSkillAnalytics;
 }
 
 export interface SignCreatorAgreementRequest {
@@ -8252,6 +7748,26 @@ export type DmcaTakedownListResponseData = {
 export interface DmcaTakedownListResponse {
   success: boolean;
   data: DmcaTakedownListResponseData;
+}
+
+export interface ModerationItem {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ModerationQueuePageResponseData = {
+  items: ModerationItem[];
+  nextCursor: string | null;
+};
+
+export interface ModerationQueuePageResponse {
+  success: boolean;
+  data: ModerationQueuePageResponseData;
 }
 
 export type DmcaDecideRequestDecision =
@@ -8400,6 +7916,102 @@ export interface CreatorTaxDocumentListResponse {
   data: CreatorTaxDocumentListResponseData;
 }
 
+export interface Creator {
+  id: string;
+  handle: string;
+  displayName: string;
+  verified: boolean;
+  banned: boolean;
+  createdAt: string;
+}
+
+export type CreatorPageResponseData = {
+  items: Creator[];
+  nextCursor: string | null;
+};
+
+export interface CreatorPageResponse {
+  success: boolean;
+  data: CreatorPageResponseData;
+}
+
+export interface FeatureFlag {
+  id: string;
+  flagKey: string;
+  enabled: boolean;
+  segment: string;
+  description: string;
+  rolloutPercent: number;
+  updatedAt: string;
+}
+
+export interface FeatureFlagResponse {
+  success: boolean;
+  data: FeatureFlag;
+}
+
+export type FeatureFlagsListResponseData = {
+  items: FeatureFlag[];
+};
+
+export interface FeatureFlagsListResponse {
+  success: boolean;
+  data: FeatureFlagsListResponseData;
+}
+
+export interface AppVersion {
+  id: string;
+  versionString: string;
+  channel: string;
+  isCurrent: boolean;
+  isMinRequired: boolean;
+  notes: string;
+  releasedAt: string;
+}
+
+export interface AppVersionResponse {
+  success: boolean;
+  data: AppVersion;
+}
+
+export type AppVersionsListResponseData = {
+  items: AppVersion[];
+};
+
+export interface AppVersionsListResponse {
+  success: boolean;
+  data: AppVersionsListResponseData;
+}
+
+export interface AbuseReport {
+  id: string;
+  targetType: string;
+  targetId: string;
+  targetLabel: string;
+  reason: string;
+  severity: string;
+  status: string;
+  reporterLabel: string;
+  resolutionNotes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AbuseReportResponse {
+  success: boolean;
+  data: AbuseReport;
+}
+
+export type AbuseReportPageResponseData = {
+  items: AbuseReport[];
+  nextCursor: string | null;
+};
+
+export interface AbuseReportPageResponse {
+  success: boolean;
+  data: AbuseReportPageResponseData;
+}
+
 export interface TaxQuoteRequest {
   buyerCountry: string;
   netAmountCents: number;
@@ -8460,6 +8072,51 @@ export interface TaxQuoteResponse {
   data: TaxQuoteResponseData;
 }
 
+export interface EnterpriseOrg {
+  id: string;
+  name: string;
+  logoUrl?: string | null;
+  primaryColor: string;
+  plan: string;
+  seatLimit: number;
+  airGapped: boolean;
+  ssoProvider?: string | null;
+  ssoDomain?: string | null;
+  stripeCustomerId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EnterpriseOrgResponse {
+  success: boolean;
+  data: EnterpriseOrg;
+}
+
+export interface EnterpriseSeat {
+  id: string;
+  email: string;
+  displayName: string;
+  role: string;
+  status: string;
+  invitedAt: string;
+  lastActiveAt?: string | null;
+}
+
+export interface EnterpriseSeatResponse {
+  success: boolean;
+  data: EnterpriseSeat;
+}
+
+export type EnterpriseSeatPageResponseData = {
+  items: EnterpriseSeat[];
+  nextCursor: string | null;
+};
+
+export interface EnterpriseSeatPageResponse {
+  success: boolean;
+  data: EnterpriseSeatPageResponseData;
+}
+
 export type TaxJurisdictionListResponseData = {
   items: TaxJurisdiction[];
 };
@@ -8467,6 +8124,27 @@ export type TaxJurisdictionListResponseData = {
 export interface TaxJurisdictionListResponse {
   success: boolean;
   data: TaxJurisdictionListResponseData;
+}
+
+export interface WhitelistEntry {
+  skillSlug: string;
+  skillName: string;
+  allowed: boolean;
+  updatedAt: string;
+}
+
+export interface WhitelistEntryResponse {
+  success: boolean;
+  data: WhitelistEntry;
+}
+
+export type WhitelistListResponseData = {
+  items: WhitelistEntry[];
+};
+
+export interface WhitelistListResponse {
+  success: boolean;
+  data: WhitelistListResponseData;
 }
 
 export interface RecordTaxCollectionRequest {
@@ -8504,6 +8182,29 @@ export interface TaxCollectionResponse {
   data: TaxCollectionResponseData;
 }
 
+export interface EnterpriseAuditEntry {
+  id: string;
+  sequence: number;
+  actor: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string | null;
+  summary: string;
+  previousHash?: string | null;
+  entryHash?: string;
+  createdAt: string;
+}
+
+export type EnterpriseAuditPageResponseData = {
+  items: EnterpriseAuditEntry[];
+  nextCursor: string | null;
+};
+
+export interface EnterpriseAuditPageResponse {
+  success: boolean;
+  data: EnterpriseAuditPageResponseData;
+}
+
 export interface TaxRemittanceReportItem {
   bucket: string;
   buyerCountry: string;
@@ -8519,6 +8220,31 @@ export type TaxRemittanceReportResponseData = {
 export interface TaxRemittanceReportResponse {
   success: boolean;
   data: TaxRemittanceReportResponseData;
+}
+
+export type EnterpriseUsageTopSkillsItem = {
+  slug: string;
+  name: string;
+  runs: number;
+};
+
+export type EnterpriseUsagePerDayItem = {
+  date: string;
+  runs: number;
+};
+
+export interface EnterpriseUsage {
+  rangeDays: number;
+  tasksAutomated: number;
+  conversationsStarted: number;
+  estimatedTimeSavedMinutes: number;
+  topSkills: EnterpriseUsageTopSkillsItem[];
+  perDay: EnterpriseUsagePerDayItem[];
+}
+
+export interface EnterpriseUsageResponse {
+  success: boolean;
+  data: EnterpriseUsage;
 }
 
 export type CreatorPayoutSettingsMethod =
@@ -8613,9 +8339,7 @@ export interface UpdateCreatorPayoutSettingsRequest {
   publishStatus?: UpdateCreatorPayoutSettingsRequestPublishStatus;
 }
 
-export interface ScreenCreatorPayoutRequest {
-  creatorId?: string;
-  fullName: string;
+export interface ByCountrySanctionsScreeningRequest {
   country: string;
 }
 
@@ -8644,6 +8368,12 @@ export interface SanctionsScreeningOutcome {
   matchedName?: string | null;
   matchedCountry?: string | null;
   notes: string;
+}
+
+export interface ScreenCreatorPayoutRequest {
+  creatorId?: string;
+  fullName: string;
+  country: string;
 }
 
 export type ScreenCreatorPayoutResponseDataOverall =
@@ -8959,6 +8689,191 @@ export type CursorParamParameter = string;
  * Page size, default 20, max 100.
  */
 export type LimitParamParameter = number;
+
+export type ListModerationQueueParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ApproveModerationItemBody = {
+  notes?: string;
+};
+
+export type RejectModerationItemBody = {
+  reason: string;
+};
+
+export type RemoveStoreSkillBody = {
+  reason: string;
+};
+
+export type ListCreatorsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type BanCreatorBody = {
+  reason: string;
+};
+
+export type SetFeatureFlagBody = {
+  enabled: boolean;
+  segment?: string;
+  description?: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  rolloutPercent?: number;
+};
+
+export type PublishAppVersionBody = {
+  versionString: string;
+  channel?: string;
+  isCurrent?: boolean;
+  isMinRequired?: boolean;
+  notes?: string;
+};
+
+export type GetCurrentAppVersionParams = {
+  channel?: string;
+};
+
+export type ListAbuseReportsParams = {
+  status?: ListAbuseReportsStatus;
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListAbuseReportsStatus =
+  (typeof ListAbuseReportsStatus)[keyof typeof ListAbuseReportsStatus];
+
+export const ListAbuseReportsStatus = {
+  open: "open",
+  resolved: "resolved",
+  dismissed: "dismissed",
+} as const;
+
+export type CreateAbuseReportBody = {
+  targetType: string;
+  targetId: string;
+  targetLabel?: string;
+  reason: string;
+  severity?: string;
+  reporterLabel?: string;
+};
+
+export type ResolveAbuseReportBodyStatus =
+  (typeof ResolveAbuseReportBodyStatus)[keyof typeof ResolveAbuseReportBodyStatus];
+
+export const ResolveAbuseReportBodyStatus = {
+  resolved: "resolved",
+  dismissed: "dismissed",
+} as const;
+
+export type ResolveAbuseReportBody = {
+  status?: ResolveAbuseReportBodyStatus;
+  notes?: string;
+};
+
+export type UpdateEnterpriseOrgBody = {
+  name?: string;
+  logoUrl?: string | null;
+  primaryColor?: string;
+  plan?: string;
+  seatLimit?: number;
+  airGapped?: boolean;
+  ssoProvider?: string | null;
+  ssoDomain?: string | null;
+};
+
+export type ListEnterpriseSeatsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type InviteEnterpriseSeatBodyRole =
+  (typeof InviteEnterpriseSeatBodyRole)[keyof typeof InviteEnterpriseSeatBodyRole];
+
+export const InviteEnterpriseSeatBodyRole = {
+  admin: "admin",
+  standard: "standard",
+  readonly: "readonly",
+} as const;
+
+export type InviteEnterpriseSeatBody = {
+  email: string;
+  displayName?: string;
+  role?: InviteEnterpriseSeatBodyRole;
+};
+
+export type UpdateEnterpriseSeatBody = {
+  role?: string;
+  status?: string;
+  displayName?: string;
+};
+
+export type SetEnterpriseWhitelistEntryBody = {
+  allowed: boolean;
+  skillName?: string;
+};
+
+export type ListEnterpriseAuditParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type GetEnterpriseUsageParams = {
+  /**
+   * @minimum 1
+   * @maximum 180
+   */
+  days?: number;
+};
+
+export type ExportEnterpriseUsageCsvParams = {
+  days?: number;
+};
 
 export type ListModelsParams = {
   /**

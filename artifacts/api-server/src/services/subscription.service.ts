@@ -443,7 +443,7 @@ export async function listMonthlyUsage(ctx: TenantContext): Promise<MonthlyUsage
     const key = r.skillId;
     const existing = perSkillMap.get(key);
     if (existing) existing.count += 1;
-    else perSkillMap.set(key, { skillId: r.skillId, skillSlug: r.skillSlug, count: 1 });
+    else perSkillMap.set(key, { skillId: r.skillId, skillSlug: r.skillSlug ?? "", count: 1 });
   }
   return {
     totalThisMonth: monthRows.length,
@@ -452,7 +452,7 @@ export async function listMonthlyUsage(ctx: TenantContext): Promise<MonthlyUsage
     recent: recentRows.map((r) => ({
       id: r.id,
       skillId: r.skillId,
-      skillSlug: r.skillSlug,
+      skillSlug: r.skillSlug ?? "",
       creatorHandle: r.creatorHandle,
       modelName: r.modelName,
       wasPreview: Boolean(r.wasPreview),

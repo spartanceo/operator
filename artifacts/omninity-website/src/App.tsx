@@ -55,6 +55,8 @@ const CreatorRevenuePage = lazy(() => import("@/pages/operator/creator"));
 import OnboardingPage from "@/pages/operator/onboarding";
 import MobilePage from "@/pages/mobile";
 import LegalPage from "@/pages/legal";
+const SuperAdminPage = lazy(() => import("@/pages/admin/super"));
+const EnterpriseAdminPage = lazy(() => import("@/pages/admin/enterprise"));
 import { LegalGate } from "@/components/operator/legal-gate";
 
 initApiClient();
@@ -220,9 +222,29 @@ function Router() {
   const base = getBaseUrl().replace(/\/$/, "");
   const relativePath = base && path.startsWith(base) ? path.slice(base.length) || "/" : path;
   const isMobile = relativePath === "/mobile" || relativePath.startsWith("/mobile/");
-  const isOperator = !isMobile && isOperatorPath(relativePath);
+  const isAdmin = relativePath.startsWith("/admin/");
+  const isOperator = !isMobile && !isAdmin && isOperatorPath(relativePath);
   if (isMobile) {
     return <MobilePage />;
+  }
+  if (isAdmin) {
+    return (
+      <Suspense
+        fallback={
+          <div className="grid min-h-screen w-full place-items-center bg-background text-foreground">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        }
+      >
+        <Switch>
+          <Route path="/admin/super" component={SuperAdminPage} />
+          <Route path="/admin/super/:rest*" component={SuperAdminPage} />
+          <Route path="/admin/enterprise" component={EnterpriseAdminPage} />
+          <Route path="/admin/enterprise/:rest*" component={EnterpriseAdminPage} />
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
+    );
   }
   return (
     <>

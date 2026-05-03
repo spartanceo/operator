@@ -26,6 +26,8 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AbuseReportPageResponse,
+  AbuseReportResponse,
   AcquisitionChannelResponse,
   ActivityEventListResponse,
   ActivityEventResponse,
@@ -34,11 +36,14 @@ import type {
   Admin2faSetupRequest,
   Admin2faSetupResponse,
   Admin2faVerifyResponse,
+  AdminBoolResponse,
   AgeConfirmationResponse,
   AgeConfirmationStateResponse,
   AgentRunListResponse,
   AgentRunResponse,
   ApiErrorResponse,
+  AppVersionResponse,
+  AppVersionsListResponse,
   AppendConversationMessageRequest,
   AppendConversationMessageResponse,
   ApplySkillUpdateRequest,
@@ -47,6 +52,7 @@ import type {
   ApprovalDecisionRequest,
   ApprovalListResponse,
   ApprovalResponse,
+  ApproveModerationItemBody,
   AttributeReferralRequest,
   AuditListResponse,
   AuditVerifyResponse,
@@ -57,6 +63,7 @@ import type {
   BackupJobPageResponse,
   BackupJobResponse,
   BackupSettingsResponse,
+  BanCreatorBody,
   BetaAccessResponse,
   BrowserActionResponse,
   BrowserExtractRequest,
@@ -86,6 +93,7 @@ import type {
   ConversationSearchResponse,
   CrashReportListResponse,
   CrashReportResponse,
+  CreateAbuseReportBody,
   CreateActivityEventRequest,
   CreateAgentRunRequest,
   CreateBackupRequest,
@@ -120,6 +128,7 @@ import type {
   CreatorLeaderboardResponse,
   CreatorMilestoneListResponse,
   CreatorMilestoneResponse,
+  CreatorPageResponse,
   CreatorPayoutSettingsResponse,
   CreatorProfileResponse,
   CreatorTaxDocumentListResponse,
@@ -154,15 +163,23 @@ import type {
   EmailMessageResponse,
   EmailStatusRequest,
   EnrolOutreachContactRequest,
+  EnterpriseAuditPageResponse,
+  EnterpriseOrgResponse,
+  EnterpriseSeatPageResponse,
+  EnterpriseSeatResponse,
   EnterpriseTrialInviteListResponse,
   EnterpriseTrialInviteResponse,
+  EnterpriseUsageResponse,
   ErasureRequestListResponse,
   ErasureRequestResponse,
   ExportConversationParams,
   ExportConversationsParams,
   ExportConversationsResponse,
+  ExportEnterpriseUsageCsvParams,
   ExportMemoriesParams,
   ExtractMemoriesRequest,
+  FeatureFlagResponse,
+  FeatureFlagsListResponse,
   FileDeleteRequest,
   FileDeleteResponse,
   FileListResponse,
@@ -182,6 +199,8 @@ import type {
   GetCreatorLeaderboardParams,
   GetCreatorPayoutSettingsParams,
   GetCreatorTaxFormStateParams,
+  GetCurrentAppVersionParams,
+  GetEnterpriseUsageParams,
   GetTaxRemittanceReportParams,
   GetUpdateChangelogParams,
   GetUpdateReleaseParams,
@@ -207,6 +226,7 @@ import type {
   IntegrationProviderListResponse,
   IntegrationResponse,
   InteractionListResponse,
+  InviteEnterpriseSeatBody,
   JwtIssueRequest,
   JwtPairResponse,
   JwtRevokeRequest,
@@ -228,6 +248,7 @@ import type {
   LegalAcceptanceStateResponse,
   LegalDocumentListResponse,
   LegalDocumentResponse,
+  ListAbuseReportsParams,
   ListActivityEventsParams,
   ListAgentApprovalsParams,
   ListAgentRunApprovalsParams,
@@ -243,6 +264,7 @@ import type {
   ListCrashReportsParams,
   ListCreatorMilestonesParams,
   ListCreatorTaxDocumentsParams,
+  ListCreatorsParams,
   ListDesktopSessionStepsParams,
   ListDesktopSessionsParams,
   ListDiagnosticErrorsParams,
@@ -250,6 +272,8 @@ import type {
   ListDmcaTakedownsParams,
   ListEmailDraftsParams,
   ListEmailMessagesParams,
+  ListEnterpriseAuditParams,
+  ListEnterpriseSeatsParams,
   ListErasureRequestsParams,
   ListFilesParams,
   ListFlaggedReviewsParams,
@@ -265,6 +289,7 @@ import type {
   ListMobileDevicesParams,
   ListMobileQuickTasksParams,
   ListModelsParams,
+  ListModerationQueueParams,
   ListNetworkCallsParams,
   ListNotificationsParams,
   ListOutreachEnrolmentsParams,
@@ -352,6 +377,7 @@ import type {
   ModelPullResponse,
   ModelRecommendationResponse,
   ModerateReviewRequest,
+  ModerationQueuePageResponse,
   NetworkCallListResponse,
   NetworkCallSummaryResponse,
   NotificationBulkDeleteResponse,
@@ -395,6 +421,7 @@ import type {
   PrivacySettingsResponse,
   PruneBackupsResponse,
   PublicCreatorProfileResponse,
+  PublishAppVersionBody,
   PublishSkillVersionRequest,
   PublishStoreSkillRequest,
   QueueClearRequest,
@@ -420,6 +447,9 @@ import type {
   ReferralRewardListResponse,
   RegisterPluginToolRequest,
   RegisterRequest,
+  RejectModerationItemBody,
+  RemoveStoreSkillBody,
+  ResolveAbuseReportBody,
   RestoreBackupRequest,
   RestoreBackupResponse,
   RetrieveMemoriesRequest,
@@ -448,6 +478,8 @@ import type {
   SecurityWebhookSecretsListParams,
   SelectModelRequest,
   SetAcquisitionChannelRequest,
+  SetEnterpriseWhitelistEntryBody,
+  SetFeatureFlagBody,
   SetSkillPermissionRequest,
   SetSkillTrustFlagsRequest,
   SettingsExportResponse,
@@ -509,6 +541,9 @@ import type {
   SubscriptionUsageResponse,
   SubscriptionWebhookRequest,
   SubscriptionWebhookResponse,
+  SuperAdminOverviewResponse,
+  SuperAdminRevenueResponse,
+  SuperAdminSkillAnalyticsResponse,
   SystemIntegrationFocusModeRequest,
   SystemIntegrationHotkeyConflictRequest,
   SystemIntegrationLoginItemRequest,
@@ -556,6 +591,8 @@ import type {
   UpdateContactRequest,
   UpdateConversationRequest,
   UpdateCreatorPayoutSettingsRequest,
+  UpdateEnterpriseOrgBody,
+  UpdateEnterpriseSeatBody,
   UpdateInstallAttemptListResponse,
   UpdateInstallAttemptResponse,
   UpdateInstallResultRequest,
@@ -604,6 +641,8 @@ import type {
   WebhookSubscriptionDeleteResponse,
   WebhookSubscriptionListResponse,
   WebhookSubscriptionResponse,
+  WhitelistEntryResponse,
+  WhitelistListResponse,
   WorkspaceDeleteResponse,
   WorkspaceListResponse,
   WorkspaceOverviewResponse,
@@ -929,6 +968,2557 @@ export const useEraseTenantData = <
 > => {
   return useMutation(getEraseTenantDataMutationOptions(options));
 };
+
+/**
+ * @summary Platform-wide aggregate counts (anonymised)
+ */
+export const getGetSuperAdminOverviewUrl = () => {
+  return `/api/admin/super/overview`;
+};
+
+export const getSuperAdminOverview = async (
+  options?: RequestInit,
+): Promise<SuperAdminOverviewResponse> => {
+  return customFetch<SuperAdminOverviewResponse>(
+    getGetSuperAdminOverviewUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSuperAdminOverviewQueryKey = () => {
+  return [`/api/admin/super/overview`] as const;
+};
+
+export const getGetSuperAdminOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSuperAdminOverview>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSuperAdminOverview>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSuperAdminOverviewQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSuperAdminOverview>>
+  > = ({ signal }) => getSuperAdminOverview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSuperAdminOverview>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSuperAdminOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSuperAdminOverview>>
+>;
+export type GetSuperAdminOverviewQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Platform-wide aggregate counts (anonymised)
+ */
+
+export function useGetSuperAdminOverview<
+  TData = Awaited<ReturnType<typeof getSuperAdminOverview>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSuperAdminOverview>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSuperAdminOverviewQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Revenue, MRR, platform/creator split
+ */
+export const getGetSuperAdminRevenueUrl = () => {
+  return `/api/admin/super/revenue`;
+};
+
+export const getSuperAdminRevenue = async (
+  options?: RequestInit,
+): Promise<SuperAdminRevenueResponse> => {
+  return customFetch<SuperAdminRevenueResponse>(getGetSuperAdminRevenueUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSuperAdminRevenueQueryKey = () => {
+  return [`/api/admin/super/revenue`] as const;
+};
+
+export const getGetSuperAdminRevenueQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSuperAdminRevenue>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSuperAdminRevenue>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSuperAdminRevenueQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSuperAdminRevenue>>
+  > = ({ signal }) => getSuperAdminRevenue({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSuperAdminRevenue>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSuperAdminRevenueQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSuperAdminRevenue>>
+>;
+export type GetSuperAdminRevenueQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Revenue, MRR, platform/creator split
+ */
+
+export function useGetSuperAdminRevenue<
+  TData = Awaited<ReturnType<typeof getSuperAdminRevenue>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSuperAdminRevenue>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSuperAdminRevenueQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Top skills, creators, trending categories
+ */
+export const getGetSuperAdminSkillAnalyticsUrl = () => {
+  return `/api/admin/super/skill-analytics`;
+};
+
+export const getSuperAdminSkillAnalytics = async (
+  options?: RequestInit,
+): Promise<SuperAdminSkillAnalyticsResponse> => {
+  return customFetch<SuperAdminSkillAnalyticsResponse>(
+    getGetSuperAdminSkillAnalyticsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSuperAdminSkillAnalyticsQueryKey = () => {
+  return [`/api/admin/super/skill-analytics`] as const;
+};
+
+export const getGetSuperAdminSkillAnalyticsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSuperAdminSkillAnalytics>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSuperAdminSkillAnalytics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSuperAdminSkillAnalyticsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSuperAdminSkillAnalytics>>
+  > = ({ signal }) =>
+    getSuperAdminSkillAnalytics({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSuperAdminSkillAnalytics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSuperAdminSkillAnalyticsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSuperAdminSkillAnalytics>>
+>;
+export type GetSuperAdminSkillAnalyticsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Top skills, creators, trending categories
+ */
+
+export function useGetSuperAdminSkillAnalytics<
+  TData = Awaited<ReturnType<typeof getSuperAdminSkillAnalytics>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSuperAdminSkillAnalytics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSuperAdminSkillAnalyticsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Skill submissions awaiting review
+ */
+export const getListModerationQueueUrl = (
+  params?: ListModerationQueueParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/super/moderation/queue?${stringifiedParams}`
+    : `/api/admin/super/moderation/queue`;
+};
+
+export const listModerationQueue = async (
+  params?: ListModerationQueueParams,
+  options?: RequestInit,
+): Promise<ModerationQueuePageResponse> => {
+  return customFetch<ModerationQueuePageResponse>(
+    getListModerationQueueUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListModerationQueueQueryKey = (
+  params?: ListModerationQueueParams,
+) => {
+  return [
+    `/api/admin/super/moderation/queue`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListModerationQueueQueryOptions = <
+  TData = Awaited<ReturnType<typeof listModerationQueue>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListModerationQueueParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listModerationQueue>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListModerationQueueQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listModerationQueue>>
+  > = ({ signal }) =>
+    listModerationQueue(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listModerationQueue>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListModerationQueueQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listModerationQueue>>
+>;
+export type ListModerationQueueQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Skill submissions awaiting review
+ */
+
+export function useListModerationQueue<
+  TData = Awaited<ReturnType<typeof listModerationQueue>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListModerationQueueParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listModerationQueue>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListModerationQueueQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Approve a queued skill submission
+ */
+export const getApproveModerationItemUrl = (id: string) => {
+  return `/api/admin/super/moderation/${id}/approve`;
+};
+
+export const approveModerationItem = async (
+  id: string,
+  approveModerationItemBody?: ApproveModerationItemBody,
+  options?: RequestInit,
+): Promise<AdminBoolResponse> => {
+  return customFetch<AdminBoolResponse>(getApproveModerationItemUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(approveModerationItemBody),
+  });
+};
+
+export const getApproveModerationItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveModerationItem>>,
+    TError,
+    { id: string; data: BodyType<ApproveModerationItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveModerationItem>>,
+  TError,
+  { id: string; data: BodyType<ApproveModerationItemBody> },
+  TContext
+> => {
+  const mutationKey = ["approveModerationItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveModerationItem>>,
+    { id: string; data: BodyType<ApproveModerationItemBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return approveModerationItem(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveModerationItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveModerationItem>>
+>;
+export type ApproveModerationItemMutationBody =
+  BodyType<ApproveModerationItemBody>;
+export type ApproveModerationItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Approve a queued skill submission
+ */
+export const useApproveModerationItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveModerationItem>>,
+    TError,
+    { id: string; data: BodyType<ApproveModerationItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveModerationItem>>,
+  TError,
+  { id: string; data: BodyType<ApproveModerationItemBody> },
+  TContext
+> => {
+  return useMutation(getApproveModerationItemMutationOptions(options));
+};
+
+/**
+ * @summary Reject a queued skill submission
+ */
+export const getRejectModerationItemUrl = (id: string) => {
+  return `/api/admin/super/moderation/${id}/reject`;
+};
+
+export const rejectModerationItem = async (
+  id: string,
+  rejectModerationItemBody: RejectModerationItemBody,
+  options?: RequestInit,
+): Promise<AdminBoolResponse> => {
+  return customFetch<AdminBoolResponse>(getRejectModerationItemUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(rejectModerationItemBody),
+  });
+};
+
+export const getRejectModerationItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectModerationItem>>,
+    TError,
+    { id: string; data: BodyType<RejectModerationItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rejectModerationItem>>,
+  TError,
+  { id: string; data: BodyType<RejectModerationItemBody> },
+  TContext
+> => {
+  const mutationKey = ["rejectModerationItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rejectModerationItem>>,
+    { id: string; data: BodyType<RejectModerationItemBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return rejectModerationItem(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RejectModerationItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rejectModerationItem>>
+>;
+export type RejectModerationItemMutationBody =
+  BodyType<RejectModerationItemBody>;
+export type RejectModerationItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reject a queued skill submission
+ */
+export const useRejectModerationItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectModerationItem>>,
+    TError,
+    { id: string; data: BodyType<RejectModerationItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rejectModerationItem>>,
+  TError,
+  { id: string; data: BodyType<RejectModerationItemBody> },
+  TContext
+> => {
+  return useMutation(getRejectModerationItemMutationOptions(options));
+};
+
+/**
+ * @summary Take down a published store skill
+ */
+export const getRemoveStoreSkillUrl = (id: string) => {
+  return `/api/admin/super/moderation/store/${id}/remove`;
+};
+
+export const removeStoreSkill = async (
+  id: string,
+  removeStoreSkillBody: RemoveStoreSkillBody,
+  options?: RequestInit,
+): Promise<AdminBoolResponse> => {
+  return customFetch<AdminBoolResponse>(getRemoveStoreSkillUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(removeStoreSkillBody),
+  });
+};
+
+export const getRemoveStoreSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeStoreSkill>>,
+    TError,
+    { id: string; data: BodyType<RemoveStoreSkillBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeStoreSkill>>,
+  TError,
+  { id: string; data: BodyType<RemoveStoreSkillBody> },
+  TContext
+> => {
+  const mutationKey = ["removeStoreSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeStoreSkill>>,
+    { id: string; data: BodyType<RemoveStoreSkillBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return removeStoreSkill(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveStoreSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeStoreSkill>>
+>;
+export type RemoveStoreSkillMutationBody = BodyType<RemoveStoreSkillBody>;
+export type RemoveStoreSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Take down a published store skill
+ */
+export const useRemoveStoreSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeStoreSkill>>,
+    TError,
+    { id: string; data: BodyType<RemoveStoreSkillBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeStoreSkill>>,
+  TError,
+  { id: string; data: BodyType<RemoveStoreSkillBody> },
+  TContext
+> => {
+  return useMutation(getRemoveStoreSkillMutationOptions(options));
+};
+
+/**
+ * @summary All creator accounts (paginated)
+ */
+export const getListCreatorsUrl = (params?: ListCreatorsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/super/creators?${stringifiedParams}`
+    : `/api/admin/super/creators`;
+};
+
+export const listCreators = async (
+  params?: ListCreatorsParams,
+  options?: RequestInit,
+): Promise<CreatorPageResponse> => {
+  return customFetch<CreatorPageResponse>(getListCreatorsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCreatorsQueryKey = (params?: ListCreatorsParams) => {
+  return [`/api/admin/super/creators`, ...(params ? [params] : [])] as const;
+};
+
+export const getListCreatorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCreators>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCreatorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCreators>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListCreatorsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listCreators>>> = ({
+    signal,
+  }) => listCreators(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCreators>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCreatorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCreators>>
+>;
+export type ListCreatorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary All creator accounts (paginated)
+ */
+
+export function useListCreators<
+  TData = Awaited<ReturnType<typeof listCreators>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCreatorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCreators>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCreatorsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Ban a creator account
+ */
+export const getBanCreatorUrl = (id: string) => {
+  return `/api/admin/super/creators/${id}/ban`;
+};
+
+export const banCreator = async (
+  id: string,
+  banCreatorBody: BanCreatorBody,
+  options?: RequestInit,
+): Promise<AdminBoolResponse> => {
+  return customFetch<AdminBoolResponse>(getBanCreatorUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(banCreatorBody),
+  });
+};
+
+export const getBanCreatorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof banCreator>>,
+    TError,
+    { id: string; data: BodyType<BanCreatorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof banCreator>>,
+  TError,
+  { id: string; data: BodyType<BanCreatorBody> },
+  TContext
+> => {
+  const mutationKey = ["banCreator"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof banCreator>>,
+    { id: string; data: BodyType<BanCreatorBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return banCreator(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BanCreatorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof banCreator>>
+>;
+export type BanCreatorMutationBody = BodyType<BanCreatorBody>;
+export type BanCreatorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Ban a creator account
+ */
+export const useBanCreator = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof banCreator>>,
+    TError,
+    { id: string; data: BodyType<BanCreatorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof banCreator>>,
+  TError,
+  { id: string; data: BodyType<BanCreatorBody> },
+  TContext
+> => {
+  return useMutation(getBanCreatorMutationOptions(options));
+};
+
+/**
+ * @summary List all feature flags
+ */
+export const getListFeatureFlagsUrl = () => {
+  return `/api/admin/super/feature-flags`;
+};
+
+export const listFeatureFlags = async (
+  options?: RequestInit,
+): Promise<FeatureFlagsListResponse> => {
+  return customFetch<FeatureFlagsListResponse>(getListFeatureFlagsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListFeatureFlagsQueryKey = () => {
+  return [`/api/admin/super/feature-flags`] as const;
+};
+
+export const getListFeatureFlagsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFeatureFlags>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFeatureFlags>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFeatureFlagsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listFeatureFlags>>
+  > = ({ signal }) => listFeatureFlags({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFeatureFlags>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFeatureFlagsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFeatureFlags>>
+>;
+export type ListFeatureFlagsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all feature flags
+ */
+
+export function useListFeatureFlags<
+  TData = Awaited<ReturnType<typeof listFeatureFlags>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFeatureFlags>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFeatureFlagsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update a feature flag
+ */
+export const getSetFeatureFlagUrl = (key: string) => {
+  return `/api/admin/super/feature-flags/${key}`;
+};
+
+export const setFeatureFlag = async (
+  key: string,
+  setFeatureFlagBody: SetFeatureFlagBody,
+  options?: RequestInit,
+): Promise<FeatureFlagResponse> => {
+  return customFetch<FeatureFlagResponse>(getSetFeatureFlagUrl(key), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setFeatureFlagBody),
+  });
+};
+
+export const getSetFeatureFlagMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setFeatureFlag>>,
+    TError,
+    { key: string; data: BodyType<SetFeatureFlagBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setFeatureFlag>>,
+  TError,
+  { key: string; data: BodyType<SetFeatureFlagBody> },
+  TContext
+> => {
+  const mutationKey = ["setFeatureFlag"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setFeatureFlag>>,
+    { key: string; data: BodyType<SetFeatureFlagBody> }
+  > = (props) => {
+    const { key, data } = props ?? {};
+
+    return setFeatureFlag(key, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetFeatureFlagMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setFeatureFlag>>
+>;
+export type SetFeatureFlagMutationBody = BodyType<SetFeatureFlagBody>;
+export type SetFeatureFlagMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update a feature flag
+ */
+export const useSetFeatureFlag = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setFeatureFlag>>,
+    TError,
+    { key: string; data: BodyType<SetFeatureFlagBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setFeatureFlag>>,
+  TError,
+  { key: string; data: BodyType<SetFeatureFlagBody> },
+  TContext
+> => {
+  return useMutation(getSetFeatureFlagMutationOptions(options));
+};
+
+/**
+ * @summary List recent desktop releases
+ */
+export const getListAppVersionsUrl = () => {
+  return `/api/admin/super/versions`;
+};
+
+export const listAppVersions = async (
+  options?: RequestInit,
+): Promise<AppVersionsListResponse> => {
+  return customFetch<AppVersionsListResponse>(getListAppVersionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAppVersionsQueryKey = () => {
+  return [`/api/admin/super/versions`] as const;
+};
+
+export const getListAppVersionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAppVersions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAppVersions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAppVersionsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAppVersions>>> = ({
+    signal,
+  }) => listAppVersions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAppVersions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAppVersionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAppVersions>>
+>;
+export type ListAppVersionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List recent desktop releases
+ */
+
+export function useListAppVersions<
+  TData = Awaited<ReturnType<typeof listAppVersions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAppVersions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAppVersionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Publish a new desktop release
+ */
+export const getPublishAppVersionUrl = () => {
+  return `/api/admin/super/versions`;
+};
+
+export const publishAppVersion = async (
+  publishAppVersionBody: PublishAppVersionBody,
+  options?: RequestInit,
+): Promise<AppVersionResponse> => {
+  return customFetch<AppVersionResponse>(getPublishAppVersionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(publishAppVersionBody),
+  });
+};
+
+export const getPublishAppVersionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishAppVersion>>,
+    TError,
+    { data: BodyType<PublishAppVersionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof publishAppVersion>>,
+  TError,
+  { data: BodyType<PublishAppVersionBody> },
+  TContext
+> => {
+  const mutationKey = ["publishAppVersion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof publishAppVersion>>,
+    { data: BodyType<PublishAppVersionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return publishAppVersion(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PublishAppVersionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof publishAppVersion>>
+>;
+export type PublishAppVersionMutationBody = BodyType<PublishAppVersionBody>;
+export type PublishAppVersionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Publish a new desktop release
+ */
+export const usePublishAppVersion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishAppVersion>>,
+    TError,
+    { data: BodyType<PublishAppVersionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof publishAppVersion>>,
+  TError,
+  { data: BodyType<PublishAppVersionBody> },
+  TContext
+> => {
+  return useMutation(getPublishAppVersionMutationOptions(options));
+};
+
+/**
+ * @summary Current release on a channel
+ */
+export const getGetCurrentAppVersionUrl = (
+  params?: GetCurrentAppVersionParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/super/versions/current?${stringifiedParams}`
+    : `/api/admin/super/versions/current`;
+};
+
+export const getCurrentAppVersion = async (
+  params?: GetCurrentAppVersionParams,
+  options?: RequestInit,
+): Promise<AppVersionResponse> => {
+  return customFetch<AppVersionResponse>(getGetCurrentAppVersionUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCurrentAppVersionQueryKey = (
+  params?: GetCurrentAppVersionParams,
+) => {
+  return [
+    `/api/admin/super/versions/current`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetCurrentAppVersionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCurrentAppVersion>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: GetCurrentAppVersionParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCurrentAppVersion>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCurrentAppVersionQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCurrentAppVersion>>
+  > = ({ signal }) =>
+    getCurrentAppVersion(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrentAppVersion>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCurrentAppVersionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCurrentAppVersion>>
+>;
+export type GetCurrentAppVersionQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Current release on a channel
+ */
+
+export function useGetCurrentAppVersion<
+  TData = Awaited<ReturnType<typeof getCurrentAppVersion>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: GetCurrentAppVersionParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCurrentAppVersion>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCurrentAppVersionQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Abuse reports (filterable by status)
+ */
+export const getListAbuseReportsUrl = (params?: ListAbuseReportsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/super/abuse?${stringifiedParams}`
+    : `/api/admin/super/abuse`;
+};
+
+export const listAbuseReports = async (
+  params?: ListAbuseReportsParams,
+  options?: RequestInit,
+): Promise<AbuseReportPageResponse> => {
+  return customFetch<AbuseReportPageResponse>(getListAbuseReportsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAbuseReportsQueryKey = (
+  params?: ListAbuseReportsParams,
+) => {
+  return [`/api/admin/super/abuse`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAbuseReportsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAbuseReports>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAbuseReportsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAbuseReports>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAbuseReportsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAbuseReports>>
+  > = ({ signal }) => listAbuseReports(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAbuseReports>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAbuseReportsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAbuseReports>>
+>;
+export type ListAbuseReportsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Abuse reports (filterable by status)
+ */
+
+export function useListAbuseReports<
+  TData = Awaited<ReturnType<typeof listAbuseReports>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAbuseReportsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAbuseReports>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAbuseReportsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary File an abuse report
+ */
+export const getCreateAbuseReportUrl = () => {
+  return `/api/admin/super/abuse`;
+};
+
+export const createAbuseReport = async (
+  createAbuseReportBody: CreateAbuseReportBody,
+  options?: RequestInit,
+): Promise<AbuseReportResponse> => {
+  return customFetch<AbuseReportResponse>(getCreateAbuseReportUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAbuseReportBody),
+  });
+};
+
+export const getCreateAbuseReportMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAbuseReport>>,
+    TError,
+    { data: BodyType<CreateAbuseReportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAbuseReport>>,
+  TError,
+  { data: BodyType<CreateAbuseReportBody> },
+  TContext
+> => {
+  const mutationKey = ["createAbuseReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAbuseReport>>,
+    { data: BodyType<CreateAbuseReportBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAbuseReport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAbuseReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAbuseReport>>
+>;
+export type CreateAbuseReportMutationBody = BodyType<CreateAbuseReportBody>;
+export type CreateAbuseReportMutationError = ErrorType<unknown>;
+
+/**
+ * @summary File an abuse report
+ */
+export const useCreateAbuseReport = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAbuseReport>>,
+    TError,
+    { data: BodyType<CreateAbuseReportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAbuseReport>>,
+  TError,
+  { data: BodyType<CreateAbuseReportBody> },
+  TContext
+> => {
+  return useMutation(getCreateAbuseReportMutationOptions(options));
+};
+
+/**
+ * @summary Resolve or dismiss an abuse report
+ */
+export const getResolveAbuseReportUrl = (id: string) => {
+  return `/api/admin/super/abuse/${id}/resolve`;
+};
+
+export const resolveAbuseReport = async (
+  id: string,
+  resolveAbuseReportBody: ResolveAbuseReportBody,
+  options?: RequestInit,
+): Promise<AdminBoolResponse> => {
+  return customFetch<AdminBoolResponse>(getResolveAbuseReportUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(resolveAbuseReportBody),
+  });
+};
+
+export const getResolveAbuseReportMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveAbuseReport>>,
+    TError,
+    { id: string; data: BodyType<ResolveAbuseReportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resolveAbuseReport>>,
+  TError,
+  { id: string; data: BodyType<ResolveAbuseReportBody> },
+  TContext
+> => {
+  const mutationKey = ["resolveAbuseReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resolveAbuseReport>>,
+    { id: string; data: BodyType<ResolveAbuseReportBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return resolveAbuseReport(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResolveAbuseReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resolveAbuseReport>>
+>;
+export type ResolveAbuseReportMutationBody = BodyType<ResolveAbuseReportBody>;
+export type ResolveAbuseReportMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Resolve or dismiss an abuse report
+ */
+export const useResolveAbuseReport = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveAbuseReport>>,
+    TError,
+    { id: string; data: BodyType<ResolveAbuseReportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resolveAbuseReport>>,
+  TError,
+  { id: string; data: BodyType<ResolveAbuseReportBody> },
+  TContext
+> => {
+  return useMutation(getResolveAbuseReportMutationOptions(options));
+};
+
+/**
+ * @summary Get the calling tenant's enterprise org row
+ */
+export const getGetEnterpriseOrgUrl = () => {
+  return `/api/admin/enterprise/org`;
+};
+
+export const getEnterpriseOrg = async (
+  options?: RequestInit,
+): Promise<EnterpriseOrgResponse> => {
+  return customFetch<EnterpriseOrgResponse>(getGetEnterpriseOrgUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetEnterpriseOrgQueryKey = () => {
+  return [`/api/admin/enterprise/org`] as const;
+};
+
+export const getGetEnterpriseOrgQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEnterpriseOrg>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseOrg>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetEnterpriseOrgQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getEnterpriseOrg>>
+  > = ({ signal }) => getEnterpriseOrg({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseOrg>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetEnterpriseOrgQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEnterpriseOrg>>
+>;
+export type GetEnterpriseOrgQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the calling tenant's enterprise org row
+ */
+
+export function useGetEnterpriseOrg<
+  TData = Awaited<ReturnType<typeof getEnterpriseOrg>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseOrg>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetEnterpriseOrgQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update org branding / SSO / plan
+ */
+export const getUpdateEnterpriseOrgUrl = () => {
+  return `/api/admin/enterprise/org`;
+};
+
+export const updateEnterpriseOrg = async (
+  updateEnterpriseOrgBody: UpdateEnterpriseOrgBody,
+  options?: RequestInit,
+): Promise<EnterpriseOrgResponse> => {
+  return customFetch<EnterpriseOrgResponse>(getUpdateEnterpriseOrgUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateEnterpriseOrgBody),
+  });
+};
+
+export const getUpdateEnterpriseOrgMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEnterpriseOrg>>,
+    TError,
+    { data: BodyType<UpdateEnterpriseOrgBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEnterpriseOrg>>,
+  TError,
+  { data: BodyType<UpdateEnterpriseOrgBody> },
+  TContext
+> => {
+  const mutationKey = ["updateEnterpriseOrg"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEnterpriseOrg>>,
+    { data: BodyType<UpdateEnterpriseOrgBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateEnterpriseOrg(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateEnterpriseOrgMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEnterpriseOrg>>
+>;
+export type UpdateEnterpriseOrgMutationBody = BodyType<UpdateEnterpriseOrgBody>;
+export type UpdateEnterpriseOrgMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update org branding / SSO / plan
+ */
+export const useUpdateEnterpriseOrg = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEnterpriseOrg>>,
+    TError,
+    { data: BodyType<UpdateEnterpriseOrgBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateEnterpriseOrg>>,
+  TError,
+  { data: BodyType<UpdateEnterpriseOrgBody> },
+  TContext
+> => {
+  return useMutation(getUpdateEnterpriseOrgMutationOptions(options));
+};
+
+/**
+ * @summary List seats for the calling tenant
+ */
+export const getListEnterpriseSeatsUrl = (
+  params?: ListEnterpriseSeatsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/enterprise/seats?${stringifiedParams}`
+    : `/api/admin/enterprise/seats`;
+};
+
+export const listEnterpriseSeats = async (
+  params?: ListEnterpriseSeatsParams,
+  options?: RequestInit,
+): Promise<EnterpriseSeatPageResponse> => {
+  return customFetch<EnterpriseSeatPageResponse>(
+    getListEnterpriseSeatsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListEnterpriseSeatsQueryKey = (
+  params?: ListEnterpriseSeatsParams,
+) => {
+  return [`/api/admin/enterprise/seats`, ...(params ? [params] : [])] as const;
+};
+
+export const getListEnterpriseSeatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEnterpriseSeats>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseSeatsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseSeats>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListEnterpriseSeatsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listEnterpriseSeats>>
+  > = ({ signal }) =>
+    listEnterpriseSeats(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseSeats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListEnterpriseSeatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEnterpriseSeats>>
+>;
+export type ListEnterpriseSeatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List seats for the calling tenant
+ */
+
+export function useListEnterpriseSeats<
+  TData = Awaited<ReturnType<typeof listEnterpriseSeats>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseSeatsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseSeats>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEnterpriseSeatsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Invite a new seat (returns 409 when limit exceeded)
+ */
+export const getInviteEnterpriseSeatUrl = () => {
+  return `/api/admin/enterprise/seats`;
+};
+
+export const inviteEnterpriseSeat = async (
+  inviteEnterpriseSeatBody: InviteEnterpriseSeatBody,
+  options?: RequestInit,
+): Promise<EnterpriseSeatResponse> => {
+  return customFetch<EnterpriseSeatResponse>(getInviteEnterpriseSeatUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(inviteEnterpriseSeatBody),
+  });
+};
+
+export const getInviteEnterpriseSeatMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteEnterpriseSeat>>,
+    TError,
+    { data: BodyType<InviteEnterpriseSeatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof inviteEnterpriseSeat>>,
+  TError,
+  { data: BodyType<InviteEnterpriseSeatBody> },
+  TContext
+> => {
+  const mutationKey = ["inviteEnterpriseSeat"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof inviteEnterpriseSeat>>,
+    { data: BodyType<InviteEnterpriseSeatBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return inviteEnterpriseSeat(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InviteEnterpriseSeatMutationResult = NonNullable<
+  Awaited<ReturnType<typeof inviteEnterpriseSeat>>
+>;
+export type InviteEnterpriseSeatMutationBody =
+  BodyType<InviteEnterpriseSeatBody>;
+export type InviteEnterpriseSeatMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Invite a new seat (returns 409 when limit exceeded)
+ */
+export const useInviteEnterpriseSeat = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteEnterpriseSeat>>,
+    TError,
+    { data: BodyType<InviteEnterpriseSeatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof inviteEnterpriseSeat>>,
+  TError,
+  { data: BodyType<InviteEnterpriseSeatBody> },
+  TContext
+> => {
+  return useMutation(getInviteEnterpriseSeatMutationOptions(options));
+};
+
+/**
+ * @summary Update a seat's role or status
+ */
+export const getUpdateEnterpriseSeatUrl = (id: string) => {
+  return `/api/admin/enterprise/seats/${id}`;
+};
+
+export const updateEnterpriseSeat = async (
+  id: string,
+  updateEnterpriseSeatBody: UpdateEnterpriseSeatBody,
+  options?: RequestInit,
+): Promise<EnterpriseSeatResponse> => {
+  return customFetch<EnterpriseSeatResponse>(getUpdateEnterpriseSeatUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateEnterpriseSeatBody),
+  });
+};
+
+export const getUpdateEnterpriseSeatMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEnterpriseSeat>>,
+    TError,
+    { id: string; data: BodyType<UpdateEnterpriseSeatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEnterpriseSeat>>,
+  TError,
+  { id: string; data: BodyType<UpdateEnterpriseSeatBody> },
+  TContext
+> => {
+  const mutationKey = ["updateEnterpriseSeat"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEnterpriseSeat>>,
+    { id: string; data: BodyType<UpdateEnterpriseSeatBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateEnterpriseSeat(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateEnterpriseSeatMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEnterpriseSeat>>
+>;
+export type UpdateEnterpriseSeatMutationBody =
+  BodyType<UpdateEnterpriseSeatBody>;
+export type UpdateEnterpriseSeatMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a seat's role or status
+ */
+export const useUpdateEnterpriseSeat = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEnterpriseSeat>>,
+    TError,
+    { id: string; data: BodyType<UpdateEnterpriseSeatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateEnterpriseSeat>>,
+  TError,
+  { id: string; data: BodyType<UpdateEnterpriseSeatBody> },
+  TContext
+> => {
+  return useMutation(getUpdateEnterpriseSeatMutationOptions(options));
+};
+
+/**
+ * @summary Remove a seat
+ */
+export const getRemoveEnterpriseSeatUrl = (id: string) => {
+  return `/api/admin/enterprise/seats/${id}`;
+};
+
+export const removeEnterpriseSeat = async (
+  id: string,
+  options?: RequestInit,
+): Promise<AdminBoolResponse> => {
+  return customFetch<AdminBoolResponse>(getRemoveEnterpriseSeatUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getRemoveEnterpriseSeatMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeEnterpriseSeat>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeEnterpriseSeat>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["removeEnterpriseSeat"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeEnterpriseSeat>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return removeEnterpriseSeat(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveEnterpriseSeatMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeEnterpriseSeat>>
+>;
+
+export type RemoveEnterpriseSeatMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a seat
+ */
+export const useRemoveEnterpriseSeat = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeEnterpriseSeat>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeEnterpriseSeat>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getRemoveEnterpriseSeatMutationOptions(options));
+};
+
+/**
+ * @summary Get the org's skill whitelist
+ */
+export const getGetEnterpriseWhitelistUrl = () => {
+  return `/api/admin/enterprise/whitelist`;
+};
+
+export const getEnterpriseWhitelist = async (
+  options?: RequestInit,
+): Promise<WhitelistListResponse> => {
+  return customFetch<WhitelistListResponse>(getGetEnterpriseWhitelistUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetEnterpriseWhitelistQueryKey = () => {
+  return [`/api/admin/enterprise/whitelist`] as const;
+};
+
+export const getGetEnterpriseWhitelistQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEnterpriseWhitelist>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseWhitelist>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetEnterpriseWhitelistQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getEnterpriseWhitelist>>
+  > = ({ signal }) => getEnterpriseWhitelist({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseWhitelist>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetEnterpriseWhitelistQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEnterpriseWhitelist>>
+>;
+export type GetEnterpriseWhitelistQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the org's skill whitelist
+ */
+
+export function useGetEnterpriseWhitelist<
+  TData = Awaited<ReturnType<typeof getEnterpriseWhitelist>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseWhitelist>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetEnterpriseWhitelistQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Allow / block a skill for the org
+ */
+export const getSetEnterpriseWhitelistEntryUrl = (slug: string) => {
+  return `/api/admin/enterprise/whitelist/${slug}`;
+};
+
+export const setEnterpriseWhitelistEntry = async (
+  slug: string,
+  setEnterpriseWhitelistEntryBody: SetEnterpriseWhitelistEntryBody,
+  options?: RequestInit,
+): Promise<WhitelistEntryResponse> => {
+  return customFetch<WhitelistEntryResponse>(
+    getSetEnterpriseWhitelistEntryUrl(slug),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(setEnterpriseWhitelistEntryBody),
+    },
+  );
+};
+
+export const getSetEnterpriseWhitelistEntryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setEnterpriseWhitelistEntry>>,
+    TError,
+    { slug: string; data: BodyType<SetEnterpriseWhitelistEntryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setEnterpriseWhitelistEntry>>,
+  TError,
+  { slug: string; data: BodyType<SetEnterpriseWhitelistEntryBody> },
+  TContext
+> => {
+  const mutationKey = ["setEnterpriseWhitelistEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setEnterpriseWhitelistEntry>>,
+    { slug: string; data: BodyType<SetEnterpriseWhitelistEntryBody> }
+  > = (props) => {
+    const { slug, data } = props ?? {};
+
+    return setEnterpriseWhitelistEntry(slug, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetEnterpriseWhitelistEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setEnterpriseWhitelistEntry>>
+>;
+export type SetEnterpriseWhitelistEntryMutationBody =
+  BodyType<SetEnterpriseWhitelistEntryBody>;
+export type SetEnterpriseWhitelistEntryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Allow / block a skill for the org
+ */
+export const useSetEnterpriseWhitelistEntry = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setEnterpriseWhitelistEntry>>,
+    TError,
+    { slug: string; data: BodyType<SetEnterpriseWhitelistEntryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setEnterpriseWhitelistEntry>>,
+  TError,
+  { slug: string; data: BodyType<SetEnterpriseWhitelistEntryBody> },
+  TContext
+> => {
+  return useMutation(getSetEnterpriseWhitelistEntryMutationOptions(options));
+};
+
+/**
+ * @summary List org audit-log entries
+ */
+export const getListEnterpriseAuditUrl = (
+  params?: ListEnterpriseAuditParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/enterprise/audit?${stringifiedParams}`
+    : `/api/admin/enterprise/audit`;
+};
+
+export const listEnterpriseAudit = async (
+  params?: ListEnterpriseAuditParams,
+  options?: RequestInit,
+): Promise<EnterpriseAuditPageResponse> => {
+  return customFetch<EnterpriseAuditPageResponse>(
+    getListEnterpriseAuditUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListEnterpriseAuditQueryKey = (
+  params?: ListEnterpriseAuditParams,
+) => {
+  return [`/api/admin/enterprise/audit`, ...(params ? [params] : [])] as const;
+};
+
+export const getListEnterpriseAuditQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEnterpriseAudit>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseAuditParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListEnterpriseAuditQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listEnterpriseAudit>>
+  > = ({ signal }) =>
+    listEnterpriseAudit(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseAudit>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListEnterpriseAuditQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEnterpriseAudit>>
+>;
+export type ListEnterpriseAuditQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List org audit-log entries
+ */
+
+export function useListEnterpriseAudit<
+  TData = Awaited<ReturnType<typeof listEnterpriseAudit>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseAuditParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEnterpriseAuditQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download the audit log as CSV
+ */
+export const getExportEnterpriseAuditCsvUrl = () => {
+  return `/api/admin/enterprise/audit/export.csv`;
+};
+
+export const exportEnterpriseAuditCsv = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getExportEnterpriseAuditCsvUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportEnterpriseAuditCsvQueryKey = () => {
+  return [`/api/admin/enterprise/audit/export.csv`] as const;
+};
+
+export const getExportEnterpriseAuditCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportEnterpriseAuditCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportEnterpriseAuditCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getExportEnterpriseAuditCsvQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportEnterpriseAuditCsv>>
+  > = ({ signal }) => exportEnterpriseAuditCsv({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportEnterpriseAuditCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportEnterpriseAuditCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportEnterpriseAuditCsv>>
+>;
+export type ExportEnterpriseAuditCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download the audit log as CSV
+ */
+
+export function useExportEnterpriseAuditCsv<
+  TData = Awaited<ReturnType<typeof exportEnterpriseAuditCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportEnterpriseAuditCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportEnterpriseAuditCsvQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Anonymised tenant usage report
+ */
+export const getGetEnterpriseUsageUrl = (params?: GetEnterpriseUsageParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/enterprise/usage?${stringifiedParams}`
+    : `/api/admin/enterprise/usage`;
+};
+
+export const getEnterpriseUsage = async (
+  params?: GetEnterpriseUsageParams,
+  options?: RequestInit,
+): Promise<EnterpriseUsageResponse> => {
+  return customFetch<EnterpriseUsageResponse>(
+    getGetEnterpriseUsageUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetEnterpriseUsageQueryKey = (
+  params?: GetEnterpriseUsageParams,
+) => {
+  return [`/api/admin/enterprise/usage`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetEnterpriseUsageQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEnterpriseUsage>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetEnterpriseUsageParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getEnterpriseUsage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetEnterpriseUsageQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getEnterpriseUsage>>
+  > = ({ signal }) => getEnterpriseUsage(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseUsage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetEnterpriseUsageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEnterpriseUsage>>
+>;
+export type GetEnterpriseUsageQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Anonymised tenant usage report
+ */
+
+export function useGetEnterpriseUsage<
+  TData = Awaited<ReturnType<typeof getEnterpriseUsage>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetEnterpriseUsageParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getEnterpriseUsage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetEnterpriseUsageQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download the usage report as CSV
+ */
+export const getExportEnterpriseUsageCsvUrl = (
+  params?: ExportEnterpriseUsageCsvParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/enterprise/usage/export.csv?${stringifiedParams}`
+    : `/api/admin/enterprise/usage/export.csv`;
+};
+
+export const exportEnterpriseUsageCsv = async (
+  params?: ExportEnterpriseUsageCsvParams,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getExportEnterpriseUsageCsvUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportEnterpriseUsageCsvQueryKey = (
+  params?: ExportEnterpriseUsageCsvParams,
+) => {
+  return [
+    `/api/admin/enterprise/usage/export.csv`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getExportEnterpriseUsageCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportEnterpriseUsageCsv>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ExportEnterpriseUsageCsvParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportEnterpriseUsageCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getExportEnterpriseUsageCsvQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportEnterpriseUsageCsv>>
+  > = ({ signal }) =>
+    exportEnterpriseUsageCsv(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportEnterpriseUsageCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportEnterpriseUsageCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportEnterpriseUsageCsv>>
+>;
+export type ExportEnterpriseUsageCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download the usage report as CSV
+ */
+
+export function useExportEnterpriseUsageCsv<
+  TData = Awaited<ReturnType<typeof exportEnterpriseUsageCsv>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ExportEnterpriseUsageCsvParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportEnterpriseUsageCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportEnterpriseUsageCsvQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Bootstrap a new tenant + owner user

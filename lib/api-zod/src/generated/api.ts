@@ -96,6 +96,799 @@ export const EraseTenantDataResponse = zod.object({
 });
 
 /**
+ * @summary Platform-wide aggregate counts (anonymised)
+ */
+export const GetSuperAdminOverviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    totalInstalls: zod.number(),
+    totalUsers: zod.number(),
+    enterpriseOrgs: zod.number(),
+    paidSubscribers: zod.number(),
+    dailyActiveUsers: zod.number(),
+    weeklyActiveUsers: zod.number(),
+    monthlyActiveUsers: zod.number(),
+    churnRate: zod.number(),
+    conversationsThisMonth: zod.number(),
+    agentRunsThisMonth: zod.number(),
+    growthSeries: zod.array(
+      zod.object({
+        date: zod.string(),
+        installs: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Revenue, MRR, platform/creator split
+ */
+export const GetSuperAdminRevenueResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    totalSubscribers: zod.number(),
+    monthlyRecurringCents: zod.number(),
+    platformCutCents: zod.number(),
+    creatorPoolCents: zod.number(),
+    pendingPayoutCents: zod.number(),
+    stripePayoutStatus: zod.string(),
+    recentInvoices: zod.array(
+      zod.object({
+        id: zod.string(),
+        tenantId: zod.string(),
+        amountCents: zod.number(),
+        status: zod.string(),
+        createdAt: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Top skills, creators, trending categories
+ */
+export const GetSuperAdminSkillAnalyticsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    topInstalled: zod.array(
+      zod.object({
+        slug: zod.string(),
+        name: zod.string(),
+        installs: zod.number(),
+      }),
+    ),
+    topEarning: zod.array(
+      zod.object({
+        creatorHandle: zod.string(),
+        usage: zod.number(),
+      }),
+    ),
+    trendingCategories: zod.array(
+      zod.object({
+        category: zod.string(),
+        installs: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Skill submissions awaiting review
+ */
+export const listModerationQueueQueryLimitDefault = 20;
+export const listModerationQueueQueryLimitMax = 100;
+
+export const ListModerationQueueQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listModerationQueueQueryLimitMax)
+    .default(listModerationQueueQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListModerationQueueResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        description: zod.string(),
+        category: zod.string(),
+        status: zod.string(),
+        createdAt: zod.string(),
+        updatedAt: zod.string(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Approve a queued skill submission
+ */
+export const ApproveModerationItemParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ApproveModerationItemBody = zod.object({
+  notes: zod.string().optional(),
+});
+
+export const ApproveModerationItemResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Reject a queued skill submission
+ */
+export const RejectModerationItemParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RejectModerationItemBody = zod.object({
+  reason: zod.string(),
+});
+
+export const RejectModerationItemResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Take down a published store skill
+ */
+export const RemoveStoreSkillParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RemoveStoreSkillBody = zod.object({
+  reason: zod.string(),
+});
+
+export const RemoveStoreSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary All creator accounts (paginated)
+ */
+export const listCreatorsQueryLimitDefault = 20;
+export const listCreatorsQueryLimitMax = 100;
+
+export const ListCreatorsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listCreatorsQueryLimitMax)
+    .default(listCreatorsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListCreatorsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        handle: zod.string(),
+        displayName: zod.string(),
+        verified: zod.boolean(),
+        banned: zod.boolean(),
+        createdAt: zod.string(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Ban a creator account
+ */
+export const BanCreatorParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const BanCreatorBody = zod.object({
+  reason: zod.string(),
+});
+
+export const BanCreatorResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary List all feature flags
+ */
+export const ListFeatureFlagsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        flagKey: zod.string(),
+        enabled: zod.boolean(),
+        segment: zod.string(),
+        description: zod.string(),
+        rolloutPercent: zod.number(),
+        updatedAt: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Create or update a feature flag
+ */
+export const SetFeatureFlagParams = zod.object({
+  key: zod.coerce.string(),
+});
+
+export const setFeatureFlagBodyRolloutPercentMin = 0;
+export const setFeatureFlagBodyRolloutPercentMax = 100;
+
+export const SetFeatureFlagBody = zod.object({
+  enabled: zod.boolean(),
+  segment: zod.string().optional(),
+  description: zod.string().optional(),
+  rolloutPercent: zod
+    .number()
+    .min(setFeatureFlagBodyRolloutPercentMin)
+    .max(setFeatureFlagBodyRolloutPercentMax)
+    .optional(),
+});
+
+export const SetFeatureFlagResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    flagKey: zod.string(),
+    enabled: zod.boolean(),
+    segment: zod.string(),
+    description: zod.string(),
+    rolloutPercent: zod.number(),
+    updatedAt: zod.string(),
+  }),
+});
+
+/**
+ * @summary List recent desktop releases
+ */
+export const ListAppVersionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        versionString: zod.string(),
+        channel: zod.string(),
+        isCurrent: zod.boolean(),
+        isMinRequired: zod.boolean(),
+        notes: zod.string(),
+        releasedAt: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Publish a new desktop release
+ */
+export const PublishAppVersionBody = zod.object({
+  versionString: zod.string(),
+  channel: zod.string().optional(),
+  isCurrent: zod.boolean().optional(),
+  isMinRequired: zod.boolean().optional(),
+  notes: zod.string().optional(),
+});
+
+export const PublishAppVersionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    versionString: zod.string(),
+    channel: zod.string(),
+    isCurrent: zod.boolean(),
+    isMinRequired: zod.boolean(),
+    notes: zod.string(),
+    releasedAt: zod.string(),
+  }),
+});
+
+/**
+ * @summary Current release on a channel
+ */
+export const getCurrentAppVersionQueryChannelDefault = `stable`;
+
+export const GetCurrentAppVersionQueryParams = zod.object({
+  channel: zod.coerce.string().default(getCurrentAppVersionQueryChannelDefault),
+});
+
+export const GetCurrentAppVersionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    versionString: zod.string(),
+    channel: zod.string(),
+    isCurrent: zod.boolean(),
+    isMinRequired: zod.boolean(),
+    notes: zod.string(),
+    releasedAt: zod.string(),
+  }),
+});
+
+/**
+ * @summary Abuse reports (filterable by status)
+ */
+export const listAbuseReportsQueryLimitDefault = 20;
+export const listAbuseReportsQueryLimitMax = 100;
+
+export const ListAbuseReportsQueryParams = zod.object({
+  status: zod.enum(["open", "resolved", "dismissed"]).optional(),
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listAbuseReportsQueryLimitMax)
+    .default(listAbuseReportsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListAbuseReportsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        targetType: zod.string(),
+        targetId: zod.string(),
+        targetLabel: zod.string(),
+        reason: zod.string(),
+        severity: zod.string(),
+        status: zod.string(),
+        reporterLabel: zod.string(),
+        resolutionNotes: zod.string(),
+        createdAt: zod.string(),
+        updatedAt: zod.string(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary File an abuse report
+ */
+export const CreateAbuseReportBody = zod.object({
+  targetType: zod.string(),
+  targetId: zod.string(),
+  targetLabel: zod.string().optional(),
+  reason: zod.string(),
+  severity: zod.string().optional(),
+  reporterLabel: zod.string().optional(),
+});
+
+export const CreateAbuseReportResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    targetType: zod.string(),
+    targetId: zod.string(),
+    targetLabel: zod.string(),
+    reason: zod.string(),
+    severity: zod.string(),
+    status: zod.string(),
+    reporterLabel: zod.string(),
+    resolutionNotes: zod.string(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+  }),
+});
+
+/**
+ * @summary Resolve or dismiss an abuse report
+ */
+export const ResolveAbuseReportParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ResolveAbuseReportBody = zod.object({
+  status: zod.enum(["resolved", "dismissed"]).optional(),
+  notes: zod.string().optional(),
+});
+
+export const ResolveAbuseReportResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Get the calling tenant's enterprise org row
+ */
+export const GetEnterpriseOrgHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetEnterpriseOrgResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    logoUrl: zod.string().nullish(),
+    primaryColor: zod.string(),
+    plan: zod.string(),
+    seatLimit: zod.number(),
+    airGapped: zod.boolean(),
+    ssoProvider: zod.string().nullish(),
+    ssoDomain: zod.string().nullish(),
+    stripeCustomerId: zod.string().nullish(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+  }),
+});
+
+/**
+ * @summary Update org branding / SSO / plan
+ */
+export const UpdateEnterpriseOrgHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateEnterpriseOrgBody = zod.object({
+  name: zod.string().optional(),
+  logoUrl: zod.string().nullish(),
+  primaryColor: zod.string().optional(),
+  plan: zod.string().optional(),
+  seatLimit: zod.number().optional(),
+  airGapped: zod.boolean().optional(),
+  ssoProvider: zod.string().nullish(),
+  ssoDomain: zod.string().nullish(),
+});
+
+export const UpdateEnterpriseOrgResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    logoUrl: zod.string().nullish(),
+    primaryColor: zod.string(),
+    plan: zod.string(),
+    seatLimit: zod.number(),
+    airGapped: zod.boolean(),
+    ssoProvider: zod.string().nullish(),
+    ssoDomain: zod.string().nullish(),
+    stripeCustomerId: zod.string().nullish(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+  }),
+});
+
+/**
+ * @summary List seats for the calling tenant
+ */
+export const listEnterpriseSeatsQueryLimitDefault = 20;
+export const listEnterpriseSeatsQueryLimitMax = 100;
+
+export const ListEnterpriseSeatsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listEnterpriseSeatsQueryLimitMax)
+    .default(listEnterpriseSeatsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListEnterpriseSeatsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListEnterpriseSeatsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        email: zod.string(),
+        displayName: zod.string(),
+        role: zod.string(),
+        status: zod.string(),
+        invitedAt: zod.string(),
+        lastActiveAt: zod.string().nullish(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Invite a new seat (returns 409 when limit exceeded)
+ */
+export const InviteEnterpriseSeatHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const InviteEnterpriseSeatBody = zod.object({
+  email: zod.string(),
+  displayName: zod.string().optional(),
+  role: zod.enum(["admin", "standard", "readonly"]).optional(),
+});
+
+export const InviteEnterpriseSeatResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    email: zod.string(),
+    displayName: zod.string(),
+    role: zod.string(),
+    status: zod.string(),
+    invitedAt: zod.string(),
+    lastActiveAt: zod.string().nullish(),
+  }),
+});
+
+/**
+ * @summary Update a seat's role or status
+ */
+export const UpdateEnterpriseSeatParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateEnterpriseSeatHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateEnterpriseSeatBody = zod.object({
+  role: zod.string().optional(),
+  status: zod.string().optional(),
+  displayName: zod.string().optional(),
+});
+
+export const UpdateEnterpriseSeatResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    email: zod.string(),
+    displayName: zod.string(),
+    role: zod.string(),
+    status: zod.string(),
+    invitedAt: zod.string(),
+    lastActiveAt: zod.string().nullish(),
+  }),
+});
+
+/**
+ * @summary Remove a seat
+ */
+export const RemoveEnterpriseSeatParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RemoveEnterpriseSeatHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RemoveEnterpriseSeatResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Get the org's skill whitelist
+ */
+export const GetEnterpriseWhitelistHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetEnterpriseWhitelistResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        skillSlug: zod.string(),
+        skillName: zod.string(),
+        allowed: zod.boolean(),
+        updatedAt: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Allow / block a skill for the org
+ */
+export const SetEnterpriseWhitelistEntryParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const SetEnterpriseWhitelistEntryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetEnterpriseWhitelistEntryBody = zod.object({
+  allowed: zod.boolean(),
+  skillName: zod.string().optional(),
+});
+
+export const SetEnterpriseWhitelistEntryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skillSlug: zod.string(),
+    skillName: zod.string(),
+    allowed: zod.boolean(),
+    updatedAt: zod.string(),
+  }),
+});
+
+/**
+ * @summary List org audit-log entries
+ */
+export const listEnterpriseAuditQueryLimitDefault = 20;
+export const listEnterpriseAuditQueryLimitMax = 100;
+
+export const ListEnterpriseAuditQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listEnterpriseAuditQueryLimitMax)
+    .default(listEnterpriseAuditQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListEnterpriseAuditHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListEnterpriseAuditResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        sequence: zod.number(),
+        actor: zod.string(),
+        action: zod.string(),
+        resourceType: zod.string(),
+        resourceId: zod.string().nullish(),
+        summary: zod.string(),
+        previousHash: zod.string().nullish(),
+        entryHash: zod.string().optional(),
+        createdAt: zod.string(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Download the audit log as CSV
+ */
+export const ExportEnterpriseAuditCsvHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+/**
+ * @summary Anonymised tenant usage report
+ */
+export const getEnterpriseUsageQueryDaysMax = 180;
+
+export const GetEnterpriseUsageQueryParams = zod.object({
+  days: zod.coerce
+    .number()
+    .min(1)
+    .max(getEnterpriseUsageQueryDaysMax)
+    .optional(),
+});
+
+export const GetEnterpriseUsageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetEnterpriseUsageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    rangeDays: zod.number(),
+    tasksAutomated: zod.number(),
+    conversationsStarted: zod.number(),
+    estimatedTimeSavedMinutes: zod.number(),
+    topSkills: zod.array(
+      zod.object({
+        slug: zod.string(),
+        name: zod.string(),
+        runs: zod.number(),
+      }),
+    ),
+    perDay: zod.array(
+      zod.object({
+        date: zod.string(),
+        runs: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Download the usage report as CSV
+ */
+export const ExportEnterpriseUsageCsvQueryParams = zod.object({
+  days: zod.coerce.number().optional(),
+});
+
+export const ExportEnterpriseUsageCsvHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+/**
  * @summary Bootstrap a new tenant + owner user
  */
 export const RegisterUserHeader = zod.object({
