@@ -21,6 +21,8 @@ import {
 } from "@workspace/db";
 import type { TenantContext } from "@workspace/types";
 
+import { emitOpEvent } from "../lib/event-bus";
+
 export interface ApprovalRow {
   id: string;
   runId: string;
@@ -78,6 +80,12 @@ export async function createApproval(
   );
   const row = await getApproval(ctx, id);
   if (!row) throw new Error("Approval missing immediately after insert");
+  emitOpEvent(ctx, "approval_requested", {
+    id: row.id,
+    runId: row.runId,
+    toolCallId: row.toolCallId,
+    summary: row.summary,
+  });
   return row;
 }
 
@@ -203,5 +211,11 @@ export async function decideApproval(
     .update(toolCalls)
     .set({ status: newToolStatus, updatedAt: now })
     .where(and(tenantScope(ctx, toolCalls), eq(toolCalls.id, existing.toolCallId)));
+  emitOpEvent(ctx, "approval_resolved", {
+    id: existing.id,
+    runId: existing.runId,
+    toolCallId: existing.toolCallId,
+    decision: input.decision,
+  });
   return getApproval(ctx, id);
 }

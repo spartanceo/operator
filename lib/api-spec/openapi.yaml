@@ -70,6 +70,12 @@ tags:
     description: Reusable task templates — save / browse / run / export parameterised prompts and quick-launch pins (Task #46)
   - name: schedules
     description: Scheduled & recurring tasks (Task #45 — cron-driven autonomous task runs, NL parser, schedule history, global pause)
+  - name: plugins
+    description: Developer SDK — register custom tools that integrate with the agent loop (Task #14)
+  - name: webhooks
+    description: Developer SDK — outbound webhook subscriptions for the local event bus (Task #14)
+  - name: events
+    description: Developer SDK — recent in-process events for polling clients (Task #14)
 paths:
   /healthz:
     get:
@@ -7306,6 +7312,230 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WaitlistStatsResponse'
+  /plugins/tools:
+    get:
+      operationId: listPluginTools
+      tags: [plugins]
+      summary: List developer-registered plugin tools
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Plugin tools list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginToolListResponse'
+    post:
+      operationId: registerPluginTool
+      tags: [plugins]
+      summary: Register a new plugin tool (loopback invokeUrl only)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPluginToolRequest'
+      responses:
+        '200':
+          description: Plugin tool registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginToolResponse'
+  /plugins/tools/{id}:
+    get:
+      operationId: getPluginTool
+      tags: [plugins]
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Plugin tool detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginToolResponse'
+    patch:
+      operationId: updatePluginTool
+      tags: [plugins]
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePluginToolRequest'
+      responses:
+        '200':
+          description: Plugin tool updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginToolResponse'
+    delete:
+      operationId: deletePluginTool
+      tags: [plugins]
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Plugin tool deleted (idempotent)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginToolDeleteResponse'
+  /plugins/tools/{id}/invoke:
+    post:
+      operationId: invokePluginTool
+      tags: [plugins]
+      summary: Invoke a registered plugin tool — proxies to its loopback sidecar
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PluginInvokeRequest'
+      responses:
+        '200':
+          description: Invocation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginInvokeResponse'
+  /webhooks/subscriptions:
+    get:
+      operationId: listWebhookSubscriptions
+      tags: [webhooks]
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Webhook subscriptions list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSubscriptionListResponse'
+    post:
+      operationId: createWebhookSubscription
+      tags: [webhooks]
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSubscriptionResponse'
+  /webhooks/subscriptions/{id}:
+    get:
+      operationId: getWebhookSubscription
+      tags: [webhooks]
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Subscription detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSubscriptionResponse'
+    patch:
+      operationId: updateWebhookSubscription
+      tags: [webhooks]
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSubscriptionResponse'
+    delete:
+      operationId: deleteWebhookSubscription
+      tags: [webhooks]
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Subscription deleted (idempotent)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSubscriptionDeleteResponse'
+  /events/recent:
+    get:
+      operationId: listRecentEvents
+      tags: [events]
+      summary: Recent in-process events for the calling tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: afterId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: type
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Recent events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpEventListResponse'
 components:
   parameters:
     TenantHeader:
@@ -17943,6 +18173,214 @@ components:
             stats:
               type: array
               items: { $ref: '#/components/schemas/WaitlistFeatureStat' }
+    PluginTool:
+      type: object
+      required: [id, name, description, riskLevel, inputSchema, invokeUrl, enabled, createdAt, updatedAt, version]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        inputSchema:
+          type: object
+          additionalProperties: true
+        invokeUrl: { type: string }
+        enabled: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer }
+    PluginToolList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/PluginTool' }
+    PluginToolListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/PluginToolList' }
+    PluginToolResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/PluginTool' }
+    PluginToolDeleteResult:
+      type: object
+      required: [id, deleted]
+      properties:
+        id: { type: string }
+        deleted: { type: boolean }
+    PluginToolDeleteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/PluginToolDeleteResult' }
+    RegisterPluginToolRequest:
+      type: object
+      required: [name, invokeUrl]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        description: { type: string, maxLength: 2000 }
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        inputSchema:
+          type: object
+          additionalProperties: true
+        invokeUrl: { type: string, description: "Loopback URL the agent server posts inputs to (http://localhost:...)" }
+        authToken: { type: string, description: "Optional bearer token forwarded as Authorization header" }
+    UpdatePluginToolRequest:
+      type: object
+      properties:
+        description: { type: string, maxLength: 2000 }
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        inputSchema:
+          type: object
+          additionalProperties: true
+        invokeUrl: { type: string }
+        authToken:
+          type: string
+          nullable: true
+        enabled: { type: boolean }
+    PluginInvokeRequest:
+      type: object
+      required: [input]
+      properties:
+        input:
+          type: object
+          additionalProperties: true
+    PluginInvokeResult:
+      type: object
+      required: [toolName, output, durationMs]
+      properties:
+        toolName: { type: string }
+        output:
+          type: object
+          additionalProperties: true
+        durationMs: { type: integer }
+    PluginInvokeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/PluginInvokeResult' }
+    WebhookSubscription:
+      type: object
+      required: [id, url, label, eventTypes, enabled, hasSecret, failureCount, createdAt, updatedAt, version]
+      properties:
+        id: { type: string }
+        url: { type: string }
+        label: { type: string }
+        eventTypes:
+          type: array
+          items: { type: string }
+        enabled: { type: boolean }
+        hasSecret: { type: boolean }
+        lastDeliveryAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastDeliveryStatus:
+          type: integer
+          nullable: true
+        failureCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer }
+    WebhookSubscriptionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/WebhookSubscription' }
+    WebhookSubscriptionListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/WebhookSubscriptionList' }
+    WebhookSubscriptionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/WebhookSubscription' }
+    WebhookSubscriptionDeleteResult:
+      type: object
+      required: [id, deleted]
+      properties:
+        id: { type: string }
+        deleted: { type: boolean }
+    WebhookSubscriptionDeleteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/WebhookSubscriptionDeleteResult' }
+    CreateWebhookSubscriptionRequest:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, description: "Loopback URL — http(s)://localhost..." }
+        label: { type: string, maxLength: 200 }
+        eventTypes:
+          type: array
+          maxItems: 64
+          items: { type: string }
+        secret:
+          type: string
+          minLength: 8
+          maxLength: 512
+    UpdateWebhookSubscriptionRequest:
+      type: object
+      properties:
+        url: { type: string }
+        label: { type: string, maxLength: 200 }
+        eventTypes:
+          type: array
+          maxItems: 64
+          items: { type: string }
+        enabled: { type: boolean }
+        secret:
+          type: string
+          nullable: true
+          minLength: 8
+          maxLength: 512
+    OpEvent:
+      type: object
+      required: [id, type, tenantId, workspaceId, timestamp, data]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        tenantId: { type: string }
+        workspaceId: { type: string }
+        timestamp: { type: string, format: date-time }
+        data:
+          type: object
+          additionalProperties: true
+    OpEventList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OpEvent' }
+    OpEventListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/OpEventList' }
   responses: {}
   requestBodies: {}
   headers: {}

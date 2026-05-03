@@ -36,6 +36,7 @@ import {
 } from "@workspace/db";
 import type { TenantContext } from "@workspace/types";
 
+import { emitOpEvent } from "../lib/event-bus";
 import { logger } from "../lib/logger";
 import { invokeTool, getToolByName } from "./tools.service";
 import { listMemories } from "./memory.service";
@@ -345,6 +346,13 @@ export async function createAgentRun(
     }),
   );
 
+  emitOpEvent(ctx, "task_started", {
+    runId: id,
+    goal: input.goal,
+    skill: activeSkill?.slug ?? null,
+    route,
+  });
+
   await db.insert(messagesTable).values(
     withTenantValues(ctx, {
       id: `msg_${nanoid()}`,
@@ -491,6 +499,11 @@ export async function createAgentRun(
   });
 
   if (activeSkill) {
+    emitOpEvent(ctx, "skill_invoked", {
+      runId: id,
+      skillId: activeSkill.id,
+      slug: activeSkill.slug,
+    });
     // Structured invocation receipt: which skill, which model, which tools,
     // and whether approval was triggered. The detail field is a query-friendly
     // single-line key=value list so it can be filtered from the privacy log.
@@ -523,6 +536,13 @@ export async function createAgentRun(
   if (!final) throw new Error("Agent run vanished after creation");
   // startedAt is informational only; surface it so callers don't have to subtract.
   void startedAt;
+  emitOpEvent(ctx, verdict.ok ? "task_completed" : "task_failed", {
+    runId: id,
+    goal: input.goal,
+    summary: verdict.summary,
+    skill: activeSkill?.slug ?? null,
+    durationMs: completedAt - startedAt,
+  });
   return final;
 }
 

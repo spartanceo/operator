@@ -1,0 +1,24 @@
+{
+  "name": "@omninity/sdk-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "`op` — local CLI for the Omninity Operator (skills, runs, plugins).",
+  "type": "module",
+  "bin": {
+    "op": "./src/bin.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "op": "tsx ./src/bin.ts",
+    "test": "tsx ./src/cli.test.ts"
+  },
+  "dependencies": {
+    "@omninity/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}

@@ -667,6 +667,28 @@ importers:
         specifier: 'catalog:'
         version: 4.21.0
 
+  lib/sdk:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+
+  lib/sdk-cli:
+    dependencies:
+      '@omninity/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+
   lib/types:
     devDependencies:
       '@types/node':

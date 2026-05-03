@@ -5972,6 +5972,211 @@ export interface WaitlistStatsResponse {
   data: WaitlistStatsResponseData;
 }
 
+export type PluginToolRiskLevel =
+  (typeof PluginToolRiskLevel)[keyof typeof PluginToolRiskLevel];
+
+export const PluginToolRiskLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export type PluginToolInputSchema = { [key: string]: unknown };
+
+export interface PluginTool {
+  id: string;
+  name: string;
+  description: string;
+  riskLevel: PluginToolRiskLevel;
+  inputSchema: PluginToolInputSchema;
+  invokeUrl: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+}
+
+export interface PluginToolList {
+  items: PluginTool[];
+}
+
+export interface PluginToolListResponse {
+  success: boolean;
+  data: PluginToolList;
+}
+
+export interface PluginToolResponse {
+  success: boolean;
+  data: PluginTool;
+}
+
+export interface PluginToolDeleteResult {
+  id: string;
+  deleted: boolean;
+}
+
+export interface PluginToolDeleteResponse {
+  success: boolean;
+  data: PluginToolDeleteResult;
+}
+
+export type RegisterPluginToolRequestRiskLevel =
+  (typeof RegisterPluginToolRequestRiskLevel)[keyof typeof RegisterPluginToolRequestRiskLevel];
+
+export const RegisterPluginToolRequestRiskLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export type RegisterPluginToolRequestInputSchema = { [key: string]: unknown };
+
+export interface RegisterPluginToolRequest {
+  /**
+   * @minLength 2
+   * @maxLength 80
+   */
+  name: string;
+  /** @maxLength 2000 */
+  description?: string;
+  riskLevel?: RegisterPluginToolRequestRiskLevel;
+  inputSchema?: RegisterPluginToolRequestInputSchema;
+  /** Loopback URL the agent server posts inputs to (http://localhost:...) */
+  invokeUrl: string;
+  /** Optional bearer token forwarded as Authorization header */
+  authToken?: string;
+}
+
+export type UpdatePluginToolRequestRiskLevel =
+  (typeof UpdatePluginToolRequestRiskLevel)[keyof typeof UpdatePluginToolRequestRiskLevel];
+
+export const UpdatePluginToolRequestRiskLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export type UpdatePluginToolRequestInputSchema = { [key: string]: unknown };
+
+export interface UpdatePluginToolRequest {
+  /** @maxLength 2000 */
+  description?: string;
+  riskLevel?: UpdatePluginToolRequestRiskLevel;
+  inputSchema?: UpdatePluginToolRequestInputSchema;
+  invokeUrl?: string;
+  authToken?: string | null;
+  enabled?: boolean;
+}
+
+export type PluginInvokeRequestInput = { [key: string]: unknown };
+
+export interface PluginInvokeRequest {
+  input: PluginInvokeRequestInput;
+}
+
+export type PluginInvokeResultOutput = { [key: string]: unknown };
+
+export interface PluginInvokeResult {
+  toolName: string;
+  output: PluginInvokeResultOutput;
+  durationMs: number;
+}
+
+export interface PluginInvokeResponse {
+  success: boolean;
+  data: PluginInvokeResult;
+}
+
+export interface WebhookSubscription {
+  id: string;
+  url: string;
+  label: string;
+  eventTypes: string[];
+  enabled: boolean;
+  hasSecret: boolean;
+  lastDeliveryAt?: string | null;
+  lastDeliveryStatus?: number | null;
+  failureCount: number;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+}
+
+export interface WebhookSubscriptionList {
+  items: WebhookSubscription[];
+}
+
+export interface WebhookSubscriptionListResponse {
+  success: boolean;
+  data: WebhookSubscriptionList;
+}
+
+export interface WebhookSubscriptionResponse {
+  success: boolean;
+  data: WebhookSubscription;
+}
+
+export interface WebhookSubscriptionDeleteResult {
+  id: string;
+  deleted: boolean;
+}
+
+export interface WebhookSubscriptionDeleteResponse {
+  success: boolean;
+  data: WebhookSubscriptionDeleteResult;
+}
+
+export interface CreateWebhookSubscriptionRequest {
+  /** Loopback URL — http(s)://localhost... */
+  url: string;
+  /** @maxLength 200 */
+  label?: string;
+  /** @maxItems 64 */
+  eventTypes?: string[];
+  /**
+   * @minLength 8
+   * @maxLength 512
+   */
+  secret?: string;
+}
+
+export interface UpdateWebhookSubscriptionRequest {
+  url?: string;
+  /** @maxLength 200 */
+  label?: string;
+  /** @maxItems 64 */
+  eventTypes?: string[];
+  enabled?: boolean;
+  /**
+   * @minLength 8
+   * @maxLength 512
+   */
+  secret?: string | null;
+}
+
+export type OpEventData = { [key: string]: unknown };
+
+export interface OpEvent {
+  id: string;
+  type: string;
+  tenantId: string;
+  workspaceId: string;
+  timestamp: string;
+  data: OpEventData;
+}
+
+export interface OpEventList {
+  items: OpEvent[];
+}
+
+export interface OpEventListResponse {
+  success: boolean;
+  data: OpEventList;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -6936,4 +7141,14 @@ export type ListWaitlistSignupsParams = {
    */
   limit?: LimitParamParameter;
   feature?: string;
+};
+
+export type ListRecentEventsParams = {
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  afterId?: string;
+  type?: string;
 };

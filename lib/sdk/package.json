@@ -1,0 +1,20 @@
+{
+  "name": "@omninity/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local SDK for the Omninity Operator API — runs, tools, plugins, webhooks, events.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./events": "./src/events.ts",
+    "./plugins": "./src/plugins.ts",
+    "./webhooks": "./src/webhooks.ts"
+  },
+  "scripts": {
+    "test": "tsx ./src/sdk.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}

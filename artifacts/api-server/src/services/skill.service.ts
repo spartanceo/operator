@@ -30,6 +30,7 @@ import {
 } from "@workspace/db";
 import type { TenantContext } from "@workspace/types";
 
+import { emitOpEvent } from "../lib/event-bus";
 import { logger } from "../lib/logger";
 import { logPrivacyEvent } from "./privacy.service";
 import { recordSkillUsage } from "./skill-reviews.service";
@@ -604,6 +605,7 @@ export async function installSkill(ctx: TenantContext, id: string): Promise<Skil
     } catch (e) {
       logger.warn({ err: e, skillId: id }, "Failed to record install usage event");
     }
+    emitOpEvent(ctx, "skill_installed", { id, slug: existing.slug });
   }
   const row = await getSkill(ctx, id);
   if (!row) throw new SkillNotFoundError(id);
@@ -663,6 +665,7 @@ export async function uninstallSkill(ctx: TenantContext, id: string): Promise<Sk
       severity: "info",
       detail: `slug=${existing.slug}`,
     });
+    emitOpEvent(ctx, "skill_uninstalled", { id, slug: existing.slug });
   }
   const row = await getSkill(ctx, id);
   if (!row) throw new SkillNotFoundError(id);

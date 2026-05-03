@@ -15,6 +15,7 @@ import conversationsRouter from "./conversations";
 import desktopRouter from "./desktop";
 import diagnosticsRouter from "./diagnostics";
 import distributionRouter from "./distribution";
+import eventsRouter from "./events";
 import filesRouter from "./files";
 import healthRouter from "./health";
 import knowledgeRouter from "./knowledge";
@@ -26,6 +27,7 @@ import modelsRouter from "./models";
 import notificationsRouter from "./notifications";
 import onboardingRouter from "./onboarding";
 import p2pRouter from "./p2p";
+import pluginsRouter from "./plugins";
 import privacyRouter from "./privacy";
 import schedulesRouter from "./schedules";
 import securityRouter from "./security";
@@ -40,6 +42,7 @@ import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
 import undoRouter from "./undo";
 import updatesRouter from "./updates";
+import webhooksRouter from "./webhooks";
 import workspacesRouter from "./workspaces";
 import referralsRouter from "./referrals";
 import shareRouter from "./share";
@@ -89,5 +92,8 @@ router.use("/waitlist", waitlistRouter);
 
 router.use("/store", storeRouter);
 
+router.use("/plugins", pluginsRouter);
+router.use("/webhooks", webhooksRouter);
+router.use("/events", eventsRouter);
 
 export default router;

@@ -36,6 +36,8 @@ import * as memoryService from "./memory.service";
 import { chat as ollamaChat } from "./ollama.service";
 import { logPrivacyEvent } from "./privacy.service";
 
+import { emitOpEvent } from "../lib/event-bus";
+
 export type ToolRiskLevel = "low" | "medium" | "high" | "critical";
 
 export interface ToolDescriptor {
@@ -564,5 +566,11 @@ export async function invokeTool(
   if (!entry) throw new ToolNotFoundError(name);
   const t0 = Date.now();
   const output = await entry.handler(ctx, input);
-  return { toolName: name, output, durationMs: Date.now() - t0 };
+  const durationMs = Date.now() - t0;
+  emitOpEvent(ctx, "tool_called", {
+    name,
+    riskLevel: entry.riskLevel,
+    durationMs,
+  });
+  return { toolName: name, output, durationMs };
 }

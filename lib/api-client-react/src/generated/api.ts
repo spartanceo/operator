@@ -102,6 +102,7 @@ import type {
   CreateTaskTemplateCategoryRequest,
   CreateTaskTemplateRequest,
   CreateWaitlistSignupRequest,
+  CreateWebhookSubscriptionRequest,
   CreateWorkspaceRequest,
   CreatorBadgeResponse,
   CreatorLeaderboardResponse,
@@ -214,6 +215,7 @@ import type {
   ListOutreachSequencesParams,
   ListPrivacyEventsParams,
   ListQueuedTasksParams,
+  ListRecentEventsParams,
   ListSatisfactionRatingsParams,
   ListScheduleRunsParams,
   ListSchedulesParams,
@@ -284,6 +286,7 @@ import type {
   OnboardingHardwareResponse,
   OnboardingProfileResponse,
   OnboardingStarterTaskResponse,
+  OpEventListResponse,
   OptInTelemetryConsentResponse,
   OutreachEnrolmentListResponse,
   OutreachEnrolmentResponse,
@@ -298,6 +301,11 @@ import type {
   PermissionViewResponse,
   PinTaskTemplateRequest,
   PlaceVoipCallRequest,
+  PluginInvokeRequest,
+  PluginInvokeResponse,
+  PluginToolDeleteResponse,
+  PluginToolListResponse,
+  PluginToolResponse,
   PreviewScheduleRequest,
   PreviewScheduleResponse,
   PrivacyEventListResponse,
@@ -325,6 +333,7 @@ import type {
   ReferralLookupResponse,
   ReferralResponse,
   ReferralRewardListResponse,
+  RegisterPluginToolRequest,
   RegisterRequest,
   ReviewResponseRequest,
   RollbackSkillRequest,
@@ -421,6 +430,7 @@ import type {
   UpdateCheckResponse,
   UpdateContactRequest,
   UpdateConversationRequest,
+  UpdatePluginToolRequest,
   UpdateScheduleRequest,
   UpdateScheduleSettingsRequest,
   UpdateSkillDraftRequest,
@@ -428,6 +438,7 @@ import type {
   UpdateTaskTemplateRequest,
   UpdateTelemetryConsentRequest,
   UpdateVoipCallStatusRequest,
+  UpdateWebhookSubscriptionRequest,
   UpdateWorkspaceRequest,
   UpscaleImageRequest,
   UpsertAgeConfirmationRequest,
@@ -444,6 +455,9 @@ import type {
   WebhookSecretCreatedResponse,
   WebhookSecretListResponse,
   WebhookSecretRevokeResponse,
+  WebhookSubscriptionDeleteResponse,
+  WebhookSubscriptionListResponse,
+  WebhookSubscriptionResponse,
   WorkspaceDeleteResponse,
   WorkspaceListResponse,
   WorkspaceOverviewResponse,
@@ -29452,6 +29466,997 @@ export function useGetWaitlistStats<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetWaitlistStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List developer-registered plugin tools
+ */
+export const getListPluginToolsUrl = () => {
+  return `/api/plugins/tools`;
+};
+
+export const listPluginTools = async (
+  options?: RequestInit,
+): Promise<PluginToolListResponse> => {
+  return customFetch<PluginToolListResponse>(getListPluginToolsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListPluginToolsQueryKey = () => {
+  return [`/api/plugins/tools`] as const;
+};
+
+export const getListPluginToolsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPluginTools>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPluginTools>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListPluginToolsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPluginTools>>> = ({
+    signal,
+  }) => listPluginTools({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPluginTools>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPluginToolsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPluginTools>>
+>;
+export type ListPluginToolsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List developer-registered plugin tools
+ */
+
+export function useListPluginTools<
+  TData = Awaited<ReturnType<typeof listPluginTools>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPluginTools>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPluginToolsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Register a new plugin tool (loopback invokeUrl only)
+ */
+export const getRegisterPluginToolUrl = () => {
+  return `/api/plugins/tools`;
+};
+
+export const registerPluginTool = async (
+  registerPluginToolRequest: RegisterPluginToolRequest,
+  options?: RequestInit,
+): Promise<PluginToolResponse> => {
+  return customFetch<PluginToolResponse>(getRegisterPluginToolUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(registerPluginToolRequest),
+  });
+};
+
+export const getRegisterPluginToolMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerPluginTool>>,
+    TError,
+    { data: BodyType<RegisterPluginToolRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerPluginTool>>,
+  TError,
+  { data: BodyType<RegisterPluginToolRequest> },
+  TContext
+> => {
+  const mutationKey = ["registerPluginTool"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerPluginTool>>,
+    { data: BodyType<RegisterPluginToolRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerPluginTool(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterPluginToolMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerPluginTool>>
+>;
+export type RegisterPluginToolMutationBody =
+  BodyType<RegisterPluginToolRequest>;
+export type RegisterPluginToolMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Register a new plugin tool (loopback invokeUrl only)
+ */
+export const useRegisterPluginTool = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerPluginTool>>,
+    TError,
+    { data: BodyType<RegisterPluginToolRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerPluginTool>>,
+  TError,
+  { data: BodyType<RegisterPluginToolRequest> },
+  TContext
+> => {
+  return useMutation(getRegisterPluginToolMutationOptions(options));
+};
+
+export const getGetPluginToolUrl = (id: string) => {
+  return `/api/plugins/tools/${id}`;
+};
+
+export const getPluginTool = async (
+  id: string,
+  options?: RequestInit,
+): Promise<PluginToolResponse> => {
+  return customFetch<PluginToolResponse>(getGetPluginToolUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPluginToolQueryKey = (id: string) => {
+  return [`/api/plugins/tools/${id}`] as const;
+};
+
+export const getGetPluginToolQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPluginTool>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPluginTool>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPluginToolQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPluginTool>>> = ({
+    signal,
+  }) => getPluginTool(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPluginTool>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPluginToolQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPluginTool>>
+>;
+export type GetPluginToolQueryError = ErrorType<unknown>;
+
+export function useGetPluginTool<
+  TData = Awaited<ReturnType<typeof getPluginTool>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPluginTool>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPluginToolQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getUpdatePluginToolUrl = (id: string) => {
+  return `/api/plugins/tools/${id}`;
+};
+
+export const updatePluginTool = async (
+  id: string,
+  updatePluginToolRequest: UpdatePluginToolRequest,
+  options?: RequestInit,
+): Promise<PluginToolResponse> => {
+  return customFetch<PluginToolResponse>(getUpdatePluginToolUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updatePluginToolRequest),
+  });
+};
+
+export const getUpdatePluginToolMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePluginTool>>,
+    TError,
+    { id: string; data: BodyType<UpdatePluginToolRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePluginTool>>,
+  TError,
+  { id: string; data: BodyType<UpdatePluginToolRequest> },
+  TContext
+> => {
+  const mutationKey = ["updatePluginTool"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePluginTool>>,
+    { id: string; data: BodyType<UpdatePluginToolRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updatePluginTool(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePluginToolMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePluginTool>>
+>;
+export type UpdatePluginToolMutationBody = BodyType<UpdatePluginToolRequest>;
+export type UpdatePluginToolMutationError = ErrorType<unknown>;
+
+export const useUpdatePluginTool = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePluginTool>>,
+    TError,
+    { id: string; data: BodyType<UpdatePluginToolRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePluginTool>>,
+  TError,
+  { id: string; data: BodyType<UpdatePluginToolRequest> },
+  TContext
+> => {
+  return useMutation(getUpdatePluginToolMutationOptions(options));
+};
+
+export const getDeletePluginToolUrl = (id: string) => {
+  return `/api/plugins/tools/${id}`;
+};
+
+export const deletePluginTool = async (
+  id: string,
+  options?: RequestInit,
+): Promise<PluginToolDeleteResponse> => {
+  return customFetch<PluginToolDeleteResponse>(getDeletePluginToolUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePluginToolMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePluginTool>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePluginTool>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deletePluginTool"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePluginTool>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deletePluginTool(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePluginToolMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePluginTool>>
+>;
+
+export type DeletePluginToolMutationError = ErrorType<unknown>;
+
+export const useDeletePluginTool = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePluginTool>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deletePluginTool>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeletePluginToolMutationOptions(options));
+};
+
+/**
+ * @summary Invoke a registered plugin tool — proxies to its loopback sidecar
+ */
+export const getInvokePluginToolUrl = (id: string) => {
+  return `/api/plugins/tools/${id}/invoke`;
+};
+
+export const invokePluginTool = async (
+  id: string,
+  pluginInvokeRequest: PluginInvokeRequest,
+  options?: RequestInit,
+): Promise<PluginInvokeResponse> => {
+  return customFetch<PluginInvokeResponse>(getInvokePluginToolUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pluginInvokeRequest),
+  });
+};
+
+export const getInvokePluginToolMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof invokePluginTool>>,
+    TError,
+    { id: string; data: BodyType<PluginInvokeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof invokePluginTool>>,
+  TError,
+  { id: string; data: BodyType<PluginInvokeRequest> },
+  TContext
+> => {
+  const mutationKey = ["invokePluginTool"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof invokePluginTool>>,
+    { id: string; data: BodyType<PluginInvokeRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return invokePluginTool(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InvokePluginToolMutationResult = NonNullable<
+  Awaited<ReturnType<typeof invokePluginTool>>
+>;
+export type InvokePluginToolMutationBody = BodyType<PluginInvokeRequest>;
+export type InvokePluginToolMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Invoke a registered plugin tool — proxies to its loopback sidecar
+ */
+export const useInvokePluginTool = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof invokePluginTool>>,
+    TError,
+    { id: string; data: BodyType<PluginInvokeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof invokePluginTool>>,
+  TError,
+  { id: string; data: BodyType<PluginInvokeRequest> },
+  TContext
+> => {
+  return useMutation(getInvokePluginToolMutationOptions(options));
+};
+
+export const getListWebhookSubscriptionsUrl = () => {
+  return `/api/webhooks/subscriptions`;
+};
+
+export const listWebhookSubscriptions = async (
+  options?: RequestInit,
+): Promise<WebhookSubscriptionListResponse> => {
+  return customFetch<WebhookSubscriptionListResponse>(
+    getListWebhookSubscriptionsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListWebhookSubscriptionsQueryKey = () => {
+  return [`/api/webhooks/subscriptions`] as const;
+};
+
+export const getListWebhookSubscriptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWebhookSubscriptions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWebhookSubscriptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListWebhookSubscriptionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listWebhookSubscriptions>>
+  > = ({ signal }) => listWebhookSubscriptions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWebhookSubscriptions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListWebhookSubscriptionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWebhookSubscriptions>>
+>;
+export type ListWebhookSubscriptionsQueryError = ErrorType<unknown>;
+
+export function useListWebhookSubscriptions<
+  TData = Awaited<ReturnType<typeof listWebhookSubscriptions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWebhookSubscriptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListWebhookSubscriptionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreateWebhookSubscriptionUrl = () => {
+  return `/api/webhooks/subscriptions`;
+};
+
+export const createWebhookSubscription = async (
+  createWebhookSubscriptionRequest: CreateWebhookSubscriptionRequest,
+  options?: RequestInit,
+): Promise<WebhookSubscriptionResponse> => {
+  return customFetch<WebhookSubscriptionResponse>(
+    getCreateWebhookSubscriptionUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createWebhookSubscriptionRequest),
+    },
+  );
+};
+
+export const getCreateWebhookSubscriptionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWebhookSubscription>>,
+    TError,
+    { data: BodyType<CreateWebhookSubscriptionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createWebhookSubscription>>,
+  TError,
+  { data: BodyType<CreateWebhookSubscriptionRequest> },
+  TContext
+> => {
+  const mutationKey = ["createWebhookSubscription"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createWebhookSubscription>>,
+    { data: BodyType<CreateWebhookSubscriptionRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createWebhookSubscription(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateWebhookSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createWebhookSubscription>>
+>;
+export type CreateWebhookSubscriptionMutationBody =
+  BodyType<CreateWebhookSubscriptionRequest>;
+export type CreateWebhookSubscriptionMutationError = ErrorType<unknown>;
+
+export const useCreateWebhookSubscription = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWebhookSubscription>>,
+    TError,
+    { data: BodyType<CreateWebhookSubscriptionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createWebhookSubscription>>,
+  TError,
+  { data: BodyType<CreateWebhookSubscriptionRequest> },
+  TContext
+> => {
+  return useMutation(getCreateWebhookSubscriptionMutationOptions(options));
+};
+
+export const getGetWebhookSubscriptionUrl = (id: string) => {
+  return `/api/webhooks/subscriptions/${id}`;
+};
+
+export const getWebhookSubscription = async (
+  id: string,
+  options?: RequestInit,
+): Promise<WebhookSubscriptionResponse> => {
+  return customFetch<WebhookSubscriptionResponse>(
+    getGetWebhookSubscriptionUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetWebhookSubscriptionQueryKey = (id: string) => {
+  return [`/api/webhooks/subscriptions/${id}`] as const;
+};
+
+export const getGetWebhookSubscriptionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWebhookSubscription>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWebhookSubscription>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetWebhookSubscriptionQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWebhookSubscription>>
+  > = ({ signal }) => getWebhookSubscription(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWebhookSubscription>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWebhookSubscriptionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWebhookSubscription>>
+>;
+export type GetWebhookSubscriptionQueryError = ErrorType<unknown>;
+
+export function useGetWebhookSubscription<
+  TData = Awaited<ReturnType<typeof getWebhookSubscription>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWebhookSubscription>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWebhookSubscriptionQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getUpdateWebhookSubscriptionUrl = (id: string) => {
+  return `/api/webhooks/subscriptions/${id}`;
+};
+
+export const updateWebhookSubscription = async (
+  id: string,
+  updateWebhookSubscriptionRequest: UpdateWebhookSubscriptionRequest,
+  options?: RequestInit,
+): Promise<WebhookSubscriptionResponse> => {
+  return customFetch<WebhookSubscriptionResponse>(
+    getUpdateWebhookSubscriptionUrl(id),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateWebhookSubscriptionRequest),
+    },
+  );
+};
+
+export const getUpdateWebhookSubscriptionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateWebhookSubscription>>,
+    TError,
+    { id: string; data: BodyType<UpdateWebhookSubscriptionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateWebhookSubscription>>,
+  TError,
+  { id: string; data: BodyType<UpdateWebhookSubscriptionRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateWebhookSubscription"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateWebhookSubscription>>,
+    { id: string; data: BodyType<UpdateWebhookSubscriptionRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateWebhookSubscription(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateWebhookSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateWebhookSubscription>>
+>;
+export type UpdateWebhookSubscriptionMutationBody =
+  BodyType<UpdateWebhookSubscriptionRequest>;
+export type UpdateWebhookSubscriptionMutationError = ErrorType<unknown>;
+
+export const useUpdateWebhookSubscription = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateWebhookSubscription>>,
+    TError,
+    { id: string; data: BodyType<UpdateWebhookSubscriptionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateWebhookSubscription>>,
+  TError,
+  { id: string; data: BodyType<UpdateWebhookSubscriptionRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateWebhookSubscriptionMutationOptions(options));
+};
+
+export const getDeleteWebhookSubscriptionUrl = (id: string) => {
+  return `/api/webhooks/subscriptions/${id}`;
+};
+
+export const deleteWebhookSubscription = async (
+  id: string,
+  options?: RequestInit,
+): Promise<WebhookSubscriptionDeleteResponse> => {
+  return customFetch<WebhookSubscriptionDeleteResponse>(
+    getDeleteWebhookSubscriptionUrl(id),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteWebhookSubscriptionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteWebhookSubscription>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteWebhookSubscription>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteWebhookSubscription"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteWebhookSubscription>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteWebhookSubscription(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteWebhookSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteWebhookSubscription>>
+>;
+
+export type DeleteWebhookSubscriptionMutationError = ErrorType<unknown>;
+
+export const useDeleteWebhookSubscription = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteWebhookSubscription>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteWebhookSubscription>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteWebhookSubscriptionMutationOptions(options));
+};
+
+/**
+ * @summary Recent in-process events for the calling tenant
+ */
+export const getListRecentEventsUrl = (params?: ListRecentEventsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/events/recent?${stringifiedParams}`
+    : `/api/events/recent`;
+};
+
+export const listRecentEvents = async (
+  params?: ListRecentEventsParams,
+  options?: RequestInit,
+): Promise<OpEventListResponse> => {
+  return customFetch<OpEventListResponse>(getListRecentEventsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRecentEventsQueryKey = (
+  params?: ListRecentEventsParams,
+) => {
+  return [`/api/events/recent`, ...(params ? [params] : [])] as const;
+};
+
+export const getListRecentEventsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRecentEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListRecentEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRecentEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListRecentEventsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRecentEvents>>
+  > = ({ signal }) => listRecentEvents(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRecentEvents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRecentEventsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRecentEvents>>
+>;
+export type ListRecentEventsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Recent in-process events for the calling tenant
+ */
+
+export function useListRecentEvents<
+  TData = Awaited<ReturnType<typeof listRecentEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListRecentEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRecentEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRecentEventsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

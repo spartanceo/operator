@@ -84,3 +84,6 @@ export * from "./creator-milestones";
 export * from "./enterprise-trial-invites";
 export * from "./waitlist-signups";
 export * from "./beta-access-grants";
+
+export * from "./plugin-tools";
+export * from "./webhook-subscriptions";

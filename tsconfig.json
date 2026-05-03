@@ -17,6 +17,12 @@
     },
     {
       "path": "./lib/api-zod"
+    },
+    {
+      "path": "./lib/sdk"
+    },
+    {
+      "path": "./lib/sdk-cli"
     }
   ]
 }

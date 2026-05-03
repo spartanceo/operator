@@ -14365,3 +14365,422 @@ export const GetWaitlistStatsResponse = zod.object({
     ),
   }),
 });
+
+/**
+ * @summary List developer-registered plugin tools
+ */
+export const ListPluginToolsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListPluginToolsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        description: zod.string(),
+        riskLevel: zod.enum(["low", "medium", "high", "critical"]),
+        inputSchema: zod.record(zod.string(), zod.unknown()),
+        invokeUrl: zod.string(),
+        enabled: zod.boolean(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+        version: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Register a new plugin tool (loopback invokeUrl only)
+ */
+export const RegisterPluginToolHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const registerPluginToolBodyNameMin = 2;
+export const registerPluginToolBodyNameMax = 80;
+
+export const registerPluginToolBodyDescriptionMax = 2000;
+
+export const RegisterPluginToolBody = zod.object({
+  name: zod
+    .string()
+    .min(registerPluginToolBodyNameMin)
+    .max(registerPluginToolBodyNameMax),
+  description: zod
+    .string()
+    .max(registerPluginToolBodyDescriptionMax)
+    .optional(),
+  riskLevel: zod.enum(["low", "medium", "high", "critical"]).optional(),
+  inputSchema: zod.record(zod.string(), zod.unknown()).optional(),
+  invokeUrl: zod
+    .string()
+    .describe(
+      "Loopback URL the agent server posts inputs to (http:\/\/localhost:...)",
+    ),
+  authToken: zod
+    .string()
+    .optional()
+    .describe("Optional bearer token forwarded as Authorization header"),
+});
+
+export const RegisterPluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string(),
+    riskLevel: zod.enum(["low", "medium", "high", "critical"]),
+    inputSchema: zod.record(zod.string(), zod.unknown()),
+    invokeUrl: zod.string(),
+    enabled: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    version: zod.number(),
+  }),
+});
+
+export const GetPluginToolParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetPluginToolHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetPluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string(),
+    riskLevel: zod.enum(["low", "medium", "high", "critical"]),
+    inputSchema: zod.record(zod.string(), zod.unknown()),
+    invokeUrl: zod.string(),
+    enabled: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    version: zod.number(),
+  }),
+});
+
+export const UpdatePluginToolParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdatePluginToolHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const updatePluginToolBodyDescriptionMax = 2000;
+
+export const UpdatePluginToolBody = zod.object({
+  description: zod.string().max(updatePluginToolBodyDescriptionMax).optional(),
+  riskLevel: zod.enum(["low", "medium", "high", "critical"]).optional(),
+  inputSchema: zod.record(zod.string(), zod.unknown()).optional(),
+  invokeUrl: zod.string().optional(),
+  authToken: zod.string().nullish(),
+  enabled: zod.boolean().optional(),
+});
+
+export const UpdatePluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string(),
+    riskLevel: zod.enum(["low", "medium", "high", "critical"]),
+    inputSchema: zod.record(zod.string(), zod.unknown()),
+    invokeUrl: zod.string(),
+    enabled: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    version: zod.number(),
+  }),
+});
+
+export const DeletePluginToolParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeletePluginToolHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeletePluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Invoke a registered plugin tool — proxies to its loopback sidecar
+ */
+export const InvokePluginToolParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const InvokePluginToolHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const InvokePluginToolBody = zod.object({
+  input: zod.record(zod.string(), zod.unknown()),
+});
+
+export const InvokePluginToolResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    toolName: zod.string(),
+    output: zod.record(zod.string(), zod.unknown()),
+    durationMs: zod.number(),
+  }),
+});
+
+export const ListWebhookSubscriptionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListWebhookSubscriptionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        url: zod.string(),
+        label: zod.string(),
+        eventTypes: zod.array(zod.string()),
+        enabled: zod.boolean(),
+        hasSecret: zod.boolean(),
+        lastDeliveryAt: zod.coerce.date().nullish(),
+        lastDeliveryStatus: zod.number().nullish(),
+        failureCount: zod.number(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+        version: zod.number(),
+      }),
+    ),
+  }),
+});
+
+export const CreateWebhookSubscriptionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const createWebhookSubscriptionBodyLabelMax = 200;
+
+export const createWebhookSubscriptionBodyEventTypesMax = 64;
+
+export const createWebhookSubscriptionBodySecretMin = 8;
+export const createWebhookSubscriptionBodySecretMax = 512;
+
+export const CreateWebhookSubscriptionBody = zod.object({
+  url: zod.string().describe("Loopback URL — http(s):\/\/localhost..."),
+  label: zod.string().max(createWebhookSubscriptionBodyLabelMax).optional(),
+  eventTypes: zod
+    .array(zod.string())
+    .max(createWebhookSubscriptionBodyEventTypesMax)
+    .optional(),
+  secret: zod
+    .string()
+    .min(createWebhookSubscriptionBodySecretMin)
+    .max(createWebhookSubscriptionBodySecretMax)
+    .optional(),
+});
+
+export const CreateWebhookSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    url: zod.string(),
+    label: zod.string(),
+    eventTypes: zod.array(zod.string()),
+    enabled: zod.boolean(),
+    hasSecret: zod.boolean(),
+    lastDeliveryAt: zod.coerce.date().nullish(),
+    lastDeliveryStatus: zod.number().nullish(),
+    failureCount: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    version: zod.number(),
+  }),
+});
+
+export const GetWebhookSubscriptionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetWebhookSubscriptionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetWebhookSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    url: zod.string(),
+    label: zod.string(),
+    eventTypes: zod.array(zod.string()),
+    enabled: zod.boolean(),
+    hasSecret: zod.boolean(),
+    lastDeliveryAt: zod.coerce.date().nullish(),
+    lastDeliveryStatus: zod.number().nullish(),
+    failureCount: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    version: zod.number(),
+  }),
+});
+
+export const UpdateWebhookSubscriptionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateWebhookSubscriptionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const updateWebhookSubscriptionBodyLabelMax = 200;
+
+export const updateWebhookSubscriptionBodyEventTypesMax = 64;
+
+export const updateWebhookSubscriptionBodySecretMin = 8;
+export const updateWebhookSubscriptionBodySecretMax = 512;
+
+export const UpdateWebhookSubscriptionBody = zod.object({
+  url: zod.string().optional(),
+  label: zod.string().max(updateWebhookSubscriptionBodyLabelMax).optional(),
+  eventTypes: zod
+    .array(zod.string())
+    .max(updateWebhookSubscriptionBodyEventTypesMax)
+    .optional(),
+  enabled: zod.boolean().optional(),
+  secret: zod
+    .string()
+    .min(updateWebhookSubscriptionBodySecretMin)
+    .max(updateWebhookSubscriptionBodySecretMax)
+    .nullish(),
+});
+
+export const UpdateWebhookSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    url: zod.string(),
+    label: zod.string(),
+    eventTypes: zod.array(zod.string()),
+    enabled: zod.boolean(),
+    hasSecret: zod.boolean(),
+    lastDeliveryAt: zod.coerce.date().nullish(),
+    lastDeliveryStatus: zod.number().nullish(),
+    failureCount: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    version: zod.number(),
+  }),
+});
+
+export const DeleteWebhookSubscriptionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteWebhookSubscriptionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteWebhookSubscriptionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Recent in-process events for the calling tenant
+ */
+export const listRecentEventsQueryLimitDefault = 50;
+export const listRecentEventsQueryLimitMax = 100;
+
+export const ListRecentEventsQueryParams = zod.object({
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listRecentEventsQueryLimitMax)
+    .default(listRecentEventsQueryLimitDefault),
+  afterId: zod.coerce.string().optional(),
+  type: zod.coerce.string().optional(),
+});
+
+export const ListRecentEventsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListRecentEventsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        type: zod.string(),
+        tenantId: zod.string(),
+        workspaceId: zod.string(),
+        timestamp: zod.coerce.date(),
+        data: zod.record(zod.string(), zod.unknown()),
+      }),
+    ),
+  }),
+});
