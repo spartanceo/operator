@@ -63,6 +63,7 @@ export * from "./age-confirmations";
 export * from "./undo-actions";
 export * from "./skills";
 export * from "./skill-versions";
+export * from "./skill-ratings";
 export * from "./task-queue-entries";
 export * from "./task-template-categories";
 export * from "./task-templates";

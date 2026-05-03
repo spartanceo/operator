@@ -28,12 +28,12 @@ import { migration as m0014 } from "./0014_conversations";
 import { migration as m0015 } from "./0015_undo_actions";
 import { migration as m0016 } from "./0016_workspace_grouping";
 import { migration as m0017 } from "./0017_skills";
-
 import { migration as m0018 } from "./0018_task_queue";
 import { migration as m0019 } from "./0019_task_templates";
 import { migration as m0020 } from "./0020_scheduled_tasks";
 import { migration as m0021 } from "./0021_skill_versioning";
 import { migration as m0022 } from "./0022_skill_creator_store";
+import { migration as m0023 } from "./0023_skill_reviews_trust";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -67,6 +67,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0020,
   m0021,
   m0022,
+  m0023,
 ];
 
 /**

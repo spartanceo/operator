@@ -126,11 +126,13 @@ import type {
   FileWriteRequest,
   FileWriteResponse,
   FindCalendarFreeSlotsParams,
+  FlagReviewRequest,
   GenerateAudioRequest,
   GenerateImageRequest,
   GenerateVideoRequest,
   HardwareCapabilitiesResponse,
   HealthCheckResponse,
+  HelpfulVoteRequest,
   ImportTaskTemplateRequest,
   ImportWorkspaceRequest,
   IncidentReportListResponse,
@@ -181,6 +183,7 @@ import type {
   ListEmailDraftsParams,
   ListEmailMessagesParams,
   ListFilesParams,
+  ListFlaggedReviewsParams,
   ListIncidentReportsParams,
   ListKnowledgeCollectionsParams,
   ListKnowledgeDocumentsParams,
@@ -198,13 +201,16 @@ import type {
   ListQueuedTasksParams,
   ListScheduleRunsParams,
   ListSchedulesParams,
+  ListSimilarSkillsParams,
   ListSkillDraftsParams,
+  ListSkillReviewsParams,
   ListSkillsParams,
   ListStoreCreatorsParams,
   ListStoreSkillsParams,
   ListTaskTemplatesParams,
   ListTelemetryEventsParams,
   ListToolsParams,
+  ListTrendingSkillsParams,
   ListUndoTaskActionsParams,
   ListVoipCallsParams,
   LoginRequest,
@@ -246,6 +252,7 @@ import type {
   ModelPullRequest,
   ModelPullResponse,
   ModelRecommendationResponse,
+  ModerateReviewRequest,
   NotificationBulkDeleteResponse,
   NotificationBulkUpdateResponse,
   NotificationClaimResponse,
@@ -285,10 +292,13 @@ import type {
   QueueSnapshotResponse,
   QueuedTaskResponse,
   RecordLegalAcceptanceRequest,
+  RecordSkillUsageRequest,
+  RecordSkillUsageResponse,
   RecordTelemetryEventsRequest,
   RecordTelemetryEventsResponse,
   RecordVoipCallRequest,
   RegisterRequest,
+  ReviewResponseRequest,
   RollbackSkillRequest,
   RunTaskTemplateRequest,
   RunTaskTemplateResponse,
@@ -308,8 +318,11 @@ import type {
   SecurityReportResponse,
   SecurityWebhookSecretsListParams,
   SelectModelRequest,
+  SetSkillTrustFlagsRequest,
+  SimilarSkillsResponse,
   SkillAdoptionResponse,
   SkillAutoUpdateRequest,
+  SkillBadgesResponse,
   SkillDeleteResponse,
   SkillDraftDeleteResponse,
   SkillDraftInterviewAnswerRequest,
@@ -322,7 +335,13 @@ import type {
   SkillImportRequest,
   SkillInvokeRequest,
   SkillListResponse,
+  SkillRatingListResponse,
+  SkillRatingResponse,
+  SkillRatingSummaryResponse,
   SkillResponse,
+  SkillReviewFlagListResponse,
+  SkillReviewFlagResponse,
+  SkillReviewResponseResponse,
   SkillUpdatesResponse,
   SkillVersionListResponse,
   StoreCreatorDashboardRequest,
@@ -337,6 +356,7 @@ import type {
   StoreSkillResponse,
   StoreSkillUpdatesResponse,
   SubmitCrashReportRequest,
+  SubmitSkillRatingRequest,
   TaskTemplateCategoryListResponse,
   TaskTemplateCategoryResponse,
   TaskTemplateCollectionResponse,
@@ -355,6 +375,7 @@ import type {
   ToolInvokeRequest,
   ToolInvokeResponse,
   ToolListResponse,
+  TrendingSkillsResponse,
   UndoActionListResponse,
   UndoActionResponse,
   UndoActionTypesResponse,
@@ -23025,6 +23046,1207 @@ export function useGetSkillAdoptionStats<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List trending skills (highest install velocity in last 7 days)
+ */
+export const getListTrendingSkillsUrl = (params?: ListTrendingSkillsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/skills/trending?${stringifiedParams}`
+    : `/api/skills/trending`;
+};
+
+export const listTrendingSkills = async (
+  params?: ListTrendingSkillsParams,
+  options?: RequestInit,
+): Promise<TrendingSkillsResponse> => {
+  return customFetch<TrendingSkillsResponse>(getListTrendingSkillsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTrendingSkillsQueryKey = (
+  params?: ListTrendingSkillsParams,
+) => {
+  return [`/api/skills/trending`, ...(params ? [params] : [])] as const;
+};
+
+export const getListTrendingSkillsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTrendingSkills>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListTrendingSkillsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTrendingSkills>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTrendingSkillsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTrendingSkills>>
+  > = ({ signal }) => listTrendingSkills(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTrendingSkills>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTrendingSkillsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTrendingSkills>>
+>;
+export type ListTrendingSkillsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List trending skills (highest install velocity in last 7 days)
+ */
+
+export function useListTrendingSkills<
+  TData = Awaited<ReturnType<typeof listTrendingSkills>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListTrendingSkillsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTrendingSkills>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTrendingSkillsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Skills similar to ones the requesting user already uses
+ */
+export const getListSimilarSkillsUrl = (params?: ListSimilarSkillsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/skills/similar?${stringifiedParams}`
+    : `/api/skills/similar`;
+};
+
+export const listSimilarSkills = async (
+  params?: ListSimilarSkillsParams,
+  options?: RequestInit,
+): Promise<SimilarSkillsResponse> => {
+  return customFetch<SimilarSkillsResponse>(getListSimilarSkillsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSimilarSkillsQueryKey = (
+  params?: ListSimilarSkillsParams,
+) => {
+  return [`/api/skills/similar`, ...(params ? [params] : [])] as const;
+};
+
+export const getListSimilarSkillsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSimilarSkills>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSimilarSkillsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSimilarSkills>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListSimilarSkillsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSimilarSkills>>
+  > = ({ signal }) => listSimilarSkills(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSimilarSkills>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSimilarSkillsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSimilarSkills>>
+>;
+export type ListSimilarSkillsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Skills similar to ones the requesting user already uses
+ */
+
+export function useListSimilarSkills<
+  TData = Awaited<ReturnType<typeof listSimilarSkills>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSimilarSkillsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSimilarSkills>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSimilarSkillsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List flagged review reports awaiting moderation
+ */
+export const getListFlaggedReviewsUrl = (params?: ListFlaggedReviewsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/skills/admin/flagged?${stringifiedParams}`
+    : `/api/skills/admin/flagged`;
+};
+
+export const listFlaggedReviews = async (
+  params?: ListFlaggedReviewsParams,
+  options?: RequestInit,
+): Promise<SkillReviewFlagListResponse> => {
+  return customFetch<SkillReviewFlagListResponse>(
+    getListFlaggedReviewsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListFlaggedReviewsQueryKey = (
+  params?: ListFlaggedReviewsParams,
+) => {
+  return [`/api/skills/admin/flagged`, ...(params ? [params] : [])] as const;
+};
+
+export const getListFlaggedReviewsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFlaggedReviews>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListFlaggedReviewsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listFlaggedReviews>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListFlaggedReviewsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listFlaggedReviews>>
+  > = ({ signal }) => listFlaggedReviews(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFlaggedReviews>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFlaggedReviewsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFlaggedReviews>>
+>;
+export type ListFlaggedReviewsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List flagged review reports awaiting moderation
+ */
+
+export function useListFlaggedReviews<
+  TData = Awaited<ReturnType<typeof listFlaggedReviews>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListFlaggedReviewsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listFlaggedReviews>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFlaggedReviewsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Moderate a flagged skill review
+ */
+export const getModerateSkillReviewUrl = (ratingId: string) => {
+  return `/api/skills/admin/ratings/${ratingId}/moderate`;
+};
+
+export const moderateSkillReview = async (
+  ratingId: string,
+  moderateReviewRequest: ModerateReviewRequest,
+  options?: RequestInit,
+): Promise<SkillRatingResponse> => {
+  return customFetch<SkillRatingResponse>(getModerateSkillReviewUrl(ratingId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(moderateReviewRequest),
+  });
+};
+
+export const getModerateSkillReviewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof moderateSkillReview>>,
+    TError,
+    { ratingId: string; data: BodyType<ModerateReviewRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof moderateSkillReview>>,
+  TError,
+  { ratingId: string; data: BodyType<ModerateReviewRequest> },
+  TContext
+> => {
+  const mutationKey = ["moderateSkillReview"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof moderateSkillReview>>,
+    { ratingId: string; data: BodyType<ModerateReviewRequest> }
+  > = (props) => {
+    const { ratingId, data } = props ?? {};
+
+    return moderateSkillReview(ratingId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ModerateSkillReviewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof moderateSkillReview>>
+>;
+export type ModerateSkillReviewMutationBody = BodyType<ModerateReviewRequest>;
+export type ModerateSkillReviewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Moderate a flagged skill review
+ */
+export const useModerateSkillReview = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof moderateSkillReview>>,
+    TError,
+    { ratingId: string; data: BodyType<ModerateReviewRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof moderateSkillReview>>,
+  TError,
+  { ratingId: string; data: BodyType<ModerateReviewRequest> },
+  TContext
+> => {
+  return useMutation(getModerateSkillReviewMutationOptions(options));
+};
+
+/**
+ * @summary Mark a review as helpful or not
+ */
+export const getVoteSkillReviewHelpfulUrl = (ratingId: string) => {
+  return `/api/skills/ratings/${ratingId}/helpful`;
+};
+
+export const voteSkillReviewHelpful = async (
+  ratingId: string,
+  helpfulVoteRequest: HelpfulVoteRequest,
+  options?: RequestInit,
+): Promise<SkillRatingResponse> => {
+  return customFetch<SkillRatingResponse>(
+    getVoteSkillReviewHelpfulUrl(ratingId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(helpfulVoteRequest),
+    },
+  );
+};
+
+export const getVoteSkillReviewHelpfulMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof voteSkillReviewHelpful>>,
+    TError,
+    { ratingId: string; data: BodyType<HelpfulVoteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof voteSkillReviewHelpful>>,
+  TError,
+  { ratingId: string; data: BodyType<HelpfulVoteRequest> },
+  TContext
+> => {
+  const mutationKey = ["voteSkillReviewHelpful"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof voteSkillReviewHelpful>>,
+    { ratingId: string; data: BodyType<HelpfulVoteRequest> }
+  > = (props) => {
+    const { ratingId, data } = props ?? {};
+
+    return voteSkillReviewHelpful(ratingId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VoteSkillReviewHelpfulMutationResult = NonNullable<
+  Awaited<ReturnType<typeof voteSkillReviewHelpful>>
+>;
+export type VoteSkillReviewHelpfulMutationBody = BodyType<HelpfulVoteRequest>;
+export type VoteSkillReviewHelpfulMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark a review as helpful or not
+ */
+export const useVoteSkillReviewHelpful = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof voteSkillReviewHelpful>>,
+    TError,
+    { ratingId: string; data: BodyType<HelpfulVoteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof voteSkillReviewHelpful>>,
+  TError,
+  { ratingId: string; data: BodyType<HelpfulVoteRequest> },
+  TContext
+> => {
+  return useMutation(getVoteSkillReviewHelpfulMutationOptions(options));
+};
+
+/**
+ * @summary Author response to a review
+ */
+export const getRespondToSkillReviewUrl = (ratingId: string) => {
+  return `/api/skills/ratings/${ratingId}/response`;
+};
+
+export const respondToSkillReview = async (
+  ratingId: string,
+  reviewResponseRequest: ReviewResponseRequest,
+  options?: RequestInit,
+): Promise<SkillReviewResponseResponse> => {
+  return customFetch<SkillReviewResponseResponse>(
+    getRespondToSkillReviewUrl(ratingId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(reviewResponseRequest),
+    },
+  );
+};
+
+export const getRespondToSkillReviewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToSkillReview>>,
+    TError,
+    { ratingId: string; data: BodyType<ReviewResponseRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof respondToSkillReview>>,
+  TError,
+  { ratingId: string; data: BodyType<ReviewResponseRequest> },
+  TContext
+> => {
+  const mutationKey = ["respondToSkillReview"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof respondToSkillReview>>,
+    { ratingId: string; data: BodyType<ReviewResponseRequest> }
+  > = (props) => {
+    const { ratingId, data } = props ?? {};
+
+    return respondToSkillReview(ratingId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RespondToSkillReviewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof respondToSkillReview>>
+>;
+export type RespondToSkillReviewMutationBody = BodyType<ReviewResponseRequest>;
+export type RespondToSkillReviewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Author response to a review
+ */
+export const useRespondToSkillReview = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToSkillReview>>,
+    TError,
+    { ratingId: string; data: BodyType<ReviewResponseRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof respondToSkillReview>>,
+  TError,
+  { ratingId: string; data: BodyType<ReviewResponseRequest> },
+  TContext
+> => {
+  return useMutation(getRespondToSkillReviewMutationOptions(options));
+};
+
+/**
+ * @summary Report a review for moderation
+ */
+export const getFlagSkillReviewUrl = (ratingId: string) => {
+  return `/api/skills/ratings/${ratingId}/flag`;
+};
+
+export const flagSkillReview = async (
+  ratingId: string,
+  flagReviewRequest: FlagReviewRequest,
+  options?: RequestInit,
+): Promise<SkillReviewFlagResponse> => {
+  return customFetch<SkillReviewFlagResponse>(getFlagSkillReviewUrl(ratingId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(flagReviewRequest),
+  });
+};
+
+export const getFlagSkillReviewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof flagSkillReview>>,
+    TError,
+    { ratingId: string; data: BodyType<FlagReviewRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof flagSkillReview>>,
+  TError,
+  { ratingId: string; data: BodyType<FlagReviewRequest> },
+  TContext
+> => {
+  const mutationKey = ["flagSkillReview"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof flagSkillReview>>,
+    { ratingId: string; data: BodyType<FlagReviewRequest> }
+  > = (props) => {
+    const { ratingId, data } = props ?? {};
+
+    return flagSkillReview(ratingId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type FlagSkillReviewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof flagSkillReview>>
+>;
+export type FlagSkillReviewMutationBody = BodyType<FlagReviewRequest>;
+export type FlagSkillReviewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Report a review for moderation
+ */
+export const useFlagSkillReview = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof flagSkillReview>>,
+    TError,
+    { ratingId: string; data: BodyType<FlagReviewRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof flagSkillReview>>,
+  TError,
+  { ratingId: string; data: BodyType<FlagReviewRequest> },
+  TContext
+> => {
+  return useMutation(getFlagSkillReviewMutationOptions(options));
+};
+
+/**
+ * @summary Record a verified usage event for a skill (gates rating eligibility)
+ */
+export const getRecordSkillUsageUrl = (id: string) => {
+  return `/api/skills/${id}/usage`;
+};
+
+export const recordSkillUsage = async (
+  id: string,
+  recordSkillUsageRequest?: RecordSkillUsageRequest,
+  options?: RequestInit,
+): Promise<RecordSkillUsageResponse> => {
+  return customFetch<RecordSkillUsageResponse>(getRecordSkillUsageUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(recordSkillUsageRequest),
+  });
+};
+
+export const getRecordSkillUsageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordSkillUsage>>,
+    TError,
+    { id: string; data: BodyType<RecordSkillUsageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordSkillUsage>>,
+  TError,
+  { id: string; data: BodyType<RecordSkillUsageRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordSkillUsage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordSkillUsage>>,
+    { id: string; data: BodyType<RecordSkillUsageRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return recordSkillUsage(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordSkillUsageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordSkillUsage>>
+>;
+export type RecordSkillUsageMutationBody = BodyType<RecordSkillUsageRequest>;
+export type RecordSkillUsageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Record a verified usage event for a skill (gates rating eligibility)
+ */
+export const useRecordSkillUsage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordSkillUsage>>,
+    TError,
+    { id: string; data: BodyType<RecordSkillUsageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordSkillUsage>>,
+  TError,
+  { id: string; data: BodyType<RecordSkillUsageRequest> },
+  TContext
+> => {
+  return useMutation(getRecordSkillUsageMutationOptions(options));
+};
+
+/**
+ * @summary List reviews for a skill (paginated)
+ */
+export const getListSkillReviewsUrl = (
+  id: string,
+  params?: ListSkillReviewsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/skills/${id}/ratings?${stringifiedParams}`
+    : `/api/skills/${id}/ratings`;
+};
+
+export const listSkillReviews = async (
+  id: string,
+  params?: ListSkillReviewsParams,
+  options?: RequestInit,
+): Promise<SkillRatingListResponse> => {
+  return customFetch<SkillRatingListResponse>(
+    getListSkillReviewsUrl(id, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListSkillReviewsQueryKey = (
+  id: string,
+  params?: ListSkillReviewsParams,
+) => {
+  return [`/api/skills/${id}/ratings`, ...(params ? [params] : [])] as const;
+};
+
+export const getListSkillReviewsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSkillReviews>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  params?: ListSkillReviewsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSkillReviews>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListSkillReviewsQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSkillReviews>>
+  > = ({ signal }) =>
+    listSkillReviews(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillReviews>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSkillReviewsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSkillReviews>>
+>;
+export type ListSkillReviewsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List reviews for a skill (paginated)
+ */
+
+export function useListSkillReviews<
+  TData = Awaited<ReturnType<typeof listSkillReviews>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  params?: ListSkillReviewsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSkillReviews>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSkillReviewsQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit a rating + optional review (requires verified usage)
+ */
+export const getSubmitSkillRatingUrl = (id: string) => {
+  return `/api/skills/${id}/ratings`;
+};
+
+export const submitSkillRating = async (
+  id: string,
+  submitSkillRatingRequest: SubmitSkillRatingRequest,
+  options?: RequestInit,
+): Promise<SkillRatingResponse> => {
+  return customFetch<SkillRatingResponse>(getSubmitSkillRatingUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(submitSkillRatingRequest),
+  });
+};
+
+export const getSubmitSkillRatingMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitSkillRating>>,
+    TError,
+    { id: string; data: BodyType<SubmitSkillRatingRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitSkillRating>>,
+  TError,
+  { id: string; data: BodyType<SubmitSkillRatingRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitSkillRating"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitSkillRating>>,
+    { id: string; data: BodyType<SubmitSkillRatingRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return submitSkillRating(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitSkillRatingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitSkillRating>>
+>;
+export type SubmitSkillRatingMutationBody = BodyType<SubmitSkillRatingRequest>;
+export type SubmitSkillRatingMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Submit a rating + optional review (requires verified usage)
+ */
+export const useSubmitSkillRating = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitSkillRating>>,
+    TError,
+    { id: string; data: BodyType<SubmitSkillRatingRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitSkillRating>>,
+  TError,
+  { id: string; data: BodyType<SubmitSkillRatingRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitSkillRatingMutationOptions(options));
+};
+
+/**
+ * @summary Aggregate rating summary (avg, count, breakdown)
+ */
+export const getGetSkillRatingSummaryUrl = (id: string) => {
+  return `/api/skills/${id}/rating-summary`;
+};
+
+export const getSkillRatingSummary = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillRatingSummaryResponse> => {
+  return customFetch<SkillRatingSummaryResponse>(
+    getGetSkillRatingSummaryUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSkillRatingSummaryQueryKey = (id: string) => {
+  return [`/api/skills/${id}/rating-summary`] as const;
+};
+
+export const getGetSkillRatingSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkillRatingSummary>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillRatingSummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSkillRatingSummaryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSkillRatingSummary>>
+  > = ({ signal }) => getSkillRatingSummary(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillRatingSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSkillRatingSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillRatingSummary>>
+>;
+export type GetSkillRatingSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Aggregate rating summary (avg, count, breakdown)
+ */
+
+export function useGetSkillRatingSummary<
+  TData = Awaited<ReturnType<typeof getSkillRatingSummary>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillRatingSummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillRatingSummaryQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Trust badges for a skill (Verified / OP Pick / Top Creator / Active)
+ */
+export const getGetSkillBadgesUrl = (id: string) => {
+  return `/api/skills/${id}/badges`;
+};
+
+export const getSkillBadges = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillBadgesResponse> => {
+  return customFetch<SkillBadgesResponse>(getGetSkillBadgesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSkillBadgesQueryKey = (id: string) => {
+  return [`/api/skills/${id}/badges`] as const;
+};
+
+export const getGetSkillBadgesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkillBadges>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillBadges>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSkillBadgesQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSkillBadges>>> = ({
+    signal,
+  }) => getSkillBadges(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillBadges>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSkillBadgesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillBadges>>
+>;
+export type GetSkillBadgesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Trust badges for a skill (Verified / OP Pick / Top Creator / Active)
+ */
+
+export function useGetSkillBadges<
+  TData = Awaited<ReturnType<typeof getSkillBadges>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillBadges>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillBadgesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set editorial trust flags (OP Pick / Verified by OP)
+ */
+export const getSetSkillTrustFlagsUrl = (id: string) => {
+  return `/api/skills/${id}/trust-flags`;
+};
+
+export const setSkillTrustFlags = async (
+  id: string,
+  setSkillTrustFlagsRequest: SetSkillTrustFlagsRequest,
+  options?: RequestInit,
+): Promise<SkillBadgesResponse> => {
+  return customFetch<SkillBadgesResponse>(getSetSkillTrustFlagsUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setSkillTrustFlagsRequest),
+  });
+};
+
+export const getSetSkillTrustFlagsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSkillTrustFlags>>,
+    TError,
+    { id: string; data: BodyType<SetSkillTrustFlagsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setSkillTrustFlags>>,
+  TError,
+  { id: string; data: BodyType<SetSkillTrustFlagsRequest> },
+  TContext
+> => {
+  const mutationKey = ["setSkillTrustFlags"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setSkillTrustFlags>>,
+    { id: string; data: BodyType<SetSkillTrustFlagsRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return setSkillTrustFlags(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetSkillTrustFlagsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setSkillTrustFlags>>
+>;
+export type SetSkillTrustFlagsMutationBody =
+  BodyType<SetSkillTrustFlagsRequest>;
+export type SetSkillTrustFlagsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set editorial trust flags (OP Pick / Verified by OP)
+ */
+export const useSetSkillTrustFlags = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSkillTrustFlags>>,
+    TError,
+    { id: string; data: BodyType<SetSkillTrustFlagsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setSkillTrustFlags>>,
+  TError,
+  { id: string; data: BodyType<SetSkillTrustFlagsRequest> },
+  TContext
+> => {
+  return useMutation(getSetSkillTrustFlagsMutationOptions(options));
+};
 
 /**
  * @summary Export a skill (alternate path-shape required by spec)

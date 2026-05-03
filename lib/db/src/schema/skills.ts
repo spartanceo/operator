@@ -14,7 +14,7 @@
  * into a run.
  */
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 import { tenants } from "./tenants";
 import { workspaces } from "./workspaces";
@@ -72,6 +72,22 @@ export const skills = sqliteTable(
       .default(sql`(unixepoch() * 1000)`),
     /** If the user dismissed an update card the dismissed semver lives here. */
     updateDismissedVersion: text("update_dismissed_version"),
+    /** Total successful invocations — drives "Used N times" social proof. */
+    usageCount: integer("usage_count").notNull().default(0),
+    /** Cached average of `skill_ratings.stars` for active rows. */
+    ratingAvg: real("rating_avg").notNull().default(0),
+    /** Number of active reviews counted in `ratingAvg`. */
+    ratingCount: integer("rating_count").notNull().default(0),
+    /** Editorial "OP Pick" curation flag. */
+    editorialPick: integer("editorial_pick", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    /** "Verified by OP" trust badge — set after OP team manual review. */
+    verifiedByOp: integer("verified_by_op", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    /** Last time we notified the creator about a low-rating drop. */
+    lowRatingAlertAt: integer("low_rating_alert_at"),
   },
   (t) => ({
     tenantIdx: index("idx_skills_tenant").on(t.tenantId),
@@ -79,6 +95,9 @@ export const skills = sqliteTable(
     slugIdx: index("idx_skills_tenant_slug").on(t.tenantId, t.slug),
     installedIdx: index("idx_skills_installed").on(t.tenantId, t.isInstalled),
     categoryIdx: index("idx_skills_category").on(t.tenantId, t.category),
+    ratingIdx: index("idx_skills_rating").on(t.tenantId, t.ratingAvg),
+    usageIdx: index("idx_skills_usage").on(t.tenantId, t.usageCount),
+    updatedIdx: index("idx_skills_updated").on(t.tenantId, t.updatedAt),
   }),
 );
 

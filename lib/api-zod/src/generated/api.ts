@@ -10156,6 +10156,15 @@ export const ListSkillsQueryParams = zod.object({
   category: zod.coerce.string().optional(),
   installed: zod.coerce.boolean().optional(),
   search: zod.coerce.string().optional(),
+  sort: zod
+    .enum([
+      "popular",
+      "highest-rated",
+      "most-used",
+      "newest",
+      "recently-updated",
+    ])
+    .optional(),
 });
 
 export const ListSkillsHeader = zod.object({
@@ -10182,6 +10191,11 @@ export const ListSkillsResponse = zod.object({
         author: zod.string(),
         isInstalled: zod.boolean(),
         installCount: zod.number(),
+        usageCount: zod.number(),
+        ratingAvg: zod.number(),
+        ratingCount: zod.number(),
+        editorialPick: zod.boolean(),
+        verifiedByOp: zod.boolean(),
         version: zod.number(),
         latestVersion: zod
           .string()
@@ -10271,6 +10285,11 @@ export const CreateSkillResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10374,6 +10393,11 @@ export const ImportSkillResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10453,6 +10477,11 @@ export const GetSkillResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10545,6 +10574,11 @@ export const UpdateSkillResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10690,6 +10724,11 @@ export const InstallSkillResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10809,6 +10848,11 @@ export const UninstallSkillResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -10886,6 +10930,11 @@ export const ListSkillUpdatesResponse = zod.object({
         author: zod.string(),
         isInstalled: zod.boolean(),
         installCount: zod.number(),
+        usageCount: zod.number(),
+        ratingAvg: zod.number(),
+        ratingCount: zod.number(),
+        editorialPick: zod.boolean(),
+        verifiedByOp: zod.boolean(),
         version: zod.number(),
         latestVersion: zod
           .string()
@@ -10992,6 +11041,11 @@ export const PublishSkillVersionResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11117,6 +11171,11 @@ export const RollbackSkillVersionResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11203,6 +11262,11 @@ export const ApplySkillUpdateResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11282,6 +11346,11 @@ export const DismissSkillUpdateResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11365,6 +11434,11 @@ export const SetSkillAutoUpdateResponse = zod.object({
     author: zod.string(),
     isInstalled: zod.boolean(),
     installCount: zod.number(),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    editorialPick: zod.boolean(),
+    verifiedByOp: zod.boolean(),
     version: zod.number(),
     latestVersion: zod
       .string()
@@ -11444,6 +11518,524 @@ export const GetSkillAdoptionStatsResponse = zod.object({
           .describe("Share of total installs across all versions in [0, 1]."),
       }),
     ),
+  }),
+});
+
+/**
+ * @summary List trending skills (highest install velocity in last 7 days)
+ */
+export const ListTrendingSkillsQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListTrendingSkillsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListTrendingSkillsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        skillId: zod.string(),
+        slug: zod.string(),
+        name: zod.string(),
+        installsLastWeek: zod.number(),
+        ratingAvg: zod.number(),
+        usageCount: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Skills similar to ones the requesting user already uses
+ */
+export const ListSimilarSkillsQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListSimilarSkillsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSimilarSkillsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        skillId: zod.string(),
+        slug: zod.string(),
+        name: zod.string(),
+        category: zod.string(),
+        sharedUsers: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary List flagged review reports awaiting moderation
+ */
+export const listFlaggedReviewsQueryLimitDefault = 20;
+export const listFlaggedReviewsQueryLimitMax = 100;
+
+export const ListFlaggedReviewsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listFlaggedReviewsQueryLimitMax)
+    .default(listFlaggedReviewsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  status: zod.enum(["open", "dismissed", "upheld"]).optional(),
+});
+
+export const ListFlaggedReviewsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListFlaggedReviewsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        ratingId: zod.string(),
+        skillId: zod.string(),
+        reporterId: zod.string(),
+        reason: zod.string(),
+        detail: zod.string().nullable(),
+        status: zod.enum(["open", "dismissed", "upheld"]),
+        resolution: zod.string().nullable(),
+        resolvedAt: zod.coerce.date().nullable(),
+        resolvedBy: zod.string().nullable(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Moderate a flagged skill review
+ */
+export const ModerateSkillReviewParams = zod.object({
+  ratingId: zod.coerce.string(),
+});
+
+export const ModerateSkillReviewHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ModerateSkillReviewBody = zod.object({
+  action: zod.enum(["hide", "restore", "remove", "dismiss"]),
+  resolution: zod.string().optional(),
+});
+
+export const ModerateSkillReviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    skillId: zod.string(),
+    userId: zod.string(),
+    stars: zod.number(),
+    reviewText: zod.string().nullable(),
+    status: zod.enum(["active", "hidden", "removed"]),
+    helpfulCount: zod.number(),
+    unhelpfulCount: zod.number(),
+    flagCount: zod.number(),
+    verifiedPurchase: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    response: zod
+      .object({
+        id: zod.string(),
+        ratingId: zod.string(),
+        authorId: zod.string(),
+        body: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Mark a review as helpful or not
+ */
+export const VoteSkillReviewHelpfulParams = zod.object({
+  ratingId: zod.coerce.string(),
+});
+
+export const VoteSkillReviewHelpfulHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const VoteSkillReviewHelpfulBody = zod.object({
+  helpful: zod.boolean(),
+});
+
+export const VoteSkillReviewHelpfulResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    skillId: zod.string(),
+    userId: zod.string(),
+    stars: zod.number(),
+    reviewText: zod.string().nullable(),
+    status: zod.enum(["active", "hidden", "removed"]),
+    helpfulCount: zod.number(),
+    unhelpfulCount: zod.number(),
+    flagCount: zod.number(),
+    verifiedPurchase: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    response: zod
+      .object({
+        id: zod.string(),
+        ratingId: zod.string(),
+        authorId: zod.string(),
+        body: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Author response to a review
+ */
+export const RespondToSkillReviewParams = zod.object({
+  ratingId: zod.coerce.string(),
+});
+
+export const RespondToSkillReviewHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RespondToSkillReviewBody = zod.object({
+  body: zod.string(),
+});
+
+export const RespondToSkillReviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    ratingId: zod.string(),
+    authorId: zod.string(),
+    body: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Report a review for moderation
+ */
+export const FlagSkillReviewParams = zod.object({
+  ratingId: zod.coerce.string(),
+});
+
+export const FlagSkillReviewHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const FlagSkillReviewBody = zod.object({
+  reason: zod.string(),
+  detail: zod.string().nullish(),
+});
+
+export const FlagSkillReviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    ratingId: zod.string(),
+    skillId: zod.string(),
+    reporterId: zod.string(),
+    reason: zod.string(),
+    detail: zod.string().nullable(),
+    status: zod.enum(["open", "dismissed", "upheld"]),
+    resolution: zod.string().nullable(),
+    resolvedAt: zod.coerce.date().nullable(),
+    resolvedBy: zod.string().nullable(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Record a verified usage event for a skill (gates rating eligibility)
+ */
+export const RecordSkillUsageParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RecordSkillUsageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RecordSkillUsageBody = zod.object({
+  runId: zod.string().optional(),
+});
+
+export const RecordSkillUsageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    recorded: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary List reviews for a skill (paginated)
+ */
+export const ListSkillReviewsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listSkillReviewsQueryLimitDefault = 20;
+export const listSkillReviewsQueryLimitMax = 100;
+
+export const ListSkillReviewsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listSkillReviewsQueryLimitMax)
+    .default(listSkillReviewsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  sort: zod.enum(["helpful", "recent", "highest", "lowest"]).optional(),
+  includeHidden: zod.coerce.boolean().optional(),
+});
+
+export const ListSkillReviewsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSkillReviewsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        skillId: zod.string(),
+        userId: zod.string(),
+        stars: zod.number(),
+        reviewText: zod.string().nullable(),
+        status: zod.enum(["active", "hidden", "removed"]),
+        helpfulCount: zod.number(),
+        unhelpfulCount: zod.number(),
+        flagCount: zod.number(),
+        verifiedPurchase: zod.boolean(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+        response: zod
+          .object({
+            id: zod.string(),
+            ratingId: zod.string(),
+            authorId: zod.string(),
+            body: zod.string(),
+            createdAt: zod.coerce.date(),
+            updatedAt: zod.coerce.date(),
+          })
+          .nullable(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Submit a rating + optional review (requires verified usage)
+ */
+export const SubmitSkillRatingParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SubmitSkillRatingHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const submitSkillRatingBodyStarsMax = 5;
+
+export const SubmitSkillRatingBody = zod.object({
+  stars: zod.number().min(1).max(submitSkillRatingBodyStarsMax),
+  reviewText: zod.string().nullish(),
+});
+
+export const SubmitSkillRatingResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    skillId: zod.string(),
+    userId: zod.string(),
+    stars: zod.number(),
+    reviewText: zod.string().nullable(),
+    status: zod.enum(["active", "hidden", "removed"]),
+    helpfulCount: zod.number(),
+    unhelpfulCount: zod.number(),
+    flagCount: zod.number(),
+    verifiedPurchase: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    response: zod
+      .object({
+        id: zod.string(),
+        ratingId: zod.string(),
+        authorId: zod.string(),
+        body: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Aggregate rating summary (avg, count, breakdown)
+ */
+export const GetSkillRatingSummaryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetSkillRatingSummaryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSkillRatingSummaryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skillId: zod.string(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+    usageCount: zod.number(),
+    breakdown: zod.array(
+      zod.object({
+        stars: zod.number(),
+        count: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Trust badges for a skill (Verified / OP Pick / Top Creator / Active)
+ */
+export const GetSkillBadgesParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetSkillBadgesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSkillBadgesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skillId: zod.string(),
+    badges: zod.array(
+      zod.object({
+        id: zod.string(),
+        label: zod.string(),
+      }),
+    ),
+    status: zod.enum(["active", "unmaintained"]),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
+  }),
+});
+
+/**
+ * @summary Set editorial trust flags (OP Pick / Verified by OP)
+ */
+export const SetSkillTrustFlagsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SetSkillTrustFlagsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetSkillTrustFlagsBody = zod.object({
+  verifiedByOp: zod.boolean().optional(),
+  editorialPick: zod.boolean().optional(),
+});
+
+export const SetSkillTrustFlagsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skillId: zod.string(),
+    badges: zod.array(
+      zod.object({
+        id: zod.string(),
+        label: zod.string(),
+      }),
+    ),
+    status: zod.enum(["active", "unmaintained"]),
+    usageCount: zod.number(),
+    ratingAvg: zod.number(),
+    ratingCount: zod.number(),
   }),
 });
 

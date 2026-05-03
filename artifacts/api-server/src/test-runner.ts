@@ -4231,6 +4231,254 @@ const cases: TestCase[] = [
         .expect(404);
     },
   },
+  // ─── Task #33: Marketplace Reviews, Ratings & Trust System ──────────
+  {
+    name: "skill reviews: rating without verified usage is rejected",
+    run: async () => {
+      const tenant = `tenant_skrev_a_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const created = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Researcher", content: "Find facts" })
+        .expect(200);
+      const skillId = created.body.data.id as string;
+
+      const blocked = await request(app)
+        .post(`/api/skills/${skillId}/ratings`)
+        .set("X-Tenant-ID", tenant)
+        .send({ stars: 5, reviewText: "great" });
+      assert.equal(blocked.status, 403);
+      assert.equal(blocked.body.error.code, "USAGE_REQUIRED");
+    },
+  },
+  {
+    name: "skill reviews: install records usage and unlocks rating + summary",
+    run: async () => {
+      const tenant = `tenant_skrev_b_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const created = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Coder", content: "Write code" })
+        .expect(200);
+      const skillId = created.body.data.id as string;
+
+      // Install grants verified usage.
+      await request(app)
+        .post(`/api/skills/${skillId}/install`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+
+      const rated = await request(app)
+        .post(`/api/skills/${skillId}/ratings`)
+        .set("X-Tenant-ID", tenant)
+        .send({ stars: 4, reviewText: "Useful" })
+        .expect(200);
+      const ratingId = rated.body.data.id as string;
+      assert.equal(rated.body.data.stars, 4);
+      assert.equal(rated.body.data.verifiedPurchase, true);
+
+      // Re-submitting from same user updates the existing rating.
+      const updated = await request(app)
+        .post(`/api/skills/${skillId}/ratings`)
+        .set("X-Tenant-ID", tenant)
+        .send({ stars: 5 })
+        .expect(200);
+      assert.equal(updated.body.data.id, ratingId);
+      assert.equal(updated.body.data.stars, 5);
+
+      const summary = await request(app)
+        .get(`/api/skills/${skillId}/rating-summary`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(summary.body.data.ratingCount, 1);
+      assert.equal(summary.body.data.ratingAvg, 5);
+      const fives = summary.body.data.breakdown.find(
+        (b: { stars: number }) => b.stars === 5,
+      );
+      assert.equal(fives.count, 1);
+
+      const list = await request(app)
+        .get(`/api/skills/${skillId}/ratings`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(list.body.data.items.length, 1);
+      assert.equal(list.body.data.items[0].id, ratingId);
+    },
+  },
+  {
+    name: "skill reviews: helpful vote, creator response, flag + moderate flow",
+    run: async () => {
+      const tenant = `tenant_skrev_c_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const created = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Outliner", content: "Outline things", author: "local" })
+        .expect(200);
+      const skillId = created.body.data.id as string;
+      await request(app)
+        .post(`/api/skills/${skillId}/install`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      const rated = await request(app)
+        .post(`/api/skills/${skillId}/ratings`)
+        .set("X-Tenant-ID", tenant)
+        .send({ stars: 3, reviewText: "ok" })
+        .expect(200);
+      const ratingId = rated.body.data.id as string;
+
+      const helpful = await request(app)
+        .post(`/api/skills/ratings/${ratingId}/helpful`)
+        .set("X-Tenant-ID", tenant)
+        .send({ helpful: true })
+        .expect(200);
+      assert.equal(helpful.body.data.helpfulCount, 1);
+
+      // Toggling the same user's vote does NOT double-count.
+      const toggled = await request(app)
+        .post(`/api/skills/ratings/${ratingId}/helpful`)
+        .set("X-Tenant-ID", tenant)
+        .send({ helpful: false })
+        .expect(200);
+      assert.equal(toggled.body.data.helpfulCount, 0);
+      assert.equal(toggled.body.data.unhelpfulCount, 1);
+
+      const responded = await request(app)
+        .post(`/api/skills/ratings/${ratingId}/response`)
+        .set("X-Tenant-ID", tenant)
+        .send({ body: "Thanks for the feedback!" })
+        .expect(200);
+      assert.equal(responded.body.data.body, "Thanks for the feedback!");
+
+      const flagged = await request(app)
+        .post(`/api/skills/ratings/${ratingId}/flag`)
+        .set("X-Tenant-ID", tenant)
+        .send({ reason: "spam", detail: "Looks promotional" })
+        .expect(200);
+      assert.equal(flagged.body.data.status, "open");
+
+      const queue = await request(app)
+        .get("/api/skills/admin/flagged?status=open")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.ok(
+        queue.body.data.items.some(
+          (f: { ratingId: string }) => f.ratingId === ratingId,
+        ),
+      );
+
+      const moderated = await request(app)
+        .post(`/api/skills/admin/ratings/${ratingId}/moderate`)
+        .set("X-Tenant-ID", tenant)
+        .send({ action: "hide", resolution: "TOS violation" })
+        .expect(200);
+      assert.equal(moderated.body.data.status, "hidden");
+
+      // Hidden review is excluded from the public list and from the summary.
+      const publicList = await request(app)
+        .get(`/api/skills/${skillId}/ratings`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(publicList.body.data.items.length, 0);
+      const summary = await request(app)
+        .get(`/api/skills/${skillId}/rating-summary`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(summary.body.data.ratingCount, 0);
+    },
+  },
+  {
+    name: "skill reviews: badges + trust flags + sort=highest-rated",
+    run: async () => {
+      const tenant = `tenant_skrev_d_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const a = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Sorter A", content: "x" })
+        .expect(200);
+      const b = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Sorter B", content: "y" })
+        .expect(200);
+
+      for (const skillId of [a.body.data.id, b.body.data.id]) {
+        await request(app)
+          .post(`/api/skills/${skillId}/install`)
+          .set("X-Tenant-ID", tenant)
+          .expect(200);
+      }
+      // Rate A=5, B=2 — A should sort first under highest-rated.
+      await request(app)
+        .post(`/api/skills/${a.body.data.id}/ratings`)
+        .set("X-Tenant-ID", tenant)
+        .send({ stars: 5 })
+        .expect(200);
+      await request(app)
+        .post(`/api/skills/${b.body.data.id}/ratings`)
+        .set("X-Tenant-ID", tenant)
+        .send({ stars: 2 })
+        .expect(200);
+
+      const sorted = await request(app)
+        .get("/api/skills?sort=highest-rated&limit=10")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      const items = sorted.body.data.items as Array<{
+        id: string;
+        ratingAvg: number;
+      }>;
+      const aIdx = items.findIndex((s) => s.id === a.body.data.id);
+      const bIdx = items.findIndex((s) => s.id === b.body.data.id);
+      assert.ok(aIdx >= 0 && bIdx >= 0);
+      assert.ok(aIdx < bIdx, "Higher-rated skill must appear first");
+
+      // Trust flags surface as badges.
+      const flagged = await request(app)
+        .post(`/api/skills/${a.body.data.id}/trust-flags`)
+        .set("X-Tenant-ID", tenant)
+        .send({ verifiedByOp: true, editorialPick: true })
+        .expect(200);
+      const ids = flagged.body.data.badges.map(
+        (b2: { id: string }) => b2.id,
+      );
+      assert.ok(ids.includes("verified-by-op"));
+      assert.ok(ids.includes("op-pick"));
+      assert.ok(ids.includes("active"));
+    },
+  },
+  {
+    name: "skill reviews: tenant isolation",
+    run: async () => {
+      const a = `tenant_skrev_iso_a_${Date.now()}`;
+      const b = `tenant_skrev_iso_b_${Date.now()}`;
+      await bootstrapTenant(a);
+      await bootstrapTenant(b);
+      const made = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", a)
+        .send({ name: "Iso", content: "x" })
+        .expect(200);
+      await request(app)
+        .post(`/api/skills/${made.body.data.id}/install`)
+        .set("X-Tenant-ID", a)
+        .expect(200);
+      await request(app)
+        .post(`/api/skills/${made.body.data.id}/ratings`)
+        .set("X-Tenant-ID", a)
+        .send({ stars: 5 })
+        .expect(200);
+
+      const cross = await request(app)
+        .get(`/api/skills/${made.body.data.id}/ratings`)
+        .set("X-Tenant-ID", b)
+        .expect(200);
+      assert.equal(cross.body.data.items.length, 0);
+    },
+  },
 ];
 
 async function main() {

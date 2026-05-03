@@ -4201,6 +4201,11 @@ export interface Skill {
   author: string;
   isInstalled: boolean;
   installCount: number;
+  usageCount: number;
+  ratingAvg: number;
+  ratingCount: number;
+  editorialPick: boolean;
+  verifiedByOp: boolean;
   version: number;
   /** Latest published semantic version of this skill. */
   latestVersion: string;
@@ -4309,6 +4314,234 @@ export interface SkillAdoptionPage {
 export interface SkillAdoptionResponse {
   success: boolean;
   data: SkillAdoptionPage;
+}
+
+export type SkillRatingStatus =
+  (typeof SkillRatingStatus)[keyof typeof SkillRatingStatus];
+
+export const SkillRatingStatus = {
+  active: "active",
+  hidden: "hidden",
+  removed: "removed",
+} as const;
+
+export interface SkillReviewResponseRow {
+  id: string;
+  ratingId: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SkillRating {
+  id: string;
+  skillId: string;
+  userId: string;
+  stars: number;
+  reviewText: string | null;
+  status: SkillRatingStatus;
+  helpfulCount: number;
+  unhelpfulCount: number;
+  flagCount: number;
+  verifiedPurchase: boolean;
+  createdAt: string;
+  updatedAt: string;
+  response: SkillReviewResponseRow | null;
+}
+
+export type SkillReviewFlagStatus =
+  (typeof SkillReviewFlagStatus)[keyof typeof SkillReviewFlagStatus];
+
+export const SkillReviewFlagStatus = {
+  open: "open",
+  dismissed: "dismissed",
+  upheld: "upheld",
+} as const;
+
+export interface SkillReviewFlag {
+  id: string;
+  ratingId: string;
+  skillId: string;
+  reporterId: string;
+  reason: string;
+  detail: string | null;
+  status: SkillReviewFlagStatus;
+  resolution: string | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SkillRatingResponse {
+  success: boolean;
+  data: SkillRating;
+}
+
+export interface SkillReviewResponseResponse {
+  success: boolean;
+  data: SkillReviewResponseRow;
+}
+
+export interface SkillReviewFlagResponse {
+  success: boolean;
+  data: SkillReviewFlag;
+}
+
+export interface SkillRatingListPage {
+  items: SkillRating[];
+  nextCursor: string | null;
+}
+
+export interface SkillRatingListResponse {
+  success: boolean;
+  data: SkillRatingListPage;
+}
+
+export interface SkillReviewFlagListPage {
+  items: SkillReviewFlag[];
+  nextCursor: string | null;
+}
+
+export interface SkillReviewFlagListResponse {
+  success: boolean;
+  data: SkillReviewFlagListPage;
+}
+
+export type SkillRatingSummaryBreakdownItem = {
+  stars: number;
+  count: number;
+};
+
+export interface SkillRatingSummary {
+  skillId: string;
+  ratingAvg: number;
+  ratingCount: number;
+  usageCount: number;
+  breakdown: SkillRatingSummaryBreakdownItem[];
+}
+
+export interface SkillRatingSummaryResponse {
+  success: boolean;
+  data: SkillRatingSummary;
+}
+
+export interface TrustBadge {
+  id: string;
+  label: string;
+}
+
+export type SkillBadgesStatus =
+  (typeof SkillBadgesStatus)[keyof typeof SkillBadgesStatus];
+
+export const SkillBadgesStatus = {
+  active: "active",
+  unmaintained: "unmaintained",
+} as const;
+
+export interface SkillBadges {
+  skillId: string;
+  badges: TrustBadge[];
+  status: SkillBadgesStatus;
+  usageCount: number;
+  ratingAvg: number;
+  ratingCount: number;
+}
+
+export interface SkillBadgesResponse {
+  success: boolean;
+  data: SkillBadges;
+}
+
+export interface TrendingSkill {
+  skillId: string;
+  slug: string;
+  name: string;
+  installsLastWeek: number;
+  ratingAvg: number;
+  usageCount: number;
+}
+
+export type TrendingSkillsResponseData = {
+  items: TrendingSkill[];
+};
+
+export interface TrendingSkillsResponse {
+  success: boolean;
+  data: TrendingSkillsResponseData;
+}
+
+export interface SimilarSkill {
+  skillId: string;
+  slug: string;
+  name: string;
+  category: string;
+  sharedUsers: number;
+}
+
+export type SimilarSkillsResponseData = {
+  items: SimilarSkill[];
+};
+
+export interface SimilarSkillsResponse {
+  success: boolean;
+  data: SimilarSkillsResponseData;
+}
+
+export interface SubmitSkillRatingRequest {
+  /**
+   * @minimum 1
+   * @maximum 5
+   */
+  stars: number;
+  reviewText?: string | null;
+}
+
+export interface HelpfulVoteRequest {
+  helpful: boolean;
+}
+
+export interface ReviewResponseRequest {
+  body: string;
+}
+
+export interface FlagReviewRequest {
+  reason: string;
+  detail?: string | null;
+}
+
+export type ModerateReviewRequestAction =
+  (typeof ModerateReviewRequestAction)[keyof typeof ModerateReviewRequestAction];
+
+export const ModerateReviewRequestAction = {
+  hide: "hide",
+  restore: "restore",
+  remove: "remove",
+  dismiss: "dismiss",
+} as const;
+
+export interface ModerateReviewRequest {
+  action: ModerateReviewRequestAction;
+  resolution?: string;
+}
+
+export interface SetSkillTrustFlagsRequest {
+  verifiedByOp?: boolean;
+  editorialPick?: boolean;
+}
+
+export interface RecordSkillUsageRequest {
+  runId?: string;
+}
+
+export type RecordSkillUsageResponseData = {
+  recorded: boolean;
+};
+
+export interface RecordSkillUsageResponse {
+  success: boolean;
+  data: RecordSkillUsageResponseData;
 }
 
 export type QueuedTaskPriority =
@@ -5932,7 +6165,75 @@ export type ListSkillsParams = {
   category?: string;
   installed?: boolean;
   search?: string;
+  sort?: ListSkillsSort;
 };
+
+export type ListSkillsSort =
+  (typeof ListSkillsSort)[keyof typeof ListSkillsSort];
+
+export const ListSkillsSort = {
+  popular: "popular",
+  "highest-rated": "highest-rated",
+  "most-used": "most-used",
+  newest: "newest",
+  "recently-updated": "recently-updated",
+} as const;
+
+export type ListTrendingSkillsParams = {
+  limit?: number;
+};
+
+export type ListSimilarSkillsParams = {
+  limit?: number;
+};
+
+export type ListFlaggedReviewsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  status?: ListFlaggedReviewsStatus;
+};
+
+export type ListFlaggedReviewsStatus =
+  (typeof ListFlaggedReviewsStatus)[keyof typeof ListFlaggedReviewsStatus];
+
+export const ListFlaggedReviewsStatus = {
+  open: "open",
+  dismissed: "dismissed",
+  upheld: "upheld",
+} as const;
+
+export type ListSkillReviewsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  sort?: ListSkillReviewsSort;
+  includeHidden?: boolean;
+};
+
+export type ListSkillReviewsSort =
+  (typeof ListSkillReviewsSort)[keyof typeof ListSkillReviewsSort];
+
+export const ListSkillReviewsSort = {
+  helpful: "helpful",
+  recent: "recent",
+  highest: "highest",
+  lowest: "lowest",
+} as const;
 
 export type ListSchedulesParams = {
   /**

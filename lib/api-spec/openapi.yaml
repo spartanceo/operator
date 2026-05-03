@@ -5377,6 +5377,17 @@ paths:
           required: false
           schema:
             type: string
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - popular
+              - highest-rated
+              - most-used
+              - newest
+              - recently-updated
       responses:
         '200':
           description: Skills page
@@ -5760,6 +5771,329 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SkillAdoptionResponse'
+  /skills/trending:
+    get:
+      operationId: listTrendingSkills
+      tags:
+        - skills
+      summary: List trending skills (highest install velocity in last 7 days)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Trending skills
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrendingSkillsResponse'
+  /skills/similar:
+    get:
+      operationId: listSimilarSkills
+      tags:
+        - skills
+      summary: Skills similar to ones the requesting user already uses
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Similar skills
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimilarSkillsResponse'
+  /skills/admin/flagged:
+    get:
+      operationId: listFlaggedReviews
+      tags:
+        - skills
+      summary: List flagged review reports awaiting moderation
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [open, dismissed, upheld]
+      responses:
+        '200':
+          description: Flagged reviews page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillReviewFlagListResponse'
+  /skills/admin/ratings/{ratingId}/moderate:
+    post:
+      operationId: moderateSkillReview
+      tags:
+        - skills
+      summary: Moderate a flagged skill review
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: ratingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerateReviewRequest'
+      responses:
+        '200':
+          description: Moderation applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillRatingResponse'
+  /skills/ratings/{ratingId}/helpful:
+    post:
+      operationId: voteSkillReviewHelpful
+      tags:
+        - skills
+      summary: Mark a review as helpful or not
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: ratingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelpfulVoteRequest'
+      responses:
+        '200':
+          description: Updated review with new helpful counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillRatingResponse'
+  /skills/ratings/{ratingId}/response:
+    post:
+      operationId: respondToSkillReview
+      tags:
+        - skills
+      summary: Author response to a review
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: ratingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewResponseRequest'
+      responses:
+        '200':
+          description: Response saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillReviewResponseResponse'
+  /skills/ratings/{ratingId}/flag:
+    post:
+      operationId: flagSkillReview
+      tags:
+        - skills
+      summary: Report a review for moderation
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: ratingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlagReviewRequest'
+      responses:
+        '200':
+          description: Flag recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillReviewFlagResponse'
+  /skills/{id}/usage:
+    post:
+      operationId: recordSkillUsage
+      tags:
+        - skills
+      summary: Record a verified usage event for a skill (gates rating eligibility)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordSkillUsageRequest'
+      responses:
+        '200':
+          description: Usage event recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordSkillUsageResponse'
+  /skills/{id}/ratings:
+    get:
+      operationId: listSkillReviews
+      tags:
+        - skills
+      summary: List reviews for a skill (paginated)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [helpful, recent, highest, lowest]
+        - name: includeHidden
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Reviews page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillRatingListResponse'
+    post:
+      operationId: submitSkillRating
+      tags:
+        - skills
+      summary: Submit a rating + optional review (requires verified usage)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitSkillRatingRequest'
+      responses:
+        '200':
+          description: Rating saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillRatingResponse'
+        '403':
+          description: Verified usage required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /skills/{id}/rating-summary:
+    get:
+      operationId: getSkillRatingSummary
+      tags:
+        - skills
+      summary: Aggregate rating summary (avg, count, breakdown)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rating summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillRatingSummaryResponse'
+  /skills/{id}/badges:
+    get:
+      operationId: getSkillBadges
+      tags:
+        - skills
+      summary: Trust badges for a skill (Verified / OP Pick / Top Creator / Active)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Skill badges
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillBadgesResponse'
+  /skills/{id}/trust-flags:
+    post:
+      operationId: setSkillTrustFlags
+      tags:
+        - skills
+      summary: Set editorial trust flags (OP Pick / Verified by OP)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetSkillTrustFlagsRequest'
+      responses:
+        '200':
+          description: Updated badges
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillBadgesResponse'
   /skills/export/{id}:
     get:
       operationId: exportSkillByIdPath
@@ -14424,6 +14758,11 @@ components:
         - unmaintained
         - createdAt
         - updatedAt
+        - usageCount
+        - ratingAvg
+        - ratingCount
+        - editorialPick
+        - verifiedByOp
       properties:
         id:
           type: string
@@ -14451,6 +14790,17 @@ components:
           type: boolean
         installCount:
           type: integer
+        usageCount:
+          type: integer
+        ratingAvg:
+          type: number
+          format: float
+        ratingCount:
+          type: integer
+        editorialPick:
+          type: boolean
+        verifiedByOp:
+          type: boolean
         version:
           type: integer
         latestVersion:
@@ -14631,6 +14981,390 @@ components:
         success: { type: boolean, enum: [true] }
         data:
           $ref: '#/components/schemas/SkillAdoptionPage'
+    SkillRating:
+      type: object
+      required:
+        - id
+        - skillId
+        - userId
+        - stars
+        - reviewText
+        - status
+        - helpfulCount
+        - unhelpfulCount
+        - flagCount
+        - verifiedPurchase
+        - createdAt
+        - updatedAt
+        - response
+      properties:
+        id:
+          type: string
+        skillId:
+          type: string
+        userId:
+          type: string
+        stars:
+          type: integer
+        reviewText:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, hidden, removed]
+        helpfulCount:
+          type: integer
+        unhelpfulCount:
+          type: integer
+        flagCount:
+          type: integer
+        verifiedPurchase:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        response:
+          allOf:
+            - $ref: '#/components/schemas/SkillReviewResponseRow'
+          nullable: true
+    SkillReviewResponseRow:
+      type: object
+      required:
+        - id
+        - ratingId
+        - authorId
+        - body
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        ratingId:
+          type: string
+        authorId:
+          type: string
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SkillReviewFlag:
+      type: object
+      required:
+        - id
+        - ratingId
+        - skillId
+        - reporterId
+        - reason
+        - detail
+        - status
+        - resolution
+        - resolvedAt
+        - resolvedBy
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        ratingId:
+          type: string
+        skillId:
+          type: string
+        reporterId:
+          type: string
+        reason:
+          type: string
+        detail:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [open, dismissed, upheld]
+        resolution:
+          type: string
+          nullable: true
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        resolvedBy:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SkillRatingResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillRating'
+    SkillReviewResponseResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillReviewResponseRow'
+    SkillReviewFlagResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillReviewFlag'
+    SkillRatingListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillRating'
+        nextCursor:
+          type: string
+          nullable: true
+    SkillRatingListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillRatingListPage'
+    SkillReviewFlagListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillReviewFlag'
+        nextCursor:
+          type: string
+          nullable: true
+    SkillReviewFlagListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillReviewFlagListPage'
+    SkillRatingSummary:
+      type: object
+      required: [skillId, ratingAvg, ratingCount, usageCount, breakdown]
+      properties:
+        skillId:
+          type: string
+        ratingAvg:
+          type: number
+          format: float
+        ratingCount:
+          type: integer
+        usageCount:
+          type: integer
+        breakdown:
+          type: array
+          items:
+            type: object
+            required: [stars, count]
+            properties:
+              stars:
+                type: integer
+              count:
+                type: integer
+    SkillRatingSummaryResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillRatingSummary'
+    TrustBadge:
+      type: object
+      required: [id, label]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+    SkillBadges:
+      type: object
+      required: [skillId, badges, status, usageCount, ratingAvg, ratingCount]
+      properties:
+        skillId:
+          type: string
+        badges:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrustBadge'
+        status:
+          type: string
+          enum: [active, unmaintained]
+        usageCount:
+          type: integer
+        ratingAvg:
+          type: number
+          format: float
+        ratingCount:
+          type: integer
+    SkillBadgesResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SkillBadges'
+    TrendingSkill:
+      type: object
+      required: [skillId, slug, name, installsLastWeek, ratingAvg, usageCount]
+      properties:
+        skillId:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        installsLastWeek:
+          type: integer
+        ratingAvg:
+          type: number
+          format: float
+        usageCount:
+          type: integer
+    TrendingSkillsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/TrendingSkill'
+    SimilarSkill:
+      type: object
+      required: [skillId, slug, name, category, sharedUsers]
+      properties:
+        skillId:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        sharedUsers:
+          type: integer
+    SimilarSkillsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/SimilarSkill'
+    SubmitSkillRatingRequest:
+      type: object
+      required: [stars]
+      properties:
+        stars:
+          type: integer
+          minimum: 1
+          maximum: 5
+        reviewText:
+          type: string
+          nullable: true
+    HelpfulVoteRequest:
+      type: object
+      required: [helpful]
+      properties:
+        helpful:
+          type: boolean
+    ReviewResponseRequest:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+    FlagReviewRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+        detail:
+          type: string
+          nullable: true
+    ModerateReviewRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [hide, restore, remove, dismiss]
+        resolution:
+          type: string
+    SetSkillTrustFlagsRequest:
+      type: object
+      properties:
+        verifiedByOp:
+          type: boolean
+        editorialPick:
+          type: boolean
+    RecordSkillUsageRequest:
+      type: object
+      properties:
+        runId:
+          type: string
+    RecordSkillUsageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [recorded]
+          properties:
+            recorded:
+              type: boolean
     QueuedTaskPriority:
       type: string
       enum: [high, normal, low]

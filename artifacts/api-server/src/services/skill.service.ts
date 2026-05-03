@@ -32,6 +32,7 @@ import type { TenantContext } from "@workspace/types";
 
 import { logger } from "../lib/logger";
 import { logPrivacyEvent } from "./privacy.service";
+import { recordSkillUsage } from "./skill-reviews.service";
 
 export const SKILL_MANIFEST_VERSION = 1 as const;
 
@@ -106,6 +107,11 @@ export interface SkillRow {
   author: string;
   isInstalled: boolean;
   installCount: number;
+  usageCount: number;
+  ratingAvg: number;
+  ratingCount: number;
+  editorialPick: boolean;
+  verifiedByOp: boolean;
   version: number;
   latestVersion: string;
   installedVersion: string;
@@ -252,6 +258,11 @@ function toRow(r: typeof skills.$inferSelect): SkillRow {
     author: r.author,
     isInstalled: Boolean(r.isInstalled),
     installCount: r.installCount,
+    usageCount: r.usageCount,
+    ratingAvg: r.ratingAvg,
+    ratingCount: r.ratingCount,
+    editorialPick: Boolean(r.editorialPick),
+    verifiedByOp: Boolean(r.verifiedByOp),
     version: r.version,
     latestVersion,
     installedVersion,
@@ -365,12 +376,20 @@ async function ensureUniqueSlug(
   return `${baseSlug}-${nanoid(6)}`;
 }
 
+export type SkillSort =
+  | "popular"
+  | "highest-rated"
+  | "most-used"
+  | "newest"
+  | "recently-updated";
+
 export interface ListSkillsOptions {
   cursor?: string;
   limit?: number;
   category?: string;
   installed?: boolean;
   search?: string;
+  sort?: SkillSort;
 }
 
 export async function listSkills(
@@ -400,11 +419,28 @@ export async function listSkills(
   }
   const where = filters.length > 0 ? and(baseScope, ...filters) : baseScope;
 
+  const sort: SkillSort = opts.sort ?? "popular";
+  const orderBy = (() => {
+    switch (sort) {
+      case "highest-rated":
+        return [desc(skills.ratingAvg), desc(skills.ratingCount), desc(skills.createdAt)];
+      case "most-used":
+        return [desc(skills.usageCount), desc(skills.installCount), desc(skills.createdAt)];
+      case "newest":
+        return [desc(skills.createdAt)];
+      case "recently-updated":
+        return [desc(skills.updatedAt)];
+      case "popular":
+      default:
+        return [desc(skills.installCount), desc(skills.createdAt)];
+    }
+  })();
+
   const rows = await db
     .select()
     .from(skills)
     .where(where)
-    .orderBy(desc(skills.installCount), desc(skills.createdAt))
+    .orderBy(...orderBy)
     .limit(limit + 1);
 
   return buildPage(rows.map(toRow), limit, (r) =>
@@ -562,6 +598,12 @@ export async function installSkill(ctx: TenantContext, id: string): Promise<Skil
       severity: "info",
       detail: `slug=${existing.slug} version=${existing.latestVersion}`,
     });
+    // Install counts as the first verified usage — Task #33 verified-usage gate.
+    try {
+      await recordSkillUsage(ctx, id);
+    } catch (e) {
+      logger.warn({ err: e, skillId: id }, "Failed to record install usage event");
+    }
   }
   const row = await getSkill(ctx, id);
   if (!row) throw new SkillNotFoundError(id);

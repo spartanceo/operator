@@ -28,11 +28,29 @@ import {
   publishSkillVersion,
   rollbackSkill,
   setAutoUpdate,
+  type SkillSort,
   SkillNotFoundError,
   SkillValidationError,
   uninstallSkill,
   updateSkill,
 } from "../../services/skill.service";
+import {
+  flagReview,
+  getRatingSummary,
+  getSkillBadges,
+  listFlaggedReviews,
+  listSimilarSkills,
+  listSkillReviews,
+  listTrendingSkills,
+  moderateReview,
+  recordSkillUsage,
+  respondToReview,
+  ReviewError,
+  setSkillTrustFlags,
+  submitRating,
+  voteHelpful,
+  type ReviewSort,
+} from "../../services/skill-reviews.service";
 
 const router: IRouter = Router();
 
@@ -49,7 +67,65 @@ const PageSchema = z.object({
     .optional()
     .transform((v) => (v === undefined ? undefined : v === "true")),
   search: z.string().min(1).max(200).optional(),
+  sort: z
+    .enum(["popular", "highest-rated", "most-used", "newest", "recently-updated"])
+    .optional(),
 });
+
+const RatingSchema = z.object({
+  stars: z.number().int().min(1).max(5),
+  reviewText: z.string().max(4_000).optional().nullable(),
+});
+
+const ReviewListSchema = z.object({
+  cursor: z.string().min(1).max(2048).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  sort: z.enum(["helpful", "recent", "highest", "lowest"]).optional(),
+  includeHidden: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
+});
+
+const HelpfulSchema = z.object({ helpful: z.boolean() });
+
+const ResponseSchema = z.object({ body: z.string().min(1).max(4_000) });
+
+const FlagSchema = z.object({
+  reason: z.string().min(1).max(200),
+  detail: z.string().max(1_000).optional().nullable(),
+});
+
+const ModerationSchema = z.object({
+  action: z.enum(["hide", "restore", "remove", "dismiss"]),
+  resolution: z.string().max(500).optional(),
+});
+
+const TrustFlagsSchema = z.object({
+  verifiedByOp: z.boolean().optional(),
+  editorialPick: z.boolean().optional(),
+});
+
+const UsageSchema = z.object({
+  runId: z.string().min(1).max(120).optional(),
+});
+
+const FlaggedListSchema = z.object({
+  cursor: z.string().min(1).max(2048).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  status: z.enum(["open", "dismissed", "upheld"]).optional(),
+});
+
+function handleReviewError(
+  res: import("express").Response,
+  e: unknown,
+): boolean {
+  if (e instanceof ReviewError) {
+    res.status(e.httpStatus).json(err(e.code, e.message));
+    return true;
+  }
+  return false;
+}
 
 const StringArray = z.array(z.string().min(1).max(120)).max(50);
 
@@ -154,12 +230,150 @@ router.get("/", requireTenant(), async (req, res, next) => {
       res.status(400).json(err("VALIDATION", "Invalid pagination params"));
       return;
     }
-    const page = await listSkills(ctx, parsed.data);
+    const page = await listSkills(ctx, parsed.data as { sort?: SkillSort });
     res.json(pageOk(page.items, page.nextCursor));
   } catch (e) {
     next(e);
   }
 });
+
+// ─── Trending discovery ────────────────────────────────────────────────
+router.get("/trending", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const limit = Math.max(1, Math.min(50, Number(req.query["limit"] ?? 10)));
+    const items = await listTrendingSkills(ctx, limit);
+    res.json(ok({ items }));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/similar", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const limit = Math.max(1, Math.min(20, Number(req.query["limit"] ?? 5)));
+    const items = await listSimilarSkills(ctx, limit);
+    res.json(ok({ items }));
+  } catch (e) {
+    next(e);
+  }
+});
+
+// ─── Admin moderation queue ───────────────────────────────────────────
+router.get("/admin/flagged", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = FlaggedListSchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid query"));
+      return;
+    }
+    const page = await listFlaggedReviews(ctx, parsed.data);
+    res.json(pageOk(page.items, page.nextCursor));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post(
+  "/admin/ratings/:ratingId/moderate",
+  requireTenant(),
+  async (req, res, next) => {
+    try {
+      const ctx = requireTenantContext();
+      const parsed = ModerationSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json(err("VALIDATION", "Invalid moderation payload"));
+        return;
+      }
+      const row = await moderateReview(
+        ctx,
+        String(req.params.ratingId),
+        parsed.data.action,
+        parsed.data.resolution,
+      );
+      res.json(ok(row));
+    } catch (e) {
+      if (handleReviewError(res, e)) return;
+      next(e);
+    }
+  },
+);
+
+// ─── Per-rating actions (helpful, response, flag) ──────────────────────
+router.post(
+  "/ratings/:ratingId/helpful",
+  requireTenant(),
+  async (req, res, next) => {
+    try {
+      const ctx = requireTenantContext();
+      const parsed = HelpfulSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json(err("VALIDATION", "Invalid helpful payload"));
+        return;
+      }
+      const row = await voteHelpful(
+        ctx,
+        String(req.params.ratingId),
+        parsed.data.helpful,
+      );
+      res.json(ok(row));
+    } catch (e) {
+      if (handleReviewError(res, e)) return;
+      next(e);
+    }
+  },
+);
+
+router.post(
+  "/ratings/:ratingId/response",
+  requireTenant(),
+  async (req, res, next) => {
+    try {
+      const ctx = requireTenantContext();
+      const parsed = ResponseSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json(err("VALIDATION", "Invalid response payload"));
+        return;
+      }
+      const row = await respondToReview(
+        ctx,
+        String(req.params.ratingId),
+        parsed.data.body,
+      );
+      res.json(ok(row));
+    } catch (e) {
+      if (handleReviewError(res, e)) return;
+      next(e);
+    }
+  },
+);
+
+router.post(
+  "/ratings/:ratingId/flag",
+  requireTenant(),
+  async (req, res, next) => {
+    try {
+      const ctx = requireTenantContext();
+      const parsed = FlagSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json(err("VALIDATION", "Invalid flag payload"));
+        return;
+      }
+      const row = await flagReview(
+        ctx,
+        String(req.params.ratingId),
+        parsed.data.reason,
+        parsed.data.detail ?? undefined,
+      );
+      res.json(ok(row));
+    } catch (e) {
+      if (handleReviewError(res, e)) return;
+      next(e);
+    }
+  },
+);
 
 router.post("/", requireTenant(), async (req, res, next) => {
   try {
@@ -391,6 +605,101 @@ router.get("/:id/adoption", requireTenant(), async (req, res, next) => {
 router.get("/:id/export", requireTenant(), handleExport);
 // Spec-mandated alternate path shape: GET /api/skills/export/:id
 router.get("/export/:id", requireTenant(), handleExport);
+
+// ─── Per-skill review surface ──────────────────────────────────────────
+router.post("/:id/usage", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = UsageSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid usage payload"));
+      return;
+    }
+    const skill = await getSkill(ctx, String(req.params.id));
+    if (!skill) {
+      res.status(404).json(err("NOT_FOUND", "Skill not found"));
+      return;
+    }
+    const opts = parsed.data.runId !== undefined ? { runId: parsed.data.runId } : {};
+    await recordSkillUsage(ctx, skill.id, opts);
+    res.json(ok({ recorded: true }));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/:id/ratings", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = RatingSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid rating payload"));
+      return;
+    }
+    const row = await submitRating(ctx, String(req.params.id), parsed.data);
+    res.json(ok(row));
+  } catch (e) {
+    if (handleReviewError(res, e)) return;
+    next(e);
+  }
+});
+
+router.get("/:id/ratings", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = ReviewListSchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid query"));
+      return;
+    }
+    const page = await listSkillReviews(
+      ctx,
+      String(req.params.id),
+      parsed.data as { sort?: ReviewSort },
+    );
+    res.json(pageOk(page.items, page.nextCursor));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/:id/rating-summary", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const summary = await getRatingSummary(ctx, String(req.params.id));
+    res.json(ok(summary));
+  } catch (e) {
+    if (handleReviewError(res, e)) return;
+    next(e);
+  }
+});
+
+router.get("/:id/badges", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const row = await getSkillBadges(ctx, String(req.params.id));
+    res.json(ok(row));
+  } catch (e) {
+    if (handleReviewError(res, e)) return;
+    next(e);
+  }
+});
+
+router.post("/:id/trust-flags", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = TrustFlagsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid trust-flags payload"));
+      return;
+    }
+    const row = await setSkillTrustFlags(ctx, String(req.params.id), parsed.data);
+    res.json(ok(row));
+  } catch (e) {
+    if (handleReviewError(res, e)) return;
+    next(e);
+  }
+});
 
 router.post("/:id/invoke", requireTenant(), async (req, res, next) => {
   try {
