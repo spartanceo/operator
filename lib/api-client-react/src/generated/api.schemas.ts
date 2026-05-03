@@ -7899,6 +7899,268 @@ export interface DrgThrottleAckResponse {
   data: DrgThrottleAckResponseData;
 }
 
+export type CustomModelStatus =
+  (typeof CustomModelStatus)[keyof typeof CustomModelStatus];
+
+export const CustomModelStatus = {
+  active: "active",
+  disabled: "disabled",
+} as const;
+
+export interface CustomModel {
+  id: string;
+  name: string;
+  displayName: string;
+  description: string;
+  filePath: string;
+  fileSize: number;
+  format: string;
+  architecture: string;
+  parameterCount: string;
+  quantization: string;
+  sha256: string;
+  status: CustomModelStatus;
+  source: string;
+  importedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LoraAdapterStatus =
+  (typeof LoraAdapterStatus)[keyof typeof LoraAdapterStatus];
+
+export const LoraAdapterStatus = {
+  active: "active",
+  disabled: "disabled",
+} as const;
+
+export interface LoraAdapter {
+  id: string;
+  name: string;
+  displayName: string;
+  description: string;
+  baseModel: string;
+  filePath: string;
+  fileSize: number;
+  format: string;
+  rank: number;
+  alpha: number;
+  sha256: string;
+  status: LoraAdapterStatus;
+  source: string;
+  importedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdapterAssignment {
+  id: string;
+  workspaceId: string;
+  baseModel: string;
+  adapterId: string | null;
+  adapterName: string | null;
+  updatedAt: string;
+}
+
+export interface SkillAdapterPreference {
+  id: string;
+  skillSlug: string;
+  baseModel: string;
+  adapterName: string;
+  updatedAt: string;
+}
+
+export type EnterpriseModelAssetKind =
+  (typeof EnterpriseModelAssetKind)[keyof typeof EnterpriseModelAssetKind];
+
+export const EnterpriseModelAssetKind = {
+  model: "model",
+  adapter: "adapter",
+} as const;
+
+export type EnterpriseModelAssetStatus =
+  (typeof EnterpriseModelAssetStatus)[keyof typeof EnterpriseModelAssetStatus];
+
+export const EnterpriseModelAssetStatus = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
+export interface EnterpriseModelAsset {
+  id: string;
+  kind: EnterpriseModelAssetKind;
+  name: string;
+  displayName: string;
+  description: string;
+  baseModel: string;
+  sourcePath: string;
+  fileSize: number;
+  sha256: string;
+  status: EnterpriseModelAssetStatus;
+  approvedBy: string;
+  approvedAt: string | null;
+  rejectionReason: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ImportCustomModelRequest {
+  name: string;
+  filePath: string;
+  displayName?: string;
+  description?: string;
+  architecture?: string;
+  parameterCount?: string;
+  quantization?: string;
+  importedBy?: string;
+  skipFingerprint?: boolean;
+}
+
+export interface ImportLoraAdapterRequest {
+  name: string;
+  filePath: string;
+  baseModel: string;
+  displayName?: string;
+  description?: string;
+  rank?: number;
+  alpha?: number;
+  importedBy?: string;
+  skipFingerprint?: boolean;
+}
+
+export type CustomModelStatusPatchStatus =
+  (typeof CustomModelStatusPatchStatus)[keyof typeof CustomModelStatusPatchStatus];
+
+export const CustomModelStatusPatchStatus = {
+  active: "active",
+  disabled: "disabled",
+} as const;
+
+export interface CustomModelStatusPatch {
+  status: CustomModelStatusPatchStatus;
+}
+
+export interface SetAdapterAssignmentRequest {
+  baseModel: string;
+  adapterId: string | null;
+}
+
+export interface SetSkillAdapterPreferenceRequest {
+  skillSlug: string;
+  baseModel?: string;
+  adapterName: string;
+}
+
+export type RegisterEnterpriseModelAssetRequestKind =
+  (typeof RegisterEnterpriseModelAssetRequestKind)[keyof typeof RegisterEnterpriseModelAssetRequestKind];
+
+export const RegisterEnterpriseModelAssetRequestKind = {
+  model: "model",
+  adapter: "adapter",
+} as const;
+
+export interface RegisterEnterpriseModelAssetRequest {
+  kind: RegisterEnterpriseModelAssetRequestKind;
+  name: string;
+  displayName?: string;
+  description?: string;
+  baseModel?: string;
+  sourcePath: string;
+  fileSize?: number;
+  sha256?: string;
+}
+
+export interface CustomModelResponse {
+  success: boolean;
+  data: CustomModel;
+}
+
+export type CustomModelListResponseData = {
+  items: CustomModel[];
+};
+
+export interface CustomModelListResponse {
+  success: boolean;
+  data: CustomModelListResponseData;
+}
+
+export interface LoraAdapterResponse {
+  success: boolean;
+  data: LoraAdapter;
+}
+
+export type LoraAdapterListResponseData = {
+  items: LoraAdapter[];
+};
+
+export interface LoraAdapterListResponse {
+  success: boolean;
+  data: LoraAdapterListResponseData;
+}
+
+export type AdapterCompatibilityResponseData = {
+  adapter: LoraAdapter;
+  isLocallyKnown: boolean;
+  knownBaseModels: string[];
+};
+
+export interface AdapterCompatibilityResponse {
+  success: boolean;
+  data: AdapterCompatibilityResponseData;
+}
+
+export interface AdapterAssignmentResponse {
+  success: boolean;
+  data: AdapterAssignment;
+}
+
+export type AdapterAssignmentListResponseData = {
+  items: AdapterAssignment[];
+};
+
+export interface AdapterAssignmentListResponse {
+  success: boolean;
+  data: AdapterAssignmentListResponseData;
+}
+
+export interface SkillAdapterPreferenceResponse {
+  success: boolean;
+  data: SkillAdapterPreference;
+}
+
+export type SkillAdapterPreferenceListResponseData = {
+  items: SkillAdapterPreference[];
+};
+
+export interface SkillAdapterPreferenceListResponse {
+  success: boolean;
+  data: SkillAdapterPreferenceListResponseData;
+}
+
+export interface EnterpriseModelAssetResponse {
+  success: boolean;
+  data: EnterpriseModelAsset;
+}
+
+export type EnterpriseModelAssetListResponseData = {
+  items: EnterpriseModelAsset[];
+};
+
+export interface EnterpriseModelAssetListResponse {
+  success: boolean;
+  data: EnterpriseModelAssetListResponseData;
+}
+
+export type CustomModelDeleteResponseData = {
+  deleted: boolean;
+};
+
+export interface CustomModelDeleteResponse {
+  success: boolean;
+  data: CustomModelDeleteResponseData;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -9475,5 +9737,27 @@ export type UpdateDrgConfigBody = {
 };
 
 export type TriggerDrgThrottleBody = {
+  reason: string;
+};
+
+export type ListLoraAdaptersParams = {
+  baseModel?: string;
+};
+
+export type ListEnterpriseModelAssetsParams = {
+  status?: ListEnterpriseModelAssetsStatus;
+};
+
+export type ListEnterpriseModelAssetsStatus =
+  (typeof ListEnterpriseModelAssetsStatus)[keyof typeof ListEnterpriseModelAssetsStatus];
+
+export const ListEnterpriseModelAssetsStatus = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+  all: "all",
+} as const;
+
+export type RejectEnterpriseModelAssetBody = {
   reason: string;
 };

@@ -58,6 +58,7 @@ import { migration as m0044 } from "./0044_support_system";
 import { migration as m0045 } from "./0045_private_skill_registry";
 import { migration as m0046 } from "./0046_runtime";
 import { migration as m0047 } from "./0047_context_management";
+import { migration as m0048 } from "./0048_fine_tuned_models";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -116,6 +117,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0045,
   m0046,
   m0047,
+  m0048,
 ];
 
 /**

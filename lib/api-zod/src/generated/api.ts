@@ -17362,3 +17362,585 @@ export const GetResidencySignalResponse = zod.object({
     detectedRuntimeIds: zod.array(zod.string()),
   }),
 });
+
+/**
+ * @summary List imported fine-tuned GGUF models
+ */
+export const ListCustomModelsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListCustomModelsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        displayName: zod.string(),
+        description: zod.string(),
+        filePath: zod.string(),
+        fileSize: zod.number(),
+        format: zod.string(),
+        architecture: zod.string(),
+        parameterCount: zod.string(),
+        quantization: zod.string(),
+        sha256: zod.string(),
+        status: zod.enum(["active", "disabled"]),
+        source: zod.string(),
+        importedBy: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Register a fine-tuned GGUF model from a local file path
+ */
+export const ImportCustomModelHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ImportCustomModelBody = zod.object({
+  name: zod.string(),
+  filePath: zod.string(),
+  displayName: zod.string().optional(),
+  description: zod.string().optional(),
+  architecture: zod.string().optional(),
+  parameterCount: zod.string().optional(),
+  quantization: zod.string().optional(),
+  importedBy: zod.string().optional(),
+  skipFingerprint: zod.boolean().optional(),
+});
+
+/**
+ * @summary Enable or disable a custom model
+ */
+export const UpdateCustomModelStatusParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateCustomModelStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateCustomModelStatusBody = zod.object({
+  status: zod.enum(["active", "disabled"]),
+});
+
+export const UpdateCustomModelStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    displayName: zod.string(),
+    description: zod.string(),
+    filePath: zod.string(),
+    fileSize: zod.number(),
+    format: zod.string(),
+    architecture: zod.string(),
+    parameterCount: zod.string(),
+    quantization: zod.string(),
+    sha256: zod.string(),
+    status: zod.enum(["active", "disabled"]),
+    source: zod.string(),
+    importedBy: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Unregister a custom model
+ */
+export const DeleteCustomModelParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteCustomModelHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteCustomModelResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary List imported LoRA adapters (optionally filtered by base model)
+ */
+export const ListLoraAdaptersQueryParams = zod.object({
+  baseModel: zod.coerce.string().optional(),
+});
+
+export const ListLoraAdaptersHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListLoraAdaptersResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        displayName: zod.string(),
+        description: zod.string(),
+        baseModel: zod.string(),
+        filePath: zod.string(),
+        fileSize: zod.number(),
+        format: zod.string(),
+        rank: zod.number(),
+        alpha: zod.number(),
+        sha256: zod.string(),
+        status: zod.enum(["active", "disabled"]),
+        source: zod.string(),
+        importedBy: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Register a LoRA adapter file and bind it to a base model
+ */
+export const ImportLoraAdapterHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ImportLoraAdapterBody = zod.object({
+  name: zod.string(),
+  filePath: zod.string(),
+  baseModel: zod.string(),
+  displayName: zod.string().optional(),
+  description: zod.string().optional(),
+  rank: zod.number().optional(),
+  alpha: zod.number().optional(),
+  importedBy: zod.string().optional(),
+  skipFingerprint: zod.boolean().optional(),
+});
+
+/**
+ * @summary Enable or disable a LoRA adapter
+ */
+export const UpdateLoraAdapterStatusParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateLoraAdapterStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateLoraAdapterStatusBody = zod.object({
+  status: zod.enum(["active", "disabled"]),
+});
+
+export const UpdateLoraAdapterStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    displayName: zod.string(),
+    description: zod.string(),
+    baseModel: zod.string(),
+    filePath: zod.string(),
+    fileSize: zod.number(),
+    format: zod.string(),
+    rank: zod.number(),
+    alpha: zod.number(),
+    sha256: zod.string(),
+    status: zod.enum(["active", "disabled"]),
+    source: zod.string(),
+    importedBy: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Unregister a LoRA adapter and clear any workspace assignments
+ */
+export const DeleteLoraAdapterParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteLoraAdapterHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteLoraAdapterResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Check whether an adapter's base model is locally known
+ */
+export const CheckLoraAdapterCompatibilityParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CheckLoraAdapterCompatibilityHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CheckLoraAdapterCompatibilityResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    adapter: zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      displayName: zod.string(),
+      description: zod.string(),
+      baseModel: zod.string(),
+      filePath: zod.string(),
+      fileSize: zod.number(),
+      format: zod.string(),
+      rank: zod.number(),
+      alpha: zod.number(),
+      sha256: zod.string(),
+      status: zod.enum(["active", "disabled"]),
+      source: zod.string(),
+      importedBy: zod.string(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    isLocallyKnown: zod.boolean(),
+    knownBaseModels: zod.array(zod.string()),
+  }),
+});
+
+/**
+ * @summary List workspace → adapter bindings
+ */
+export const ListAdapterAssignmentsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListAdapterAssignmentsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        workspaceId: zod.string(),
+        baseModel: zod.string(),
+        adapterId: zod.string().nullable(),
+        adapterName: zod.string().nullable(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Bind or clear the active adapter for a base model in this workspace
+ */
+export const SetAdapterAssignmentHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetAdapterAssignmentBody = zod.object({
+  baseModel: zod.string(),
+  adapterId: zod.string().nullable(),
+});
+
+export const SetAdapterAssignmentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    workspaceId: zod.string(),
+    baseModel: zod.string(),
+    adapterId: zod.string().nullable(),
+    adapterName: zod.string().nullable(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List skill-slug → preferred adapter mappings
+ */
+export const ListSkillAdapterPreferencesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSkillAdapterPreferencesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        skillSlug: zod.string(),
+        baseModel: zod.string(),
+        adapterName: zod.string(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Upsert the preferred adapter for a skill slug
+ */
+export const SetSkillAdapterPreferenceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetSkillAdapterPreferenceBody = zod.object({
+  skillSlug: zod.string(),
+  baseModel: zod.string().optional(),
+  adapterName: zod.string(),
+});
+
+export const SetSkillAdapterPreferenceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    skillSlug: zod.string(),
+    baseModel: zod.string(),
+    adapterName: zod.string(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Remove the preferred-adapter mapping for a skill slug
+ */
+export const DeleteSkillAdapterPreferenceParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const DeleteSkillAdapterPreferenceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteSkillAdapterPreferenceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary List enterprise-pushed model & adapter assets
+ */
+export const ListEnterpriseModelAssetsQueryParams = zod.object({
+  status: zod.enum(["pending", "approved", "rejected", "all"]).optional(),
+});
+
+export const ListEnterpriseModelAssetsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListEnterpriseModelAssetsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        kind: zod.enum(["model", "adapter"]),
+        name: zod.string(),
+        displayName: zod.string(),
+        description: zod.string(),
+        baseModel: zod.string(),
+        sourcePath: zod.string(),
+        fileSize: zod.number(),
+        sha256: zod.string(),
+        status: zod.enum(["pending", "approved", "rejected"]),
+        approvedBy: zod.string(),
+        approvedAt: zod.coerce.date().nullable(),
+        rejectionReason: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Register a fine-tuned model or adapter for IT-admin review
+ */
+export const RegisterEnterpriseModelAssetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RegisterEnterpriseModelAssetBody = zod.object({
+  kind: zod.enum(["model", "adapter"]),
+  name: zod.string(),
+  displayName: zod.string().optional(),
+  description: zod.string().optional(),
+  baseModel: zod.string().optional(),
+  sourcePath: zod.string(),
+  fileSize: zod.number().optional(),
+  sha256: zod.string().optional(),
+});
+
+/**
+ * @summary Approve a pending enterprise model asset
+ */
+export const ApproveEnterpriseModelAssetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ApproveEnterpriseModelAssetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ApproveEnterpriseModelAssetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.enum(["model", "adapter"]),
+    name: zod.string(),
+    displayName: zod.string(),
+    description: zod.string(),
+    baseModel: zod.string(),
+    sourcePath: zod.string(),
+    fileSize: zod.number(),
+    sha256: zod.string(),
+    status: zod.enum(["pending", "approved", "rejected"]),
+    approvedBy: zod.string(),
+    approvedAt: zod.coerce.date().nullable(),
+    rejectionReason: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Reject a pending enterprise model asset
+ */
+export const RejectEnterpriseModelAssetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RejectEnterpriseModelAssetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RejectEnterpriseModelAssetBody = zod.object({
+  reason: zod.string(),
+});
+
+export const RejectEnterpriseModelAssetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.enum(["model", "adapter"]),
+    name: zod.string(),
+    displayName: zod.string(),
+    description: zod.string(),
+    baseModel: zod.string(),
+    sourcePath: zod.string(),
+    fileSize: zod.number(),
+    sha256: zod.string(),
+    status: zod.enum(["pending", "approved", "rejected"]),
+    approvedBy: zod.string(),
+    approvedAt: zod.coerce.date().nullable(),
+    rejectionReason: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Remove an enterprise model asset
+ */
+export const DeleteEnterpriseModelAssetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteEnterpriseModelAssetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteEnterpriseModelAssetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deleted: zod.boolean(),
+  }),
+});

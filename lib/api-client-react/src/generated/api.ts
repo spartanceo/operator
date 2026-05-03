@@ -32,6 +32,9 @@ import type {
   ActiveRuntimeResponse,
   ActivityEventListResponse,
   ActivityEventResponse,
+  AdapterAssignmentListResponse,
+  AdapterAssignmentResponse,
+  AdapterCompatibilityResponse,
   Admin2faCodeRequest,
   Admin2faConfirmResponse,
   Admin2faSetupRequest,
@@ -149,6 +152,10 @@ import type {
   CreatorTaxDocumentListResponse,
   CreatorTaxDocumentResponse,
   CreatorTaxFormStateResponse,
+  CustomModelDeleteResponse,
+  CustomModelListResponse,
+  CustomModelResponse,
+  CustomModelStatusPatch,
   DataCategoriesResponse,
   DataInventoryResponse,
   DeleteCategoryRequest,
@@ -184,6 +191,8 @@ import type {
   EmailStatusRequest,
   EnrolOutreachContactRequest,
   EnterpriseAuditPageResponse,
+  EnterpriseModelAssetListResponse,
+  EnterpriseModelAssetResponse,
   EnterpriseOrgResponse,
   EnterpriseSeatPageResponse,
   EnterpriseSeatResponse,
@@ -231,6 +240,8 @@ import type {
   HardwareCapabilitiesResponse,
   HealthCheckResponse,
   HelpfulVoteRequest,
+  ImportCustomModelRequest,
+  ImportLoraAdapterRequest,
   ImportTaskTemplateRequest,
   ImportWorkspaceRequest,
   IncidentReportListResponse,
@@ -298,6 +309,7 @@ import type {
   ListEnterpriseAuditAlertsParams,
   ListEnterpriseAuditParams,
   ListEnterpriseAuditV2Params,
+  ListEnterpriseModelAssetsParams,
   ListEnterpriseSeatsParams,
   ListErasureRequestsParams,
   ListFilesParams,
@@ -306,6 +318,7 @@ import type {
   ListIntegrationsParams,
   ListKnowledgeCollectionsParams,
   ListKnowledgeDocumentsParams,
+  ListLoraAdaptersParams,
   ListMdmFleetParams,
   ListMediaAssetsParams,
   ListMemoriesParams,
@@ -346,6 +359,8 @@ import type {
   ListVoipCallsParams,
   ListWaitlistSignupsParams,
   LoginRequest,
+  LoraAdapterListResponse,
+  LoraAdapterResponse,
   MasterPasswordSetRequest,
   MasterPasswordStatusResponse,
   MasterPasswordVerifyRequest,
@@ -491,8 +506,10 @@ import type {
   ReferralLookupResponse,
   ReferralResponse,
   ReferralRewardListResponse,
+  RegisterEnterpriseModelAssetRequest,
   RegisterPluginToolRequest,
   RegisterRequest,
+  RejectEnterpriseModelAssetBody,
   RejectModerationItemBody,
   RejectPrivateSkillPackageBody,
   RemoveStoreSkillBody,
@@ -531,10 +548,12 @@ import type {
   SetAcquisitionChannelRequest,
   SetActiveRuntimeRequest,
   SetActiveRuntimeResponse,
+  SetAdapterAssignmentRequest,
   SetEnterpriseAuditRetentionBody,
   SetEnterpriseWhitelistEntryBody,
   SetFeatureFlagBody,
   SetRuntimeCredentialRequest,
+  SetSkillAdapterPreferenceRequest,
   SetSkillPermissionRequest,
   SetSkillTrustFlagsRequest,
   SettingsExportResponse,
@@ -542,6 +561,8 @@ import type {
   ShareEventResponse,
   SignCreatorAgreementRequest,
   SimilarSkillsResponse,
+  SkillAdapterPreferenceListResponse,
+  SkillAdapterPreferenceResponse,
   SkillAdoptionResponse,
   SkillAutoUpdateRequest,
   SkillBadgesResponse,
@@ -47476,3 +47497,1673 @@ export function useGetResidencySignal<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List imported fine-tuned GGUF models
+ */
+export const getListCustomModelsUrl = () => {
+  return `/api/custom-models`;
+};
+
+export const listCustomModels = async (
+  options?: RequestInit,
+): Promise<CustomModelListResponse> => {
+  return customFetch<CustomModelListResponse>(getListCustomModelsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCustomModelsQueryKey = () => {
+  return [`/api/custom-models`] as const;
+};
+
+export const getListCustomModelsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCustomModels>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCustomModels>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListCustomModelsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCustomModels>>
+  > = ({ signal }) => listCustomModels({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCustomModels>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCustomModelsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCustomModels>>
+>;
+export type ListCustomModelsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List imported fine-tuned GGUF models
+ */
+
+export function useListCustomModels<
+  TData = Awaited<ReturnType<typeof listCustomModels>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCustomModels>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCustomModelsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Register a fine-tuned GGUF model from a local file path
+ */
+export const getImportCustomModelUrl = () => {
+  return `/api/custom-models`;
+};
+
+export const importCustomModel = async (
+  importCustomModelRequest: ImportCustomModelRequest,
+  options?: RequestInit,
+): Promise<CustomModelResponse> => {
+  return customFetch<CustomModelResponse>(getImportCustomModelUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importCustomModelRequest),
+  });
+};
+
+export const getImportCustomModelMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importCustomModel>>,
+    TError,
+    { data: BodyType<ImportCustomModelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importCustomModel>>,
+  TError,
+  { data: BodyType<ImportCustomModelRequest> },
+  TContext
+> => {
+  const mutationKey = ["importCustomModel"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importCustomModel>>,
+    { data: BodyType<ImportCustomModelRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importCustomModel(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportCustomModelMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importCustomModel>>
+>;
+export type ImportCustomModelMutationBody = BodyType<ImportCustomModelRequest>;
+export type ImportCustomModelMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Register a fine-tuned GGUF model from a local file path
+ */
+export const useImportCustomModel = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importCustomModel>>,
+    TError,
+    { data: BodyType<ImportCustomModelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importCustomModel>>,
+  TError,
+  { data: BodyType<ImportCustomModelRequest> },
+  TContext
+> => {
+  return useMutation(getImportCustomModelMutationOptions(options));
+};
+
+/**
+ * @summary Enable or disable a custom model
+ */
+export const getUpdateCustomModelStatusUrl = (id: string) => {
+  return `/api/custom-models/${id}`;
+};
+
+export const updateCustomModelStatus = async (
+  id: string,
+  customModelStatusPatch: CustomModelStatusPatch,
+  options?: RequestInit,
+): Promise<CustomModelResponse> => {
+  return customFetch<CustomModelResponse>(getUpdateCustomModelStatusUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(customModelStatusPatch),
+  });
+};
+
+export const getUpdateCustomModelStatusMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomModelStatus>>,
+    TError,
+    { id: string; data: BodyType<CustomModelStatusPatch> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCustomModelStatus>>,
+  TError,
+  { id: string; data: BodyType<CustomModelStatusPatch> },
+  TContext
+> => {
+  const mutationKey = ["updateCustomModelStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCustomModelStatus>>,
+    { id: string; data: BodyType<CustomModelStatusPatch> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateCustomModelStatus(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCustomModelStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCustomModelStatus>>
+>;
+export type UpdateCustomModelStatusMutationBody =
+  BodyType<CustomModelStatusPatch>;
+export type UpdateCustomModelStatusMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Enable or disable a custom model
+ */
+export const useUpdateCustomModelStatus = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomModelStatus>>,
+    TError,
+    { id: string; data: BodyType<CustomModelStatusPatch> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCustomModelStatus>>,
+  TError,
+  { id: string; data: BodyType<CustomModelStatusPatch> },
+  TContext
+> => {
+  return useMutation(getUpdateCustomModelStatusMutationOptions(options));
+};
+
+/**
+ * @summary Unregister a custom model
+ */
+export const getDeleteCustomModelUrl = (id: string) => {
+  return `/api/custom-models/${id}`;
+};
+
+export const deleteCustomModel = async (
+  id: string,
+  options?: RequestInit,
+): Promise<CustomModelDeleteResponse> => {
+  return customFetch<CustomModelDeleteResponse>(getDeleteCustomModelUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteCustomModelMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCustomModel>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteCustomModel>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteCustomModel"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteCustomModel>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteCustomModel(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCustomModelMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCustomModel>>
+>;
+
+export type DeleteCustomModelMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unregister a custom model
+ */
+export const useDeleteCustomModel = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCustomModel>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteCustomModel>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteCustomModelMutationOptions(options));
+};
+
+/**
+ * @summary List imported LoRA adapters (optionally filtered by base model)
+ */
+export const getListLoraAdaptersUrl = (params?: ListLoraAdaptersParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/custom-models/adapters?${stringifiedParams}`
+    : `/api/custom-models/adapters`;
+};
+
+export const listLoraAdapters = async (
+  params?: ListLoraAdaptersParams,
+  options?: RequestInit,
+): Promise<LoraAdapterListResponse> => {
+  return customFetch<LoraAdapterListResponse>(getListLoraAdaptersUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListLoraAdaptersQueryKey = (
+  params?: ListLoraAdaptersParams,
+) => {
+  return [`/api/custom-models/adapters`, ...(params ? [params] : [])] as const;
+};
+
+export const getListLoraAdaptersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listLoraAdapters>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListLoraAdaptersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listLoraAdapters>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListLoraAdaptersQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listLoraAdapters>>
+  > = ({ signal }) => listLoraAdapters(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listLoraAdapters>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListLoraAdaptersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listLoraAdapters>>
+>;
+export type ListLoraAdaptersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List imported LoRA adapters (optionally filtered by base model)
+ */
+
+export function useListLoraAdapters<
+  TData = Awaited<ReturnType<typeof listLoraAdapters>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListLoraAdaptersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listLoraAdapters>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListLoraAdaptersQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Register a LoRA adapter file and bind it to a base model
+ */
+export const getImportLoraAdapterUrl = () => {
+  return `/api/custom-models/adapters`;
+};
+
+export const importLoraAdapter = async (
+  importLoraAdapterRequest: ImportLoraAdapterRequest,
+  options?: RequestInit,
+): Promise<LoraAdapterResponse> => {
+  return customFetch<LoraAdapterResponse>(getImportLoraAdapterUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importLoraAdapterRequest),
+  });
+};
+
+export const getImportLoraAdapterMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importLoraAdapter>>,
+    TError,
+    { data: BodyType<ImportLoraAdapterRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importLoraAdapter>>,
+  TError,
+  { data: BodyType<ImportLoraAdapterRequest> },
+  TContext
+> => {
+  const mutationKey = ["importLoraAdapter"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importLoraAdapter>>,
+    { data: BodyType<ImportLoraAdapterRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importLoraAdapter(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportLoraAdapterMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importLoraAdapter>>
+>;
+export type ImportLoraAdapterMutationBody = BodyType<ImportLoraAdapterRequest>;
+export type ImportLoraAdapterMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Register a LoRA adapter file and bind it to a base model
+ */
+export const useImportLoraAdapter = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importLoraAdapter>>,
+    TError,
+    { data: BodyType<ImportLoraAdapterRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importLoraAdapter>>,
+  TError,
+  { data: BodyType<ImportLoraAdapterRequest> },
+  TContext
+> => {
+  return useMutation(getImportLoraAdapterMutationOptions(options));
+};
+
+/**
+ * @summary Enable or disable a LoRA adapter
+ */
+export const getUpdateLoraAdapterStatusUrl = (id: string) => {
+  return `/api/custom-models/adapters/${id}`;
+};
+
+export const updateLoraAdapterStatus = async (
+  id: string,
+  customModelStatusPatch: CustomModelStatusPatch,
+  options?: RequestInit,
+): Promise<LoraAdapterResponse> => {
+  return customFetch<LoraAdapterResponse>(getUpdateLoraAdapterStatusUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(customModelStatusPatch),
+  });
+};
+
+export const getUpdateLoraAdapterStatusMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLoraAdapterStatus>>,
+    TError,
+    { id: string; data: BodyType<CustomModelStatusPatch> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateLoraAdapterStatus>>,
+  TError,
+  { id: string; data: BodyType<CustomModelStatusPatch> },
+  TContext
+> => {
+  const mutationKey = ["updateLoraAdapterStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateLoraAdapterStatus>>,
+    { id: string; data: BodyType<CustomModelStatusPatch> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateLoraAdapterStatus(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateLoraAdapterStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateLoraAdapterStatus>>
+>;
+export type UpdateLoraAdapterStatusMutationBody =
+  BodyType<CustomModelStatusPatch>;
+export type UpdateLoraAdapterStatusMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Enable or disable a LoRA adapter
+ */
+export const useUpdateLoraAdapterStatus = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLoraAdapterStatus>>,
+    TError,
+    { id: string; data: BodyType<CustomModelStatusPatch> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateLoraAdapterStatus>>,
+  TError,
+  { id: string; data: BodyType<CustomModelStatusPatch> },
+  TContext
+> => {
+  return useMutation(getUpdateLoraAdapterStatusMutationOptions(options));
+};
+
+/**
+ * @summary Unregister a LoRA adapter and clear any workspace assignments
+ */
+export const getDeleteLoraAdapterUrl = (id: string) => {
+  return `/api/custom-models/adapters/${id}`;
+};
+
+export const deleteLoraAdapter = async (
+  id: string,
+  options?: RequestInit,
+): Promise<CustomModelDeleteResponse> => {
+  return customFetch<CustomModelDeleteResponse>(getDeleteLoraAdapterUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteLoraAdapterMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteLoraAdapter>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteLoraAdapter>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteLoraAdapter"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteLoraAdapter>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteLoraAdapter(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteLoraAdapterMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteLoraAdapter>>
+>;
+
+export type DeleteLoraAdapterMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unregister a LoRA adapter and clear any workspace assignments
+ */
+export const useDeleteLoraAdapter = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteLoraAdapter>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteLoraAdapter>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteLoraAdapterMutationOptions(options));
+};
+
+/**
+ * @summary Check whether an adapter's base model is locally known
+ */
+export const getCheckLoraAdapterCompatibilityUrl = (id: string) => {
+  return `/api/custom-models/adapters/${id}/compatibility`;
+};
+
+export const checkLoraAdapterCompatibility = async (
+  id: string,
+  options?: RequestInit,
+): Promise<AdapterCompatibilityResponse> => {
+  return customFetch<AdapterCompatibilityResponse>(
+    getCheckLoraAdapterCompatibilityUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCheckLoraAdapterCompatibilityQueryKey = (id: string) => {
+  return [`/api/custom-models/adapters/${id}/compatibility`] as const;
+};
+
+export const getCheckLoraAdapterCompatibilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof checkLoraAdapterCompatibility>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof checkLoraAdapterCompatibility>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCheckLoraAdapterCompatibilityQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof checkLoraAdapterCompatibility>>
+  > = ({ signal }) =>
+    checkLoraAdapterCompatibility(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof checkLoraAdapterCompatibility>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CheckLoraAdapterCompatibilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof checkLoraAdapterCompatibility>>
+>;
+export type CheckLoraAdapterCompatibilityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Check whether an adapter's base model is locally known
+ */
+
+export function useCheckLoraAdapterCompatibility<
+  TData = Awaited<ReturnType<typeof checkLoraAdapterCompatibility>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof checkLoraAdapterCompatibility>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCheckLoraAdapterCompatibilityQueryOptions(
+    id,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List workspace → adapter bindings
+ */
+export const getListAdapterAssignmentsUrl = () => {
+  return `/api/custom-models/assignments`;
+};
+
+export const listAdapterAssignments = async (
+  options?: RequestInit,
+): Promise<AdapterAssignmentListResponse> => {
+  return customFetch<AdapterAssignmentListResponse>(
+    getListAdapterAssignmentsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAdapterAssignmentsQueryKey = () => {
+  return [`/api/custom-models/assignments`] as const;
+};
+
+export const getListAdapterAssignmentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdapterAssignments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdapterAssignments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAdapterAssignmentsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdapterAssignments>>
+  > = ({ signal }) => listAdapterAssignments({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdapterAssignments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdapterAssignmentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdapterAssignments>>
+>;
+export type ListAdapterAssignmentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List workspace → adapter bindings
+ */
+
+export function useListAdapterAssignments<
+  TData = Awaited<ReturnType<typeof listAdapterAssignments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdapterAssignments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdapterAssignmentsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Bind or clear the active adapter for a base model in this workspace
+ */
+export const getSetAdapterAssignmentUrl = () => {
+  return `/api/custom-models/assignments`;
+};
+
+export const setAdapterAssignment = async (
+  setAdapterAssignmentRequest: SetAdapterAssignmentRequest,
+  options?: RequestInit,
+): Promise<AdapterAssignmentResponse> => {
+  return customFetch<AdapterAssignmentResponse>(getSetAdapterAssignmentUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setAdapterAssignmentRequest),
+  });
+};
+
+export const getSetAdapterAssignmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setAdapterAssignment>>,
+    TError,
+    { data: BodyType<SetAdapterAssignmentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setAdapterAssignment>>,
+  TError,
+  { data: BodyType<SetAdapterAssignmentRequest> },
+  TContext
+> => {
+  const mutationKey = ["setAdapterAssignment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setAdapterAssignment>>,
+    { data: BodyType<SetAdapterAssignmentRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setAdapterAssignment(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetAdapterAssignmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setAdapterAssignment>>
+>;
+export type SetAdapterAssignmentMutationBody =
+  BodyType<SetAdapterAssignmentRequest>;
+export type SetAdapterAssignmentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Bind or clear the active adapter for a base model in this workspace
+ */
+export const useSetAdapterAssignment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setAdapterAssignment>>,
+    TError,
+    { data: BodyType<SetAdapterAssignmentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setAdapterAssignment>>,
+  TError,
+  { data: BodyType<SetAdapterAssignmentRequest> },
+  TContext
+> => {
+  return useMutation(getSetAdapterAssignmentMutationOptions(options));
+};
+
+/**
+ * @summary List skill-slug → preferred adapter mappings
+ */
+export const getListSkillAdapterPreferencesUrl = () => {
+  return `/api/custom-models/skill-preferences`;
+};
+
+export const listSkillAdapterPreferences = async (
+  options?: RequestInit,
+): Promise<SkillAdapterPreferenceListResponse> => {
+  return customFetch<SkillAdapterPreferenceListResponse>(
+    getListSkillAdapterPreferencesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListSkillAdapterPreferencesQueryKey = () => {
+  return [`/api/custom-models/skill-preferences`] as const;
+};
+
+export const getListSkillAdapterPreferencesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSkillAdapterPreferences>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillAdapterPreferences>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListSkillAdapterPreferencesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSkillAdapterPreferences>>
+  > = ({ signal }) =>
+    listSkillAdapterPreferences({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillAdapterPreferences>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSkillAdapterPreferencesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSkillAdapterPreferences>>
+>;
+export type ListSkillAdapterPreferencesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List skill-slug → preferred adapter mappings
+ */
+
+export function useListSkillAdapterPreferences<
+  TData = Awaited<ReturnType<typeof listSkillAdapterPreferences>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillAdapterPreferences>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSkillAdapterPreferencesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Upsert the preferred adapter for a skill slug
+ */
+export const getSetSkillAdapterPreferenceUrl = () => {
+  return `/api/custom-models/skill-preferences`;
+};
+
+export const setSkillAdapterPreference = async (
+  setSkillAdapterPreferenceRequest: SetSkillAdapterPreferenceRequest,
+  options?: RequestInit,
+): Promise<SkillAdapterPreferenceResponse> => {
+  return customFetch<SkillAdapterPreferenceResponse>(
+    getSetSkillAdapterPreferenceUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(setSkillAdapterPreferenceRequest),
+    },
+  );
+};
+
+export const getSetSkillAdapterPreferenceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSkillAdapterPreference>>,
+    TError,
+    { data: BodyType<SetSkillAdapterPreferenceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setSkillAdapterPreference>>,
+  TError,
+  { data: BodyType<SetSkillAdapterPreferenceRequest> },
+  TContext
+> => {
+  const mutationKey = ["setSkillAdapterPreference"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setSkillAdapterPreference>>,
+    { data: BodyType<SetSkillAdapterPreferenceRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setSkillAdapterPreference(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetSkillAdapterPreferenceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setSkillAdapterPreference>>
+>;
+export type SetSkillAdapterPreferenceMutationBody =
+  BodyType<SetSkillAdapterPreferenceRequest>;
+export type SetSkillAdapterPreferenceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Upsert the preferred adapter for a skill slug
+ */
+export const useSetSkillAdapterPreference = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSkillAdapterPreference>>,
+    TError,
+    { data: BodyType<SetSkillAdapterPreferenceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setSkillAdapterPreference>>,
+  TError,
+  { data: BodyType<SetSkillAdapterPreferenceRequest> },
+  TContext
+> => {
+  return useMutation(getSetSkillAdapterPreferenceMutationOptions(options));
+};
+
+/**
+ * @summary Remove the preferred-adapter mapping for a skill slug
+ */
+export const getDeleteSkillAdapterPreferenceUrl = (slug: string) => {
+  return `/api/custom-models/skill-preferences/${slug}`;
+};
+
+export const deleteSkillAdapterPreference = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<CustomModelDeleteResponse> => {
+  return customFetch<CustomModelDeleteResponse>(
+    getDeleteSkillAdapterPreferenceUrl(slug),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteSkillAdapterPreferenceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSkillAdapterPreference>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSkillAdapterPreference>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  const mutationKey = ["deleteSkillAdapterPreference"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSkillAdapterPreference>>,
+    { slug: string }
+  > = (props) => {
+    const { slug } = props ?? {};
+
+    return deleteSkillAdapterPreference(slug, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSkillAdapterPreferenceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSkillAdapterPreference>>
+>;
+
+export type DeleteSkillAdapterPreferenceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove the preferred-adapter mapping for a skill slug
+ */
+export const useDeleteSkillAdapterPreference = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSkillAdapterPreference>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSkillAdapterPreference>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  return useMutation(getDeleteSkillAdapterPreferenceMutationOptions(options));
+};
+
+/**
+ * @summary List enterprise-pushed model & adapter assets
+ */
+export const getListEnterpriseModelAssetsUrl = (
+  params?: ListEnterpriseModelAssetsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/custom-models/enterprise?${stringifiedParams}`
+    : `/api/custom-models/enterprise`;
+};
+
+export const listEnterpriseModelAssets = async (
+  params?: ListEnterpriseModelAssetsParams,
+  options?: RequestInit,
+): Promise<EnterpriseModelAssetListResponse> => {
+  return customFetch<EnterpriseModelAssetListResponse>(
+    getListEnterpriseModelAssetsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListEnterpriseModelAssetsQueryKey = (
+  params?: ListEnterpriseModelAssetsParams,
+) => {
+  return [
+    `/api/custom-models/enterprise`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListEnterpriseModelAssetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEnterpriseModelAssets>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseModelAssetsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseModelAssets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListEnterpriseModelAssetsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listEnterpriseModelAssets>>
+  > = ({ signal }) =>
+    listEnterpriseModelAssets(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseModelAssets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListEnterpriseModelAssetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEnterpriseModelAssets>>
+>;
+export type ListEnterpriseModelAssetsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List enterprise-pushed model & adapter assets
+ */
+
+export function useListEnterpriseModelAssets<
+  TData = Awaited<ReturnType<typeof listEnterpriseModelAssets>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseModelAssetsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseModelAssets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEnterpriseModelAssetsQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Register a fine-tuned model or adapter for IT-admin review
+ */
+export const getRegisterEnterpriseModelAssetUrl = () => {
+  return `/api/custom-models/enterprise`;
+};
+
+export const registerEnterpriseModelAsset = async (
+  registerEnterpriseModelAssetRequest: RegisterEnterpriseModelAssetRequest,
+  options?: RequestInit,
+): Promise<EnterpriseModelAssetResponse> => {
+  return customFetch<EnterpriseModelAssetResponse>(
+    getRegisterEnterpriseModelAssetUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(registerEnterpriseModelAssetRequest),
+    },
+  );
+};
+
+export const getRegisterEnterpriseModelAssetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerEnterpriseModelAsset>>,
+    TError,
+    { data: BodyType<RegisterEnterpriseModelAssetRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerEnterpriseModelAsset>>,
+  TError,
+  { data: BodyType<RegisterEnterpriseModelAssetRequest> },
+  TContext
+> => {
+  const mutationKey = ["registerEnterpriseModelAsset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerEnterpriseModelAsset>>,
+    { data: BodyType<RegisterEnterpriseModelAssetRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerEnterpriseModelAsset(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterEnterpriseModelAssetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerEnterpriseModelAsset>>
+>;
+export type RegisterEnterpriseModelAssetMutationBody =
+  BodyType<RegisterEnterpriseModelAssetRequest>;
+export type RegisterEnterpriseModelAssetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Register a fine-tuned model or adapter for IT-admin review
+ */
+export const useRegisterEnterpriseModelAsset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerEnterpriseModelAsset>>,
+    TError,
+    { data: BodyType<RegisterEnterpriseModelAssetRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerEnterpriseModelAsset>>,
+  TError,
+  { data: BodyType<RegisterEnterpriseModelAssetRequest> },
+  TContext
+> => {
+  return useMutation(getRegisterEnterpriseModelAssetMutationOptions(options));
+};
+
+/**
+ * @summary Approve a pending enterprise model asset
+ */
+export const getApproveEnterpriseModelAssetUrl = (id: string) => {
+  return `/api/custom-models/enterprise/${id}/approve`;
+};
+
+export const approveEnterpriseModelAsset = async (
+  id: string,
+  options?: RequestInit,
+): Promise<EnterpriseModelAssetResponse> => {
+  return customFetch<EnterpriseModelAssetResponse>(
+    getApproveEnterpriseModelAssetUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getApproveEnterpriseModelAssetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveEnterpriseModelAsset>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveEnterpriseModelAsset>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["approveEnterpriseModelAsset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveEnterpriseModelAsset>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return approveEnterpriseModelAsset(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveEnterpriseModelAssetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveEnterpriseModelAsset>>
+>;
+
+export type ApproveEnterpriseModelAssetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Approve a pending enterprise model asset
+ */
+export const useApproveEnterpriseModelAsset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveEnterpriseModelAsset>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveEnterpriseModelAsset>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getApproveEnterpriseModelAssetMutationOptions(options));
+};
+
+/**
+ * @summary Reject a pending enterprise model asset
+ */
+export const getRejectEnterpriseModelAssetUrl = (id: string) => {
+  return `/api/custom-models/enterprise/${id}/reject`;
+};
+
+export const rejectEnterpriseModelAsset = async (
+  id: string,
+  rejectEnterpriseModelAssetBody: RejectEnterpriseModelAssetBody,
+  options?: RequestInit,
+): Promise<EnterpriseModelAssetResponse> => {
+  return customFetch<EnterpriseModelAssetResponse>(
+    getRejectEnterpriseModelAssetUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(rejectEnterpriseModelAssetBody),
+    },
+  );
+};
+
+export const getRejectEnterpriseModelAssetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectEnterpriseModelAsset>>,
+    TError,
+    { id: string; data: BodyType<RejectEnterpriseModelAssetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rejectEnterpriseModelAsset>>,
+  TError,
+  { id: string; data: BodyType<RejectEnterpriseModelAssetBody> },
+  TContext
+> => {
+  const mutationKey = ["rejectEnterpriseModelAsset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rejectEnterpriseModelAsset>>,
+    { id: string; data: BodyType<RejectEnterpriseModelAssetBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return rejectEnterpriseModelAsset(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RejectEnterpriseModelAssetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rejectEnterpriseModelAsset>>
+>;
+export type RejectEnterpriseModelAssetMutationBody =
+  BodyType<RejectEnterpriseModelAssetBody>;
+export type RejectEnterpriseModelAssetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reject a pending enterprise model asset
+ */
+export const useRejectEnterpriseModelAsset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectEnterpriseModelAsset>>,
+    TError,
+    { id: string; data: BodyType<RejectEnterpriseModelAssetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rejectEnterpriseModelAsset>>,
+  TError,
+  { id: string; data: BodyType<RejectEnterpriseModelAssetBody> },
+  TContext
+> => {
+  return useMutation(getRejectEnterpriseModelAssetMutationOptions(options));
+};
+
+/**
+ * @summary Remove an enterprise model asset
+ */
+export const getDeleteEnterpriseModelAssetUrl = (id: string) => {
+  return `/api/custom-models/enterprise/${id}`;
+};
+
+export const deleteEnterpriseModelAsset = async (
+  id: string,
+  options?: RequestInit,
+): Promise<CustomModelDeleteResponse> => {
+  return customFetch<CustomModelDeleteResponse>(
+    getDeleteEnterpriseModelAssetUrl(id),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteEnterpriseModelAssetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEnterpriseModelAsset>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteEnterpriseModelAsset>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteEnterpriseModelAsset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteEnterpriseModelAsset>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteEnterpriseModelAsset(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteEnterpriseModelAssetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteEnterpriseModelAsset>>
+>;
+
+export type DeleteEnterpriseModelAssetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove an enterprise model asset
+ */
+export const useDeleteEnterpriseModelAsset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEnterpriseModelAsset>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteEnterpriseModelAsset>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteEnterpriseModelAssetMutationOptions(options));
+};

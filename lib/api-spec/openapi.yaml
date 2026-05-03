@@ -98,6 +98,8 @@ tags:
       built and tested end-to-end before the native binaries land.
   - name: drg
     description: Dynamic Resource Governor (Task #36) — sequential / parallel mode, RAM ceiling, emergency throttle, LAV phase indicator
+  - name: custom-models
+    description: Fine-tuned GGUF models, LoRA adapters, workspace-scoped adapter activation, skill adapter declarations, and the enterprise model distribution registry (Task #47)
 paths:
   /healthz:
     get:
@@ -11439,6 +11441,321 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResidencySignalResponse"
+
+  /custom-models:
+    get:
+      operationId: listCustomModels
+      tags: [custom-models]
+      summary: List imported fine-tuned GGUF models
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: List of custom models
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomModelListResponse" }
+    post:
+      operationId: importCustomModel
+      tags: [custom-models]
+      summary: Register a fine-tuned GGUF model from a local file path
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportCustomModelRequest" }
+      responses:
+        "201":
+          description: Imported
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomModelResponse" }
+        "400":
+          description: Validation / file error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiErrorResponse" }
+  /custom-models/{id}:
+    patch:
+      operationId: updateCustomModelStatus
+      tags: [custom-models]
+      summary: Enable or disable a custom model
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomModelStatusPatch" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomModelResponse" }
+    delete:
+      operationId: deleteCustomModel
+      tags: [custom-models]
+      summary: Unregister a custom model
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomModelDeleteResponse" }
+
+  /custom-models/adapters:
+    get:
+      operationId: listLoraAdapters
+      tags: [custom-models]
+      summary: List imported LoRA adapters (optionally filtered by base model)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: baseModel, in: query, required: false, schema: { type: string } }
+      responses:
+        "200":
+          description: Adapters
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoraAdapterListResponse" }
+    post:
+      operationId: importLoraAdapter
+      tags: [custom-models]
+      summary: Register a LoRA adapter file and bind it to a base model
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportLoraAdapterRequest" }
+      responses:
+        "201":
+          description: Imported
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoraAdapterResponse" }
+        "400":
+          description: Validation / file error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiErrorResponse" }
+  /custom-models/adapters/{id}:
+    patch:
+      operationId: updateLoraAdapterStatus
+      tags: [custom-models]
+      summary: Enable or disable a LoRA adapter
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomModelStatusPatch" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoraAdapterResponse" }
+    delete:
+      operationId: deleteLoraAdapter
+      tags: [custom-models]
+      summary: Unregister a LoRA adapter and clear any workspace assignments
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomModelDeleteResponse" }
+  /custom-models/adapters/{id}/compatibility:
+    get:
+      operationId: checkLoraAdapterCompatibility
+      tags: [custom-models]
+      summary: Check whether an adapter's base model is locally known
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Compatibility result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdapterCompatibilityResponse" }
+
+  /custom-models/assignments:
+    get:
+      operationId: listAdapterAssignments
+      tags: [custom-models]
+      summary: List workspace → adapter bindings
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Assignments
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdapterAssignmentListResponse" }
+    put:
+      operationId: setAdapterAssignment
+      tags: [custom-models]
+      summary: Bind or clear the active adapter for a base model in this workspace
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetAdapterAssignmentRequest" }
+      responses:
+        "200":
+          description: Assignment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdapterAssignmentResponse" }
+
+  /custom-models/skill-preferences:
+    get:
+      operationId: listSkillAdapterPreferences
+      tags: [custom-models]
+      summary: List skill-slug → preferred adapter mappings
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillAdapterPreferenceListResponse" }
+    put:
+      operationId: setSkillAdapterPreference
+      tags: [custom-models]
+      summary: Upsert the preferred adapter for a skill slug
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetSkillAdapterPreferenceRequest" }
+      responses:
+        "200":
+          description: Preference
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillAdapterPreferenceResponse" }
+  /custom-models/skill-preferences/{slug}:
+    delete:
+      operationId: deleteSkillAdapterPreference
+      tags: [custom-models]
+      summary: Remove the preferred-adapter mapping for a skill slug
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomModelDeleteResponse" }
+
+  /custom-models/enterprise:
+    get:
+      operationId: listEnterpriseModelAssets
+      tags: [custom-models]
+      summary: List enterprise-pushed model & adapter assets
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected, all]
+      responses:
+        "200":
+          description: Assets
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnterpriseModelAssetListResponse" }
+    post:
+      operationId: registerEnterpriseModelAsset
+      tags: [custom-models]
+      summary: Register a fine-tuned model or adapter for IT-admin review
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterEnterpriseModelAssetRequest" }
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnterpriseModelAssetResponse" }
+  /custom-models/enterprise/{id}/approve:
+    post:
+      operationId: approveEnterpriseModelAsset
+      tags: [custom-models]
+      summary: Approve a pending enterprise model asset
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnterpriseModelAssetResponse" }
+  /custom-models/enterprise/{id}/reject:
+    post:
+      operationId: rejectEnterpriseModelAsset
+      tags: [custom-models]
+      summary: Reject a pending enterprise model asset
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnterpriseModelAssetResponse" }
+  /custom-models/enterprise/{id}:
+    delete:
+      operationId: deleteEnterpriseModelAsset
+      tags: [custom-models]
+      summary: Remove an enterprise model asset
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomModelDeleteResponse" }
 
 
 components:
@@ -23894,6 +24211,301 @@ components:
             cleared:
               $ref: '#/components/schemas/DrgThrottleEvent'
               nullable: true
+    CustomModel:
+      type: object
+      required:
+        - id
+        - name
+        - displayName
+        - description
+        - filePath
+        - fileSize
+        - format
+        - architecture
+        - parameterCount
+        - quantization
+        - sha256
+        - status
+        - source
+        - importedBy
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        name: { type: string }
+        displayName: { type: string }
+        description: { type: string }
+        filePath: { type: string }
+        fileSize: { type: integer }
+        format: { type: string }
+        architecture: { type: string }
+        parameterCount: { type: string }
+        quantization: { type: string }
+        sha256: { type: string }
+        status: { type: string, enum: [active, disabled] }
+        source: { type: string }
+        importedBy: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    LoraAdapter:
+      type: object
+      required:
+        - id
+        - name
+        - displayName
+        - description
+        - baseModel
+        - filePath
+        - fileSize
+        - format
+        - rank
+        - alpha
+        - sha256
+        - status
+        - source
+        - importedBy
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        name: { type: string }
+        displayName: { type: string }
+        description: { type: string }
+        baseModel: { type: string }
+        filePath: { type: string }
+        fileSize: { type: integer }
+        format: { type: string }
+        rank: { type: integer }
+        alpha: { type: integer }
+        sha256: { type: string }
+        status: { type: string, enum: [active, disabled] }
+        source: { type: string }
+        importedBy: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AdapterAssignment:
+      type: object
+      required: [id, workspaceId, baseModel, adapterId, adapterName, updatedAt]
+      properties:
+        id: { type: string }
+        workspaceId: { type: string }
+        baseModel: { type: string }
+        adapterId: { type: string, nullable: true }
+        adapterName: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time }
+    SkillAdapterPreference:
+      type: object
+      required: [id, skillSlug, baseModel, adapterName, updatedAt]
+      properties:
+        id: { type: string }
+        skillSlug: { type: string }
+        baseModel: { type: string }
+        adapterName: { type: string }
+        updatedAt: { type: string, format: date-time }
+    EnterpriseModelAsset:
+      type: object
+      required:
+        - id
+        - kind
+        - name
+        - displayName
+        - description
+        - baseModel
+        - sourcePath
+        - fileSize
+        - sha256
+        - status
+        - approvedBy
+        - approvedAt
+        - rejectionReason
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [model, adapter] }
+        name: { type: string }
+        displayName: { type: string }
+        description: { type: string }
+        baseModel: { type: string }
+        sourcePath: { type: string }
+        fileSize: { type: integer }
+        sha256: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        approvedBy: { type: string }
+        approvedAt: { type: string, format: date-time, nullable: true }
+        rejectionReason: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ImportCustomModelRequest:
+      type: object
+      required: [name, filePath]
+      properties:
+        name: { type: string }
+        filePath: { type: string }
+        displayName: { type: string }
+        description: { type: string }
+        architecture: { type: string }
+        parameterCount: { type: string }
+        quantization: { type: string }
+        importedBy: { type: string }
+        skipFingerprint: { type: boolean }
+    ImportLoraAdapterRequest:
+      type: object
+      required: [name, filePath, baseModel]
+      properties:
+        name: { type: string }
+        filePath: { type: string }
+        baseModel: { type: string }
+        displayName: { type: string }
+        description: { type: string }
+        rank: { type: integer }
+        alpha: { type: integer }
+        importedBy: { type: string }
+        skipFingerprint: { type: boolean }
+    CustomModelStatusPatch:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [active, disabled] }
+    SetAdapterAssignmentRequest:
+      type: object
+      required: [baseModel, adapterId]
+      properties:
+        baseModel: { type: string }
+        adapterId: { type: string, nullable: true }
+    SetSkillAdapterPreferenceRequest:
+      type: object
+      required: [skillSlug, adapterName]
+      properties:
+        skillSlug: { type: string }
+        baseModel: { type: string }
+        adapterName: { type: string }
+    RegisterEnterpriseModelAssetRequest:
+      type: object
+      required: [kind, name, sourcePath]
+      properties:
+        kind: { type: string, enum: [model, adapter] }
+        name: { type: string }
+        displayName: { type: string }
+        description: { type: string }
+        baseModel: { type: string }
+        sourcePath: { type: string }
+        fileSize: { type: integer }
+        sha256: { type: string }
+    CustomModelResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/CustomModel" }
+    CustomModelListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/CustomModel" }
+    LoraAdapterResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/LoraAdapter" }
+    LoraAdapterListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/LoraAdapter" }
+    AdapterCompatibilityResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [adapter, isLocallyKnown, knownBaseModels]
+          properties:
+            adapter: { $ref: "#/components/schemas/LoraAdapter" }
+            isLocallyKnown: { type: boolean }
+            knownBaseModels:
+              type: array
+              items: { type: string }
+    AdapterAssignmentResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/AdapterAssignment" }
+    AdapterAssignmentListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/AdapterAssignment" }
+    SkillAdapterPreferenceResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/SkillAdapterPreference" }
+    SkillAdapterPreferenceListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/SkillAdapterPreference" }
+    EnterpriseModelAssetResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/EnterpriseModelAsset" }
+    EnterpriseModelAssetListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/EnterpriseModelAsset" }
+    CustomModelDeleteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [deleted]
+          properties:
+            deleted: { type: boolean }
   responses: {}
   requestBodies: {}
   headers: {}
