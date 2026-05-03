@@ -41,6 +41,10 @@ import toolsRouter from "./tools";
 import undoRouter from "./undo";
 import updatesRouter from "./updates";
 import workspacesRouter from "./workspaces";
+import referralsRouter from "./referrals";
+import shareRouter from "./share";
+import creatorProfilesRouter from "./creator-profiles";
+import waitlistRouter from "./waitlist";
 
 const router: IRouter = Router();
 
@@ -78,6 +82,10 @@ router.use("/skills", skillsRouter);
 router.use("/tasks", tasksRouter);
 router.use("/task-templates", taskTemplatesRouter);
 router.use("/schedules", schedulesRouter);
+router.use("/referrals", referralsRouter);
+router.use("/share", shareRouter);
+router.use("/creators", creatorProfilesRouter);
+router.use("/waitlist", waitlistRouter);
 
 router.use("/store", storeRouter);
 

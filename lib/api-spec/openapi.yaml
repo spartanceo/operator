@@ -6812,6 +6812,500 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /referrals/code:
+    get:
+      operationId: getReferralCode
+      tags: [referrals]
+      summary: Get (or lazily create) the tenant's referral code.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Referral code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCodeResponse'
+  /referrals/dashboard:
+    get:
+      operationId: getReferralDashboard
+      tags: [referrals]
+      summary: Referral dashboard — code, totals, rewards, beta status.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralDashboardResponse'
+  /referrals/rewards:
+    get:
+      operationId: listReferralRewards
+      tags: [referrals]
+      summary: List the tenant's currently-active referral rewards.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Rewards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralRewardListResponse'
+  /referrals/beta-access:
+    get:
+      operationId: getReferralBetaAccess
+      tags: [referrals]
+      summary: Beta-access status (auto-unlocks at 3 completed referrals).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Beta access state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BetaAccessResponse'
+  /referrals/attribute:
+    post:
+      operationId: attributeReferral
+      tags: [referrals]
+      summary: Record a referral attribution from a referral code.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttributeReferralRequest'
+      responses:
+        '200':
+          description: Referral row
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralResponse'
+  /referrals/lookup/{code}:
+    get:
+      operationId: lookupReferralCode
+      tags: [referrals]
+      summary: Public — check whether a referral code is valid.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lookup result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralLookupResponse'
+  /referrals/acquisition:
+    get:
+      operationId: getAcquisitionChannel
+      tags: [referrals]
+      summary: Get the tenant's "how did you hear about us" survey answer.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Channel
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcquisitionChannelResponse'
+    put:
+      operationId: setAcquisitionChannel
+      tags: [referrals]
+      summary: Set the tenant's acquisition-channel survey answer.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetAcquisitionChannelRequest'
+      responses:
+        '200':
+          description: Updated channel
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcquisitionChannelResponse'
+  /referrals/enterprise-trial:
+    get:
+      operationId: listEnterpriseTrialInvites
+      tags: [referrals]
+      summary: List enterprise trial invites the tenant has sent.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Invites
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseTrialInviteListResponse'
+    post:
+      operationId: createEnterpriseTrialInvite
+      tags: [referrals]
+      summary: Invite a colleague to start an OP-for-Teams enterprise trial.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEnterpriseTrialInviteRequest'
+      responses:
+        '200':
+          description: Invite
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseTrialInviteResponse'
+  /share/events:
+    get:
+      operationId: listShareEvents
+      tags: [share]
+      summary: List share events for the tenant (filterable by target).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: targetKind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [skill, task, creator]
+        - name: targetId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareEventListResponse'
+    post:
+      operationId: recordShareEvent
+      tags: [share]
+      summary: Append a share event (skill / task / creator).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordShareEventRequest'
+      responses:
+        '200':
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareEventResponse'
+  /share/skill/{identifier}:
+    get:
+      operationId: getSkillShareCard
+      tags: [share]
+      summary: Build a privacy-safe social card for a skill (id or slug).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Skill share card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillSocialCardResponse'
+  /share/skill/{slug}/links:
+    get:
+      operationId: getSkillShareLinks
+      tags: [share]
+      summary: Web URL, deep-link URL, and short URL for a skill.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Skill share links
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillShareLinksResponse'
+  /share/task-card:
+    post:
+      operationId: buildTaskShareCard
+      tags: [share]
+      summary: Build a privacy-safe text share card for a completed task.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildTaskShareCardRequest'
+      responses:
+        '200':
+          description: Task share card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskShareCardResponse'
+  /share/satisfaction:
+    get:
+      operationId: listSatisfactionRatings
+      tags: [share]
+      summary: List post-task satisfaction ratings (filter by runId).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: runId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ratings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskSatisfactionListResponse'
+    post:
+      operationId: recordSatisfaction
+      tags: [share]
+      summary: Record a post-task satisfaction rating (up/down).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordSatisfactionRequest'
+      responses:
+        '200':
+          description: Rating
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskSatisfactionResponse'
+  /creators/me:
+    get:
+      operationId: getMyCreatorProfile
+      tags: [creators]
+      summary: Get the tenant's creator profile (singleton-per-tenant).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Profile (nullable)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorProfileResponse'
+    put:
+      operationId: upsertCreatorProfile
+      tags: [creators]
+      summary: Create or update the tenant's creator profile.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertCreatorProfileRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorProfileResponse'
+  /creators/me/badge:
+    get:
+      operationId: getCreatorBadge
+      tags: [creators]
+      summary: Embeddable "Built with Omninity" badge for the tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Badge embed assets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorBadgeResponse'
+  /creators/leaderboard:
+    get:
+      operationId: getCreatorLeaderboard
+      tags: [creators]
+      summary: Marketplace leaderboard (top earners, most used, highest rated).
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [top_earners, most_used, highest_rated]
+            default: most_used
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        '200':
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorLeaderboardResponse'
+  /creators/milestones:
+    get:
+      operationId: listCreatorMilestones
+      tags: [creators]
+      summary: List recorded creator-milestone events.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: includeDismissed
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Milestones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorMilestoneListResponse'
+  /creators/milestones/sync:
+    post:
+      operationId: syncCreatorMilestones
+      tags: [creators]
+      summary: Recompute milestones for the tenant's skills.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Newly-recorded milestones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorMilestoneListResponse'
+  /creators/milestones/{id}/dismiss:
+    post:
+      operationId: dismissCreatorMilestone
+      tags: [creators]
+      summary: Mark a milestone card as dismissed.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated milestone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorMilestoneResponse'
+  /creators/{slug}:
+    get:
+      operationId: getCreatorProfileBySlug
+      tags: [creators]
+      summary: Public creator profile lookup by slug.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile + optional badge assets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCreatorProfileResponse'
+  /waitlist:
+    get:
+      operationId: listWaitlistSignups
+      tags: [waitlist]
+      summary: Admin — list waitlist signups (paginated).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: feature
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistSignupListResponse'
+    post:
+      operationId: createWaitlistSignup
+      tags: [waitlist]
+      summary: Public marketing-site waitlist email capture (unauthenticated).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWaitlistSignupRequest'
+      responses:
+        '200':
+          description: Created (or deduplicated) signup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistSignupResponse'
+  /waitlist/stats:
+    get:
+      operationId: getWaitlistStats
+      tags: [waitlist]
+      summary: Public — total signups per feature bucket.
+      responses:
+        '200':
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistStatsResponse'
 components:
   parameters:
     TenantHeader:
@@ -16848,6 +17342,607 @@ components:
             - true
         data:
           $ref: '#/components/schemas/StoreCreatorDashboardPayload'
+    ReferralCode:
+      type: object
+      required: [code, shareUrl, createdAt]
+      properties:
+        code: { type: string }
+        shareUrl: { type: string }
+        createdAt: { type: string, format: date-time }
+    ReferralCodeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [code]
+          properties:
+            code: { $ref: '#/components/schemas/ReferralCode' }
+    Referral:
+      type: object
+      required: [id, code, status, completedAt, rewardGrantedAt, createdAt, referredEmail, referredLabel]
+      properties:
+        id: { type: string }
+        code: { type: string }
+        status: { type: string, enum: [pending, completed] }
+        referredEmail: { type: string, nullable: true }
+        referredLabel: { type: string, nullable: true }
+        completedAt: { type: string, nullable: true, format: date-time }
+        rewardGrantedAt: { type: string, nullable: true, format: date-time }
+        createdAt: { type: string, format: date-time }
+    ReferralReward:
+      type: object
+      required: [id, referralId, kind, role, grantedAt, expiresAt, active]
+      properties:
+        id: { type: string }
+        referralId: { type: string, nullable: true }
+        kind: { type: string }
+        role: { type: string, enum: [referrer, referred] }
+        grantedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        active: { type: boolean }
+    ReferralDashboard:
+      type: object
+      required:
+        - code
+        - totalReferred
+        - totalCompleted
+        - totalPending
+        - activeRewards
+        - betaUnlocked
+        - betaThreshold
+        - referrals
+        - rewards
+      properties:
+        code: { $ref: '#/components/schemas/ReferralCode' }
+        totalReferred: { type: integer }
+        totalCompleted: { type: integer }
+        totalPending: { type: integer }
+        activeRewards: { type: integer }
+        betaUnlocked: { type: boolean }
+        betaThreshold: { type: integer }
+        referrals:
+          type: array
+          items: { $ref: '#/components/schemas/Referral' }
+        rewards:
+          type: array
+          items: { $ref: '#/components/schemas/ReferralReward' }
+    ReferralDashboardResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [dashboard]
+          properties:
+            dashboard: { $ref: '#/components/schemas/ReferralDashboard' }
+    ReferralRewardListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [rewards]
+          properties:
+            rewards:
+              type: array
+              items: { $ref: '#/components/schemas/ReferralReward' }
+    BetaAccess:
+      type: object
+      required: [unlocked, threshold, completedReferrals]
+      properties:
+        unlocked: { type: boolean }
+        tier: { type: string, nullable: true }
+        reason: { type: string, nullable: true }
+        grantedAt: { type: string, nullable: true, format: date-time }
+        threshold: { type: integer }
+        completedReferrals: { type: integer }
+    BetaAccessResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [access]
+          properties:
+            access: { $ref: '#/components/schemas/BetaAccess' }
+    AttributeReferralRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string }
+        email: { type: string, format: email }
+        label: { type: string }
+    ReferralResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [referral]
+          properties:
+            referral: { $ref: '#/components/schemas/Referral' }
+    ReferralLookupResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [valid, code]
+          properties:
+            valid: { type: boolean }
+            code: { type: string }
+    AcquisitionChannelKey:
+      type: string
+      enum: [search, social, friend, creator, podcast, blog, work, other]
+    AcquisitionChannel:
+      type: object
+      required: [channel]
+      properties:
+        channel:
+          $ref: '#/components/schemas/AcquisitionChannelKey'
+          nullable: true
+        detail: { type: string, nullable: true }
+    AcquisitionChannelResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [channel]
+          properties:
+            channel:
+              allOf:
+                - $ref: '#/components/schemas/AcquisitionChannel'
+              nullable: true
+    SetAcquisitionChannelRequest:
+      type: object
+      required: [channel]
+      properties:
+        channel: { $ref: '#/components/schemas/AcquisitionChannelKey' }
+        detail: { type: string }
+    EnterpriseTrialInvite:
+      type: object
+      required: [id, colleagueEmail, status, createdAt]
+      properties:
+        id: { type: string }
+        colleagueEmail: { type: string }
+        colleagueName: { type: string, nullable: true }
+        company: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        status: { type: string }
+        createdAt: { type: string, format: date-time }
+    EnterpriseTrialInviteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [invite]
+          properties:
+            invite: { $ref: '#/components/schemas/EnterpriseTrialInvite' }
+    EnterpriseTrialInviteListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [invites]
+          properties:
+            invites:
+              type: array
+              items: { $ref: '#/components/schemas/EnterpriseTrialInvite' }
+    CreateEnterpriseTrialInviteRequest:
+      type: object
+      required: [colleagueEmail]
+      properties:
+        colleagueEmail: { type: string, format: email }
+        colleagueName: { type: string }
+        company: { type: string }
+        note: { type: string }
+    ShareEvent:
+      type: object
+      required: [id, targetKind, targetId, channel, createdAt]
+      properties:
+        id: { type: string }
+        targetKind: { type: string, enum: [skill, task, creator] }
+        targetId: { type: string }
+        channel: { type: string, enum: [twitter, linkedin, whatsapp, copy, native, email] }
+        label: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    ShareEventResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [event]
+          properties:
+            event: { $ref: '#/components/schemas/ShareEvent' }
+    ShareEventListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [events]
+          properties:
+            events:
+              type: array
+              items: { $ref: '#/components/schemas/ShareEvent' }
+    RecordShareEventRequest:
+      type: object
+      required: [targetKind, targetId]
+      properties:
+        targetKind: { type: string, enum: [skill, task, creator] }
+        targetId: { type: string }
+        channel: { type: string, enum: [twitter, linkedin, whatsapp, copy, native, email] }
+        label: { type: string }
+    SkillShareLinks:
+      type: object
+      required: [webUrl, deepLinkUrl, shortUrl]
+      properties:
+        webUrl: { type: string }
+        deepLinkUrl: { type: string }
+        shortUrl: { type: string }
+    SkillShareLinksResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [links]
+          properties:
+            links: { $ref: '#/components/schemas/SkillShareLinks' }
+    SocialChannelText:
+      type: object
+      required: [twitter, linkedin, whatsapp, email]
+      properties:
+        twitter: { type: string }
+        linkedin: { type: string }
+        whatsapp: { type: string }
+        email:
+          type: object
+          required: [subject, body]
+          properties:
+            subject: { type: string }
+            body: { type: string }
+    SkillSocialCard:
+      type: object
+      required:
+        - title
+        - creator
+        - description
+        - category
+        - installs
+        - rating
+        - ratingDisplay
+        - webUrl
+        - deepLinkUrl
+        - channels
+      properties:
+        title: { type: string }
+        creator: { type: string }
+        description: { type: string }
+        category: { type: string }
+        installs: { type: integer }
+        rating: { type: number }
+        ratingDisplay: { type: string }
+        webUrl: { type: string }
+        deepLinkUrl: { type: string }
+        channels: { $ref: '#/components/schemas/SocialChannelText' }
+    SkillSocialCardResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [card]
+          properties:
+            card: { $ref: '#/components/schemas/SkillSocialCard' }
+    BuildTaskShareCardRequest:
+      type: object
+      required: [goal, summary]
+      properties:
+        goal: { type: string }
+        summary: { type: string }
+        durationMs: { type: integer }
+    TaskShareCard:
+      type: object
+      required: [title, body, channels]
+      properties:
+        title: { type: string }
+        body: { type: string }
+        channels: { $ref: '#/components/schemas/SocialChannelText' }
+    TaskShareCardResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [card]
+          properties:
+            card: { $ref: '#/components/schemas/TaskShareCard' }
+    TaskSatisfactionRating:
+      type: object
+      required: [id, rating, shouldPromptShare, createdAt]
+      properties:
+        id: { type: string }
+        runId: { type: string, nullable: true }
+        rating: { type: string, enum: [up, down] }
+        summary: { type: string, nullable: true }
+        shouldPromptShare: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    TaskSatisfactionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [rating]
+          properties:
+            rating: { $ref: '#/components/schemas/TaskSatisfactionRating' }
+    TaskSatisfactionListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [ratings]
+          properties:
+            ratings:
+              type: array
+              items: { $ref: '#/components/schemas/TaskSatisfactionRating' }
+    RecordSatisfactionRequest:
+      type: object
+      required: [rating]
+      properties:
+        runId: { type: string }
+        rating: { type: string, enum: [up, down] }
+        summary: { type: string }
+    CreatorProfile:
+      type: object
+      required:
+        - id
+        - tenantId
+        - slug
+        - displayName
+        - bio
+        - badgeEnabled
+        - published
+        - publicUrl
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        slug: { type: string }
+        displayName: { type: string }
+        handle: { type: string, nullable: true }
+        bio: { type: string }
+        websiteUrl: { type: string, nullable: true }
+        twitterUrl: { type: string, nullable: true }
+        githubUrl: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        badgeEnabled: { type: boolean }
+        published: { type: boolean }
+        publicUrl: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreatorProfileResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [profile]
+          properties:
+            profile:
+              allOf:
+                - $ref: '#/components/schemas/CreatorProfile'
+              nullable: true
+    UpsertCreatorProfileRequest:
+      type: object
+      properties:
+        displayName: { type: string }
+        handle: { type: string }
+        slug: { type: string }
+        bio: { type: string }
+        websiteUrl: { type: string }
+        twitterUrl: { type: string }
+        githubUrl: { type: string }
+        avatarUrl: { type: string }
+        badgeEnabled: { type: boolean }
+        published: { type: boolean }
+    CreatorBadge:
+      type: object
+      required: [embedHtml, embedScript, badgeImageUrl, publicUrl, altText]
+      properties:
+        embedHtml: { type: string }
+        embedScript: { type: string }
+        badgeImageUrl: { type: string }
+        publicUrl: { type: string }
+        altText: { type: string }
+    CreatorBadgeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [badge]
+          properties:
+            badge: { $ref: '#/components/schemas/CreatorBadge' }
+    PublicCreatorProfileResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [profile]
+          properties:
+            profile: { $ref: '#/components/schemas/CreatorProfile' }
+            badge:
+              allOf:
+                - $ref: '#/components/schemas/CreatorBadge'
+              nullable: true
+    LeaderboardEntry:
+      type: object
+      required:
+        - rank
+        - creatorName
+        - skillCount
+        - totalInstalls
+        - averageRating
+        - estimatedEarningsUsd
+      properties:
+        rank: { type: integer }
+        creatorSlug: { type: string, nullable: true }
+        creatorName: { type: string }
+        creatorTenantId: { type: string, nullable: true }
+        skillCount: { type: integer }
+        totalInstalls: { type: integer }
+        averageRating: { type: number }
+        estimatedEarningsUsd: { type: number }
+    CreatorLeaderboardResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [kind, entries]
+          properties:
+            kind: { type: string, enum: [top_earners, most_used, highest_rated] }
+            entries:
+              type: array
+              items: { $ref: '#/components/schemas/LeaderboardEntry' }
+    CreatorMilestone:
+      type: object
+      required:
+        - id
+        - skillId
+        - skillName
+        - milestone
+        - threshold
+        - dismissed
+        - shareText
+        - createdAt
+      properties:
+        id: { type: string }
+        skillId: { type: string }
+        skillName: { type: string }
+        milestone: { type: string }
+        threshold: { type: integer }
+        dismissed: { type: boolean }
+        shareText: { type: string }
+        createdAt: { type: string, format: date-time }
+    CreatorMilestoneResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [milestone]
+          properties:
+            milestone: { $ref: '#/components/schemas/CreatorMilestone' }
+    CreatorMilestoneListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            milestones:
+              type: array
+              items: { $ref: '#/components/schemas/CreatorMilestone' }
+            created:
+              type: array
+              items: { $ref: '#/components/schemas/CreatorMilestone' }
+    WaitlistSignup:
+      type: object
+      required: [id, feature, email, createdAt]
+      properties:
+        id: { type: string }
+        feature: { type: string }
+        email: { type: string }
+        name: { type: string, nullable: true }
+        source: { type: string, nullable: true }
+        referralCode: { type: string, nullable: true }
+        notifiedAt: { type: string, nullable: true, format: date-time }
+        createdAt: { type: string, format: date-time }
+    CreateWaitlistSignupRequest:
+      type: object
+      required: [feature, email]
+      properties:
+        feature: { type: string }
+        email: { type: string, format: email }
+        name: { type: string }
+        source: { type: string }
+        referralCode: { type: string }
+    WaitlistSignupResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [signup, deduplicated]
+          properties:
+            signup: { $ref: '#/components/schemas/WaitlistSignup' }
+            deduplicated: { type: boolean }
+    WaitlistSignupListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/WaitlistSignup' }
+        nextCursor: { type: string, nullable: true }
+    WaitlistSignupListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/WaitlistSignupListPage' }
+    WaitlistFeatureStat:
+      type: object
+      required: [feature, total]
+      properties:
+        feature: { type: string }
+        total: { type: integer }
+    WaitlistStatsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [stats]
+          properties:
+            stats:
+              type: array
+              items: { $ref: '#/components/schemas/WaitlistFeatureStat' }
   responses: {}
   requestBodies: {}
   headers: {}

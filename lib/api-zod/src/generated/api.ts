@@ -13409,3 +13409,959 @@ export const GetStoreCreatorResponse = zod.object({
     updatedAt: zod.coerce.date(),
   }),
 });
+
+/**
+ * @summary Get (or lazily create) the tenant's referral code.
+ */
+export const GetReferralCodeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetReferralCodeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    code: zod.object({
+      code: zod.string(),
+      shareUrl: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Referral dashboard — code, totals, rewards, beta status.
+ */
+export const GetReferralDashboardHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetReferralDashboardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    dashboard: zod.object({
+      code: zod.object({
+        code: zod.string(),
+        shareUrl: zod.string(),
+        createdAt: zod.coerce.date(),
+      }),
+      totalReferred: zod.number(),
+      totalCompleted: zod.number(),
+      totalPending: zod.number(),
+      activeRewards: zod.number(),
+      betaUnlocked: zod.boolean(),
+      betaThreshold: zod.number(),
+      referrals: zod.array(
+        zod.object({
+          id: zod.string(),
+          code: zod.string(),
+          status: zod.enum(["pending", "completed"]),
+          referredEmail: zod.string().nullable(),
+          referredLabel: zod.string().nullable(),
+          completedAt: zod.coerce.date().nullable(),
+          rewardGrantedAt: zod.coerce.date().nullable(),
+          createdAt: zod.coerce.date(),
+        }),
+      ),
+      rewards: zod.array(
+        zod.object({
+          id: zod.string(),
+          referralId: zod.string().nullable(),
+          kind: zod.string(),
+          role: zod.enum(["referrer", "referred"]),
+          grantedAt: zod.coerce.date(),
+          expiresAt: zod.coerce.date(),
+          active: zod.boolean(),
+        }),
+      ),
+    }),
+  }),
+});
+
+/**
+ * @summary List the tenant's currently-active referral rewards.
+ */
+export const ListReferralRewardsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListReferralRewardsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    rewards: zod.array(
+      zod.object({
+        id: zod.string(),
+        referralId: zod.string().nullable(),
+        kind: zod.string(),
+        role: zod.enum(["referrer", "referred"]),
+        grantedAt: zod.coerce.date(),
+        expiresAt: zod.coerce.date(),
+        active: zod.boolean(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Beta-access status (auto-unlocks at 3 completed referrals).
+ */
+export const GetReferralBetaAccessHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetReferralBetaAccessResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    access: zod.object({
+      unlocked: zod.boolean(),
+      tier: zod.string().nullish(),
+      reason: zod.string().nullish(),
+      grantedAt: zod.coerce.date().nullish(),
+      threshold: zod.number(),
+      completedReferrals: zod.number(),
+    }),
+  }),
+});
+
+/**
+ * @summary Record a referral attribution from a referral code.
+ */
+export const AttributeReferralHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const AttributeReferralBody = zod.object({
+  code: zod.string(),
+  email: zod.string().email().optional(),
+  label: zod.string().optional(),
+});
+
+export const AttributeReferralResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    referral: zod.object({
+      id: zod.string(),
+      code: zod.string(),
+      status: zod.enum(["pending", "completed"]),
+      referredEmail: zod.string().nullable(),
+      referredLabel: zod.string().nullable(),
+      completedAt: zod.coerce.date().nullable(),
+      rewardGrantedAt: zod.coerce.date().nullable(),
+      createdAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Public — check whether a referral code is valid.
+ */
+export const LookupReferralCodeParams = zod.object({
+  code: zod.coerce.string(),
+});
+
+export const LookupReferralCodeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    valid: zod.boolean(),
+    code: zod.string(),
+  }),
+});
+
+/**
+ * @summary Get the tenant's "how did you hear about us" survey answer.
+ */
+export const GetAcquisitionChannelHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetAcquisitionChannelResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    channel: zod
+      .object({
+        channel: zod
+          .enum([
+            "search",
+            "social",
+            "friend",
+            "creator",
+            "podcast",
+            "blog",
+            "work",
+            "other",
+          ])
+          .nullable(),
+        detail: zod.string().nullish(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Set the tenant's acquisition-channel survey answer.
+ */
+export const SetAcquisitionChannelHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetAcquisitionChannelBody = zod.object({
+  channel: zod.enum([
+    "search",
+    "social",
+    "friend",
+    "creator",
+    "podcast",
+    "blog",
+    "work",
+    "other",
+  ]),
+  detail: zod.string().optional(),
+});
+
+export const SetAcquisitionChannelResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    channel: zod
+      .object({
+        channel: zod
+          .enum([
+            "search",
+            "social",
+            "friend",
+            "creator",
+            "podcast",
+            "blog",
+            "work",
+            "other",
+          ])
+          .nullable(),
+        detail: zod.string().nullish(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary List enterprise trial invites the tenant has sent.
+ */
+export const ListEnterpriseTrialInvitesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListEnterpriseTrialInvitesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    invites: zod.array(
+      zod.object({
+        id: zod.string(),
+        colleagueEmail: zod.string(),
+        colleagueName: zod.string().nullish(),
+        company: zod.string().nullish(),
+        note: zod.string().nullish(),
+        status: zod.string(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Invite a colleague to start an OP-for-Teams enterprise trial.
+ */
+export const CreateEnterpriseTrialInviteHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateEnterpriseTrialInviteBody = zod.object({
+  colleagueEmail: zod.string().email(),
+  colleagueName: zod.string().optional(),
+  company: zod.string().optional(),
+  note: zod.string().optional(),
+});
+
+export const CreateEnterpriseTrialInviteResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    invite: zod.object({
+      id: zod.string(),
+      colleagueEmail: zod.string(),
+      colleagueName: zod.string().nullish(),
+      company: zod.string().nullish(),
+      note: zod.string().nullish(),
+      status: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary List share events for the tenant (filterable by target).
+ */
+export const ListShareEventsQueryParams = zod.object({
+  targetKind: zod.enum(["skill", "task", "creator"]).optional(),
+  targetId: zod.coerce.string().optional(),
+});
+
+export const ListShareEventsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListShareEventsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    events: zod.array(
+      zod.object({
+        id: zod.string(),
+        targetKind: zod.enum(["skill", "task", "creator"]),
+        targetId: zod.string(),
+        channel: zod.enum([
+          "twitter",
+          "linkedin",
+          "whatsapp",
+          "copy",
+          "native",
+          "email",
+        ]),
+        label: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Append a share event (skill / task / creator).
+ */
+export const RecordShareEventHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RecordShareEventBody = zod.object({
+  targetKind: zod.enum(["skill", "task", "creator"]),
+  targetId: zod.string(),
+  channel: zod
+    .enum(["twitter", "linkedin", "whatsapp", "copy", "native", "email"])
+    .optional(),
+  label: zod.string().optional(),
+});
+
+export const RecordShareEventResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    event: zod.object({
+      id: zod.string(),
+      targetKind: zod.enum(["skill", "task", "creator"]),
+      targetId: zod.string(),
+      channel: zod.enum([
+        "twitter",
+        "linkedin",
+        "whatsapp",
+        "copy",
+        "native",
+        "email",
+      ]),
+      label: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Build a privacy-safe social card for a skill (id or slug).
+ */
+export const GetSkillShareCardParams = zod.object({
+  identifier: zod.coerce.string(),
+});
+
+export const GetSkillShareCardHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSkillShareCardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    card: zod.object({
+      title: zod.string(),
+      creator: zod.string(),
+      description: zod.string(),
+      category: zod.string(),
+      installs: zod.number(),
+      rating: zod.number(),
+      ratingDisplay: zod.string(),
+      webUrl: zod.string(),
+      deepLinkUrl: zod.string(),
+      channels: zod.object({
+        twitter: zod.string(),
+        linkedin: zod.string(),
+        whatsapp: zod.string(),
+        email: zod.object({
+          subject: zod.string(),
+          body: zod.string(),
+        }),
+      }),
+    }),
+  }),
+});
+
+/**
+ * @summary Web URL, deep-link URL, and short URL for a skill.
+ */
+export const GetSkillShareLinksParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const GetSkillShareLinksResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    links: zod.object({
+      webUrl: zod.string(),
+      deepLinkUrl: zod.string(),
+      shortUrl: zod.string(),
+    }),
+  }),
+});
+
+/**
+ * @summary Build a privacy-safe text share card for a completed task.
+ */
+export const BuildTaskShareCardHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const BuildTaskShareCardBody = zod.object({
+  goal: zod.string(),
+  summary: zod.string(),
+  durationMs: zod.number().optional(),
+});
+
+export const BuildTaskShareCardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    card: zod.object({
+      title: zod.string(),
+      body: zod.string(),
+      channels: zod.object({
+        twitter: zod.string(),
+        linkedin: zod.string(),
+        whatsapp: zod.string(),
+        email: zod.object({
+          subject: zod.string(),
+          body: zod.string(),
+        }),
+      }),
+    }),
+  }),
+});
+
+/**
+ * @summary List post-task satisfaction ratings (filter by runId).
+ */
+export const ListSatisfactionRatingsQueryParams = zod.object({
+  runId: zod.coerce.string().optional(),
+});
+
+export const ListSatisfactionRatingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSatisfactionRatingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    ratings: zod.array(
+      zod.object({
+        id: zod.string(),
+        runId: zod.string().nullish(),
+        rating: zod.enum(["up", "down"]),
+        summary: zod.string().nullish(),
+        shouldPromptShare: zod.boolean(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Record a post-task satisfaction rating (up/down).
+ */
+export const RecordSatisfactionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RecordSatisfactionBody = zod.object({
+  runId: zod.string().optional(),
+  rating: zod.enum(["up", "down"]),
+  summary: zod.string().optional(),
+});
+
+export const RecordSatisfactionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    rating: zod.object({
+      id: zod.string(),
+      runId: zod.string().nullish(),
+      rating: zod.enum(["up", "down"]),
+      summary: zod.string().nullish(),
+      shouldPromptShare: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Get the tenant's creator profile (singleton-per-tenant).
+ */
+export const GetMyCreatorProfileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMyCreatorProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    profile: zod
+      .object({
+        id: zod.string(),
+        tenantId: zod.string(),
+        slug: zod.string(),
+        displayName: zod.string(),
+        handle: zod.string().nullish(),
+        bio: zod.string(),
+        websiteUrl: zod.string().nullish(),
+        twitterUrl: zod.string().nullish(),
+        githubUrl: zod.string().nullish(),
+        avatarUrl: zod.string().nullish(),
+        badgeEnabled: zod.boolean(),
+        published: zod.boolean(),
+        publicUrl: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Create or update the tenant's creator profile.
+ */
+export const UpsertCreatorProfileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpsertCreatorProfileBody = zod.object({
+  displayName: zod.string().optional(),
+  handle: zod.string().optional(),
+  slug: zod.string().optional(),
+  bio: zod.string().optional(),
+  websiteUrl: zod.string().optional(),
+  twitterUrl: zod.string().optional(),
+  githubUrl: zod.string().optional(),
+  avatarUrl: zod.string().optional(),
+  badgeEnabled: zod.boolean().optional(),
+  published: zod.boolean().optional(),
+});
+
+export const UpsertCreatorProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    profile: zod
+      .object({
+        id: zod.string(),
+        tenantId: zod.string(),
+        slug: zod.string(),
+        displayName: zod.string(),
+        handle: zod.string().nullish(),
+        bio: zod.string(),
+        websiteUrl: zod.string().nullish(),
+        twitterUrl: zod.string().nullish(),
+        githubUrl: zod.string().nullish(),
+        avatarUrl: zod.string().nullish(),
+        badgeEnabled: zod.boolean(),
+        published: zod.boolean(),
+        publicUrl: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Embeddable "Built with Omninity" badge for the tenant.
+ */
+export const GetCreatorBadgeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetCreatorBadgeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    badge: zod.object({
+      embedHtml: zod.string(),
+      embedScript: zod.string(),
+      badgeImageUrl: zod.string(),
+      publicUrl: zod.string(),
+      altText: zod.string(),
+    }),
+  }),
+});
+
+/**
+ * @summary Marketplace leaderboard (top earners, most used, highest rated).
+ */
+export const getCreatorLeaderboardQueryKindDefault = `most_used`;
+export const getCreatorLeaderboardQueryLimitDefault = 25;
+export const getCreatorLeaderboardQueryLimitMax = 100;
+
+export const GetCreatorLeaderboardQueryParams = zod.object({
+  kind: zod
+    .enum(["top_earners", "most_used", "highest_rated"])
+    .default(getCreatorLeaderboardQueryKindDefault),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(getCreatorLeaderboardQueryLimitMax)
+    .default(getCreatorLeaderboardQueryLimitDefault),
+});
+
+export const GetCreatorLeaderboardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    kind: zod.enum(["top_earners", "most_used", "highest_rated"]),
+    entries: zod.array(
+      zod.object({
+        rank: zod.number(),
+        creatorSlug: zod.string().nullish(),
+        creatorName: zod.string(),
+        creatorTenantId: zod.string().nullish(),
+        skillCount: zod.number(),
+        totalInstalls: zod.number(),
+        averageRating: zod.number(),
+        estimatedEarningsUsd: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary List recorded creator-milestone events.
+ */
+export const ListCreatorMilestonesQueryParams = zod.object({
+  includeDismissed: zod.coerce.boolean().optional(),
+});
+
+export const ListCreatorMilestonesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListCreatorMilestonesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    milestones: zod
+      .array(
+        zod.object({
+          id: zod.string(),
+          skillId: zod.string(),
+          skillName: zod.string(),
+          milestone: zod.string(),
+          threshold: zod.number(),
+          dismissed: zod.boolean(),
+          shareText: zod.string(),
+          createdAt: zod.coerce.date(),
+        }),
+      )
+      .optional(),
+    created: zod
+      .array(
+        zod.object({
+          id: zod.string(),
+          skillId: zod.string(),
+          skillName: zod.string(),
+          milestone: zod.string(),
+          threshold: zod.number(),
+          dismissed: zod.boolean(),
+          shareText: zod.string(),
+          createdAt: zod.coerce.date(),
+        }),
+      )
+      .optional(),
+  }),
+});
+
+/**
+ * @summary Recompute milestones for the tenant's skills.
+ */
+export const SyncCreatorMilestonesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SyncCreatorMilestonesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    milestones: zod
+      .array(
+        zod.object({
+          id: zod.string(),
+          skillId: zod.string(),
+          skillName: zod.string(),
+          milestone: zod.string(),
+          threshold: zod.number(),
+          dismissed: zod.boolean(),
+          shareText: zod.string(),
+          createdAt: zod.coerce.date(),
+        }),
+      )
+      .optional(),
+    created: zod
+      .array(
+        zod.object({
+          id: zod.string(),
+          skillId: zod.string(),
+          skillName: zod.string(),
+          milestone: zod.string(),
+          threshold: zod.number(),
+          dismissed: zod.boolean(),
+          shareText: zod.string(),
+          createdAt: zod.coerce.date(),
+        }),
+      )
+      .optional(),
+  }),
+});
+
+/**
+ * @summary Mark a milestone card as dismissed.
+ */
+export const DismissCreatorMilestoneParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DismissCreatorMilestoneHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DismissCreatorMilestoneResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    milestone: zod.object({
+      id: zod.string(),
+      skillId: zod.string(),
+      skillName: zod.string(),
+      milestone: zod.string(),
+      threshold: zod.number(),
+      dismissed: zod.boolean(),
+      shareText: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Public creator profile lookup by slug.
+ */
+export const GetCreatorProfileBySlugParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const GetCreatorProfileBySlugResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    profile: zod.object({
+      id: zod.string(),
+      tenantId: zod.string(),
+      slug: zod.string(),
+      displayName: zod.string(),
+      handle: zod.string().nullish(),
+      bio: zod.string(),
+      websiteUrl: zod.string().nullish(),
+      twitterUrl: zod.string().nullish(),
+      githubUrl: zod.string().nullish(),
+      avatarUrl: zod.string().nullish(),
+      badgeEnabled: zod.boolean(),
+      published: zod.boolean(),
+      publicUrl: zod.string(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    badge: zod
+      .object({
+        embedHtml: zod.string(),
+        embedScript: zod.string(),
+        badgeImageUrl: zod.string(),
+        publicUrl: zod.string(),
+        altText: zod.string(),
+      })
+      .nullish(),
+  }),
+});
+
+/**
+ * @summary Admin — list waitlist signups (paginated).
+ */
+export const listWaitlistSignupsQueryLimitDefault = 20;
+export const listWaitlistSignupsQueryLimitMax = 100;
+
+export const ListWaitlistSignupsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listWaitlistSignupsQueryLimitMax)
+    .default(listWaitlistSignupsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  feature: zod.coerce.string().optional(),
+});
+
+export const ListWaitlistSignupsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListWaitlistSignupsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        feature: zod.string(),
+        email: zod.string(),
+        name: zod.string().nullish(),
+        source: zod.string().nullish(),
+        referralCode: zod.string().nullish(),
+        notifiedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Public marketing-site waitlist email capture (unauthenticated).
+ */
+export const CreateWaitlistSignupBody = zod.object({
+  feature: zod.string(),
+  email: zod.string().email(),
+  name: zod.string().optional(),
+  source: zod.string().optional(),
+  referralCode: zod.string().optional(),
+});
+
+export const CreateWaitlistSignupResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    signup: zod.object({
+      id: zod.string(),
+      feature: zod.string(),
+      email: zod.string(),
+      name: zod.string().nullish(),
+      source: zod.string().nullish(),
+      referralCode: zod.string().nullish(),
+      notifiedAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+    deduplicated: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Public — total signups per feature bucket.
+ */
+export const GetWaitlistStatsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    stats: zod.array(
+      zod.object({
+        feature: zod.string(),
+        total: zod.number(),
+      }),
+    ),
+  }),
+});

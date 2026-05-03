@@ -26,6 +26,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AcquisitionChannelResponse,
   ActivityEventListResponse,
   ActivityEventResponse,
   Admin2faCodeRequest,
@@ -46,17 +47,20 @@ import type {
   ApprovalDecisionRequest,
   ApprovalListResponse,
   ApprovalResponse,
+  AttributeReferralRequest,
   AuditListResponse,
   AuditVerifyResponse,
   AuthLogoutResponse,
   AuthSessionResponse,
   AutoLockStateResponse,
   AutoLockUpdateRequest,
+  BetaAccessResponse,
   BrowserActionResponse,
   BrowserExtractRequest,
   BrowserScreenshotRequest,
   BuildAttestationReportRequest,
   BuildAttestationResponse,
+  BuildTaskShareCardRequest,
   CalendarEventDeleteResponse,
   CalendarEventListResponse,
   CalendarEventResponse,
@@ -86,6 +90,7 @@ import type {
   CreateDraftFromPasteRequest,
   CreateDraftFromUploadRequest,
   CreateEmailDraftRequest,
+  CreateEnterpriseTrialInviteRequest,
   CreateIncidentReportRequest,
   CreateKnowledgeCollectionRequest,
   CreateMemoryRequest,
@@ -96,7 +101,13 @@ import type {
   CreateSkillRequest,
   CreateTaskTemplateCategoryRequest,
   CreateTaskTemplateRequest,
+  CreateWaitlistSignupRequest,
   CreateWorkspaceRequest,
+  CreatorBadgeResponse,
+  CreatorLeaderboardResponse,
+  CreatorMilestoneListResponse,
+  CreatorMilestoneResponse,
+  CreatorProfileResponse,
   DeleteConversationResponse,
   DeleteScheduleResponse,
   DeleteWorkspaceParams,
@@ -117,6 +128,8 @@ import type {
   EmailMessageResponse,
   EmailStatusRequest,
   EnrolOutreachContactRequest,
+  EnterpriseTrialInviteListResponse,
+  EnterpriseTrialInviteResponse,
   ExportConversationParams,
   FileDeleteRequest,
   FileDeleteResponse,
@@ -130,6 +143,7 @@ import type {
   GenerateAudioRequest,
   GenerateImageRequest,
   GenerateVideoRequest,
+  GetCreatorLeaderboardParams,
   HardwareCapabilitiesResponse,
   HealthCheckResponse,
   HelpfulVoteRequest,
@@ -176,6 +190,7 @@ import type {
   ListConversationMessagesParams,
   ListConversationsParams,
   ListCrashReportsParams,
+  ListCreatorMilestonesParams,
   ListDesktopSessionStepsParams,
   ListDesktopSessionsParams,
   ListDiagnosticErrorsParams,
@@ -199,8 +214,10 @@ import type {
   ListOutreachSequencesParams,
   ListPrivacyEventsParams,
   ListQueuedTasksParams,
+  ListSatisfactionRatingsParams,
   ListScheduleRunsParams,
   ListSchedulesParams,
+  ListShareEventsParams,
   ListSimilarSkillsParams,
   ListSkillDraftsParams,
   ListSkillReviewsParams,
@@ -214,6 +231,7 @@ import type {
   ListUndoActionsParams,
   ListUndoTaskActionsParams,
   ListVoipCallsParams,
+  ListWaitlistSignupsParams,
   LoginRequest,
   MasterPasswordSetRequest,
   MasterPasswordStatusResponse,
@@ -284,6 +302,7 @@ import type {
   PreviewScheduleResponse,
   PrivacyEventListResponse,
   PrivacyEventResponse,
+  PublicCreatorProfileResponse,
   PublishSkillVersionRequest,
   PublishStoreSkillRequest,
   QueueClearRequest,
@@ -294,11 +313,18 @@ import type {
   QueuedTaskListResponse,
   QueuedTaskResponse,
   RecordLegalAcceptanceRequest,
+  RecordSatisfactionRequest,
+  RecordShareEventRequest,
   RecordSkillUsageRequest,
   RecordSkillUsageResponse,
   RecordTelemetryEventsRequest,
   RecordTelemetryEventsResponse,
   RecordVoipCallRequest,
+  ReferralCodeResponse,
+  ReferralDashboardResponse,
+  ReferralLookupResponse,
+  ReferralResponse,
+  ReferralRewardListResponse,
   RegisterRequest,
   ReviewResponseRequest,
   RollbackSkillRequest,
@@ -320,7 +346,10 @@ import type {
   SecurityReportResponse,
   SecurityWebhookSecretsListParams,
   SelectModelRequest,
+  SetAcquisitionChannelRequest,
   SetSkillTrustFlagsRequest,
+  ShareEventListResponse,
+  ShareEventResponse,
   SimilarSkillsResponse,
   SkillAdoptionResponse,
   SkillAutoUpdateRequest,
@@ -344,6 +373,8 @@ import type {
   SkillReviewFlagListResponse,
   SkillReviewFlagResponse,
   SkillReviewResponseResponse,
+  SkillShareLinksResponse,
+  SkillSocialCardResponse,
   SkillUpdatesResponse,
   SkillVersionListResponse,
   StoreCreatorDashboardRequest,
@@ -359,6 +390,9 @@ import type {
   StoreSkillUpdatesResponse,
   SubmitCrashReportRequest,
   SubmitSkillRatingRequest,
+  TaskSatisfactionListResponse,
+  TaskSatisfactionResponse,
+  TaskShareCardResponse,
   TaskTemplateCategoryListResponse,
   TaskTemplateCategoryResponse,
   TaskTemplateCollectionResponse,
@@ -397,11 +431,15 @@ import type {
   UpdateWorkspaceRequest,
   UpscaleImageRequest,
   UpsertAgeConfirmationRequest,
+  UpsertCreatorProfileRequest,
   UpsertOnboardingProfileRequest,
   VoipCallListResponse,
   VoipCallResponse,
   VoipSummariseRequest,
   VoipTranscribeRequest,
+  WaitlistSignupListResponse,
+  WaitlistSignupResponse,
+  WaitlistStatsResponse,
   WebhookSecretCreateRequest,
   WebhookSecretCreatedResponse,
   WebhookSecretListResponse,
@@ -26995,6 +27033,2425 @@ export function useGetStoreCreator<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStoreCreatorQueryOptions(handle, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get (or lazily create) the tenant's referral code.
+ */
+export const getGetReferralCodeUrl = () => {
+  return `/api/referrals/code`;
+};
+
+export const getReferralCode = async (
+  options?: RequestInit,
+): Promise<ReferralCodeResponse> => {
+  return customFetch<ReferralCodeResponse>(getGetReferralCodeUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetReferralCodeQueryKey = () => {
+  return [`/api/referrals/code`] as const;
+};
+
+export const getGetReferralCodeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReferralCode>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getReferralCode>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReferralCodeQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReferralCode>>> = ({
+    signal,
+  }) => getReferralCode({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReferralCode>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetReferralCodeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReferralCode>>
+>;
+export type GetReferralCodeQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get (or lazily create) the tenant's referral code.
+ */
+
+export function useGetReferralCode<
+  TData = Awaited<ReturnType<typeof getReferralCode>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getReferralCode>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetReferralCodeQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Referral dashboard — code, totals, rewards, beta status.
+ */
+export const getGetReferralDashboardUrl = () => {
+  return `/api/referrals/dashboard`;
+};
+
+export const getReferralDashboard = async (
+  options?: RequestInit,
+): Promise<ReferralDashboardResponse> => {
+  return customFetch<ReferralDashboardResponse>(getGetReferralDashboardUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetReferralDashboardQueryKey = () => {
+  return [`/api/referrals/dashboard`] as const;
+};
+
+export const getGetReferralDashboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReferralDashboard>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getReferralDashboard>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReferralDashboardQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getReferralDashboard>>
+  > = ({ signal }) => getReferralDashboard({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReferralDashboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetReferralDashboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReferralDashboard>>
+>;
+export type GetReferralDashboardQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Referral dashboard — code, totals, rewards, beta status.
+ */
+
+export function useGetReferralDashboard<
+  TData = Awaited<ReturnType<typeof getReferralDashboard>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getReferralDashboard>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetReferralDashboardQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List the tenant's currently-active referral rewards.
+ */
+export const getListReferralRewardsUrl = () => {
+  return `/api/referrals/rewards`;
+};
+
+export const listReferralRewards = async (
+  options?: RequestInit,
+): Promise<ReferralRewardListResponse> => {
+  return customFetch<ReferralRewardListResponse>(getListReferralRewardsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListReferralRewardsQueryKey = () => {
+  return [`/api/referrals/rewards`] as const;
+};
+
+export const getListReferralRewardsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listReferralRewards>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listReferralRewards>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListReferralRewardsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listReferralRewards>>
+  > = ({ signal }) => listReferralRewards({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listReferralRewards>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListReferralRewardsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listReferralRewards>>
+>;
+export type ListReferralRewardsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the tenant's currently-active referral rewards.
+ */
+
+export function useListReferralRewards<
+  TData = Awaited<ReturnType<typeof listReferralRewards>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listReferralRewards>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListReferralRewardsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Beta-access status (auto-unlocks at 3 completed referrals).
+ */
+export const getGetReferralBetaAccessUrl = () => {
+  return `/api/referrals/beta-access`;
+};
+
+export const getReferralBetaAccess = async (
+  options?: RequestInit,
+): Promise<BetaAccessResponse> => {
+  return customFetch<BetaAccessResponse>(getGetReferralBetaAccessUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetReferralBetaAccessQueryKey = () => {
+  return [`/api/referrals/beta-access`] as const;
+};
+
+export const getGetReferralBetaAccessQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReferralBetaAccess>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getReferralBetaAccess>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReferralBetaAccessQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getReferralBetaAccess>>
+  > = ({ signal }) => getReferralBetaAccess({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReferralBetaAccess>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetReferralBetaAccessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReferralBetaAccess>>
+>;
+export type GetReferralBetaAccessQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Beta-access status (auto-unlocks at 3 completed referrals).
+ */
+
+export function useGetReferralBetaAccess<
+  TData = Awaited<ReturnType<typeof getReferralBetaAccess>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getReferralBetaAccess>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetReferralBetaAccessQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Record a referral attribution from a referral code.
+ */
+export const getAttributeReferralUrl = () => {
+  return `/api/referrals/attribute`;
+};
+
+export const attributeReferral = async (
+  attributeReferralRequest: AttributeReferralRequest,
+  options?: RequestInit,
+): Promise<ReferralResponse> => {
+  return customFetch<ReferralResponse>(getAttributeReferralUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(attributeReferralRequest),
+  });
+};
+
+export const getAttributeReferralMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof attributeReferral>>,
+    TError,
+    { data: BodyType<AttributeReferralRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof attributeReferral>>,
+  TError,
+  { data: BodyType<AttributeReferralRequest> },
+  TContext
+> => {
+  const mutationKey = ["attributeReferral"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof attributeReferral>>,
+    { data: BodyType<AttributeReferralRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return attributeReferral(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AttributeReferralMutationResult = NonNullable<
+  Awaited<ReturnType<typeof attributeReferral>>
+>;
+export type AttributeReferralMutationBody = BodyType<AttributeReferralRequest>;
+export type AttributeReferralMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Record a referral attribution from a referral code.
+ */
+export const useAttributeReferral = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof attributeReferral>>,
+    TError,
+    { data: BodyType<AttributeReferralRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof attributeReferral>>,
+  TError,
+  { data: BodyType<AttributeReferralRequest> },
+  TContext
+> => {
+  return useMutation(getAttributeReferralMutationOptions(options));
+};
+
+/**
+ * @summary Public — check whether a referral code is valid.
+ */
+export const getLookupReferralCodeUrl = (code: string) => {
+  return `/api/referrals/lookup/${code}`;
+};
+
+export const lookupReferralCode = async (
+  code: string,
+  options?: RequestInit,
+): Promise<ReferralLookupResponse> => {
+  return customFetch<ReferralLookupResponse>(getLookupReferralCodeUrl(code), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getLookupReferralCodeQueryKey = (code: string) => {
+  return [`/api/referrals/lookup/${code}`] as const;
+};
+
+export const getLookupReferralCodeQueryOptions = <
+  TData = Awaited<ReturnType<typeof lookupReferralCode>>,
+  TError = ErrorType<unknown>,
+>(
+  code: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupReferralCode>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getLookupReferralCodeQueryKey(code);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof lookupReferralCode>>
+  > = ({ signal }) => lookupReferralCode(code, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!code,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof lookupReferralCode>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type LookupReferralCodeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof lookupReferralCode>>
+>;
+export type LookupReferralCodeQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Public — check whether a referral code is valid.
+ */
+
+export function useLookupReferralCode<
+  TData = Awaited<ReturnType<typeof lookupReferralCode>>,
+  TError = ErrorType<unknown>,
+>(
+  code: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupReferralCode>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getLookupReferralCodeQueryOptions(code, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the tenant's "how did you hear about us" survey answer.
+ */
+export const getGetAcquisitionChannelUrl = () => {
+  return `/api/referrals/acquisition`;
+};
+
+export const getAcquisitionChannel = async (
+  options?: RequestInit,
+): Promise<AcquisitionChannelResponse> => {
+  return customFetch<AcquisitionChannelResponse>(
+    getGetAcquisitionChannelUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAcquisitionChannelQueryKey = () => {
+  return [`/api/referrals/acquisition`] as const;
+};
+
+export const getGetAcquisitionChannelQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAcquisitionChannel>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAcquisitionChannel>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAcquisitionChannelQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAcquisitionChannel>>
+  > = ({ signal }) => getAcquisitionChannel({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAcquisitionChannel>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAcquisitionChannelQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAcquisitionChannel>>
+>;
+export type GetAcquisitionChannelQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the tenant's "how did you hear about us" survey answer.
+ */
+
+export function useGetAcquisitionChannel<
+  TData = Awaited<ReturnType<typeof getAcquisitionChannel>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAcquisitionChannel>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAcquisitionChannelQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set the tenant's acquisition-channel survey answer.
+ */
+export const getSetAcquisitionChannelUrl = () => {
+  return `/api/referrals/acquisition`;
+};
+
+export const setAcquisitionChannel = async (
+  setAcquisitionChannelRequest: SetAcquisitionChannelRequest,
+  options?: RequestInit,
+): Promise<AcquisitionChannelResponse> => {
+  return customFetch<AcquisitionChannelResponse>(
+    getSetAcquisitionChannelUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(setAcquisitionChannelRequest),
+    },
+  );
+};
+
+export const getSetAcquisitionChannelMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setAcquisitionChannel>>,
+    TError,
+    { data: BodyType<SetAcquisitionChannelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setAcquisitionChannel>>,
+  TError,
+  { data: BodyType<SetAcquisitionChannelRequest> },
+  TContext
+> => {
+  const mutationKey = ["setAcquisitionChannel"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setAcquisitionChannel>>,
+    { data: BodyType<SetAcquisitionChannelRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setAcquisitionChannel(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetAcquisitionChannelMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setAcquisitionChannel>>
+>;
+export type SetAcquisitionChannelMutationBody =
+  BodyType<SetAcquisitionChannelRequest>;
+export type SetAcquisitionChannelMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set the tenant's acquisition-channel survey answer.
+ */
+export const useSetAcquisitionChannel = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setAcquisitionChannel>>,
+    TError,
+    { data: BodyType<SetAcquisitionChannelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setAcquisitionChannel>>,
+  TError,
+  { data: BodyType<SetAcquisitionChannelRequest> },
+  TContext
+> => {
+  return useMutation(getSetAcquisitionChannelMutationOptions(options));
+};
+
+/**
+ * @summary List enterprise trial invites the tenant has sent.
+ */
+export const getListEnterpriseTrialInvitesUrl = () => {
+  return `/api/referrals/enterprise-trial`;
+};
+
+export const listEnterpriseTrialInvites = async (
+  options?: RequestInit,
+): Promise<EnterpriseTrialInviteListResponse> => {
+  return customFetch<EnterpriseTrialInviteListResponse>(
+    getListEnterpriseTrialInvitesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListEnterpriseTrialInvitesQueryKey = () => {
+  return [`/api/referrals/enterprise-trial`] as const;
+};
+
+export const getListEnterpriseTrialInvitesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEnterpriseTrialInvites>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseTrialInvites>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListEnterpriseTrialInvitesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listEnterpriseTrialInvites>>
+  > = ({ signal }) => listEnterpriseTrialInvites({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseTrialInvites>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListEnterpriseTrialInvitesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEnterpriseTrialInvites>>
+>;
+export type ListEnterpriseTrialInvitesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List enterprise trial invites the tenant has sent.
+ */
+
+export function useListEnterpriseTrialInvites<
+  TData = Awaited<ReturnType<typeof listEnterpriseTrialInvites>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseTrialInvites>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEnterpriseTrialInvitesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Invite a colleague to start an OP-for-Teams enterprise trial.
+ */
+export const getCreateEnterpriseTrialInviteUrl = () => {
+  return `/api/referrals/enterprise-trial`;
+};
+
+export const createEnterpriseTrialInvite = async (
+  createEnterpriseTrialInviteRequest: CreateEnterpriseTrialInviteRequest,
+  options?: RequestInit,
+): Promise<EnterpriseTrialInviteResponse> => {
+  return customFetch<EnterpriseTrialInviteResponse>(
+    getCreateEnterpriseTrialInviteUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createEnterpriseTrialInviteRequest),
+    },
+  );
+};
+
+export const getCreateEnterpriseTrialInviteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEnterpriseTrialInvite>>,
+    TError,
+    { data: BodyType<CreateEnterpriseTrialInviteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createEnterpriseTrialInvite>>,
+  TError,
+  { data: BodyType<CreateEnterpriseTrialInviteRequest> },
+  TContext
+> => {
+  const mutationKey = ["createEnterpriseTrialInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createEnterpriseTrialInvite>>,
+    { data: BodyType<CreateEnterpriseTrialInviteRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createEnterpriseTrialInvite(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateEnterpriseTrialInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createEnterpriseTrialInvite>>
+>;
+export type CreateEnterpriseTrialInviteMutationBody =
+  BodyType<CreateEnterpriseTrialInviteRequest>;
+export type CreateEnterpriseTrialInviteMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Invite a colleague to start an OP-for-Teams enterprise trial.
+ */
+export const useCreateEnterpriseTrialInvite = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEnterpriseTrialInvite>>,
+    TError,
+    { data: BodyType<CreateEnterpriseTrialInviteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createEnterpriseTrialInvite>>,
+  TError,
+  { data: BodyType<CreateEnterpriseTrialInviteRequest> },
+  TContext
+> => {
+  return useMutation(getCreateEnterpriseTrialInviteMutationOptions(options));
+};
+
+/**
+ * @summary List share events for the tenant (filterable by target).
+ */
+export const getListShareEventsUrl = (params?: ListShareEventsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/share/events?${stringifiedParams}`
+    : `/api/share/events`;
+};
+
+export const listShareEvents = async (
+  params?: ListShareEventsParams,
+  options?: RequestInit,
+): Promise<ShareEventListResponse> => {
+  return customFetch<ShareEventListResponse>(getListShareEventsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListShareEventsQueryKey = (params?: ListShareEventsParams) => {
+  return [`/api/share/events`, ...(params ? [params] : [])] as const;
+};
+
+export const getListShareEventsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listShareEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListShareEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listShareEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListShareEventsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listShareEvents>>> = ({
+    signal,
+  }) => listShareEvents(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listShareEvents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListShareEventsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listShareEvents>>
+>;
+export type ListShareEventsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List share events for the tenant (filterable by target).
+ */
+
+export function useListShareEvents<
+  TData = Awaited<ReturnType<typeof listShareEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListShareEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listShareEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListShareEventsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Append a share event (skill / task / creator).
+ */
+export const getRecordShareEventUrl = () => {
+  return `/api/share/events`;
+};
+
+export const recordShareEvent = async (
+  recordShareEventRequest: RecordShareEventRequest,
+  options?: RequestInit,
+): Promise<ShareEventResponse> => {
+  return customFetch<ShareEventResponse>(getRecordShareEventUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(recordShareEventRequest),
+  });
+};
+
+export const getRecordShareEventMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordShareEvent>>,
+    TError,
+    { data: BodyType<RecordShareEventRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordShareEvent>>,
+  TError,
+  { data: BodyType<RecordShareEventRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordShareEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordShareEvent>>,
+    { data: BodyType<RecordShareEventRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordShareEvent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordShareEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordShareEvent>>
+>;
+export type RecordShareEventMutationBody = BodyType<RecordShareEventRequest>;
+export type RecordShareEventMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Append a share event (skill / task / creator).
+ */
+export const useRecordShareEvent = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordShareEvent>>,
+    TError,
+    { data: BodyType<RecordShareEventRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordShareEvent>>,
+  TError,
+  { data: BodyType<RecordShareEventRequest> },
+  TContext
+> => {
+  return useMutation(getRecordShareEventMutationOptions(options));
+};
+
+/**
+ * @summary Build a privacy-safe social card for a skill (id or slug).
+ */
+export const getGetSkillShareCardUrl = (identifier: string) => {
+  return `/api/share/skill/${identifier}`;
+};
+
+export const getSkillShareCard = async (
+  identifier: string,
+  options?: RequestInit,
+): Promise<SkillSocialCardResponse> => {
+  return customFetch<SkillSocialCardResponse>(
+    getGetSkillShareCardUrl(identifier),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSkillShareCardQueryKey = (identifier: string) => {
+  return [`/api/share/skill/${identifier}`] as const;
+};
+
+export const getGetSkillShareCardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkillShareCard>>,
+  TError = ErrorType<unknown>,
+>(
+  identifier: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillShareCard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSkillShareCardQueryKey(identifier);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSkillShareCard>>
+  > = ({ signal }) =>
+    getSkillShareCard(identifier, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!identifier,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillShareCard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSkillShareCardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillShareCard>>
+>;
+export type GetSkillShareCardQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Build a privacy-safe social card for a skill (id or slug).
+ */
+
+export function useGetSkillShareCard<
+  TData = Awaited<ReturnType<typeof getSkillShareCard>>,
+  TError = ErrorType<unknown>,
+>(
+  identifier: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillShareCard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillShareCardQueryOptions(identifier, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Web URL, deep-link URL, and short URL for a skill.
+ */
+export const getGetSkillShareLinksUrl = (slug: string) => {
+  return `/api/share/skill/${slug}/links`;
+};
+
+export const getSkillShareLinks = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<SkillShareLinksResponse> => {
+  return customFetch<SkillShareLinksResponse>(getGetSkillShareLinksUrl(slug), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSkillShareLinksQueryKey = (slug: string) => {
+  return [`/api/share/skill/${slug}/links`] as const;
+};
+
+export const getGetSkillShareLinksQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkillShareLinks>>,
+  TError = ErrorType<unknown>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillShareLinks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSkillShareLinksQueryKey(slug);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSkillShareLinks>>
+  > = ({ signal }) => getSkillShareLinks(slug, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!slug,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillShareLinks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSkillShareLinksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillShareLinks>>
+>;
+export type GetSkillShareLinksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Web URL, deep-link URL, and short URL for a skill.
+ */
+
+export function useGetSkillShareLinks<
+  TData = Awaited<ReturnType<typeof getSkillShareLinks>>,
+  TError = ErrorType<unknown>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillShareLinks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillShareLinksQueryOptions(slug, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Build a privacy-safe text share card for a completed task.
+ */
+export const getBuildTaskShareCardUrl = () => {
+  return `/api/share/task-card`;
+};
+
+export const buildTaskShareCard = async (
+  buildTaskShareCardRequest: BuildTaskShareCardRequest,
+  options?: RequestInit,
+): Promise<TaskShareCardResponse> => {
+  return customFetch<TaskShareCardResponse>(getBuildTaskShareCardUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(buildTaskShareCardRequest),
+  });
+};
+
+export const getBuildTaskShareCardMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof buildTaskShareCard>>,
+    TError,
+    { data: BodyType<BuildTaskShareCardRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof buildTaskShareCard>>,
+  TError,
+  { data: BodyType<BuildTaskShareCardRequest> },
+  TContext
+> => {
+  const mutationKey = ["buildTaskShareCard"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof buildTaskShareCard>>,
+    { data: BodyType<BuildTaskShareCardRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return buildTaskShareCard(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BuildTaskShareCardMutationResult = NonNullable<
+  Awaited<ReturnType<typeof buildTaskShareCard>>
+>;
+export type BuildTaskShareCardMutationBody =
+  BodyType<BuildTaskShareCardRequest>;
+export type BuildTaskShareCardMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Build a privacy-safe text share card for a completed task.
+ */
+export const useBuildTaskShareCard = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof buildTaskShareCard>>,
+    TError,
+    { data: BodyType<BuildTaskShareCardRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof buildTaskShareCard>>,
+  TError,
+  { data: BodyType<BuildTaskShareCardRequest> },
+  TContext
+> => {
+  return useMutation(getBuildTaskShareCardMutationOptions(options));
+};
+
+/**
+ * @summary List post-task satisfaction ratings (filter by runId).
+ */
+export const getListSatisfactionRatingsUrl = (
+  params?: ListSatisfactionRatingsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/share/satisfaction?${stringifiedParams}`
+    : `/api/share/satisfaction`;
+};
+
+export const listSatisfactionRatings = async (
+  params?: ListSatisfactionRatingsParams,
+  options?: RequestInit,
+): Promise<TaskSatisfactionListResponse> => {
+  return customFetch<TaskSatisfactionListResponse>(
+    getListSatisfactionRatingsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListSatisfactionRatingsQueryKey = (
+  params?: ListSatisfactionRatingsParams,
+) => {
+  return [`/api/share/satisfaction`, ...(params ? [params] : [])] as const;
+};
+
+export const getListSatisfactionRatingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSatisfactionRatings>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSatisfactionRatingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSatisfactionRatings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListSatisfactionRatingsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSatisfactionRatings>>
+  > = ({ signal }) =>
+    listSatisfactionRatings(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSatisfactionRatings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSatisfactionRatingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSatisfactionRatings>>
+>;
+export type ListSatisfactionRatingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List post-task satisfaction ratings (filter by runId).
+ */
+
+export function useListSatisfactionRatings<
+  TData = Awaited<ReturnType<typeof listSatisfactionRatings>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSatisfactionRatingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSatisfactionRatings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSatisfactionRatingsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Record a post-task satisfaction rating (up/down).
+ */
+export const getRecordSatisfactionUrl = () => {
+  return `/api/share/satisfaction`;
+};
+
+export const recordSatisfaction = async (
+  recordSatisfactionRequest: RecordSatisfactionRequest,
+  options?: RequestInit,
+): Promise<TaskSatisfactionResponse> => {
+  return customFetch<TaskSatisfactionResponse>(getRecordSatisfactionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(recordSatisfactionRequest),
+  });
+};
+
+export const getRecordSatisfactionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordSatisfaction>>,
+    TError,
+    { data: BodyType<RecordSatisfactionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordSatisfaction>>,
+  TError,
+  { data: BodyType<RecordSatisfactionRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordSatisfaction"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordSatisfaction>>,
+    { data: BodyType<RecordSatisfactionRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordSatisfaction(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordSatisfactionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordSatisfaction>>
+>;
+export type RecordSatisfactionMutationBody =
+  BodyType<RecordSatisfactionRequest>;
+export type RecordSatisfactionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Record a post-task satisfaction rating (up/down).
+ */
+export const useRecordSatisfaction = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordSatisfaction>>,
+    TError,
+    { data: BodyType<RecordSatisfactionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordSatisfaction>>,
+  TError,
+  { data: BodyType<RecordSatisfactionRequest> },
+  TContext
+> => {
+  return useMutation(getRecordSatisfactionMutationOptions(options));
+};
+
+/**
+ * @summary Get the tenant's creator profile (singleton-per-tenant).
+ */
+export const getGetMyCreatorProfileUrl = () => {
+  return `/api/creators/me`;
+};
+
+export const getMyCreatorProfile = async (
+  options?: RequestInit,
+): Promise<CreatorProfileResponse> => {
+  return customFetch<CreatorProfileResponse>(getGetMyCreatorProfileUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyCreatorProfileQueryKey = () => {
+  return [`/api/creators/me`] as const;
+};
+
+export const getGetMyCreatorProfileQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyCreatorProfile>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyCreatorProfile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyCreatorProfileQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyCreatorProfile>>
+  > = ({ signal }) => getMyCreatorProfile({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyCreatorProfile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyCreatorProfileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyCreatorProfile>>
+>;
+export type GetMyCreatorProfileQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the tenant's creator profile (singleton-per-tenant).
+ */
+
+export function useGetMyCreatorProfile<
+  TData = Awaited<ReturnType<typeof getMyCreatorProfile>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyCreatorProfile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyCreatorProfileQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update the tenant's creator profile.
+ */
+export const getUpsertCreatorProfileUrl = () => {
+  return `/api/creators/me`;
+};
+
+export const upsertCreatorProfile = async (
+  upsertCreatorProfileRequest: UpsertCreatorProfileRequest,
+  options?: RequestInit,
+): Promise<CreatorProfileResponse> => {
+  return customFetch<CreatorProfileResponse>(getUpsertCreatorProfileUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertCreatorProfileRequest),
+  });
+};
+
+export const getUpsertCreatorProfileMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertCreatorProfile>>,
+    TError,
+    { data: BodyType<UpsertCreatorProfileRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertCreatorProfile>>,
+  TError,
+  { data: BodyType<UpsertCreatorProfileRequest> },
+  TContext
+> => {
+  const mutationKey = ["upsertCreatorProfile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertCreatorProfile>>,
+    { data: BodyType<UpsertCreatorProfileRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return upsertCreatorProfile(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertCreatorProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertCreatorProfile>>
+>;
+export type UpsertCreatorProfileMutationBody =
+  BodyType<UpsertCreatorProfileRequest>;
+export type UpsertCreatorProfileMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update the tenant's creator profile.
+ */
+export const useUpsertCreatorProfile = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertCreatorProfile>>,
+    TError,
+    { data: BodyType<UpsertCreatorProfileRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertCreatorProfile>>,
+  TError,
+  { data: BodyType<UpsertCreatorProfileRequest> },
+  TContext
+> => {
+  return useMutation(getUpsertCreatorProfileMutationOptions(options));
+};
+
+/**
+ * @summary Embeddable "Built with Omninity" badge for the tenant.
+ */
+export const getGetCreatorBadgeUrl = () => {
+  return `/api/creators/me/badge`;
+};
+
+export const getCreatorBadge = async (
+  options?: RequestInit,
+): Promise<CreatorBadgeResponse> => {
+  return customFetch<CreatorBadgeResponse>(getGetCreatorBadgeUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCreatorBadgeQueryKey = () => {
+  return [`/api/creators/me/badge`] as const;
+};
+
+export const getGetCreatorBadgeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCreatorBadge>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorBadge>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCreatorBadgeQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCreatorBadge>>> = ({
+    signal,
+  }) => getCreatorBadge({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorBadge>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCreatorBadgeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCreatorBadge>>
+>;
+export type GetCreatorBadgeQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Embeddable "Built with Omninity" badge for the tenant.
+ */
+
+export function useGetCreatorBadge<
+  TData = Awaited<ReturnType<typeof getCreatorBadge>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorBadge>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCreatorBadgeQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Marketplace leaderboard (top earners, most used, highest rated).
+ */
+export const getGetCreatorLeaderboardUrl = (
+  params?: GetCreatorLeaderboardParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/creators/leaderboard?${stringifiedParams}`
+    : `/api/creators/leaderboard`;
+};
+
+export const getCreatorLeaderboard = async (
+  params?: GetCreatorLeaderboardParams,
+  options?: RequestInit,
+): Promise<CreatorLeaderboardResponse> => {
+  return customFetch<CreatorLeaderboardResponse>(
+    getGetCreatorLeaderboardUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetCreatorLeaderboardQueryKey = (
+  params?: GetCreatorLeaderboardParams,
+) => {
+  return [`/api/creators/leaderboard`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetCreatorLeaderboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCreatorLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCreatorLeaderboardParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCreatorLeaderboardQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCreatorLeaderboard>>
+  > = ({ signal }) =>
+    getCreatorLeaderboard(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorLeaderboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCreatorLeaderboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCreatorLeaderboard>>
+>;
+export type GetCreatorLeaderboardQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Marketplace leaderboard (top earners, most used, highest rated).
+ */
+
+export function useGetCreatorLeaderboard<
+  TData = Awaited<ReturnType<typeof getCreatorLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCreatorLeaderboardParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCreatorLeaderboardQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List recorded creator-milestone events.
+ */
+export const getListCreatorMilestonesUrl = (
+  params?: ListCreatorMilestonesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/creators/milestones?${stringifiedParams}`
+    : `/api/creators/milestones`;
+};
+
+export const listCreatorMilestones = async (
+  params?: ListCreatorMilestonesParams,
+  options?: RequestInit,
+): Promise<CreatorMilestoneListResponse> => {
+  return customFetch<CreatorMilestoneListResponse>(
+    getListCreatorMilestonesUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListCreatorMilestonesQueryKey = (
+  params?: ListCreatorMilestonesParams,
+) => {
+  return [`/api/creators/milestones`, ...(params ? [params] : [])] as const;
+};
+
+export const getListCreatorMilestonesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCreatorMilestones>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCreatorMilestonesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCreatorMilestones>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCreatorMilestonesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCreatorMilestones>>
+  > = ({ signal }) =>
+    listCreatorMilestones(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCreatorMilestones>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCreatorMilestonesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCreatorMilestones>>
+>;
+export type ListCreatorMilestonesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List recorded creator-milestone events.
+ */
+
+export function useListCreatorMilestones<
+  TData = Awaited<ReturnType<typeof listCreatorMilestones>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCreatorMilestonesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCreatorMilestones>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCreatorMilestonesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Recompute milestones for the tenant's skills.
+ */
+export const getSyncCreatorMilestonesUrl = () => {
+  return `/api/creators/milestones/sync`;
+};
+
+export const syncCreatorMilestones = async (
+  options?: RequestInit,
+): Promise<CreatorMilestoneListResponse> => {
+  return customFetch<CreatorMilestoneListResponse>(
+    getSyncCreatorMilestonesUrl(),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getSyncCreatorMilestonesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof syncCreatorMilestones>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof syncCreatorMilestones>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["syncCreatorMilestones"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof syncCreatorMilestones>>,
+    void
+  > = () => {
+    return syncCreatorMilestones(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SyncCreatorMilestonesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof syncCreatorMilestones>>
+>;
+
+export type SyncCreatorMilestonesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Recompute milestones for the tenant's skills.
+ */
+export const useSyncCreatorMilestones = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof syncCreatorMilestones>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof syncCreatorMilestones>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSyncCreatorMilestonesMutationOptions(options));
+};
+
+/**
+ * @summary Mark a milestone card as dismissed.
+ */
+export const getDismissCreatorMilestoneUrl = (id: string) => {
+  return `/api/creators/milestones/${id}/dismiss`;
+};
+
+export const dismissCreatorMilestone = async (
+  id: string,
+  options?: RequestInit,
+): Promise<CreatorMilestoneResponse> => {
+  return customFetch<CreatorMilestoneResponse>(
+    getDismissCreatorMilestoneUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getDismissCreatorMilestoneMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof dismissCreatorMilestone>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof dismissCreatorMilestone>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["dismissCreatorMilestone"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof dismissCreatorMilestone>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return dismissCreatorMilestone(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DismissCreatorMilestoneMutationResult = NonNullable<
+  Awaited<ReturnType<typeof dismissCreatorMilestone>>
+>;
+
+export type DismissCreatorMilestoneMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark a milestone card as dismissed.
+ */
+export const useDismissCreatorMilestone = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof dismissCreatorMilestone>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof dismissCreatorMilestone>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDismissCreatorMilestoneMutationOptions(options));
+};
+
+/**
+ * @summary Public creator profile lookup by slug.
+ */
+export const getGetCreatorProfileBySlugUrl = (slug: string) => {
+  return `/api/creators/${slug}`;
+};
+
+export const getCreatorProfileBySlug = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<PublicCreatorProfileResponse> => {
+  return customFetch<PublicCreatorProfileResponse>(
+    getGetCreatorProfileBySlugUrl(slug),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetCreatorProfileBySlugQueryKey = (slug: string) => {
+  return [`/api/creators/${slug}`] as const;
+};
+
+export const getGetCreatorProfileBySlugQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCreatorProfileBySlug>>,
+  TError = ErrorType<unknown>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorProfileBySlug>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCreatorProfileBySlugQueryKey(slug);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCreatorProfileBySlug>>
+  > = ({ signal }) =>
+    getCreatorProfileBySlug(slug, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!slug,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorProfileBySlug>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCreatorProfileBySlugQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCreatorProfileBySlug>>
+>;
+export type GetCreatorProfileBySlugQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Public creator profile lookup by slug.
+ */
+
+export function useGetCreatorProfileBySlug<
+  TData = Awaited<ReturnType<typeof getCreatorProfileBySlug>>,
+  TError = ErrorType<unknown>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorProfileBySlug>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCreatorProfileBySlugQueryOptions(slug, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Admin — list waitlist signups (paginated).
+ */
+export const getListWaitlistSignupsUrl = (
+  params?: ListWaitlistSignupsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/waitlist?${stringifiedParams}`
+    : `/api/waitlist`;
+};
+
+export const listWaitlistSignups = async (
+  params?: ListWaitlistSignupsParams,
+  options?: RequestInit,
+): Promise<WaitlistSignupListResponse> => {
+  return customFetch<WaitlistSignupListResponse>(
+    getListWaitlistSignupsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListWaitlistSignupsQueryKey = (
+  params?: ListWaitlistSignupsParams,
+) => {
+  return [`/api/waitlist`, ...(params ? [params] : [])] as const;
+};
+
+export const getListWaitlistSignupsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWaitlistSignups>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListWaitlistSignupsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listWaitlistSignups>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListWaitlistSignupsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listWaitlistSignups>>
+  > = ({ signal }) =>
+    listWaitlistSignups(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWaitlistSignups>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListWaitlistSignupsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWaitlistSignups>>
+>;
+export type ListWaitlistSignupsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Admin — list waitlist signups (paginated).
+ */
+
+export function useListWaitlistSignups<
+  TData = Awaited<ReturnType<typeof listWaitlistSignups>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListWaitlistSignupsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listWaitlistSignups>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListWaitlistSignupsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Public marketing-site waitlist email capture (unauthenticated).
+ */
+export const getCreateWaitlistSignupUrl = () => {
+  return `/api/waitlist`;
+};
+
+export const createWaitlistSignup = async (
+  createWaitlistSignupRequest: CreateWaitlistSignupRequest,
+  options?: RequestInit,
+): Promise<WaitlistSignupResponse> => {
+  return customFetch<WaitlistSignupResponse>(getCreateWaitlistSignupUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createWaitlistSignupRequest),
+  });
+};
+
+export const getCreateWaitlistSignupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWaitlistSignup>>,
+    TError,
+    { data: BodyType<CreateWaitlistSignupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createWaitlistSignup>>,
+  TError,
+  { data: BodyType<CreateWaitlistSignupRequest> },
+  TContext
+> => {
+  const mutationKey = ["createWaitlistSignup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createWaitlistSignup>>,
+    { data: BodyType<CreateWaitlistSignupRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createWaitlistSignup(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateWaitlistSignupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createWaitlistSignup>>
+>;
+export type CreateWaitlistSignupMutationBody =
+  BodyType<CreateWaitlistSignupRequest>;
+export type CreateWaitlistSignupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Public marketing-site waitlist email capture (unauthenticated).
+ */
+export const useCreateWaitlistSignup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWaitlistSignup>>,
+    TError,
+    { data: BodyType<CreateWaitlistSignupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createWaitlistSignup>>,
+  TError,
+  { data: BodyType<CreateWaitlistSignupRequest> },
+  TContext
+> => {
+  return useMutation(getCreateWaitlistSignupMutationOptions(options));
+};
+
+/**
+ * @summary Public — total signups per feature bucket.
+ */
+export const getGetWaitlistStatsUrl = () => {
+  return `/api/waitlist/stats`;
+};
+
+export const getWaitlistStats = async (
+  options?: RequestInit,
+): Promise<WaitlistStatsResponse> => {
+  return customFetch<WaitlistStatsResponse>(getGetWaitlistStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWaitlistStatsQueryKey = () => {
+  return [`/api/waitlist/stats`] as const;
+};
+
+export const getGetWaitlistStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWaitlistStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getWaitlistStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetWaitlistStatsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWaitlistStats>>
+  > = ({ signal }) => getWaitlistStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWaitlistStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWaitlistStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWaitlistStats>>
+>;
+export type GetWaitlistStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Public — total signups per feature bucket.
+ */
+
+export function useGetWaitlistStats<
+  TData = Awaited<ReturnType<typeof getWaitlistStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getWaitlistStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWaitlistStatsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

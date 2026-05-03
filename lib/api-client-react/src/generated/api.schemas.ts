@@ -5404,6 +5404,574 @@ export interface StoreCreatorDashboardResponse {
   data: StoreCreatorDashboardPayload;
 }
 
+export interface ReferralCode {
+  code: string;
+  shareUrl: string;
+  createdAt: string;
+}
+
+export type ReferralCodeResponseData = {
+  code: ReferralCode;
+};
+
+export interface ReferralCodeResponse {
+  success: boolean;
+  data: ReferralCodeResponseData;
+}
+
+export type ReferralStatus =
+  (typeof ReferralStatus)[keyof typeof ReferralStatus];
+
+export const ReferralStatus = {
+  pending: "pending",
+  completed: "completed",
+} as const;
+
+export interface Referral {
+  id: string;
+  code: string;
+  status: ReferralStatus;
+  referredEmail: string | null;
+  referredLabel: string | null;
+  completedAt: string | null;
+  rewardGrantedAt: string | null;
+  createdAt: string;
+}
+
+export type ReferralRewardRole =
+  (typeof ReferralRewardRole)[keyof typeof ReferralRewardRole];
+
+export const ReferralRewardRole = {
+  referrer: "referrer",
+  referred: "referred",
+} as const;
+
+export interface ReferralReward {
+  id: string;
+  referralId: string | null;
+  kind: string;
+  role: ReferralRewardRole;
+  grantedAt: string;
+  expiresAt: string;
+  active: boolean;
+}
+
+export interface ReferralDashboard {
+  code: ReferralCode;
+  totalReferred: number;
+  totalCompleted: number;
+  totalPending: number;
+  activeRewards: number;
+  betaUnlocked: boolean;
+  betaThreshold: number;
+  referrals: Referral[];
+  rewards: ReferralReward[];
+}
+
+export type ReferralDashboardResponseData = {
+  dashboard: ReferralDashboard;
+};
+
+export interface ReferralDashboardResponse {
+  success: boolean;
+  data: ReferralDashboardResponseData;
+}
+
+export type ReferralRewardListResponseData = {
+  rewards: ReferralReward[];
+};
+
+export interface ReferralRewardListResponse {
+  success: boolean;
+  data: ReferralRewardListResponseData;
+}
+
+export interface BetaAccess {
+  unlocked: boolean;
+  tier?: string | null;
+  reason?: string | null;
+  grantedAt?: string | null;
+  threshold: number;
+  completedReferrals: number;
+}
+
+export type BetaAccessResponseData = {
+  access: BetaAccess;
+};
+
+export interface BetaAccessResponse {
+  success: boolean;
+  data: BetaAccessResponseData;
+}
+
+export interface AttributeReferralRequest {
+  code: string;
+  email?: string;
+  label?: string;
+}
+
+export type ReferralResponseData = {
+  referral: Referral;
+};
+
+export interface ReferralResponse {
+  success: boolean;
+  data: ReferralResponseData;
+}
+
+export type ReferralLookupResponseData = {
+  valid: boolean;
+  code: string;
+};
+
+export interface ReferralLookupResponse {
+  success: boolean;
+  data: ReferralLookupResponseData;
+}
+
+export type AcquisitionChannelKey =
+  (typeof AcquisitionChannelKey)[keyof typeof AcquisitionChannelKey];
+
+export const AcquisitionChannelKey = {
+  search: "search",
+  social: "social",
+  friend: "friend",
+  creator: "creator",
+  podcast: "podcast",
+  blog: "blog",
+  work: "work",
+  other: "other",
+} as const;
+
+export interface AcquisitionChannel {
+  channel: AcquisitionChannelKey | null;
+  detail?: string | null;
+}
+
+export type AcquisitionChannelResponseData = {
+  channel: AcquisitionChannel | null;
+};
+
+export interface AcquisitionChannelResponse {
+  success: boolean;
+  data: AcquisitionChannelResponseData;
+}
+
+export interface SetAcquisitionChannelRequest {
+  channel: AcquisitionChannelKey;
+  detail?: string;
+}
+
+export interface EnterpriseTrialInvite {
+  id: string;
+  colleagueEmail: string;
+  colleagueName?: string | null;
+  company?: string | null;
+  note?: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export type EnterpriseTrialInviteResponseData = {
+  invite: EnterpriseTrialInvite;
+};
+
+export interface EnterpriseTrialInviteResponse {
+  success: boolean;
+  data: EnterpriseTrialInviteResponseData;
+}
+
+export type EnterpriseTrialInviteListResponseData = {
+  invites: EnterpriseTrialInvite[];
+};
+
+export interface EnterpriseTrialInviteListResponse {
+  success: boolean;
+  data: EnterpriseTrialInviteListResponseData;
+}
+
+export interface CreateEnterpriseTrialInviteRequest {
+  colleagueEmail: string;
+  colleagueName?: string;
+  company?: string;
+  note?: string;
+}
+
+export type ShareEventTargetKind =
+  (typeof ShareEventTargetKind)[keyof typeof ShareEventTargetKind];
+
+export const ShareEventTargetKind = {
+  skill: "skill",
+  task: "task",
+  creator: "creator",
+} as const;
+
+export type ShareEventChannel =
+  (typeof ShareEventChannel)[keyof typeof ShareEventChannel];
+
+export const ShareEventChannel = {
+  twitter: "twitter",
+  linkedin: "linkedin",
+  whatsapp: "whatsapp",
+  copy: "copy",
+  native: "native",
+  email: "email",
+} as const;
+
+export interface ShareEvent {
+  id: string;
+  targetKind: ShareEventTargetKind;
+  targetId: string;
+  channel: ShareEventChannel;
+  label?: string | null;
+  createdAt: string;
+}
+
+export type ShareEventResponseData = {
+  event: ShareEvent;
+};
+
+export interface ShareEventResponse {
+  success: boolean;
+  data: ShareEventResponseData;
+}
+
+export type ShareEventListResponseData = {
+  events: ShareEvent[];
+};
+
+export interface ShareEventListResponse {
+  success: boolean;
+  data: ShareEventListResponseData;
+}
+
+export type RecordShareEventRequestTargetKind =
+  (typeof RecordShareEventRequestTargetKind)[keyof typeof RecordShareEventRequestTargetKind];
+
+export const RecordShareEventRequestTargetKind = {
+  skill: "skill",
+  task: "task",
+  creator: "creator",
+} as const;
+
+export type RecordShareEventRequestChannel =
+  (typeof RecordShareEventRequestChannel)[keyof typeof RecordShareEventRequestChannel];
+
+export const RecordShareEventRequestChannel = {
+  twitter: "twitter",
+  linkedin: "linkedin",
+  whatsapp: "whatsapp",
+  copy: "copy",
+  native: "native",
+  email: "email",
+} as const;
+
+export interface RecordShareEventRequest {
+  targetKind: RecordShareEventRequestTargetKind;
+  targetId: string;
+  channel?: RecordShareEventRequestChannel;
+  label?: string;
+}
+
+export interface SkillShareLinks {
+  webUrl: string;
+  deepLinkUrl: string;
+  shortUrl: string;
+}
+
+export type SkillShareLinksResponseData = {
+  links: SkillShareLinks;
+};
+
+export interface SkillShareLinksResponse {
+  success: boolean;
+  data: SkillShareLinksResponseData;
+}
+
+export type SocialChannelTextEmail = {
+  subject: string;
+  body: string;
+};
+
+export interface SocialChannelText {
+  twitter: string;
+  linkedin: string;
+  whatsapp: string;
+  email: SocialChannelTextEmail;
+}
+
+export interface SkillSocialCard {
+  title: string;
+  creator: string;
+  description: string;
+  category: string;
+  installs: number;
+  rating: number;
+  ratingDisplay: string;
+  webUrl: string;
+  deepLinkUrl: string;
+  channels: SocialChannelText;
+}
+
+export type SkillSocialCardResponseData = {
+  card: SkillSocialCard;
+};
+
+export interface SkillSocialCardResponse {
+  success: boolean;
+  data: SkillSocialCardResponseData;
+}
+
+export interface BuildTaskShareCardRequest {
+  goal: string;
+  summary: string;
+  durationMs?: number;
+}
+
+export interface TaskShareCard {
+  title: string;
+  body: string;
+  channels: SocialChannelText;
+}
+
+export type TaskShareCardResponseData = {
+  card: TaskShareCard;
+};
+
+export interface TaskShareCardResponse {
+  success: boolean;
+  data: TaskShareCardResponseData;
+}
+
+export type TaskSatisfactionRatingRating =
+  (typeof TaskSatisfactionRatingRating)[keyof typeof TaskSatisfactionRatingRating];
+
+export const TaskSatisfactionRatingRating = {
+  up: "up",
+  down: "down",
+} as const;
+
+export interface TaskSatisfactionRating {
+  id: string;
+  runId?: string | null;
+  rating: TaskSatisfactionRatingRating;
+  summary?: string | null;
+  shouldPromptShare: boolean;
+  createdAt: string;
+}
+
+export type TaskSatisfactionResponseData = {
+  rating: TaskSatisfactionRating;
+};
+
+export interface TaskSatisfactionResponse {
+  success: boolean;
+  data: TaskSatisfactionResponseData;
+}
+
+export type TaskSatisfactionListResponseData = {
+  ratings: TaskSatisfactionRating[];
+};
+
+export interface TaskSatisfactionListResponse {
+  success: boolean;
+  data: TaskSatisfactionListResponseData;
+}
+
+export type RecordSatisfactionRequestRating =
+  (typeof RecordSatisfactionRequestRating)[keyof typeof RecordSatisfactionRequestRating];
+
+export const RecordSatisfactionRequestRating = {
+  up: "up",
+  down: "down",
+} as const;
+
+export interface RecordSatisfactionRequest {
+  runId?: string;
+  rating: RecordSatisfactionRequestRating;
+  summary?: string;
+}
+
+export interface CreatorProfile {
+  id: string;
+  tenantId: string;
+  slug: string;
+  displayName: string;
+  handle?: string | null;
+  bio: string;
+  websiteUrl?: string | null;
+  twitterUrl?: string | null;
+  githubUrl?: string | null;
+  avatarUrl?: string | null;
+  badgeEnabled: boolean;
+  published: boolean;
+  publicUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreatorProfileResponseData = {
+  profile: CreatorProfile | null;
+};
+
+export interface CreatorProfileResponse {
+  success: boolean;
+  data: CreatorProfileResponseData;
+}
+
+export interface UpsertCreatorProfileRequest {
+  displayName?: string;
+  handle?: string;
+  slug?: string;
+  bio?: string;
+  websiteUrl?: string;
+  twitterUrl?: string;
+  githubUrl?: string;
+  avatarUrl?: string;
+  badgeEnabled?: boolean;
+  published?: boolean;
+}
+
+export interface CreatorBadge {
+  embedHtml: string;
+  embedScript: string;
+  badgeImageUrl: string;
+  publicUrl: string;
+  altText: string;
+}
+
+export type CreatorBadgeResponseData = {
+  badge: CreatorBadge;
+};
+
+export interface CreatorBadgeResponse {
+  success: boolean;
+  data: CreatorBadgeResponseData;
+}
+
+export type PublicCreatorProfileResponseData = {
+  profile: CreatorProfile;
+  badge?: CreatorBadge | null;
+};
+
+export interface PublicCreatorProfileResponse {
+  success: boolean;
+  data: PublicCreatorProfileResponseData;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  creatorSlug?: string | null;
+  creatorName: string;
+  creatorTenantId?: string | null;
+  skillCount: number;
+  totalInstalls: number;
+  averageRating: number;
+  estimatedEarningsUsd: number;
+}
+
+export type CreatorLeaderboardResponseDataKind =
+  (typeof CreatorLeaderboardResponseDataKind)[keyof typeof CreatorLeaderboardResponseDataKind];
+
+export const CreatorLeaderboardResponseDataKind = {
+  top_earners: "top_earners",
+  most_used: "most_used",
+  highest_rated: "highest_rated",
+} as const;
+
+export type CreatorLeaderboardResponseData = {
+  kind: CreatorLeaderboardResponseDataKind;
+  entries: LeaderboardEntry[];
+};
+
+export interface CreatorLeaderboardResponse {
+  success: boolean;
+  data: CreatorLeaderboardResponseData;
+}
+
+export interface CreatorMilestone {
+  id: string;
+  skillId: string;
+  skillName: string;
+  milestone: string;
+  threshold: number;
+  dismissed: boolean;
+  shareText: string;
+  createdAt: string;
+}
+
+export type CreatorMilestoneResponseData = {
+  milestone: CreatorMilestone;
+};
+
+export interface CreatorMilestoneResponse {
+  success: boolean;
+  data: CreatorMilestoneResponseData;
+}
+
+export type CreatorMilestoneListResponseData = {
+  milestones?: CreatorMilestone[];
+  created?: CreatorMilestone[];
+};
+
+export interface CreatorMilestoneListResponse {
+  success: boolean;
+  data: CreatorMilestoneListResponseData;
+}
+
+export interface WaitlistSignup {
+  id: string;
+  feature: string;
+  email: string;
+  name?: string | null;
+  source?: string | null;
+  referralCode?: string | null;
+  notifiedAt?: string | null;
+  createdAt: string;
+}
+
+export interface CreateWaitlistSignupRequest {
+  feature: string;
+  email: string;
+  name?: string;
+  source?: string;
+  referralCode?: string;
+}
+
+export type WaitlistSignupResponseData = {
+  signup: WaitlistSignup;
+  deduplicated: boolean;
+};
+
+export interface WaitlistSignupResponse {
+  success: boolean;
+  data: WaitlistSignupResponseData;
+}
+
+export interface WaitlistSignupListPage {
+  items: WaitlistSignup[];
+  nextCursor: string | null;
+}
+
+export interface WaitlistSignupListResponse {
+  success: boolean;
+  data: WaitlistSignupListPage;
+}
+
+export interface WaitlistFeatureStat {
+  feature: string;
+  total: number;
+}
+
+export type WaitlistStatsResponseData = {
+  stats: WaitlistFeatureStat[];
+};
+
+export interface WaitlistStatsResponse {
+  success: boolean;
+  data: WaitlistStatsResponseData;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -6314,4 +6882,58 @@ export type ListStoreCreatorsParams = {
    * @maximum 100
    */
   limit?: LimitParamParameter;
+};
+
+export type ListShareEventsParams = {
+  targetKind?: ListShareEventsTargetKind;
+  targetId?: string;
+};
+
+export type ListShareEventsTargetKind =
+  (typeof ListShareEventsTargetKind)[keyof typeof ListShareEventsTargetKind];
+
+export const ListShareEventsTargetKind = {
+  skill: "skill",
+  task: "task",
+  creator: "creator",
+} as const;
+
+export type ListSatisfactionRatingsParams = {
+  runId?: string;
+};
+
+export type GetCreatorLeaderboardParams = {
+  kind?: GetCreatorLeaderboardKind;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+};
+
+export type GetCreatorLeaderboardKind =
+  (typeof GetCreatorLeaderboardKind)[keyof typeof GetCreatorLeaderboardKind];
+
+export const GetCreatorLeaderboardKind = {
+  top_earners: "top_earners",
+  most_used: "most_used",
+  highest_rated: "highest_rated",
+} as const;
+
+export type ListCreatorMilestonesParams = {
+  includeDismissed?: boolean;
+};
+
+export type ListWaitlistSignupsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  feature?: string;
 };

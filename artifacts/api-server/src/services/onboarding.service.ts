@@ -27,6 +27,8 @@ import {
   tenantScope,
   withTenantValues,
 } from "@workspace/db";
+import { completeReferralForReferred } from "./referrals.service";
+import { logger } from "../lib/logger";
 import type {
   HardwareProfile,
   HardwareTierKey,
@@ -246,7 +248,22 @@ export async function upsertOnboardingProfile(
     }
     return toRow(after[0]);
   });
-  return Promise.resolve(row);
+
+  // Fire-and-await: when this upsert is the one that flips `completed` to
+  // true, grant the referral dual-rewards. Idempotent — if no pending
+  // referral exists or rewards were already granted, this returns null.
+  // Failures are logged but never block the onboarding response.
+  if (row.completed) {
+    try {
+      await completeReferralForReferred(ctx);
+    } catch (e) {
+      logger.warn(
+        { err: e, tenantId: ctx.tenantId },
+        "Referral completion grant failed (non-fatal)",
+      );
+    }
+  }
+  return row;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
