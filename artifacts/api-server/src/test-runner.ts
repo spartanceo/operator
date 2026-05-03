@@ -3135,6 +3135,81 @@ const cases: TestCase[] = [
       assert.ok(
         reasons.some((r: string) => /URL contains credentials/.test(r)),
         "url cred reason",
+    name: "backup: settings GET upserts a singleton with sane defaults",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/backup/settings")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.data.schedule, "off");
+      assert.equal(res.body.data.retentionCount, 7);
+      assert.equal(res.body.data.cloudEnabled, false);
+    },
+  },
+  {
+    name: "backup: PUT settings persists schedule + retention + cloud opt-in",
+    run: async () => {
+      const res = await request(app)
+        .put("/api/backup/settings")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          schedule: "daily",
+          retentionCount: 3,
+          cloudProvider: "icloud",
+          cloudEnabled: true,
+        });
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.data.schedule, "daily");
+      assert.equal(res.body.data.retentionCount, 3);
+      assert.equal(res.body.data.cloudProvider, "icloud");
+      assert.equal(res.body.data.cloudEnabled, true);
+      assert.ok(res.body.data.nextBackupAt, "daily schedule must populate nextBackupAt");
+    },
+  },
+  {
+    name: "backup: create + verify round-trips and rejects wrong password",
+    run: async () => {
+      // Seed at least one memory so the snapshot has rows to encrypt.
+      await request(app)
+        .post("/api/memory")
+        .set("X-Tenant-ID", TENANT)
+        .send({ title: "Backup-seed", content: "snapshot me", importance: 50 });
+
+      const create = await request(app)
+        .post("/api/backup/create")
+        .set("X-Tenant-ID", TENANT)
+        .send({ password: "correct horse battery staple" });
+      assert.equal(create.status, 200, JSON.stringify(create.body));
+      const { archiveBase64, checksum, sizeBytes, job } = create.body.data;
+      assert.ok(archiveBase64.length > 0, "archive payload missing");
+      assert.equal(job.status, "completed");
+      assert.equal(typeof checksum, "string");
+      assert.ok(sizeBytes > 0);
+
+      const verifyOk = await request(app)
+        .post("/api/backup/verify")
+        .set("X-Tenant-ID", TENANT)
+        .send({ password: "correct horse battery staple", archiveBase64 });
+      assert.equal(verifyOk.status, 200, JSON.stringify(verifyOk.body));
+      assert.equal(verifyOk.body.data.ok, true);
+      assert.equal(verifyOk.body.data.problems.length, 0);
+      assert.equal(verifyOk.body.data.checksum, checksum);
+
+      // /verify is a soft probe — wrong password returns 200 with ok:false
+      // and a human-readable problem message (not a 4xx). The UI uses this
+      // to show "Couldn't unlock this backup" without treating it as an
+      // exception. A hard 4xx is reserved for malformed payloads / quota.
+      const verifyBad = await request(app)
+        .post("/api/backup/verify")
+        .set("X-Tenant-ID", TENANT)
+        .send({ password: "wrong-password", archiveBase64 });
+      assert.equal(verifyBad.status, 200, JSON.stringify(verifyBad.body));
+      assert.equal(verifyBad.body.success, true);
+      assert.equal(verifyBad.body.data.ok, false);
+      assert.ok(
+        verifyBad.body.data.problems.some((p: string) => /decrypt/i.test(p)),
+        `expected a decrypt-related problem, got ${JSON.stringify(verifyBad.body.data.problems)}`,
       );
     },
   },
@@ -3229,6 +3304,52 @@ const cases: TestCase[] = [
         items.some(
           (m) => m.bundledByDefault && m.commercialUse !== "non_commercial_only",
         ),
+    name: "backup: selective restore (memories only) replays into a fresh tenant",
+    run: async () => {
+      // Snapshot tenant 1's current state, then restore the `memories` scope
+      // into tenant 2 and confirm the seeded memory shows up there.
+      const snap = await request(app)
+        .post("/api/backup/create")
+        .set("X-Tenant-ID", TENANT)
+        .send({ password: "rehydrate-me" });
+      assert.equal(snap.status, 200, JSON.stringify(snap.body));
+      const { archiveBase64 } = snap.body.data;
+
+      const before = await request(app)
+        .get("/api/memory?limit=100")
+        .set("X-Tenant-ID", TENANT_2);
+      const beforeCount = before.body.data.items.length;
+
+      const restore = await request(app)
+        .post("/api/backup/restore")
+        .set("X-Tenant-ID", TENANT_2)
+        .send({
+          password: "rehydrate-me",
+          archiveBase64,
+          scopes: ["memories"],
+          replaceExisting: true,
+        });
+      assert.equal(restore.status, 200, JSON.stringify(restore.body));
+      assert.deepEqual(restore.body.data.scopes, ["memories"]);
+      assert.ok(
+        restore.body.data.imported.memories >= 1,
+        "restore should report at least one memory imported",
+      );
+      // Knowledge MUST NOT have moved — selective restore is the contract.
+      assert.equal(restore.body.data.imported.kbDocuments, 0);
+
+      const after = await request(app)
+        .get("/api/memory?limit=100")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.ok(
+        after.body.data.items.length >= beforeCount,
+        "tenant 2 should now expose the restored memories",
+      );
+      assert.ok(
+        after.body.data.items.some(
+          (m: { title: string }) => m.title === "Backup-seed",
+        ),
+        "the seeded backup memory must appear under tenant 2 after restore",
       );
     },
   },
@@ -3243,6 +3364,20 @@ const cases: TestCase[] = [
 
       const list2 = await request(app)
         .get("/api/telemetry/events")
+    name: "backup: jobs list is paginated and isolated per-tenant",
+    run: async () => {
+      const list = await request(app)
+        .get("/api/backup/jobs?limit=10")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(list.status, 200);
+      assert.equal(list.body.success, true);
+      assert.ok(Array.isArray(list.body.data.items));
+      assert.ok(list.body.data.items.length >= 1);
+      assert.ok("nextCursor" in list.body.data);
+      // Tenant 2 does its own restore but never CREATES a backup; its jobs
+      // list must therefore be empty.
+      const list2 = await request(app)
+        .get("/api/backup/jobs?limit=10")
         .set("X-Tenant-ID", TENANT_2);
       assert.equal(list2.status, 200);
       assert.equal(list2.body.data.items.length, 0);
@@ -5074,6 +5209,141 @@ const cases: TestCase[] = [
         .get("/api/p2p/swarms")
         .set("X-Tenant-ID", TENANT_2);
       assert.equal(otherSwarms.body.data.swarms.length, 0);
+    name: "backup: retention prune keeps the latest N completed jobs",
+    run: async () => {
+      // Tighten retention then create three more backups so the prune step
+      // has something to evict. Default seed already has ≥1 job.
+      await request(app)
+        .put("/api/backup/settings")
+        .set("X-Tenant-ID", TENANT)
+        .send({ retentionCount: 2, schedule: "off" });
+      for (let i = 0; i < 3; i++) {
+        const r = await request(app)
+          .post("/api/backup/create")
+          .set("X-Tenant-ID", TENANT)
+          .send({ password: `retention-pw-${i}` });
+        assert.equal(r.status, 200, JSON.stringify(r.body));
+      }
+      const prune = await request(app)
+        .post("/api/backup/prune")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(prune.status, 200, JSON.stringify(prune.body));
+      assert.equal(prune.body.data.kept, 2);
+      // Note: createBackup() runs pruneOldBackups() inline, so by the time
+      // we hit /prune explicitly there is usually nothing left to evict.
+      // The contract we care about is "kept == retentionCount" — the
+      // completed-count assertion below pins down the end state.
+      assert.ok(typeof prune.body.data.pruned === "number");
+
+      const after = await request(app)
+        .get("/api/backup/jobs?limit=20")
+        .set("X-Tenant-ID", TENANT);
+      const completed = after.body.data.items.filter(
+        (j: { status: string }) => j.status === "completed",
+      );
+      assert.equal(
+        completed.length,
+        2,
+        `expected exactly 2 completed jobs after prune, got ${completed.length}`,
+      );
+    },
+  },
+  {
+    name: "backup: scheduler tick surfaces tenants whose nextBackupAt has passed",
+    run: async () => {
+      // The earlier `daily` schedule push set nextBackupAt ~24h in the
+      // future; ticking with `now = next + 1` must surface the tenant.
+      await request(app)
+        .put("/api/backup/settings")
+        .set("X-Tenant-ID", TENANT)
+        .send({ schedule: "daily" });
+      const settings = await request(app)
+        .get("/api/backup/settings")
+        .set("X-Tenant-ID", TENANT);
+      const next = new Date(settings.body.data.nextBackupAt).getTime();
+      assert.ok(Number.isFinite(next));
+
+      const tick = await request(app)
+        .post("/api/backup/scheduler/tick")
+        .set("X-Tenant-ID", TENANT)
+        .send({ now: next + 1000 });
+      assert.equal(tick.status, 200, JSON.stringify(tick.body));
+      assert.ok(
+        tick.body.data.due.some(
+          (c: { tenantId: string }) => c.tenantId === TENANT,
+        ),
+        "tenant 1 should be in the due-backup list",
+      );
+
+      // Disable the schedule and confirm the tenant drops off the list.
+      await request(app)
+        .put("/api/backup/settings")
+        .set("X-Tenant-ID", TENANT)
+        .send({ schedule: "off" });
+      const tickOff = await request(app)
+        .post("/api/backup/scheduler/tick")
+        .set("X-Tenant-ID", TENANT)
+        .send({ now: next + 2000 });
+      assert.equal(tickOff.status, 200);
+      assert.ok(
+        !tickOff.body.data.due.some(
+          (c: { tenantId: string }) => c.tenantId === TENANT,
+        ),
+        "schedule=off must remove the tenant from the candidate list",
+      );
+    },
+  },
+  {
+    name: "export: conversations endpoint returns Markdown when requested",
+    run: async () => {
+      const json = await request(app)
+        .get("/api/export/conversations")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(json.status, 200, JSON.stringify(json.body));
+      assert.equal(json.body.data.format, "json");
+      assert.ok(Array.isArray(json.body.data.conversations));
+
+      const md = await request(app)
+        .get("/api/export/conversations?format=markdown")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(md.status, 200, JSON.stringify(md.body));
+      assert.equal(md.body.data.format, "markdown");
+      assert.equal(typeof md.body.data.markdown, "string");
+      assert.ok(md.body.data.conversationCount >= 0);
+    },
+  },
+  {
+    name: "export: memories + settings endpoints return portable shapes",
+    run: async () => {
+      const mem = await request(app)
+        .get("/api/export/memories")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(mem.status, 200, JSON.stringify(mem.body));
+      assert.ok(Array.isArray(mem.body.data.memories));
+      assert.ok(mem.body.data.exportedAt);
+
+      const set = await request(app)
+        .get("/api/export/settings")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(set.status, 200, JSON.stringify(set.body));
+      assert.equal(set.body.data.version, "1");
+      assert.ok(set.body.data.backupSettings);
+      assert.equal(typeof set.body.data.backupSettings.schedule, "string");
+    },
+  },
+  {
+    name: "backup: full GDPR export bundles envelope + conversations + memories",
+    run: async () => {
+      const full = await request(app)
+        .get("/api/backup/export/full")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(full.status, 200, JSON.stringify(full.body));
+      assert.equal(full.body.data.envelope.tenantId, TENANT);
+      assert.ok(Array.isArray(full.body.data.conversations));
+      assert.ok(Array.isArray(full.body.data.memories));
+      assert.ok(full.body.data.knowledgeBase);
+      assert.ok(full.body.data.settings);
+      assert.ok(Array.isArray(full.body.data.privacyEvents));
     },
   },
   // ─── Task #6: Subscription & Creator Monetisation ──────────

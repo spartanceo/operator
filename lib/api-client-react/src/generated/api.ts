@@ -54,6 +54,9 @@ import type {
   AuthSessionResponse,
   AutoLockStateResponse,
   AutoLockUpdateRequest,
+  BackupJobPageResponse,
+  BackupJobResponse,
+  BackupSettingsResponse,
   BetaAccessResponse,
   BrowserActionResponse,
   BrowserExtractRequest,
@@ -84,6 +87,8 @@ import type {
   CrashReportResponse,
   CreateActivityEventRequest,
   CreateAgentRunRequest,
+  CreateBackupRequest,
+  CreateBackupResponse,
   CreateCalendarEventRequest,
   CreateContactRequest,
   CreateConversationRequest,
@@ -135,6 +140,8 @@ import type {
   EnterpriseTrialInviteListResponse,
   EnterpriseTrialInviteResponse,
   ExportConversationParams,
+  ExportConversationsParams,
+  ExportConversationsResponse,
   ExportMemoriesParams,
   ExtractMemoriesRequest,
   FileDeleteRequest,
@@ -147,6 +154,7 @@ import type {
   FindCalendarFreeSlotsParams,
   FlagReviewRequest,
   ForgetAllMemoriesParams,
+  FullDataExportResponse,
   GenerateAudioRequest,
   GenerateImageRequest,
   GenerateVideoRequest,
@@ -264,6 +272,7 @@ import type {
   MediaAssetDeleteResponse,
   MediaAssetListResponse,
   MediaAssetResponse,
+  MemoriesExportResponse,
   MemoryDeleteResponse,
   MemoryExportResponse,
   MemoryExtractResponse,
@@ -339,6 +348,7 @@ import type {
   PreviewScheduleResponse,
   PrivacyEventListResponse,
   PrivacyEventResponse,
+  PruneBackupsResponse,
   PublicCreatorProfileResponse,
   PublishSkillVersionRequest,
   PublishStoreSkillRequest,
@@ -364,6 +374,8 @@ import type {
   ReferralRewardListResponse,
   RegisterPluginToolRequest,
   RegisterRequest,
+  RestoreBackupRequest,
+  RestoreBackupResponse,
   RetrieveMemoriesRequest,
   ReviewResponseRequest,
   RollbackSkillRequest,
@@ -376,6 +388,8 @@ import type {
   ScheduledTaskResponse,
   ScheduledTaskRunListResponse,
   ScheduledTaskRunResponse,
+  SchedulerTickRequest,
+  SchedulerTickResponse,
   SearchConversationsParams,
   SecurityAuditListParams,
   SecurityEventListResponse,
@@ -387,6 +401,7 @@ import type {
   SelectModelRequest,
   SetAcquisitionChannelRequest,
   SetSkillTrustFlagsRequest,
+  SettingsExportResponse,
   ShareEventListResponse,
   ShareEventResponse,
   SimilarSkillsResponse,
@@ -476,6 +491,7 @@ import type {
   UndoActionTypesResponse,
   UndoTaskRequest,
   UndoTaskResponse,
+  UpdateBackupSettingsRequest,
   UpdateCalendarEventRequest,
   UpdateChangelogResponse,
   UpdateCheckResponse,
@@ -512,6 +528,8 @@ import type {
   UpsertAgeConfirmationRequest,
   UpsertCreatorProfileRequest,
   UpsertOnboardingProfileRequest,
+  VerifyBackupRequest,
+  VerifyBackupResponse,
   VoipCallListResponse,
   VoipCallResponse,
   VoipSummariseRequest,
@@ -35196,6 +35214,1083 @@ export function useGetSystemIntegrationTrayStatus<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetSystemIntegrationTrayStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch the singleton backup settings for this tenant
+ */
+export const getGetBackupSettingsUrl = () => {
+  return `/api/backup/settings`;
+};
+
+export const getBackupSettings = async (
+  options?: RequestInit,
+): Promise<BackupSettingsResponse> => {
+  return customFetch<BackupSettingsResponse>(getGetBackupSettingsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBackupSettingsQueryKey = () => {
+  return [`/api/backup/settings`] as const;
+};
+
+export const getGetBackupSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBackupSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getBackupSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBackupSettingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBackupSettings>>
+  > = ({ signal }) => getBackupSettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBackupSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBackupSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBackupSettings>>
+>;
+export type GetBackupSettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fetch the singleton backup settings for this tenant
+ */
+
+export function useGetBackupSettings<
+  TData = Awaited<ReturnType<typeof getBackupSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getBackupSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBackupSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update backup cadence, retention, target dir, or cloud provider
+ */
+export const getUpdateBackupSettingsUrl = () => {
+  return `/api/backup/settings`;
+};
+
+export const updateBackupSettings = async (
+  updateBackupSettingsRequest: UpdateBackupSettingsRequest,
+  options?: RequestInit,
+): Promise<BackupSettingsResponse> => {
+  return customFetch<BackupSettingsResponse>(getUpdateBackupSettingsUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateBackupSettingsRequest),
+  });
+};
+
+export const getUpdateBackupSettingsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBackupSettings>>,
+    TError,
+    { data: BodyType<UpdateBackupSettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateBackupSettings>>,
+  TError,
+  { data: BodyType<UpdateBackupSettingsRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateBackupSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateBackupSettings>>,
+    { data: BodyType<UpdateBackupSettingsRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateBackupSettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateBackupSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateBackupSettings>>
+>;
+export type UpdateBackupSettingsMutationBody =
+  BodyType<UpdateBackupSettingsRequest>;
+export type UpdateBackupSettingsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update backup cadence, retention, target dir, or cloud provider
+ */
+export const useUpdateBackupSettings = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBackupSettings>>,
+    TError,
+    { data: BodyType<UpdateBackupSettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateBackupSettings>>,
+  TError,
+  { data: BodyType<UpdateBackupSettingsRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateBackupSettingsMutationOptions(options));
+};
+
+/**
+ * @summary Produce a fresh AES-256-GCM encrypted backup
+ */
+export const getCreateBackupUrl = () => {
+  return `/api/backup/create`;
+};
+
+export const createBackup = async (
+  createBackupRequest: CreateBackupRequest,
+  options?: RequestInit,
+): Promise<CreateBackupResponse> => {
+  return customFetch<CreateBackupResponse>(getCreateBackupUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createBackupRequest),
+  });
+};
+
+export const getCreateBackupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBackup>>,
+    TError,
+    { data: BodyType<CreateBackupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createBackup>>,
+  TError,
+  { data: BodyType<CreateBackupRequest> },
+  TContext
+> => {
+  const mutationKey = ["createBackup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createBackup>>,
+    { data: BodyType<CreateBackupRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createBackup(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateBackupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createBackup>>
+>;
+export type CreateBackupMutationBody = BodyType<CreateBackupRequest>;
+export type CreateBackupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Produce a fresh AES-256-GCM encrypted backup
+ */
+export const useCreateBackup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBackup>>,
+    TError,
+    { data: BodyType<CreateBackupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createBackup>>,
+  TError,
+  { data: BodyType<CreateBackupRequest> },
+  TContext
+> => {
+  return useMutation(getCreateBackupMutationOptions(options));
+};
+
+/**
+ * @summary Paginated history of backup jobs
+ */
+export const getListBackupJobsUrl = () => {
+  return `/api/backup/jobs`;
+};
+
+export const listBackupJobs = async (
+  options?: RequestInit,
+): Promise<BackupJobPageResponse> => {
+  return customFetch<BackupJobPageResponse>(getListBackupJobsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListBackupJobsQueryKey = () => {
+  return [`/api/backup/jobs`] as const;
+};
+
+export const getListBackupJobsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listBackupJobs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listBackupJobs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListBackupJobsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listBackupJobs>>> = ({
+    signal,
+  }) => listBackupJobs({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listBackupJobs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListBackupJobsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listBackupJobs>>
+>;
+export type ListBackupJobsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Paginated history of backup jobs
+ */
+
+export function useListBackupJobs<
+  TData = Awaited<ReturnType<typeof listBackupJobs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listBackupJobs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBackupJobsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch a single backup job
+ */
+export const getGetBackupJobUrl = (id: string) => {
+  return `/api/backup/jobs/${id}`;
+};
+
+export const getBackupJob = async (
+  id: string,
+  options?: RequestInit,
+): Promise<BackupJobResponse> => {
+  return customFetch<BackupJobResponse>(getGetBackupJobUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBackupJobQueryKey = (id: string) => {
+  return [`/api/backup/jobs/${id}`] as const;
+};
+
+export const getGetBackupJobQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBackupJob>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBackupJob>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBackupJobQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBackupJob>>> = ({
+    signal,
+  }) => getBackupJob(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBackupJob>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBackupJobQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBackupJob>>
+>;
+export type GetBackupJobQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch a single backup job
+ */
+
+export function useGetBackupJob<
+  TData = Awaited<ReturnType<typeof getBackupJob>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBackupJob>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBackupJobQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Verify the integrity of a supplied encrypted archive
+ */
+export const getVerifyBackupUrl = () => {
+  return `/api/backup/verify`;
+};
+
+export const verifyBackup = async (
+  verifyBackupRequest: VerifyBackupRequest,
+  options?: RequestInit,
+): Promise<VerifyBackupResponse> => {
+  return customFetch<VerifyBackupResponse>(getVerifyBackupUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(verifyBackupRequest),
+  });
+};
+
+export const getVerifyBackupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyBackup>>,
+    TError,
+    { data: BodyType<VerifyBackupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyBackup>>,
+  TError,
+  { data: BodyType<VerifyBackupRequest> },
+  TContext
+> => {
+  const mutationKey = ["verifyBackup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof verifyBackup>>,
+    { data: BodyType<VerifyBackupRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return verifyBackup(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyBackupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof verifyBackup>>
+>;
+export type VerifyBackupMutationBody = BodyType<VerifyBackupRequest>;
+export type VerifyBackupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Verify the integrity of a supplied encrypted archive
+ */
+export const useVerifyBackup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyBackup>>,
+    TError,
+    { data: BodyType<VerifyBackupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof verifyBackup>>,
+  TError,
+  { data: BodyType<VerifyBackupRequest> },
+  TContext
+> => {
+  return useMutation(getVerifyBackupMutationOptions(options));
+};
+
+/**
+ * @summary Restore a snapshot (full or selective scopes)
+ */
+export const getRestoreBackupUrl = () => {
+  return `/api/backup/restore`;
+};
+
+export const restoreBackup = async (
+  restoreBackupRequest: RestoreBackupRequest,
+  options?: RequestInit,
+): Promise<RestoreBackupResponse> => {
+  return customFetch<RestoreBackupResponse>(getRestoreBackupUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(restoreBackupRequest),
+  });
+};
+
+export const getRestoreBackupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreBackup>>,
+    TError,
+    { data: BodyType<RestoreBackupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof restoreBackup>>,
+  TError,
+  { data: BodyType<RestoreBackupRequest> },
+  TContext
+> => {
+  const mutationKey = ["restoreBackup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof restoreBackup>>,
+    { data: BodyType<RestoreBackupRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return restoreBackup(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RestoreBackupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof restoreBackup>>
+>;
+export type RestoreBackupMutationBody = BodyType<RestoreBackupRequest>;
+export type RestoreBackupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Restore a snapshot (full or selective scopes)
+ */
+export const useRestoreBackup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreBackup>>,
+    TError,
+    { data: BodyType<RestoreBackupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof restoreBackup>>,
+  TError,
+  { data: BodyType<RestoreBackupRequest> },
+  TContext
+> => {
+  return useMutation(getRestoreBackupMutationOptions(options));
+};
+
+/**
+ * @summary Advance the scheduler clock and return tenants whose backup is due
+ */
+export const getTickBackupSchedulerUrl = () => {
+  return `/api/backup/scheduler/tick`;
+};
+
+export const tickBackupScheduler = async (
+  schedulerTickRequest: SchedulerTickRequest,
+  options?: RequestInit,
+): Promise<SchedulerTickResponse> => {
+  return customFetch<SchedulerTickResponse>(getTickBackupSchedulerUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(schedulerTickRequest),
+  });
+};
+
+export const getTickBackupSchedulerMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof tickBackupScheduler>>,
+    TError,
+    { data: BodyType<SchedulerTickRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof tickBackupScheduler>>,
+  TError,
+  { data: BodyType<SchedulerTickRequest> },
+  TContext
+> => {
+  const mutationKey = ["tickBackupScheduler"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof tickBackupScheduler>>,
+    { data: BodyType<SchedulerTickRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return tickBackupScheduler(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TickBackupSchedulerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof tickBackupScheduler>>
+>;
+export type TickBackupSchedulerMutationBody = BodyType<SchedulerTickRequest>;
+export type TickBackupSchedulerMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Advance the scheduler clock and return tenants whose backup is due
+ */
+export const useTickBackupScheduler = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof tickBackupScheduler>>,
+    TError,
+    { data: BodyType<SchedulerTickRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof tickBackupScheduler>>,
+  TError,
+  { data: BodyType<SchedulerTickRequest> },
+  TContext
+> => {
+  return useMutation(getTickBackupSchedulerMutationOptions(options));
+};
+
+/**
+ * @summary Apply the retention policy and delete old archives
+ */
+export const getPruneBackupsUrl = () => {
+  return `/api/backup/prune`;
+};
+
+export const pruneBackups = async (
+  options?: RequestInit,
+): Promise<PruneBackupsResponse> => {
+  return customFetch<PruneBackupsResponse>(getPruneBackupsUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getPruneBackupsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pruneBackups>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pruneBackups>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["pruneBackups"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pruneBackups>>,
+    void
+  > = () => {
+    return pruneBackups(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PruneBackupsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pruneBackups>>
+>;
+
+export type PruneBackupsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Apply the retention policy and delete old archives
+ */
+export const usePruneBackups = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pruneBackups>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pruneBackups>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getPruneBackupsMutationOptions(options));
+};
+
+/**
+ * @summary Full GDPR-shaped data export (unencrypted, JSON)
+ */
+export const getGetFullDataExportUrl = () => {
+  return `/api/backup/export/full`;
+};
+
+export const getFullDataExport = async (
+  options?: RequestInit,
+): Promise<FullDataExportResponse> => {
+  return customFetch<FullDataExportResponse>(getGetFullDataExportUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFullDataExportQueryKey = () => {
+  return [`/api/backup/export/full`] as const;
+};
+
+export const getGetFullDataExportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFullDataExport>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFullDataExport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFullDataExportQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFullDataExport>>
+  > = ({ signal }) => getFullDataExport({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFullDataExport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFullDataExportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFullDataExport>>
+>;
+export type GetFullDataExportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Full GDPR-shaped data export (unencrypted, JSON)
+ */
+
+export function useGetFullDataExport<
+  TData = Awaited<ReturnType<typeof getFullDataExport>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFullDataExport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFullDataExportQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Export every conversation as JSON or Markdown
+ */
+export const getExportConversationsUrl = (
+  params?: ExportConversationsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/export/conversations?${stringifiedParams}`
+    : `/api/export/conversations`;
+};
+
+export const exportConversations = async (
+  params?: ExportConversationsParams,
+  options?: RequestInit,
+): Promise<ExportConversationsResponse> => {
+  return customFetch<ExportConversationsResponse>(
+    getExportConversationsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getExportConversationsQueryKey = (
+  params?: ExportConversationsParams,
+) => {
+  return [`/api/export/conversations`, ...(params ? [params] : [])] as const;
+};
+
+export const getExportConversationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportConversations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ExportConversationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportConversations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getExportConversationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportConversations>>
+  > = ({ signal }) =>
+    exportConversations(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportConversations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportConversationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportConversations>>
+>;
+export type ExportConversationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Export every conversation as JSON or Markdown
+ */
+
+export function useExportConversations<
+  TData = Awaited<ReturnType<typeof exportConversations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ExportConversationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportConversations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportConversationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Export all memories as a portable JSON list
+ */
+export const getExportMemoriesListUrl = () => {
+  return `/api/export/memories`;
+};
+
+export const exportMemoriesList = async (
+  options?: RequestInit,
+): Promise<MemoriesExportResponse> => {
+  return customFetch<MemoriesExportResponse>(getExportMemoriesListUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportMemoriesListQueryKey = () => {
+  return [`/api/export/memories`] as const;
+};
+
+export const getExportMemoriesListQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportMemoriesList>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportMemoriesList>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getExportMemoriesListQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportMemoriesList>>
+  > = ({ signal }) => exportMemoriesList({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportMemoriesList>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportMemoriesListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportMemoriesList>>
+>;
+export type ExportMemoriesListQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Export all memories as a portable JSON list
+ */
+
+export function useExportMemoriesList<
+  TData = Awaited<ReturnType<typeof exportMemoriesList>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportMemoriesList>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportMemoriesListQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Export onboarding profile + model preferences + backup config
+ */
+export const getExportSettingsConfigUrl = () => {
+  return `/api/export/settings`;
+};
+
+export const exportSettingsConfig = async (
+  options?: RequestInit,
+): Promise<SettingsExportResponse> => {
+  return customFetch<SettingsExportResponse>(getExportSettingsConfigUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportSettingsConfigQueryKey = () => {
+  return [`/api/export/settings`] as const;
+};
+
+export const getExportSettingsConfigQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportSettingsConfig>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportSettingsConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getExportSettingsConfigQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportSettingsConfig>>
+  > = ({ signal }) => exportSettingsConfig({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportSettingsConfig>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportSettingsConfigQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportSettingsConfig>>
+>;
+export type ExportSettingsConfigQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Export onboarding profile + model preferences + backup config
+ */
+
+export function useExportSettingsConfig<
+  TData = Awaited<ReturnType<typeof exportSettingsConfig>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportSettingsConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportSettingsConfigQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -17397,3 +17397,568 @@ export const GetSystemIntegrationTrayStatusResponse = zod.object({
     hotkeyEnabled: zod.boolean(),
   }),
 });
+
+/**
+ * @summary Fetch the singleton backup settings for this tenant
+ */
+export const GetBackupSettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const getBackupSettingsResponseDataRetentionCountMax = 365;
+
+export const GetBackupSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    schedule: zod.enum(["off", "daily", "weekly"]),
+    targetDirectory: zod.string().nullable(),
+    retentionCount: zod
+      .number()
+      .min(1)
+      .max(getBackupSettingsResponseDataRetentionCountMax),
+    cloudProvider: zod
+      .enum(["icloud", "googleDrive", "dropbox", "s3"])
+      .nullable(),
+    cloudSettings: zod.record(zod.string(), zod.unknown()).nullable(),
+    cloudEnabled: zod.boolean(),
+    lastBackupAt: zod.coerce.date().nullable(),
+    nextBackupAt: zod.coerce.date().nullable(),
+  }),
+});
+
+/**
+ * @summary Update backup cadence, retention, target dir, or cloud provider
+ */
+export const UpdateBackupSettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const updateBackupSettingsBodyRetentionCountMax = 365;
+
+export const UpdateBackupSettingsBody = zod.object({
+  schedule: zod.enum(["off", "daily", "weekly"]).optional(),
+  targetDirectory: zod.string().nullish(),
+  retentionCount: zod
+    .number()
+    .min(1)
+    .max(updateBackupSettingsBodyRetentionCountMax)
+    .optional(),
+  cloudProvider: zod.enum(["icloud", "googleDrive", "dropbox", "s3"]).nullish(),
+  cloudSettings: zod.record(zod.string(), zod.unknown()).nullish(),
+  cloudEnabled: zod.boolean().optional(),
+});
+
+export const updateBackupSettingsResponseDataRetentionCountMax = 365;
+
+export const UpdateBackupSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    schedule: zod.enum(["off", "daily", "weekly"]),
+    targetDirectory: zod.string().nullable(),
+    retentionCount: zod
+      .number()
+      .min(1)
+      .max(updateBackupSettingsResponseDataRetentionCountMax),
+    cloudProvider: zod
+      .enum(["icloud", "googleDrive", "dropbox", "s3"])
+      .nullable(),
+    cloudSettings: zod.record(zod.string(), zod.unknown()).nullable(),
+    cloudEnabled: zod.boolean(),
+    lastBackupAt: zod.coerce.date().nullable(),
+    nextBackupAt: zod.coerce.date().nullable(),
+  }),
+});
+
+/**
+ * @summary Produce a fresh AES-256-GCM encrypted backup
+ */
+export const CreateBackupHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateBackupBody = zod.object({
+  password: zod.string().min(1),
+  uploadToCloud: zod.boolean().optional(),
+});
+
+export const CreateBackupResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    job: zod.object({
+      id: zod.string(),
+      trigger: zod.enum(["manual", "scheduled", "cloud"]),
+      status: zod.enum(["pending", "running", "completed", "failed"]),
+      encryption: zod.string(),
+      filePath: zod.string().nullable(),
+      cloudTarget: zod.string().nullable(),
+      sizeBytes: zod.number(),
+      checksum: zod.string().nullable(),
+      documentCount: zod.number(),
+      memoryCount: zod.number(),
+      messageCount: zod.number(),
+      snapshotVersion: zod.string(),
+      schemaVersion: zod.number(),
+      error: zod.string().nullable(),
+      startedAt: zod.coerce.date().nullable(),
+      completedAt: zod.coerce.date().nullable(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    archiveBase64: zod.string(),
+    filePath: zod.string(),
+    checksum: zod.string(),
+    sizeBytes: zod.number(),
+  }),
+});
+
+/**
+ * @summary Paginated history of backup jobs
+ */
+export const ListBackupJobsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListBackupJobsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        trigger: zod.enum(["manual", "scheduled", "cloud"]),
+        status: zod.enum(["pending", "running", "completed", "failed"]),
+        encryption: zod.string(),
+        filePath: zod.string().nullable(),
+        cloudTarget: zod.string().nullable(),
+        sizeBytes: zod.number(),
+        checksum: zod.string().nullable(),
+        documentCount: zod.number(),
+        memoryCount: zod.number(),
+        messageCount: zod.number(),
+        snapshotVersion: zod.string(),
+        schemaVersion: zod.number(),
+        error: zod.string().nullable(),
+        startedAt: zod.coerce.date().nullable(),
+        completedAt: zod.coerce.date().nullable(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullish(),
+  }),
+});
+
+/**
+ * @summary Fetch a single backup job
+ */
+export const GetBackupJobParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetBackupJobHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetBackupJobResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    trigger: zod.enum(["manual", "scheduled", "cloud"]),
+    status: zod.enum(["pending", "running", "completed", "failed"]),
+    encryption: zod.string(),
+    filePath: zod.string().nullable(),
+    cloudTarget: zod.string().nullable(),
+    sizeBytes: zod.number(),
+    checksum: zod.string().nullable(),
+    documentCount: zod.number(),
+    memoryCount: zod.number(),
+    messageCount: zod.number(),
+    snapshotVersion: zod.string(),
+    schemaVersion: zod.number(),
+    error: zod.string().nullable(),
+    startedAt: zod.coerce.date().nullable(),
+    completedAt: zod.coerce.date().nullable(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Verify the integrity of a supplied encrypted archive
+ */
+export const VerifyBackupHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const VerifyBackupBody = zod.object({
+  password: zod.string().min(1),
+  archiveBase64: zod.string().min(1),
+});
+
+export const VerifyBackupResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    ok: zod.boolean(),
+    checksum: zod.string(),
+    sizeBytes: zod.number(),
+    envelope: zod
+      .object({
+        snapshotVersion: zod.string(),
+        schemaVersion: zod.number(),
+        appVersion: zod.string(),
+        createdAt: zod.coerce.date(),
+        tenantId: zod.string(),
+        workspaceId: zod.string(),
+        sourceHost: zod.string(),
+        counts: zod.object({
+          memories: zod.number(),
+          messages: zod.number(),
+          kbDocuments: zod.number(),
+          kbChunks: zod.number(),
+          agentRuns: zod.number(),
+        }),
+      })
+      .nullable(),
+    problems: zod.array(zod.string()),
+    needsModelDownload: zod.boolean(),
+    appliedSchemaMatchesArchive: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Restore a snapshot (full or selective scopes)
+ */
+export const RestoreBackupHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RestoreBackupBody = zod.object({
+  password: zod.string().min(1),
+  archiveBase64: zod.string().min(1),
+  scopes: zod
+    .array(
+      zod.enum(["all", "knowledge", "memories", "settings", "conversations"]),
+    )
+    .optional(),
+  replaceExisting: zod.boolean().optional(),
+});
+
+export const RestoreBackupResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    scopes: zod.array(
+      zod.enum(["all", "knowledge", "memories", "settings", "conversations"]),
+    ),
+    imported: zod.object({
+      memories: zod.number(),
+      kbCollections: zod.number(),
+      kbDocuments: zod.number(),
+      kbChunks: zod.number(),
+      messages: zod.number(),
+      agentRuns: zod.number(),
+      toolCalls: zod.number(),
+      approvals: zod.number(),
+      onboardingProfiles: zod.number(),
+      modelPreferences: zod.number(),
+    }),
+    needsModelDownload: zod.boolean(),
+    envelope: zod.object({
+      snapshotVersion: zod.string(),
+      schemaVersion: zod.number(),
+      appVersion: zod.string(),
+      createdAt: zod.coerce.date(),
+      tenantId: zod.string(),
+      workspaceId: zod.string(),
+      sourceHost: zod.string(),
+      counts: zod.object({
+        memories: zod.number(),
+        messages: zod.number(),
+        kbDocuments: zod.number(),
+        kbChunks: zod.number(),
+        agentRuns: zod.number(),
+      }),
+    }),
+  }),
+});
+
+/**
+ * @summary Advance the scheduler clock and return tenants whose backup is due
+ */
+export const TickBackupSchedulerHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const TickBackupSchedulerBody = zod.object({
+  now: zod
+    .number()
+    .optional()
+    .describe("Optional unix-ms timestamp; defaults to server time."),
+});
+
+export const TickBackupSchedulerResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    now: zod.coerce.date(),
+    due: zod.array(
+      zod.object({
+        tenantId: zod.string(),
+        workspaceId: zod.string(),
+        nextBackupAt: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Apply the retention policy and delete old archives
+ */
+export const PruneBackupsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PruneBackupsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    kept: zod.number(),
+    pruned: zod.number(),
+  }),
+});
+
+/**
+ * @summary Full GDPR-shaped data export (unencrypted, JSON)
+ */
+export const GetFullDataExportHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const getFullDataExportResponseDataSettingsBackupSettingsRetentionCountMax = 365;
+
+export const GetFullDataExportResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    envelope: zod.object({
+      snapshotVersion: zod.string(),
+      schemaVersion: zod.number(),
+      appVersion: zod.string(),
+      createdAt: zod.coerce.date(),
+      tenantId: zod.string(),
+      workspaceId: zod.string(),
+      sourceHost: zod.string(),
+      counts: zod.object({
+        memories: zod.number(),
+        messages: zod.number(),
+        kbDocuments: zod.number(),
+        kbChunks: zod.number(),
+        agentRuns: zod.number(),
+      }),
+    }),
+    conversations: zod.array(
+      zod.object({
+        runId: zod.string().nullable(),
+        goal: zod.string().nullable(),
+        startedAt: zod.coerce.date().nullable(),
+        messages: zod.array(
+          zod.object({
+            id: zod.string(),
+            role: zod.string(),
+            content: zod.string(),
+            createdAt: zod.coerce.date(),
+            tokensIn: zod.number().nullable(),
+            tokensOut: zod.number().nullable(),
+          }),
+        ),
+      }),
+    ),
+    memories: zod.array(
+      zod.object({
+        id: zod.string(),
+        kind: zod.string(),
+        title: zod.string(),
+        content: zod.string(),
+        importance: zod.number(),
+        source: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    knowledgeBase: zod.object({
+      collections: zod.array(zod.record(zod.string(), zod.unknown())),
+      documents: zod.array(zod.record(zod.string(), zod.unknown())),
+    }),
+    settings: zod.object({
+      version: zod.string(),
+      exportedAt: zod.coerce.date(),
+      onboarding: zod.record(zod.string(), zod.unknown()).nullable(),
+      modelPreferences: zod.record(zod.string(), zod.unknown()).nullable(),
+      backupSettings: zod.object({
+        schedule: zod.enum(["off", "daily", "weekly"]),
+        targetDirectory: zod.string().nullable(),
+        retentionCount: zod
+          .number()
+          .min(1)
+          .max(
+            getFullDataExportResponseDataSettingsBackupSettingsRetentionCountMax,
+          ),
+        cloudProvider: zod
+          .enum(["icloud", "googleDrive", "dropbox", "s3"])
+          .nullable(),
+        cloudSettings: zod.record(zod.string(), zod.unknown()).nullable(),
+        cloudEnabled: zod.boolean(),
+        lastBackupAt: zod.coerce.date().nullable(),
+        nextBackupAt: zod.coerce.date().nullable(),
+      }),
+    }),
+    privacyEvents: zod.array(zod.record(zod.string(), zod.unknown())),
+  }),
+});
+
+/**
+ * @summary Export every conversation as JSON or Markdown
+ */
+export const ExportConversationsQueryParams = zod.object({
+  format: zod.enum(["json", "markdown"]).optional(),
+});
+
+export const ExportConversationsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ExportConversationsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    format: zod.enum(["json", "markdown"]),
+    exportedAt: zod.coerce.date(),
+    markdown: zod.string().optional(),
+    conversationCount: zod.number().optional(),
+    conversations: zod
+      .array(
+        zod.object({
+          runId: zod.string().nullable(),
+          goal: zod.string().nullable(),
+          startedAt: zod.coerce.date().nullable(),
+          messages: zod.array(
+            zod.object({
+              id: zod.string(),
+              role: zod.string(),
+              content: zod.string(),
+              createdAt: zod.coerce.date(),
+              tokensIn: zod.number().nullable(),
+              tokensOut: zod.number().nullable(),
+            }),
+          ),
+        }),
+      )
+      .optional(),
+  }),
+});
+
+/**
+ * @summary Export all memories as a portable JSON list
+ */
+export const ExportMemoriesListHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ExportMemoriesListResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    exportedAt: zod.coerce.date(),
+    memories: zod.array(
+      zod.object({
+        id: zod.string(),
+        kind: zod.string(),
+        title: zod.string(),
+        content: zod.string(),
+        importance: zod.number(),
+        source: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Export onboarding profile + model preferences + backup config
+ */
+export const ExportSettingsConfigHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const exportSettingsConfigResponseDataBackupSettingsRetentionCountMax = 365;
+
+export const ExportSettingsConfigResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    version: zod.string(),
+    exportedAt: zod.coerce.date(),
+    onboarding: zod.record(zod.string(), zod.unknown()).nullable(),
+    modelPreferences: zod.record(zod.string(), zod.unknown()).nullable(),
+    backupSettings: zod.object({
+      schedule: zod.enum(["off", "daily", "weekly"]),
+      targetDirectory: zod.string().nullable(),
+      retentionCount: zod
+        .number()
+        .min(1)
+        .max(exportSettingsConfigResponseDataBackupSettingsRetentionCountMax),
+      cloudProvider: zod
+        .enum(["icloud", "googleDrive", "dropbox", "s3"])
+        .nullable(),
+      cloudSettings: zod.record(zod.string(), zod.unknown()).nullable(),
+      cloudEnabled: zod.boolean(),
+      lastBackupAt: zod.coerce.date().nullable(),
+      nextBackupAt: zod.coerce.date().nullable(),
+    }),
+  }),
+});

@@ -80,6 +80,10 @@ tags:
     description: Developer SDK — recent in-process events for polling clients (Task #14)
   - name: system-integration
     description: Global hotkey, quick-input overlay, menu bar / system tray, right-click "Ask OP" services, focus-mode awareness, login-item registration (Task #52)
+  - name: backup
+    description: Local-first encrypted backup, restore, scheduling, and cloud-sync stub
+  - name: export
+    description: Per-domain data-portability exports (conversations, memories, settings)
 paths:
   /healthz:
     get:
@@ -8702,6 +8706,245 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemIntegrationTrayStatusResponse'
+  /backup/settings:
+    get:
+      operationId: getBackupSettings
+      tags: [backup]
+      summary: Fetch the singleton backup settings for this tenant
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Backup settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupSettingsResponse"
+    put:
+      operationId: updateBackupSettings
+      tags: [backup]
+      summary: Update backup cadence, retention, target dir, or cloud provider
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBackupSettingsRequest"
+      responses:
+        "200":
+          description: Updated backup settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupSettingsResponse"
+
+  /backup/create:
+    post:
+      operationId: createBackup
+      tags: [backup]
+      summary: Produce a fresh AES-256-GCM encrypted backup
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBackupRequest"
+      responses:
+        "200":
+          description: Backup created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateBackupResponse"
+
+  /backup/jobs:
+    get:
+      operationId: listBackupJobs
+      tags: [backup]
+      summary: Paginated history of backup jobs
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Backup job page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupJobPageResponse"
+
+  /backup/jobs/{id}:
+    get:
+      operationId: getBackupJob
+      tags: [backup]
+      summary: Fetch a single backup job
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Backup job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupJobResponse"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /backup/verify:
+    post:
+      operationId: verifyBackup
+      tags: [backup]
+      summary: Verify the integrity of a supplied encrypted archive
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyBackupRequest"
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyBackupResponse"
+
+  /backup/restore:
+    post:
+      operationId: restoreBackup
+      tags: [backup]
+      summary: Restore a snapshot (full or selective scopes)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RestoreBackupRequest"
+      responses:
+        "200":
+          description: Restore receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestoreBackupResponse"
+
+  /backup/scheduler/tick:
+    post:
+      operationId: tickBackupScheduler
+      tags: [backup]
+      summary: Advance the scheduler clock and return tenants whose backup is due
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SchedulerTickRequest"
+      responses:
+        "200":
+          description: Due-backup candidates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchedulerTickResponse"
+
+  /backup/prune:
+    post:
+      operationId: pruneBackups
+      tags: [backup]
+      summary: Apply the retention policy and delete old archives
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Prune summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PruneBackupsResponse"
+
+  /backup/export/full:
+    get:
+      operationId: getFullDataExport
+      tags: [backup]
+      summary: Full GDPR-shaped data export (unencrypted, JSON)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Full data export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FullDataExportResponse"
+
+  /export/conversations:
+    get:
+      operationId: exportConversations
+      tags: [export]
+      summary: Export every conversation as JSON or Markdown
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, markdown]
+      responses:
+        "200":
+          description: Conversation export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportConversationsResponse"
+
+  /export/memories:
+    get:
+      operationId: exportMemoriesList
+      tags: [export]
+      summary: Export all memories as a portable JSON list
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Memories export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoriesExportResponse"
+
+  /export/settings:
+    get:
+      operationId: exportSettingsConfig
+      tags: [export]
+      summary: Export onboarding profile + model preferences + backup config
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Settings export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsExportResponse"
 components:
   parameters:
     TenantHeader:
@@ -21193,6 +21436,652 @@ components:
           enum: [true]
         data:
           $ref: '#/components/schemas/SystemIntegrationTrayStatus'
+    BackupSettings:
+      type: object
+      required:
+        [
+          schedule,
+          targetDirectory,
+          retentionCount,
+          cloudProvider,
+          cloudSettings,
+          cloudEnabled,
+          lastBackupAt,
+          nextBackupAt,
+        ]
+      properties:
+        schedule:
+          type: string
+          enum: [off, daily, weekly]
+        targetDirectory:
+          type: string
+          nullable: true
+        retentionCount:
+          type: integer
+          minimum: 1
+          maximum: 365
+        cloudProvider:
+          type: string
+          enum: [icloud, googleDrive, dropbox, s3]
+          nullable: true
+        cloudSettings:
+          type: object
+          additionalProperties: true
+          nullable: true
+        cloudEnabled:
+          type: boolean
+        lastBackupAt:
+          type: string
+          format: date-time
+          nullable: true
+        nextBackupAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    BackupSettingsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/BackupSettings"
+
+    UpdateBackupSettingsRequest:
+      type: object
+      properties:
+        schedule:
+          type: string
+          enum: [off, daily, weekly]
+        targetDirectory:
+          type: string
+          nullable: true
+        retentionCount:
+          type: integer
+          minimum: 1
+          maximum: 365
+        cloudProvider:
+          type: string
+          enum: [icloud, googleDrive, dropbox, s3]
+          nullable: true
+        cloudSettings:
+          type: object
+          additionalProperties: true
+          nullable: true
+        cloudEnabled:
+          type: boolean
+
+    BackupJob:
+      type: object
+      required:
+        [
+          id,
+          trigger,
+          status,
+          encryption,
+          filePath,
+          cloudTarget,
+          sizeBytes,
+          checksum,
+          documentCount,
+          memoryCount,
+          messageCount,
+          snapshotVersion,
+          schemaVersion,
+          error,
+          startedAt,
+          completedAt,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id:
+          type: string
+        trigger:
+          type: string
+          enum: [manual, scheduled, cloud]
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        encryption:
+          type: string
+        filePath:
+          type: string
+          nullable: true
+        cloudTarget:
+          type: string
+          nullable: true
+        sizeBytes:
+          type: integer
+        checksum:
+          type: string
+          nullable: true
+        documentCount:
+          type: integer
+        memoryCount:
+          type: integer
+        messageCount:
+          type: integer
+        snapshotVersion:
+          type: string
+        schemaVersion:
+          type: integer
+        error:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BackupJobResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/BackupJob"
+
+    BackupJobPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BackupJob"
+        nextCursor:
+          type: string
+          nullable: true
+
+    BackupJobPageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/BackupJobPage"
+
+    CreateBackupRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 1
+        uploadToCloud:
+          type: boolean
+
+    CreateBackupResult:
+      type: object
+      required: [job, archiveBase64, filePath, checksum, sizeBytes]
+      properties:
+        job:
+          $ref: "#/components/schemas/BackupJob"
+        archiveBase64:
+          type: string
+        filePath:
+          type: string
+        checksum:
+          type: string
+        sizeBytes:
+          type: integer
+
+    CreateBackupResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/CreateBackupResult"
+
+    BackupSnapshotEnvelope:
+      type: object
+      required:
+        [
+          snapshotVersion,
+          schemaVersion,
+          appVersion,
+          createdAt,
+          tenantId,
+          workspaceId,
+          sourceHost,
+          counts,
+        ]
+      properties:
+        snapshotVersion:
+          type: string
+        schemaVersion:
+          type: integer
+        appVersion:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        tenantId:
+          type: string
+        workspaceId:
+          type: string
+        sourceHost:
+          type: string
+        counts:
+          type: object
+          required: [memories, messages, kbDocuments, kbChunks, agentRuns]
+          properties:
+            memories:
+              type: integer
+            messages:
+              type: integer
+            kbDocuments:
+              type: integer
+            kbChunks:
+              type: integer
+            agentRuns:
+              type: integer
+
+    VerifyBackupRequest:
+      type: object
+      required: [password, archiveBase64]
+      properties:
+        password:
+          type: string
+          minLength: 1
+        archiveBase64:
+          type: string
+          minLength: 1
+
+    VerifyBackupResult:
+      type: object
+      required:
+        [
+          ok,
+          checksum,
+          sizeBytes,
+          envelope,
+          problems,
+          needsModelDownload,
+          appliedSchemaMatchesArchive,
+        ]
+      properties:
+        ok:
+          type: boolean
+        checksum:
+          type: string
+        sizeBytes:
+          type: integer
+        envelope:
+          allOf:
+            - $ref: "#/components/schemas/BackupSnapshotEnvelope"
+          nullable: true
+        problems:
+          type: array
+          items:
+            type: string
+        needsModelDownload:
+          type: boolean
+        appliedSchemaMatchesArchive:
+          type: boolean
+
+    VerifyBackupResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/VerifyBackupResult"
+
+    RestoreBackupRequest:
+      type: object
+      required: [password, archiveBase64]
+      properties:
+        password:
+          type: string
+          minLength: 1
+        archiveBase64:
+          type: string
+          minLength: 1
+        scopes:
+          type: array
+          items:
+            type: string
+            enum: [all, knowledge, memories, settings, conversations]
+        replaceExisting:
+          type: boolean
+
+    RestoreBackupResult:
+      type: object
+      required: [scopes, imported, needsModelDownload, envelope]
+      properties:
+        scopes:
+          type: array
+          items:
+            type: string
+            enum: [all, knowledge, memories, settings, conversations]
+        imported:
+          type: object
+          required:
+            [
+              memories,
+              kbCollections,
+              kbDocuments,
+              kbChunks,
+              messages,
+              agentRuns,
+              toolCalls,
+              approvals,
+              onboardingProfiles,
+              modelPreferences,
+            ]
+          properties:
+            memories:
+              type: integer
+            kbCollections:
+              type: integer
+            kbDocuments:
+              type: integer
+            kbChunks:
+              type: integer
+            messages:
+              type: integer
+            agentRuns:
+              type: integer
+            toolCalls:
+              type: integer
+            approvals:
+              type: integer
+            onboardingProfiles:
+              type: integer
+            modelPreferences:
+              type: integer
+        needsModelDownload:
+          type: boolean
+        envelope:
+          $ref: "#/components/schemas/BackupSnapshotEnvelope"
+
+    RestoreBackupResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/RestoreBackupResult"
+
+    SchedulerTickRequest:
+      type: object
+      properties:
+        now:
+          type: integer
+          description: Optional unix-ms timestamp; defaults to server time.
+
+    SchedulerTickCandidate:
+      type: object
+      required: [tenantId, workspaceId, nextBackupAt]
+      properties:
+        tenantId:
+          type: string
+        workspaceId:
+          type: string
+        nextBackupAt:
+          type: integer
+
+    SchedulerTickResult:
+      type: object
+      required: [now, due]
+      properties:
+        now:
+          type: string
+          format: date-time
+        due:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchedulerTickCandidate"
+
+    SchedulerTickResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/SchedulerTickResult"
+
+    PruneBackupsResult:
+      type: object
+      required: [kept, pruned]
+      properties:
+        kept:
+          type: integer
+        pruned:
+          type: integer
+
+    PruneBackupsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/PruneBackupsResult"
+
+    ConversationExportEntry:
+      type: object
+      required: [runId, goal, startedAt, messages]
+      properties:
+        runId:
+          type: string
+          nullable: true
+        goal:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        messages:
+          type: array
+          items:
+            type: object
+            required: [id, role, content, createdAt, tokensIn, tokensOut]
+            properties:
+              id:
+                type: string
+              role:
+                type: string
+              content:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+              tokensIn:
+                type: integer
+                nullable: true
+              tokensOut:
+                type: integer
+                nullable: true
+
+    ConversationExport:
+      type: object
+      required: [format, exportedAt]
+      properties:
+        format:
+          type: string
+          enum: [json, markdown]
+        exportedAt:
+          type: string
+          format: date-time
+        markdown:
+          type: string
+        conversationCount:
+          type: integer
+        conversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationExportEntry"
+
+    ExportConversationsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ConversationExport"
+
+    MemoryExportEntry:
+      type: object
+      required:
+        [id, kind, title, content, importance, source, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        importance:
+          type: integer
+        source:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MemoriesExport:
+      type: object
+      required: [exportedAt, memories]
+      properties:
+        exportedAt:
+          type: string
+          format: date-time
+        memories:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryExportEntry"
+
+    MemoriesExportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/MemoriesExport"
+
+    SettingsExport:
+      type: object
+      required:
+        [version, exportedAt, onboarding, modelPreferences, backupSettings]
+      properties:
+        version:
+          type: string
+        exportedAt:
+          type: string
+          format: date-time
+        onboarding:
+          type: object
+          additionalProperties: true
+          nullable: true
+        modelPreferences:
+          type: object
+          additionalProperties: true
+          nullable: true
+        backupSettings:
+          $ref: "#/components/schemas/BackupSettings"
+
+    SettingsExportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/SettingsExport"
+
+    FullDataExport:
+      type: object
+      required:
+        [
+          envelope,
+          conversations,
+          memories,
+          knowledgeBase,
+          settings,
+          privacyEvents,
+        ]
+      properties:
+        envelope:
+          $ref: "#/components/schemas/BackupSnapshotEnvelope"
+        conversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationExportEntry"
+        memories:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryExportEntry"
+        knowledgeBase:
+          type: object
+          required: [collections, documents]
+          properties:
+            collections:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            documents:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+        settings:
+          $ref: "#/components/schemas/SettingsExport"
+        privacyEvents:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    FullDataExportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/FullDataExport"
   responses: {}
   requestBodies: {}
   headers: {}

@@ -7497,6 +7497,391 @@ export interface SystemIntegrationTrayStatusResponse {
   data: SystemIntegrationTrayStatus;
 }
 
+export type BackupSettingsSchedule =
+  (typeof BackupSettingsSchedule)[keyof typeof BackupSettingsSchedule];
+
+export const BackupSettingsSchedule = {
+  off: "off",
+  daily: "daily",
+  weekly: "weekly",
+} as const;
+
+export type BackupSettingsCloudProvider =
+  | (typeof BackupSettingsCloudProvider)[keyof typeof BackupSettingsCloudProvider]
+  | null;
+
+export const BackupSettingsCloudProvider = {
+  icloud: "icloud",
+  googleDrive: "googleDrive",
+  dropbox: "dropbox",
+  s3: "s3",
+} as const;
+
+export type BackupSettingsCloudSettings = { [key: string]: unknown } | null;
+
+export interface BackupSettings {
+  schedule: BackupSettingsSchedule;
+  targetDirectory: string | null;
+  /**
+   * @minimum 1
+   * @maximum 365
+   */
+  retentionCount: number;
+  cloudProvider: BackupSettingsCloudProvider;
+  cloudSettings: BackupSettingsCloudSettings;
+  cloudEnabled: boolean;
+  lastBackupAt: string | null;
+  nextBackupAt: string | null;
+}
+
+export interface BackupSettingsResponse {
+  success: boolean;
+  data: BackupSettings;
+}
+
+export type UpdateBackupSettingsRequestSchedule =
+  (typeof UpdateBackupSettingsRequestSchedule)[keyof typeof UpdateBackupSettingsRequestSchedule];
+
+export const UpdateBackupSettingsRequestSchedule = {
+  off: "off",
+  daily: "daily",
+  weekly: "weekly",
+} as const;
+
+export type UpdateBackupSettingsRequestCloudProvider =
+  | (typeof UpdateBackupSettingsRequestCloudProvider)[keyof typeof UpdateBackupSettingsRequestCloudProvider]
+  | null;
+
+export const UpdateBackupSettingsRequestCloudProvider = {
+  icloud: "icloud",
+  googleDrive: "googleDrive",
+  dropbox: "dropbox",
+  s3: "s3",
+} as const;
+
+export type UpdateBackupSettingsRequestCloudSettings = {
+  [key: string]: unknown;
+} | null;
+
+export interface UpdateBackupSettingsRequest {
+  schedule?: UpdateBackupSettingsRequestSchedule;
+  targetDirectory?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 365
+   */
+  retentionCount?: number;
+  cloudProvider?: UpdateBackupSettingsRequestCloudProvider;
+  cloudSettings?: UpdateBackupSettingsRequestCloudSettings;
+  cloudEnabled?: boolean;
+}
+
+export type BackupJobTrigger =
+  (typeof BackupJobTrigger)[keyof typeof BackupJobTrigger];
+
+export const BackupJobTrigger = {
+  manual: "manual",
+  scheduled: "scheduled",
+  cloud: "cloud",
+} as const;
+
+export type BackupJobStatus =
+  (typeof BackupJobStatus)[keyof typeof BackupJobStatus];
+
+export const BackupJobStatus = {
+  pending: "pending",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+export interface BackupJob {
+  id: string;
+  trigger: BackupJobTrigger;
+  status: BackupJobStatus;
+  encryption: string;
+  filePath: string | null;
+  cloudTarget: string | null;
+  sizeBytes: number;
+  checksum: string | null;
+  documentCount: number;
+  memoryCount: number;
+  messageCount: number;
+  snapshotVersion: string;
+  schemaVersion: number;
+  error: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackupJobResponse {
+  success: boolean;
+  data: BackupJob;
+}
+
+export interface BackupJobPage {
+  items: BackupJob[];
+  nextCursor?: string | null;
+}
+
+export interface BackupJobPageResponse {
+  success: boolean;
+  data: BackupJobPage;
+}
+
+export interface CreateBackupRequest {
+  /** @minLength 1 */
+  password: string;
+  uploadToCloud?: boolean;
+}
+
+export interface CreateBackupResult {
+  job: BackupJob;
+  archiveBase64: string;
+  filePath: string;
+  checksum: string;
+  sizeBytes: number;
+}
+
+export interface CreateBackupResponse {
+  success: boolean;
+  data: CreateBackupResult;
+}
+
+export type BackupSnapshotEnvelopeCounts = {
+  memories: number;
+  messages: number;
+  kbDocuments: number;
+  kbChunks: number;
+  agentRuns: number;
+};
+
+export interface BackupSnapshotEnvelope {
+  snapshotVersion: string;
+  schemaVersion: number;
+  appVersion: string;
+  createdAt: string;
+  tenantId: string;
+  workspaceId: string;
+  sourceHost: string;
+  counts: BackupSnapshotEnvelopeCounts;
+}
+
+export interface VerifyBackupRequest {
+  /** @minLength 1 */
+  password: string;
+  /** @minLength 1 */
+  archiveBase64: string;
+}
+
+export interface VerifyBackupResult {
+  ok: boolean;
+  checksum: string;
+  sizeBytes: number;
+  envelope: BackupSnapshotEnvelope | null;
+  problems: string[];
+  needsModelDownload: boolean;
+  appliedSchemaMatchesArchive: boolean;
+}
+
+export interface VerifyBackupResponse {
+  success: boolean;
+  data: VerifyBackupResult;
+}
+
+export type RestoreBackupRequestScopesItem =
+  (typeof RestoreBackupRequestScopesItem)[keyof typeof RestoreBackupRequestScopesItem];
+
+export const RestoreBackupRequestScopesItem = {
+  all: "all",
+  knowledge: "knowledge",
+  memories: "memories",
+  settings: "settings",
+  conversations: "conversations",
+} as const;
+
+export interface RestoreBackupRequest {
+  /** @minLength 1 */
+  password: string;
+  /** @minLength 1 */
+  archiveBase64: string;
+  scopes?: RestoreBackupRequestScopesItem[];
+  replaceExisting?: boolean;
+}
+
+export type RestoreBackupResultScopesItem =
+  (typeof RestoreBackupResultScopesItem)[keyof typeof RestoreBackupResultScopesItem];
+
+export const RestoreBackupResultScopesItem = {
+  all: "all",
+  knowledge: "knowledge",
+  memories: "memories",
+  settings: "settings",
+  conversations: "conversations",
+} as const;
+
+export type RestoreBackupResultImported = {
+  memories: number;
+  kbCollections: number;
+  kbDocuments: number;
+  kbChunks: number;
+  messages: number;
+  agentRuns: number;
+  toolCalls: number;
+  approvals: number;
+  onboardingProfiles: number;
+  modelPreferences: number;
+};
+
+export interface RestoreBackupResult {
+  scopes: RestoreBackupResultScopesItem[];
+  imported: RestoreBackupResultImported;
+  needsModelDownload: boolean;
+  envelope: BackupSnapshotEnvelope;
+}
+
+export interface RestoreBackupResponse {
+  success: boolean;
+  data: RestoreBackupResult;
+}
+
+export interface SchedulerTickRequest {
+  /** Optional unix-ms timestamp; defaults to server time. */
+  now?: number;
+}
+
+export interface SchedulerTickCandidate {
+  tenantId: string;
+  workspaceId: string;
+  nextBackupAt: number;
+}
+
+export interface SchedulerTickResult {
+  now: string;
+  due: SchedulerTickCandidate[];
+}
+
+export interface SchedulerTickResponse {
+  success: boolean;
+  data: SchedulerTickResult;
+}
+
+export interface PruneBackupsResult {
+  kept: number;
+  pruned: number;
+}
+
+export interface PruneBackupsResponse {
+  success: boolean;
+  data: PruneBackupsResult;
+}
+
+export type ConversationExportEntryMessagesItem = {
+  id: string;
+  role: string;
+  content: string;
+  createdAt: string;
+  tokensIn: number | null;
+  tokensOut: number | null;
+};
+
+export interface ConversationExportEntry {
+  runId: string | null;
+  goal: string | null;
+  startedAt: string | null;
+  messages: ConversationExportEntryMessagesItem[];
+}
+
+export type ConversationExportFormat =
+  (typeof ConversationExportFormat)[keyof typeof ConversationExportFormat];
+
+export const ConversationExportFormat = {
+  json: "json",
+  markdown: "markdown",
+} as const;
+
+export interface ConversationExport {
+  format: ConversationExportFormat;
+  exportedAt: string;
+  markdown?: string;
+  conversationCount?: number;
+  conversations?: ConversationExportEntry[];
+}
+
+export interface ExportConversationsResponse {
+  success: boolean;
+  data: ConversationExport;
+}
+
+export interface MemoryExportEntry {
+  id: string;
+  kind: string;
+  title: string;
+  content: string;
+  importance: number;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemoriesExport {
+  exportedAt: string;
+  memories: MemoryExportEntry[];
+}
+
+export interface MemoriesExportResponse {
+  success: boolean;
+  data: MemoriesExport;
+}
+
+export type SettingsExportOnboarding = { [key: string]: unknown } | null;
+
+export type SettingsExportModelPreferences = { [key: string]: unknown } | null;
+
+export interface SettingsExport {
+  version: string;
+  exportedAt: string;
+  onboarding: SettingsExportOnboarding;
+  modelPreferences: SettingsExportModelPreferences;
+  backupSettings: BackupSettings;
+}
+
+export interface SettingsExportResponse {
+  success: boolean;
+  data: SettingsExport;
+}
+
+export type FullDataExportKnowledgeBaseCollectionsItem = {
+  [key: string]: unknown;
+};
+
+export type FullDataExportKnowledgeBaseDocumentsItem = {
+  [key: string]: unknown;
+};
+
+export type FullDataExportKnowledgeBase = {
+  collections: FullDataExportKnowledgeBaseCollectionsItem[];
+  documents: FullDataExportKnowledgeBaseDocumentsItem[];
+};
+
+export type FullDataExportPrivacyEventsItem = { [key: string]: unknown };
+
+export interface FullDataExport {
+  envelope: BackupSnapshotEnvelope;
+  conversations: ConversationExportEntry[];
+  memories: MemoryExportEntry[];
+  knowledgeBase: FullDataExportKnowledgeBase;
+  settings: SettingsExport;
+  privacyEvents: FullDataExportPrivacyEventsItem[];
+}
+
+export interface FullDataExportResponse {
+  success: boolean;
+  data: FullDataExport;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -8634,3 +9019,15 @@ export type ListSystemIntegrationQuickInvocationsParams = {
    */
   limit?: LimitParamParameter;
 };
+
+export type ExportConversationsParams = {
+  format?: ExportConversationsFormat;
+};
+
+export type ExportConversationsFormat =
+  (typeof ExportConversationsFormat)[keyof typeof ExportConversationsFormat];
+
+export const ExportConversationsFormat = {
+  json: "json",
+  markdown: "markdown",
+} as const;

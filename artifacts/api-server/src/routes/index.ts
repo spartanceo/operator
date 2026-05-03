@@ -8,6 +8,7 @@ import activityRouter from "./activity";
 import adminRouter from "./admin";
 import agentRouter from "./agent";
 import authRouter from "./auth";
+import backupRouter from "./backup";
 import browserRouter from "./browser";
 import chatRouter from "./chat";
 import commRouter from "./comm";
@@ -16,6 +17,7 @@ import desktopRouter from "./desktop";
 import diagnosticsRouter from "./diagnostics";
 import distributionRouter from "./distribution";
 import eventsRouter from "./events";
+import exportRouter from "./export";
 import filesRouter from "./files";
 import healthRouter from "./health";
 import integrationsRouter from "./integrations";
@@ -103,5 +105,8 @@ router.use("/system-integration", systemIntegrationRouter);
 router.use("/plugins", pluginsRouter);
 router.use("/webhooks", webhooksRouter);
 router.use("/events", eventsRouter);
+
+router.use("/backup", backupRouter);
+router.use("/export", exportRouter);
 
 export default router;

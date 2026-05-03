@@ -97,3 +97,6 @@ export * from "./desktop-quick-invocations";
 export * from "./update-releases";
 export * from "./update-install-attempts";
 export * from "./update-pinning";
+
+export * from "./backup-settings";
+export * from "./backup-jobs";

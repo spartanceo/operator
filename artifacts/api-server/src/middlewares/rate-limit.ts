@@ -29,6 +29,12 @@ export const adminLimiter = rateLimit({
   limit: 5,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  // The in-memory test-runner bursts dozens of admin calls per second
+  // against a single Express instance — that would trip the 5-rpm cap on
+  // the very first GDPR/backup test and drown the rest of the suite in
+  // 429s. The limiter still applies to every non-test execution path
+  // (`NODE_ENV` is `development` or `production` everywhere else).
+  skip: () => process.env["NODE_ENV"] === "test",
   handler: (_req, res) => {
     res
       .status(429)
