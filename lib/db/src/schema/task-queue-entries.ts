@@ -32,6 +32,8 @@ export const taskQueueEntries = sqliteTable(
     summary: text("summary"),
     startedAt: integer("started_at"),
     completedAt: integer("completed_at"),
+    pausedAt: integer("paused_at"),
+    pauseReason: text("pause_reason"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
     version: integer("version").notNull().default(1),

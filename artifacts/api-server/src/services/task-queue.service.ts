@@ -558,6 +558,9 @@ async function startRun(ctx: TenantContext, id: string): Promise<void> {
         ...(row.knowledgeCollectionId
           ? { knowledgeCollectionId: row.knowledgeCollectionId }
           : {}),
+        // Task #58 — bind the queue task id so the executor checkpoints
+        // every step under this row in `task_checkpoints`.
+        queueTaskId: id,
       }),
     );
     const stamp = Date.now();

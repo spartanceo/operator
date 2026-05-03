@@ -22,6 +22,12 @@ import {
 import app from "./app";
 import { logger } from "./lib/logger";
 import { bindHost } from "./lib/security";
+import {
+  findInterruptedTasks,
+  pauseRunningTasksForShutdown,
+  purgeArchivedCheckpoints,
+  recordCleanShutdown,
+} from "./services/crash-recovery.service";
 import { startScheduler } from "./services/schedules.service";
 
 const rawPort = process.env["PORT"];
@@ -67,7 +73,7 @@ if (migrationResult.success) {
   );
 }
 
-app.listen(port, host, (err) => {
+const server = app.listen(port, host, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
@@ -82,5 +88,73 @@ app.listen(port, host, (err) => {
     logger.info("Scheduler started");
   }
 
+  // Task #58 — Crash detection on startup. Anything still in `running`
+  // whose updatedAt comes after the last clean-shutdown row was either
+  // crashed or paused at shutdown. We only LOG here; the recovery
+  // prompt is delivered via the /api/recovery/interrupted endpoint that
+  // the desktop UI hits before showing the main interface.
+  findInterruptedTasks()
+    .then((interrupted) => {
+      if (interrupted.length === 0) return;
+      logger.warn(
+        {
+          count: interrupted.length,
+          taskIds: interrupted.map((i) => i.taskId),
+        },
+        "Crash detection: interrupted tasks found from previous session — surfaced via /api/recovery",
+      );
+    })
+    .catch((e) => {
+      logger.error(
+        { err: e instanceof Error ? e.message : String(e) },
+        "Crash detection probe failed",
+      );
+    });
+
+  // Best-effort archive purge (30 day retention).
+  purgeArchivedCheckpoints().catch((e) =>
+    logger.warn(
+      { err: e instanceof Error ? e.message : String(e) },
+      "Checkpoint archive purge failed",
+    ),
+  );
+
   logger.info({ host, port }, "Server listening");
 });
+
+// Task #58 — Clean shutdown handler. Pauses any running queue rows then
+// writes a clean_shutdown_log row before exiting. The next process to
+// boot sees the row and will not flag those tasks as crashed.
+let shuttingDown = false;
+async function gracefulShutdown(signal: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal }, "Graceful shutdown initiated");
+  try {
+    const pausedIds = await pauseRunningTasksForShutdown(`shutdown:${signal}`);
+    const reason: "user_quit" | "system_restart" | "normal" =
+      signal === "SIGINT"
+        ? "user_quit"
+        : signal === "SIGTERM"
+          ? "system_restart"
+          : "normal";
+    await recordCleanShutdown({ reason, pausedTaskIds: pausedIds });
+    logger.info(
+      { pausedCount: pausedIds.length, reason },
+      "Clean shutdown record written",
+    );
+  } catch (e) {
+    logger.error(
+      { err: e instanceof Error ? e.message : String(e) },
+      "Clean shutdown handler failed — next launch may flag tasks as crashed",
+    );
+  } finally {
+    server.close(() => process.exit(0));
+    // Hard cap: if Express doesn't drain in 5s, exit anyway so the OS
+    // sees a clean exit code rather than killing us with SIGKILL.
+    setTimeout(() => process.exit(0), 5000).unref();
+  }
+}
+
+process.once("SIGINT", () => void gracefulShutdown("SIGINT"));
+process.once("SIGTERM", () => void gracefulShutdown("SIGTERM"));

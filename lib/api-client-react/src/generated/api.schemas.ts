@@ -4944,6 +4944,137 @@ export interface UndoActionTypesResponse {
   data: UndoActionTypes;
 }
 
+export type RecoveryCheckpointStatus =
+  (typeof RecoveryCheckpointStatus)[keyof typeof RecoveryCheckpointStatus];
+
+export const RecoveryCheckpointStatus = {
+  in_progress: "in_progress",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+export interface RecoveryCheckpoint {
+  id: string;
+  taskId: string;
+  runId?: string | null;
+  stepIndex: number;
+  stepKind: string;
+  destructive: boolean;
+  status: RecoveryCheckpointStatus;
+  summary?: string | null;
+  inputs?: unknown;
+  outputs?: unknown;
+  toolCalls?: unknown;
+  approvals?: unknown;
+  error?: string | null;
+  requiredSkillIds: string[];
+  requiredToolNames: string[];
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecoveryValidationReport {
+  ok: boolean;
+  missingSkills: string[];
+  missingTools: string[];
+}
+
+export interface RecoveryInterruptedTask {
+  taskId: string;
+  goal: string;
+  status: string;
+  crashed: boolean;
+  pausedAtShutdown: boolean;
+  pauseReason?: string | null;
+  completedSteps: number;
+  inProgressStep?: RecoveryCheckpoint | null;
+  destructiveSteps: RecoveryCheckpoint[];
+  pendingDestructiveUndo: number;
+  lastUpdatedAt: string;
+}
+
+export type RecoveryInterruptedListResponseData = {
+  items: RecoveryInterruptedTask[];
+};
+
+export interface RecoveryInterruptedListResponse {
+  success: boolean;
+  data: RecoveryInterruptedListResponseData;
+}
+
+export type RecoveryDetails = RecoveryInterruptedTask & {
+  history: RecoveryCheckpoint[];
+  validation: RecoveryValidationReport;
+};
+
+export interface RecoveryDetailsResponse {
+  success: boolean;
+  data: RecoveryDetails;
+}
+
+export type RecoveryResumeResponseData = {
+  resumed: boolean;
+  validation: RecoveryValidationReport;
+};
+
+export interface RecoveryResumeResponse {
+  success: boolean;
+  data: RecoveryResumeResponseData;
+}
+
+export interface RecoveryDiscardRequest {
+  /** Must be `true` — discard requires explicit confirmation. */
+  confirm: boolean;
+  /** When true, also reverses every reversible destructive step. */
+  partialUndo?: boolean;
+}
+
+export type RecoveryDiscardResponseData = {
+  discarded: boolean;
+  reversed: number;
+  archivedUntil: string;
+};
+
+export interface RecoveryDiscardResponse {
+  success: boolean;
+  data: RecoveryDiscardResponseData;
+}
+
+export type RecoveryPartialUndoResponseData = {
+  reversed: number;
+};
+
+export interface RecoveryPartialUndoResponse {
+  success: boolean;
+  data: RecoveryPartialUndoResponseData;
+}
+
+export type RecoveryShutdownRequestReason =
+  (typeof RecoveryShutdownRequestReason)[keyof typeof RecoveryShutdownRequestReason];
+
+export const RecoveryShutdownRequestReason = {
+  normal: "normal",
+  user_quit: "user_quit",
+  system_restart: "system_restart",
+  test: "test",
+} as const;
+
+export interface RecoveryShutdownRequest {
+  reason?: RecoveryShutdownRequestReason;
+}
+
+export type RecoveryShutdownResponseData = {
+  id: string;
+  shutdownAt: string;
+};
+
+export interface RecoveryShutdownResponse {
+  success: boolean;
+  data: RecoveryShutdownResponseData;
+}
+
 export interface Workspace {
   id: string;
   name: string;

@@ -440,6 +440,14 @@ import type {
   RecordTelemetryEventsRequest,
   RecordTelemetryEventsResponse,
   RecordVoipCallRequest,
+  RecoveryDetailsResponse,
+  RecoveryDiscardRequest,
+  RecoveryDiscardResponse,
+  RecoveryInterruptedListResponse,
+  RecoveryPartialUndoResponse,
+  RecoveryResumeResponse,
+  RecoveryShutdownRequest,
+  RecoveryShutdownResponse,
   ReferralCodeResponse,
   ReferralDashboardResponse,
   ReferralLookupResponse,
@@ -27495,6 +27503,526 @@ export function useListUndoActionTypes<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List queue rows still in `running` after a crash or shutdown
+ */
+export const getListInterruptedTasksUrl = () => {
+  return `/api/recovery/interrupted`;
+};
+
+export const listInterruptedTasks = async (
+  options?: RequestInit,
+): Promise<RecoveryInterruptedListResponse> => {
+  return customFetch<RecoveryInterruptedListResponse>(
+    getListInterruptedTasksUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListInterruptedTasksQueryKey = () => {
+  return [`/api/recovery/interrupted`] as const;
+};
+
+export const getListInterruptedTasksQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInterruptedTasks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInterruptedTasks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListInterruptedTasksQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listInterruptedTasks>>
+  > = ({ signal }) => listInterruptedTasks({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInterruptedTasks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListInterruptedTasksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listInterruptedTasks>>
+>;
+export type ListInterruptedTasksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List queue rows still in `running` after a crash or shutdown
+ */
+
+export function useListInterruptedTasks<
+  TData = Awaited<ReturnType<typeof listInterruptedTasks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInterruptedTasks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListInterruptedTasksQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Full recovery details for one interrupted task
+ */
+export const getGetRecoveryDetailsUrl = (taskId: string) => {
+  return `/api/recovery/${taskId}`;
+};
+
+export const getRecoveryDetails = async (
+  taskId: string,
+  options?: RequestInit,
+): Promise<RecoveryDetailsResponse> => {
+  return customFetch<RecoveryDetailsResponse>(
+    getGetRecoveryDetailsUrl(taskId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetRecoveryDetailsQueryKey = (taskId: string) => {
+  return [`/api/recovery/${taskId}`] as const;
+};
+
+export const getGetRecoveryDetailsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRecoveryDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  taskId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRecoveryDetails>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetRecoveryDetailsQueryKey(taskId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRecoveryDetails>>
+  > = ({ signal }) => getRecoveryDetails(taskId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!taskId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRecoveryDetails>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRecoveryDetailsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRecoveryDetails>>
+>;
+export type GetRecoveryDetailsQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Full recovery details for one interrupted task
+ */
+
+export function useGetRecoveryDetails<
+  TData = Awaited<ReturnType<typeof getRecoveryDetails>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  taskId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRecoveryDetails>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRecoveryDetailsQueryOptions(taskId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Re-queue an interrupted task once its checkpoints validate
+ */
+export const getResumeInterruptedTaskUrl = (taskId: string) => {
+  return `/api/recovery/${taskId}/resume`;
+};
+
+export const resumeInterruptedTask = async (
+  taskId: string,
+  options?: RequestInit,
+): Promise<RecoveryResumeResponse> => {
+  return customFetch<RecoveryResumeResponse>(
+    getResumeInterruptedTaskUrl(taskId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getResumeInterruptedTaskMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resumeInterruptedTask>>,
+    TError,
+    { taskId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resumeInterruptedTask>>,
+  TError,
+  { taskId: string },
+  TContext
+> => {
+  const mutationKey = ["resumeInterruptedTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resumeInterruptedTask>>,
+    { taskId: string }
+  > = (props) => {
+    const { taskId } = props ?? {};
+
+    return resumeInterruptedTask(taskId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResumeInterruptedTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resumeInterruptedTask>>
+>;
+
+export type ResumeInterruptedTaskMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Re-queue an interrupted task once its checkpoints validate
+ */
+export const useResumeInterruptedTask = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resumeInterruptedTask>>,
+    TError,
+    { taskId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resumeInterruptedTask>>,
+  TError,
+  { taskId: string },
+  TContext
+> => {
+  return useMutation(getResumeInterruptedTaskMutationOptions(options));
+};
+
+/**
+ * @summary Mark an interrupted task failed; optionally reverse destructive steps
+ */
+export const getDiscardInterruptedTaskUrl = (taskId: string) => {
+  return `/api/recovery/${taskId}/discard`;
+};
+
+export const discardInterruptedTask = async (
+  taskId: string,
+  recoveryDiscardRequest: RecoveryDiscardRequest,
+  options?: RequestInit,
+): Promise<RecoveryDiscardResponse> => {
+  return customFetch<RecoveryDiscardResponse>(
+    getDiscardInterruptedTaskUrl(taskId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(recoveryDiscardRequest),
+    },
+  );
+};
+
+export const getDiscardInterruptedTaskMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof discardInterruptedTask>>,
+    TError,
+    { taskId: string; data: BodyType<RecoveryDiscardRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof discardInterruptedTask>>,
+  TError,
+  { taskId: string; data: BodyType<RecoveryDiscardRequest> },
+  TContext
+> => {
+  const mutationKey = ["discardInterruptedTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof discardInterruptedTask>>,
+    { taskId: string; data: BodyType<RecoveryDiscardRequest> }
+  > = (props) => {
+    const { taskId, data } = props ?? {};
+
+    return discardInterruptedTask(taskId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DiscardInterruptedTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof discardInterruptedTask>>
+>;
+export type DiscardInterruptedTaskMutationBody =
+  BodyType<RecoveryDiscardRequest>;
+export type DiscardInterruptedTaskMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Mark an interrupted task failed; optionally reverse destructive steps
+ */
+export const useDiscardInterruptedTask = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof discardInterruptedTask>>,
+    TError,
+    { taskId: string; data: BodyType<RecoveryDiscardRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof discardInterruptedTask>>,
+  TError,
+  { taskId: string; data: BodyType<RecoveryDiscardRequest> },
+  TContext
+> => {
+  return useMutation(getDiscardInterruptedTaskMutationOptions(options));
+};
+
+/**
+ * @summary Reverse reversible destructive checkpoints before resuming
+ */
+export const getPartialUndoBeforeResumeUrl = (taskId: string) => {
+  return `/api/recovery/${taskId}/partial-undo`;
+};
+
+export const partialUndoBeforeResume = async (
+  taskId: string,
+  options?: RequestInit,
+): Promise<RecoveryPartialUndoResponse> => {
+  return customFetch<RecoveryPartialUndoResponse>(
+    getPartialUndoBeforeResumeUrl(taskId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getPartialUndoBeforeResumeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof partialUndoBeforeResume>>,
+    TError,
+    { taskId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof partialUndoBeforeResume>>,
+  TError,
+  { taskId: string },
+  TContext
+> => {
+  const mutationKey = ["partialUndoBeforeResume"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof partialUndoBeforeResume>>,
+    { taskId: string }
+  > = (props) => {
+    const { taskId } = props ?? {};
+
+    return partialUndoBeforeResume(taskId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PartialUndoBeforeResumeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof partialUndoBeforeResume>>
+>;
+
+export type PartialUndoBeforeResumeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reverse reversible destructive checkpoints before resuming
+ */
+export const usePartialUndoBeforeResume = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof partialUndoBeforeResume>>,
+    TError,
+    { taskId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof partialUndoBeforeResume>>,
+  TError,
+  { taskId: string },
+  TContext
+> => {
+  return useMutation(getPartialUndoBeforeResumeMutationOptions(options));
+};
+
+/**
+ * @summary Manually record a clean-shutdown row (used by quit hooks)
+ */
+export const getRecordCleanShutdownUrl = () => {
+  return `/api/recovery/shutdown`;
+};
+
+export const recordCleanShutdown = async (
+  recoveryShutdownRequest?: RecoveryShutdownRequest,
+  options?: RequestInit,
+): Promise<RecoveryShutdownResponse> => {
+  return customFetch<RecoveryShutdownResponse>(getRecordCleanShutdownUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(recoveryShutdownRequest),
+  });
+};
+
+export const getRecordCleanShutdownMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordCleanShutdown>>,
+    TError,
+    { data: BodyType<RecoveryShutdownRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordCleanShutdown>>,
+  TError,
+  { data: BodyType<RecoveryShutdownRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordCleanShutdown"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordCleanShutdown>>,
+    { data: BodyType<RecoveryShutdownRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordCleanShutdown(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordCleanShutdownMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordCleanShutdown>>
+>;
+export type RecordCleanShutdownMutationBody = BodyType<RecoveryShutdownRequest>;
+export type RecordCleanShutdownMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Manually record a clean-shutdown row (used by quit hooks)
+ */
+export const useRecordCleanShutdown = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordCleanShutdown>>,
+    TError,
+    { data: BodyType<RecoveryShutdownRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordCleanShutdown>>,
+  TError,
+  { data: BodyType<RecoveryShutdownRequest> },
+  TContext
+> => {
+  return useMutation(getRecordCleanShutdownMutationOptions(options));
+};
 
 /**
  * @summary Browse the local Skills Marketplace (all skills, tenant-scoped)

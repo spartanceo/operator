@@ -6688,6 +6688,311 @@ cases.push(
   },
 );
 
+// ─── Task #58: Crash Recovery & Mid-Task Resumption ──────────────────────
+cases.push(
+  {
+    name: "recovery: checkpoint write + listCheckpointsForTask round-trip",
+    run: async () => {
+      const {
+        recordStepStart,
+        recordStepComplete,
+        listCheckpointsForTask,
+        flushCheckpointsForTests,
+      } = await import("./services/crash-recovery.service");
+      const ctx = {
+        tenantId: TENANT,
+        workspaceId: `default-${TENANT}`,
+        userId: null,
+        roles: [],
+      } as never;
+      const taskId = `task_recov_ck_${Date.now()}`;
+      // Read-only checkpoint (async flush).
+      const ck1 = await recordStepStart(ctx, {
+        taskId,
+        stepIndex: 0,
+        stepKind: "tool:reader",
+        destructive: false,
+        inputs: { x: 1 },
+        requiredToolNames: ["reader"],
+      });
+      // Destructive checkpoint (sync flush).
+      const ck2 = await recordStepStart(ctx, {
+        taskId,
+        stepIndex: 1,
+        stepKind: "tool:writer",
+        destructive: true,
+        inputs: { y: 2 },
+        requiredToolNames: ["writer"],
+      });
+      await recordStepComplete(ctx, ck2.id, true, {
+        status: "completed",
+        outputs: { ok: true },
+      });
+      await recordStepComplete(ctx, ck1.id, false, {
+        status: "completed",
+        outputs: { ok: true },
+      });
+      await flushCheckpointsForTests();
+      const rows = await listCheckpointsForTask(ctx, taskId);
+      assert.equal(rows.length, 2, "expected 2 checkpoints");
+      assert.equal(rows[0]!.stepIndex, 0);
+      assert.equal(rows[1]!.destructive, true);
+      assert.ok(rows.every((r) => r.status === "completed"));
+    },
+  },
+  {
+    name: "recovery: clean-shutdown registration + lastCleanShutdownAt",
+    run: async () => {
+      const { recordCleanShutdown, lastCleanShutdownAt } = await import(
+        "./services/crash-recovery.service"
+      );
+      const before = Date.now() - 1;
+      const r = await recordCleanShutdown({ reason: "test" });
+      const after = Date.now() + 1;
+      assert.ok(r.id.startsWith("shutdown_"));
+      const last = await lastCleanShutdownAt();
+      assert.ok(last !== null && last >= before && last <= after);
+    },
+  },
+  {
+    name: "recovery: crash detection finds running rows after shutdown stamp",
+    run: async () => {
+      const {
+        findInterruptedTasks,
+        recordCleanShutdown,
+        recordStepStart,
+        flushCheckpointsForTests,
+      } = await import("./services/crash-recovery.service");
+      const { db, taskQueueEntries, withTenantValues } = await import(
+        "@workspace/db"
+      );
+      const ctx = {
+        tenantId: TENANT,
+        workspaceId: `default-${TENANT}`,
+        userId: null,
+        roles: [],
+      } as never;
+
+      // Establish a clean-shutdown baseline so unrelated running rows from
+      // earlier tests are filtered out by updatedAt > lastShutdown.
+      await recordCleanShutdown({ reason: "test" });
+      await new Promise((r) => setTimeout(r, 5));
+
+      const taskId = `task_recov_crash_${Date.now()}`;
+      const now = Date.now();
+      await db.insert(taskQueueEntries).values(
+        withTenantValues(ctx, {
+          id: taskId,
+          goal: "crashed task",
+          status: "running",
+          priority: "normal",
+          startedAt: now,
+          updatedAt: now,
+        }),
+      );
+      await recordStepStart(ctx, {
+        taskId,
+        stepIndex: 0,
+        stepKind: "tool:writer",
+        destructive: true,
+        requiredToolNames: ["writer"],
+      });
+      await flushCheckpointsForTests();
+
+      const interrupted = await findInterruptedTasks();
+      const found = interrupted.find((i) => i.taskId === taskId);
+      assert.ok(found, "interrupted task missing from probe");
+      assert.equal(found!.crashed, true, "row without pausedAt → crashed");
+      assert.equal(found!.pausedAtShutdown, false);
+    },
+  },
+  {
+    name: "recovery: pauseRunningTasksForShutdown labels rows pausedAtShutdown",
+    run: async () => {
+      const {
+        findInterruptedTasks,
+        pauseRunningTasksForShutdown,
+        recordCleanShutdown,
+      } = await import("./services/crash-recovery.service");
+      const { db, taskQueueEntries, withTenantValues } = await import(
+        "@workspace/db"
+      );
+      const ctx = {
+        tenantId: TENANT,
+        workspaceId: `default-${TENANT}`,
+        userId: null,
+        roles: [],
+      } as never;
+
+      await recordCleanShutdown({ reason: "test" });
+      await new Promise((r) => setTimeout(r, 5));
+
+      const taskId = `task_recov_paused_${Date.now()}`;
+      const now = Date.now();
+      await db.insert(taskQueueEntries).values(
+        withTenantValues(ctx, {
+          id: taskId,
+          goal: "shutdown-paused task",
+          status: "running",
+          priority: "normal",
+          startedAt: now,
+          updatedAt: now,
+        }),
+      );
+      const paused = await pauseRunningTasksForShutdown("shutdown:test");
+      assert.ok(paused.includes(taskId));
+
+      const interrupted = await findInterruptedTasks();
+      const found = interrupted.find((i) => i.taskId === taskId);
+      assert.ok(found, "paused task missing from interrupted list");
+      assert.equal(found!.pausedAtShutdown, true);
+      assert.equal(found!.crashed, false);
+      assert.equal(found!.pauseReason, "shutdown:test");
+    },
+  },
+  {
+    name: "recovery: GET /api/recovery/interrupted enumerates rows",
+    run: async () => {
+      const list = await request(app).get("/api/recovery/interrupted");
+      assert.equal(list.status, 200);
+      assert.ok(Array.isArray(list.body.data.items));
+    },
+  },
+  {
+    name: "recovery: resume re-queues a running row",
+    run: async () => {
+      const { db, taskQueueEntries, withTenantValues } = await import(
+        "@workspace/db"
+      );
+      const ctx = {
+        tenantId: TENANT,
+        workspaceId: `default-${TENANT}`,
+        userId: null,
+        roles: [],
+      } as never;
+      const taskId = `task_recov_resume_${Date.now()}`;
+      const now = Date.now();
+      await db.insert(taskQueueEntries).values(
+        withTenantValues(ctx, {
+          id: taskId,
+          goal: "resume target",
+          status: "running",
+          priority: "normal",
+          startedAt: now,
+          updatedAt: now,
+        }),
+      );
+      const resume = await request(app)
+        .post(`/api/recovery/${taskId}/resume`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(resume.status, 200, JSON.stringify(resume.body));
+      assert.equal(resume.body.data.resumed, true);
+      assert.equal(resume.body.data.validation.ok, true);
+
+      const details = await request(app)
+        .get(`/api/recovery/${taskId}`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(details.status, 200);
+      assert.equal(details.body.data.status, "queued");
+    },
+  },
+  {
+    name: "recovery: discard requires confirm + marks failed",
+    run: async () => {
+      const { db, taskQueueEntries, withTenantValues } = await import(
+        "@workspace/db"
+      );
+      const ctx = {
+        tenantId: TENANT,
+        workspaceId: `default-${TENANT}`,
+        userId: null,
+        roles: [],
+      } as never;
+      const taskId = `task_recov_discard_${Date.now()}`;
+      const now = Date.now();
+      await db.insert(taskQueueEntries).values(
+        withTenantValues(ctx, {
+          id: taskId,
+          goal: "discard target",
+          status: "running",
+          priority: "normal",
+          startedAt: now,
+          updatedAt: now,
+        }),
+      );
+      const noConfirm = await request(app)
+        .post(`/api/recovery/${taskId}/discard`)
+        .set("X-Tenant-ID", TENANT)
+        .send({});
+      assert.equal(noConfirm.status, 400);
+
+      const okRes = await request(app)
+        .post(`/api/recovery/${taskId}/discard`)
+        .set("X-Tenant-ID", TENANT)
+        .send({ confirm: true });
+      assert.equal(okRes.status, 200, JSON.stringify(okRes.body));
+      assert.equal(okRes.body.data.discarded, true);
+      assert.ok(okRes.body.data.archivedUntil);
+    },
+  },
+  {
+    name: "recovery: validation refuses resume when required tool missing",
+    run: async () => {
+      const { recordStepStart, flushCheckpointsForTests } = await import(
+        "./services/crash-recovery.service"
+      );
+      const { db, taskQueueEntries, withTenantValues } = await import(
+        "@workspace/db"
+      );
+      const ctx = {
+        tenantId: TENANT,
+        workspaceId: `default-${TENANT}`,
+        userId: null,
+        roles: [],
+      } as never;
+      const taskId = `task_recov_invalid_${Date.now()}`;
+      const now = Date.now();
+      await db.insert(taskQueueEntries).values(
+        withTenantValues(ctx, {
+          id: taskId,
+          goal: "invalid resume",
+          status: "running",
+          priority: "normal",
+          startedAt: now,
+          updatedAt: now,
+        }),
+      );
+      await recordStepStart(ctx, {
+        taskId,
+        stepIndex: 0,
+        stepKind: "tool:does_not_exist_xyz",
+        destructive: true,
+        requiredToolNames: ["does_not_exist_xyz"],
+      });
+      await flushCheckpointsForTests();
+      const resume = await request(app)
+        .post(`/api/recovery/${taskId}/resume`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(resume.status, 409);
+      assert.equal(resume.body.error.code, "CHECKPOINT_INVALID");
+      assert.ok(
+        resume.body.error.details.missingTools.includes("does_not_exist_xyz"),
+      );
+    },
+  },
+  {
+    name: "recovery: POST /api/recovery/shutdown writes a row",
+    run: async () => {
+      const r = await request(app)
+        .post("/api/recovery/shutdown")
+        .send({ reason: "test" });
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      assert.ok(r.body.data.id.startsWith("shutdown_"));
+      assert.ok(r.body.data.shutdownAt);
+    },
+  },
+);
+
 async function main() {
   out("\n  api-server test-runner\n  ─────────────────────");
   runMigrations(getRawSqlite());

@@ -66,6 +66,8 @@ export * from "./skills";
 export * from "./skill-versions";
 export * from "./skill-ratings";
 export * from "./task-queue-entries";
+export * from "./task-checkpoints";
+export * from "./clean-shutdown-log";
 export * from "./task-template-categories";
 export * from "./task-templates";
 export * from "./scheduled-tasks";

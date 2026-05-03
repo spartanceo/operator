@@ -89,6 +89,8 @@ tags:
     description: Local-first encrypted backup, restore, scheduling, and cloud-sync stub
   - name: export
     description: Per-domain data-portability exports (conversations, memories, settings)
+  - name: recovery
+    description: Crash recovery & mid-task resumption (Task #58 — checkpoints, interrupted-task detection, resume / discard / partial-undo, clean-shutdown registration)
 paths:
   /healthz:
     get:
@@ -6728,6 +6730,142 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UndoActionTypesResponse'
+  /recovery/interrupted:
+    get:
+      operationId: listInterruptedTasks
+      tags:
+        - recovery
+      summary: List queue rows still in `running` after a crash or shutdown
+      responses:
+        '200':
+          description: Interrupted tasks (may be empty)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryInterruptedListResponse'
+  /recovery/{taskId}:
+    get:
+      operationId: getRecoveryDetails
+      tags:
+        - recovery
+      summary: Full recovery details for one interrupted task
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recovery details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryDetailsResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /recovery/{taskId}/resume:
+    post:
+      operationId: resumeInterruptedTask
+      tags:
+        - recovery
+      summary: Re-queue an interrupted task once its checkpoints validate
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task re-queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryResumeResponse'
+        '409':
+          description: Checkpoint references missing skills or tools
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /recovery/{taskId}/discard:
+    post:
+      operationId: discardInterruptedTask
+      tags:
+        - recovery
+      summary: Mark an interrupted task failed; optionally reverse destructive steps
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoveryDiscardRequest'
+      responses:
+        '200':
+          description: Task discarded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryDiscardResponse'
+        '400':
+          description: Confirmation flag missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /recovery/{taskId}/partial-undo:
+    post:
+      operationId: partialUndoBeforeResume
+      tags:
+        - recovery
+      summary: Reverse reversible destructive checkpoints before resuming
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reversal counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryPartialUndoResponse'
+  /recovery/shutdown:
+    post:
+      operationId: recordCleanShutdown
+      tags:
+        - recovery
+      summary: Manually record a clean-shutdown row (used by quit hooks)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoveryShutdownRequest'
+      responses:
+        '200':
+          description: Clean-shutdown row written
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryShutdownResponse'
   /skills:
     get:
       operationId: listSkills
@@ -19096,6 +19234,213 @@ components:
             - true
         data:
           $ref: '#/components/schemas/UndoActionTypes'
+    RecoveryCheckpoint:
+      type: object
+      required:
+        - id
+        - taskId
+        - stepIndex
+        - stepKind
+        - destructive
+        - status
+        - requiredSkillIds
+        - requiredToolNames
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+        runId:
+          type: string
+          nullable: true
+        stepIndex:
+          type: integer
+        stepKind:
+          type: string
+        destructive:
+          type: boolean
+        status:
+          type: string
+          enum: [in_progress, completed, failed]
+        summary:
+          type: string
+          nullable: true
+        inputs: {}
+        outputs: {}
+        toolCalls: {}
+        approvals: {}
+        error:
+          type: string
+          nullable: true
+        requiredSkillIds:
+          type: array
+          items:
+            type: string
+        requiredToolNames:
+          type: array
+          items:
+            type: string
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RecoveryValidationReport:
+      type: object
+      required: [ok, missingSkills, missingTools]
+      properties:
+        ok:
+          type: boolean
+        missingSkills:
+          type: array
+          items: { type: string }
+        missingTools:
+          type: array
+          items: { type: string }
+    RecoveryInterruptedTask:
+      type: object
+      required:
+        - taskId
+        - goal
+        - status
+        - crashed
+        - pausedAtShutdown
+        - completedSteps
+        - destructiveSteps
+        - pendingDestructiveUndo
+        - lastUpdatedAt
+      properties:
+        taskId: { type: string }
+        goal: { type: string }
+        status: { type: string }
+        crashed: { type: boolean }
+        pausedAtShutdown: { type: boolean }
+        pauseReason:
+          type: string
+          nullable: true
+        completedSteps: { type: integer }
+        inProgressStep:
+          allOf:
+            - $ref: '#/components/schemas/RecoveryCheckpoint'
+          nullable: true
+        destructiveSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecoveryCheckpoint'
+        pendingDestructiveUndo: { type: integer }
+        lastUpdatedAt:
+          type: string
+          format: date-time
+    RecoveryInterruptedListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/RecoveryInterruptedTask'
+    RecoveryDetails:
+      allOf:
+        - $ref: '#/components/schemas/RecoveryInterruptedTask'
+        - type: object
+          required: [history, validation]
+          properties:
+            history:
+              type: array
+              items:
+                $ref: '#/components/schemas/RecoveryCheckpoint'
+            validation:
+              $ref: '#/components/schemas/RecoveryValidationReport'
+    RecoveryDetailsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/RecoveryDetails'
+    RecoveryResumeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [resumed, validation]
+          properties:
+            resumed: { type: boolean, enum: [true] }
+            validation:
+              $ref: '#/components/schemas/RecoveryValidationReport'
+    RecoveryDiscardRequest:
+      type: object
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
+          description: Must be `true` — discard requires explicit confirmation.
+        partialUndo:
+          type: boolean
+          description: When true, also reverses every reversible destructive step.
+    RecoveryDiscardResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [discarded, reversed, archivedUntil]
+          properties:
+            discarded: { type: boolean, enum: [true] }
+            reversed: { type: integer }
+            archivedUntil:
+              type: string
+              format: date-time
+    RecoveryPartialUndoResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [reversed]
+          properties:
+            reversed: { type: integer }
+    RecoveryShutdownRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          enum: [normal, user_quit, system_restart, test]
+    RecoveryShutdownResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [id, shutdownAt]
+          properties:
+            id: { type: string }
+            shutdownAt:
+              type: string
+              format: date-time
     Workspace:
       type: object
       required:

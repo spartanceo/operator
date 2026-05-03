@@ -39,6 +39,10 @@ import type { TenantContext } from "@workspace/types";
 import { emitOpEvent } from "../lib/event-bus";
 import { logger } from "../lib/logger";
 import { invokeTool, getToolByName } from "./tools.service";
+import {
+  recordStepComplete,
+  recordStepStart,
+} from "./crash-recovery.service";
 import { listMemories, retrieveRelevantMemories } from "./memory.service";
 import { logPrivacyEvent } from "./privacy.service";
 import { retrieveContext as retrieveKbContext } from "./kb.service";
@@ -116,6 +120,13 @@ export interface CreateAgentRunInput {
   conversationId?: string;
   /** When set, the Router uses this skill explicitly (skip trigger matching). */
   skillId?: string;
+  /**
+   * Optional queue task id (Task #58). When supplied, every executor step
+   * is checkpointed to `task_checkpoints` so a hard crash leaves a
+   * resumable record. Read-only steps flush asynchronously, destructive
+   * steps synchronously, see crash-recovery.service for the policy.
+   */
+  queueTaskId?: string;
 }
 
 function toRunRow(r: typeof agentRuns.$inferSelect): AgentRunRow {
@@ -543,10 +554,32 @@ export async function createAgentRun(
 
   // Executor: walk the plan and persist a tool_calls row per step.
   const outputs: Array<{ toolName: string; output: Record<string, unknown> }> = [];
-  for (const step of plan) {
+  for (let stepIndex = 0; stepIndex < plan.length; stepIndex += 1) {
+    const step = plan[stepIndex]!;
     const tool = getToolByName(step.toolName);
     const callId = `tc_${nanoid()}`;
     const stepStartedAt = Date.now();
+    // Task #58 — write a pre-step checkpoint when the run is bound to a
+    // queued task. Destructive steps (high/critical risk) flush
+    // synchronously so the row is durable BEFORE the side-effect lands;
+    // low/medium risk steps flush asynchronously to keep the loop fast.
+    const isDestructive =
+      tool?.riskLevel === "high" || tool?.riskLevel === "critical";
+    let checkpointId: string | null = null;
+    if (input.queueTaskId) {
+      const ck = await recordStepStart(ctx, {
+        taskId: input.queueTaskId,
+        runId: id,
+        stepIndex,
+        stepKind: `tool:${step.toolName}`,
+        destructive: isDestructive,
+        inputs: step.input,
+        summary: step.rationale,
+        requiredToolNames: [step.toolName],
+        ...(activeSkill ? { requiredSkillIds: [activeSkill.id] } : {}),
+      });
+      checkpointId = ck.id;
+    }
     try {
       const result = await invokeTool(ctx, step.toolName, step.input);
       outputs.push({ toolName: step.toolName, output: result.output });
@@ -564,6 +597,13 @@ export async function createAgentRun(
           completedAt: Date.now(),
         }),
       );
+      if (checkpointId) {
+        await recordStepComplete(ctx, checkpointId, isDestructive, {
+          status: "completed",
+          outputs: result.output,
+          toolCalls: [{ id: callId, name: step.toolName, status: "completed" }],
+        });
+      }
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       logger.error({ err: e, toolName: step.toolName, runId: id }, "Tool call failed");
@@ -580,6 +620,13 @@ export async function createAgentRun(
           completedAt: Date.now(),
         }),
       );
+      if (checkpointId) {
+        await recordStepComplete(ctx, checkpointId, isDestructive, {
+          status: "failed",
+          error: errMsg,
+          toolCalls: [{ id: callId, name: step.toolName, status: "failed" }],
+        });
+      }
     }
   }
 

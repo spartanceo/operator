@@ -12426,6 +12426,283 @@ export const ListUndoActionTypesResponse = zod.object({
 });
 
 /**
+ * @summary List queue rows still in `running` after a crash or shutdown
+ */
+export const ListInterruptedTasksResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        taskId: zod.string(),
+        goal: zod.string(),
+        status: zod.string(),
+        crashed: zod.boolean(),
+        pausedAtShutdown: zod.boolean(),
+        pauseReason: zod.string().nullish(),
+        completedSteps: zod.number(),
+        inProgressStep: zod
+          .object({
+            id: zod.string(),
+            taskId: zod.string(),
+            runId: zod.string().nullish(),
+            stepIndex: zod.number(),
+            stepKind: zod.string(),
+            destructive: zod.boolean(),
+            status: zod.enum(["in_progress", "completed", "failed"]),
+            summary: zod.string().nullish(),
+            inputs: zod.unknown().optional(),
+            outputs: zod.unknown().optional(),
+            toolCalls: zod.unknown().optional(),
+            approvals: zod.unknown().optional(),
+            error: zod.string().nullish(),
+            requiredSkillIds: zod.array(zod.string()),
+            requiredToolNames: zod.array(zod.string()),
+            startedAt: zod.coerce.date().nullish(),
+            completedAt: zod.coerce.date().nullish(),
+            createdAt: zod.coerce.date(),
+            updatedAt: zod.coerce.date(),
+          })
+          .nullish(),
+        destructiveSteps: zod.array(
+          zod.object({
+            id: zod.string(),
+            taskId: zod.string(),
+            runId: zod.string().nullish(),
+            stepIndex: zod.number(),
+            stepKind: zod.string(),
+            destructive: zod.boolean(),
+            status: zod.enum(["in_progress", "completed", "failed"]),
+            summary: zod.string().nullish(),
+            inputs: zod.unknown().optional(),
+            outputs: zod.unknown().optional(),
+            toolCalls: zod.unknown().optional(),
+            approvals: zod.unknown().optional(),
+            error: zod.string().nullish(),
+            requiredSkillIds: zod.array(zod.string()),
+            requiredToolNames: zod.array(zod.string()),
+            startedAt: zod.coerce.date().nullish(),
+            completedAt: zod.coerce.date().nullish(),
+            createdAt: zod.coerce.date(),
+            updatedAt: zod.coerce.date(),
+          }),
+        ),
+        pendingDestructiveUndo: zod.number(),
+        lastUpdatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Full recovery details for one interrupted task
+ */
+export const GetRecoveryDetailsParams = zod.object({
+  taskId: zod.coerce.string(),
+});
+
+export const GetRecoveryDetailsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetRecoveryDetailsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod
+    .object({
+      taskId: zod.string(),
+      goal: zod.string(),
+      status: zod.string(),
+      crashed: zod.boolean(),
+      pausedAtShutdown: zod.boolean(),
+      pauseReason: zod.string().nullish(),
+      completedSteps: zod.number(),
+      inProgressStep: zod
+        .object({
+          id: zod.string(),
+          taskId: zod.string(),
+          runId: zod.string().nullish(),
+          stepIndex: zod.number(),
+          stepKind: zod.string(),
+          destructive: zod.boolean(),
+          status: zod.enum(["in_progress", "completed", "failed"]),
+          summary: zod.string().nullish(),
+          inputs: zod.unknown().optional(),
+          outputs: zod.unknown().optional(),
+          toolCalls: zod.unknown().optional(),
+          approvals: zod.unknown().optional(),
+          error: zod.string().nullish(),
+          requiredSkillIds: zod.array(zod.string()),
+          requiredToolNames: zod.array(zod.string()),
+          startedAt: zod.coerce.date().nullish(),
+          completedAt: zod.coerce.date().nullish(),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        })
+        .nullish(),
+      destructiveSteps: zod.array(
+        zod.object({
+          id: zod.string(),
+          taskId: zod.string(),
+          runId: zod.string().nullish(),
+          stepIndex: zod.number(),
+          stepKind: zod.string(),
+          destructive: zod.boolean(),
+          status: zod.enum(["in_progress", "completed", "failed"]),
+          summary: zod.string().nullish(),
+          inputs: zod.unknown().optional(),
+          outputs: zod.unknown().optional(),
+          toolCalls: zod.unknown().optional(),
+          approvals: zod.unknown().optional(),
+          error: zod.string().nullish(),
+          requiredSkillIds: zod.array(zod.string()),
+          requiredToolNames: zod.array(zod.string()),
+          startedAt: zod.coerce.date().nullish(),
+          completedAt: zod.coerce.date().nullish(),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        }),
+      ),
+      pendingDestructiveUndo: zod.number(),
+      lastUpdatedAt: zod.coerce.date(),
+    })
+    .and(
+      zod.object({
+        history: zod.array(
+          zod.object({
+            id: zod.string(),
+            taskId: zod.string(),
+            runId: zod.string().nullish(),
+            stepIndex: zod.number(),
+            stepKind: zod.string(),
+            destructive: zod.boolean(),
+            status: zod.enum(["in_progress", "completed", "failed"]),
+            summary: zod.string().nullish(),
+            inputs: zod.unknown().optional(),
+            outputs: zod.unknown().optional(),
+            toolCalls: zod.unknown().optional(),
+            approvals: zod.unknown().optional(),
+            error: zod.string().nullish(),
+            requiredSkillIds: zod.array(zod.string()),
+            requiredToolNames: zod.array(zod.string()),
+            startedAt: zod.coerce.date().nullish(),
+            completedAt: zod.coerce.date().nullish(),
+            createdAt: zod.coerce.date(),
+            updatedAt: zod.coerce.date(),
+          }),
+        ),
+        validation: zod.object({
+          ok: zod.boolean(),
+          missingSkills: zod.array(zod.string()),
+          missingTools: zod.array(zod.string()),
+        }),
+      }),
+    ),
+});
+
+/**
+ * @summary Re-queue an interrupted task once its checkpoints validate
+ */
+export const ResumeInterruptedTaskParams = zod.object({
+  taskId: zod.coerce.string(),
+});
+
+export const ResumeInterruptedTaskHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ResumeInterruptedTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    resumed: zod.literal(true),
+    validation: zod.object({
+      ok: zod.boolean(),
+      missingSkills: zod.array(zod.string()),
+      missingTools: zod.array(zod.string()),
+    }),
+  }),
+});
+
+/**
+ * @summary Mark an interrupted task failed; optionally reverse destructive steps
+ */
+export const DiscardInterruptedTaskParams = zod.object({
+  taskId: zod.coerce.string(),
+});
+
+export const DiscardInterruptedTaskHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DiscardInterruptedTaskBody = zod.object({
+  confirm: zod
+    .boolean()
+    .describe("Must be `true` — discard requires explicit confirmation."),
+  partialUndo: zod
+    .boolean()
+    .optional()
+    .describe("When true, also reverses every reversible destructive step."),
+});
+
+export const DiscardInterruptedTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    discarded: zod.literal(true),
+    reversed: zod.number(),
+    archivedUntil: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Reverse reversible destructive checkpoints before resuming
+ */
+export const PartialUndoBeforeResumeParams = zod.object({
+  taskId: zod.coerce.string(),
+});
+
+export const PartialUndoBeforeResumeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PartialUndoBeforeResumeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    reversed: zod.number(),
+  }),
+});
+
+/**
+ * @summary Manually record a clean-shutdown row (used by quit hooks)
+ */
+export const RecordCleanShutdownBody = zod.object({
+  reason: zod
+    .enum(["normal", "user_quit", "system_restart", "test"])
+    .optional(),
+});
+
+export const RecordCleanShutdownResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    shutdownAt: zod.coerce.date(),
+  }),
+});
+
+/**
  * @summary Browse the local Skills Marketplace (all skills, tenant-scoped)
  */
 export const listSkillsQueryLimitDefault = 20;

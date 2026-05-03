@@ -33,6 +33,7 @@ import onboardingRouter from "./onboarding";
 import p2pRouter from "./p2p";
 import pluginsRouter from "./plugins";
 import privacyRouter from "./privacy";
+import recoveryRouter from "./recovery";
 import schedulesRouter from "./schedules";
 import securityRouter from "./security";
 import skillsRouter from "./skills";
@@ -89,6 +90,7 @@ router.use("/activity", activityRouter);
 router.use("/mobile", mobileRouter);
 router.use("/telemetry", telemetryRouter);
 router.use("/undo", undoRouter);
+router.use("/recovery", recoveryRouter);
 router.use("/workspaces", workspacesRouter);
 router.use("/skills", skillsRouter);
 
