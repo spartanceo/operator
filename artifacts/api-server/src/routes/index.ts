@@ -27,6 +27,7 @@ import notificationsRouter from "./notifications";
 import onboardingRouter from "./onboarding";
 import privacyRouter from "./privacy";
 import securityRouter from "./security";
+import skillsRouter from "./skills";
 import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
 import undoRouter from "./undo";
@@ -63,5 +64,6 @@ router.use("/mobile", mobileRouter);
 router.use("/telemetry", telemetryRouter);
 router.use("/undo", undoRouter);
 router.use("/workspaces", workspacesRouter);
+router.use("/skills", skillsRouter);
 
 export default router;

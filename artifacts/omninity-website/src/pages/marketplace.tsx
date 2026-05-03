@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Search, Star, Filter as FilterIcon } from "lucide-react";
+import {
+  Search,
+  Star,
+  Filter as FilterIcon,
+  Sparkles,
+  Layers,
+} from "lucide-react";
+import { useListSkills, type Skill as ApiSkill } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,38 +19,121 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SEO } from "@/components/seo";
-import { CATEGORIES, SKILLS, type SkillCategory } from "@/lib/marketplace-data";
+import {
+  CATEGORIES as SEED_CATEGORIES,
+  SKILLS as SEED_SKILLS,
+  type Skill as SeedSkill,
+  type SkillCategory,
+} from "@/lib/marketplace-data";
 import { cn } from "@/lib/utils";
 
 type Sort = "popular" | "top" | "newest";
 
+// tier-review: bounded — fixed enum of model families the marketplace targets
+const MODEL_TABS = [
+  "all",
+  "llama3.1",
+  "qwen2.5",
+  "mistral",
+  "phi3",
+  "gemma2",
+];
+
+interface DisplaySkill {
+  slug: string;
+  name: string;
+  creator: string;
+  creatorSlug: string;
+  category: string;
+  tagline: string;
+  description: string;
+  rating: number;
+  ratingCount: number;
+  installs: number;
+  installedAt: number;
+  modelTags: string[];
+  source: "api" | "seed";
+  seedRef: SeedSkill | null;
+}
+
+function fromApi(s: ApiSkill): DisplaySkill {
+  return {
+    slug: s.slug,
+    name: s.name,
+    creator: s.author,
+    creatorSlug: s.author.toLowerCase().replace(/\s+/g, "-"),
+    category: s.category,
+    tagline: s.description || "Local-first skill installed in your tenant.",
+    description: s.content.slice(0, 240),
+    rating: 4.8,
+    ratingCount: s.installCount,
+    installs: s.installCount,
+    installedAt: new Date(s.createdAt).getTime(),
+    modelTags: s.modelTags,
+    source: "api",
+    seedRef: null,
+  };
+}
+
+function fromSeed(s: SeedSkill): DisplaySkill {
+  return {
+    slug: s.slug,
+    name: s.name,
+    creator: s.creator,
+    creatorSlug: s.creatorSlug,
+    category: s.category,
+    tagline: s.tagline,
+    description: s.description,
+    rating: s.rating,
+    ratingCount: s.ratingCount,
+    installs: s.installs,
+    installedAt: new Date(s.versions[0]?.date ?? "2025-01-01").getTime(),
+    // Seed skills have no model tags; default to a broad set so they survive
+    // model-tab filtering in the "All" position.
+    modelTags: ["llama3.1", "qwen2.5"],
+    source: "seed",
+    seedRef: s,
+  };
+}
+
 export default function MarketplacePage() {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<SkillCategory | "All">("All");
+  const [activeModel, setActiveModel] = useState<string>("all");
   const [sort, setSort] = useState<Sort>("popular");
 
+  // We surface real installed-or-imported skills from the API alongside the
+  // seed catalogue so the marketplace stays useful before any DB rows exist.
+  const apiQuery = useListSkills({ limit: 100 });
+  const apiSkills = apiQuery.data?.data.items ?? [];
+
   const visible = useMemo(() => {
+    const apiDisplay = apiSkills.map(fromApi);
+    const apiSlugs = new Set(apiDisplay.map((s) => s.slug));
+    const seedDisplay = SEED_SKILLS.filter((s) => !apiSlugs.has(s.slug)).map(
+      fromSeed,
+    );
+    const merged = [...apiDisplay, ...seedDisplay];
+
     const q = query.trim().toLowerCase();
-    let filtered = SKILLS.filter((s) => {
+    let filtered = merged.filter((s) => {
       const matchesCat = activeCategory === "All" || s.category === activeCategory;
+      const matchesModel =
+        activeModel === "all" ||
+        s.modelTags.some((t) => t.toLowerCase().includes(activeModel));
       const matchesQuery =
         q === "" ||
         s.name.toLowerCase().includes(q) ||
         s.tagline.toLowerCase().includes(q) ||
         s.creator.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q);
-      return matchesCat && matchesQuery;
+      return matchesCat && matchesModel && matchesQuery;
     });
     if (sort === "popular") filtered = [...filtered].sort((a, b) => b.installs - a.installs);
     if (sort === "top") filtered = [...filtered].sort((a, b) => b.rating - a.rating);
-    if (sort === "newest")
-      filtered = [...filtered].sort((a, b) => {
-        const ad = a.versions[0]?.date ?? "";
-        const bd = b.versions[0]?.date ?? "";
-        return bd.localeCompare(ad);
-      });
+    if (sort === "newest") filtered = [...filtered].sort((a, b) => b.installedAt - a.installedAt);
     return filtered;
-  }, [query, activeCategory, sort]);
+  }, [apiSkills, query, activeCategory, activeModel, sort]);
 
   return (
     <>
@@ -72,6 +162,7 @@ export default function MarketplacePage() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search skills, creators, intents..."
                 className="h-11 bg-card pl-10"
+                data-testid="input-marketplace-search"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -89,10 +180,11 @@ export default function MarketplacePage() {
             </div>
           </div>
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            {(["All", ...CATEGORIES] as const).map((c) => (
+            {(["All", ...SEED_CATEGORIES] as const).map((c) => (
               <button
                 key={c}
                 onClick={() => setActiveCategory(c)}
+                data-testid={`category-tab-${c}`}
                 className={cn(
                   "hover-elevate rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
                   activeCategory === c
@@ -104,6 +196,29 @@ export default function MarketplacePage() {
               </button>
             ))}
           </div>
+          <div
+            className="mt-3 flex flex-wrap items-center gap-2"
+            data-testid="model-tabs"
+          >
+            <span className="mr-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Model
+            </span>
+            {MODEL_TABS.map((m) => (
+              <button
+                key={m}
+                onClick={() => setActiveModel(m)}
+                data-testid={`model-tab-${m}`}
+                className={cn(
+                  "hover-elevate rounded-full border px-3 py-1 text-xs",
+                  activeModel === m
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border bg-card text-muted-foreground",
+                )}
+              >
+                {m === "all" ? "All models" : m}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
       <section className="py-12 md:py-16">
@@ -112,6 +227,7 @@ export default function MarketplacePage() {
             <span>
               {visible.length} skill{visible.length === 1 ? "" : "s"}
               {activeCategory !== "All" ? ` in ${activeCategory}` : ""}
+              {activeModel !== "all" ? ` for ${activeModel}` : ""}
             </span>
           </div>
           {visible.length === 0 ? (
@@ -123,12 +239,13 @@ export default function MarketplacePage() {
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {visible.map((skill) => {
-                const Icon = skill.icon;
+                const Icon = skill.seedRef?.icon ?? Sparkles;
                 return (
                   <Link
-                    key={skill.slug}
+                    key={`${skill.source}-${skill.slug}`}
                     href={`/marketplace/${skill.slug}`}
                     className="group block hover-elevate"
+                    data-testid={`marketplace-card-${skill.slug}`}
                   >
                     <Card className="flex h-full flex-col p-6">
                       <div className="flex items-start justify-between gap-3">
@@ -141,8 +258,16 @@ export default function MarketplacePage() {
                           <span className="text-xs">({skill.ratingCount})</span>
                         </div>
                       </div>
-                      <div className="mt-5 text-base font-medium tracking-tight">
+                      <div className="mt-5 flex items-center gap-2 text-base font-medium tracking-tight">
                         {skill.name}
+                        {skill.source === "api" ? (
+                          <Badge
+                            variant="outline"
+                            className="rounded-full border-primary/30 px-2 py-0 text-[9px] uppercase tracking-wider text-primary"
+                          >
+                            <Layers className="mr-1 h-2.5 w-2.5" /> Local
+                          </Badge>
+                        ) : null}
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         by {skill.creator}

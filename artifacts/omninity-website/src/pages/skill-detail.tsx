@@ -1,16 +1,174 @@
 import { Link, useParams, useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, ArrowDownToLine, Lock, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowDownToLine,
+  Lock,
+  Sparkles,
+  Star,
+} from "lucide-react";
+import { useListSkills, useInstallSkill } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/seo";
-import { findSkill, reviewsForSkill, skillsByCreator, SKILLS } from "@/lib/marketplace-data";
+import {
+  findSkill,
+  reviewsForSkill,
+  skillsByCreator,
+  SKILLS,
+} from "@/lib/marketplace-data";
 import NotFound from "@/pages/not-found";
 
 export default function SkillDetailPage() {
   const params = useParams();
   const [, navigate] = useLocation();
   const slug = (params as { slug?: string }).slug ?? "";
+
+  const qc = useQueryClient();
+  // API search-by-name catches both system slugs and user-imported titles —
+  // the service does a fuzzy LIKE on name, so feeding it the slug is safe.
+  const apiQuery = useListSkills({ search: slug, limit: 50 });
+  const apiSkill = apiQuery.data?.data.items.find((s) => s.slug === slug);
+
+  const install = useInstallSkill({
+    mutation: { onSuccess: () => void qc.invalidateQueries() },
+  });
+
+  if (apiSkill) {
+    return (
+      <>
+        <SEO title={apiSkill.name} description={apiSkill.description ?? ""} />
+        <section className="border-b border-border/40 py-12 md:py-16">
+          <div className="mx-auto max-w-6xl px-5 md:px-8">
+            <button
+              type="button"
+              onClick={() => navigate("/marketplace")}
+              className="hover-elevate inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground"
+              data-testid="link-back-marketplace"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to marketplace
+            </button>
+            <div className="mt-8 grid grid-cols-1 gap-10 md:grid-cols-12">
+              <div className="md:col-span-8">
+                <div className="flex items-start gap-5">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card text-primary">
+                    <Sparkles className="h-7 w-7" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className="rounded-full border-border text-[10px] uppercase tracking-wider text-muted-foreground"
+                      >
+                        {apiSkill.category}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        v{apiSkill.version}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="rounded-full border-primary/30 text-[10px] uppercase tracking-wider text-primary"
+                      >
+                        Local skill
+                      </Badge>
+                    </div>
+                    <h1 className="mt-3 text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+                      {apiSkill.name}
+                    </h1>
+                    <div className="mt-3 text-sm text-muted-foreground">
+                      by {apiSkill.author}
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-7 text-balance text-lg leading-relaxed text-foreground">
+                  {apiSkill.description || "No description provided."}
+                </p>
+                <h2 className="mt-12 text-2xl font-semibold tracking-tight">
+                  System prompt preview
+                </h2>
+                <pre
+                  className="mt-4 overflow-auto rounded-xl border border-border bg-card p-5 font-mono text-xs leading-relaxed text-foreground"
+                  data-testid="text-skill-content"
+                >
+                  {apiSkill.content}
+                </pre>
+                {apiSkill.triggers.length > 0 ? (
+                  <div className="mt-8">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Trigger words
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {apiSkill.triggers.map((t) => (
+                        <Badge key={t} variant="secondary" className="text-[11px]">
+                          {t}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              <div className="md:col-span-4">
+                <Card className="overflow-hidden p-0">
+                  <div className="space-y-4 border-b border-border/60 p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Star className="h-4 w-4 fill-primary text-primary" />
+                        <span className="text-base font-semibold text-foreground">
+                          —
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          ({apiSkill.installCount} installs)
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full gap-2"
+                      size="lg"
+                      data-testid="button-install-from-detail"
+                      disabled={install.isPending || apiSkill.isInstalled}
+                      onClick={() => install.mutate({ id: apiSkill.id })}
+                    >
+                      <ArrowDownToLine className="h-4 w-4" />
+                      {apiSkill.isInstalled ? "Installed" : "Install in OP"}
+                    </Button>
+                    <p className="text-center text-xs text-muted-foreground">
+                      Stored locally on this device
+                    </p>
+                  </div>
+                  <div className="p-6">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Compatible with
+                    </div>
+                    <ul className="mt-3 space-y-2.5">
+                      {apiSkill.modelTags.length === 0 ? (
+                        <li className="text-sm text-muted-foreground">
+                          Any local model.
+                        </li>
+                      ) : (
+                        apiSkill.modelTags.map((t) => (
+                          <li
+                            key={t}
+                            className="flex items-start gap-2.5 text-sm text-foreground"
+                          >
+                            <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                            {t}
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  }
+
   const skill = findSkill(slug);
   if (!skill) return <NotFound />;
   const Icon = skill.icon;
@@ -24,10 +182,7 @@ export default function SkillDetailPage() {
 
   return (
     <>
-      <SEO
-        title={skill.name}
-        description={skill.tagline}
-      />
+      <SEO title={skill.name} description={skill.tagline} />
       <section className="border-b border-border/40 py-12 md:py-16">
         <div className="mx-auto max-w-6xl px-5 md:px-8">
           <button

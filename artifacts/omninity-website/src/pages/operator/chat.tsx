@@ -13,6 +13,7 @@ import {
   useCreateConversation,
   useListConversationMessages,
   useAppendConversationMessage,
+  useListSkills,
   type ChatMessage,
   type Approval,
   type Message,
@@ -77,6 +78,10 @@ export default function ChatPage() {
   const [model, setModel] = useState<string>(settings.defaultModel);
   const [showSparkle, setShowSparkle] = useState(false);
   const sparkleFiredFor = useRef<string | null>(null);
+  const [skillId, setSkillId] = useState<string>("auto");
+  // The skill that was active when the current run was kicked off — captured
+  // separately so that changing the picker mid-run does not retro-attribute.
+  const [activeRunSkillId, setActiveRunSkillId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const profileQuery = useGetOnboardingProfile();
@@ -89,6 +94,12 @@ export default function ChatPage() {
 
   const modelsQuery = useListModels();
   const availableModels = modelsQuery.data?.data.items ?? [];
+
+  const installedSkillsQuery = useListSkills(
+    { installed: true, limit: 100 },
+    { query: { enabled: agentMode } as never },
+  );
+  const installedSkills = installedSkillsQuery.data?.data.items ?? [];
 
   useEffect(() => {
     if (!modelsQuery.data) return;
@@ -174,8 +185,9 @@ export default function ChatPage() {
 
   const createRun = useCreateAgentRun({
     mutation: {
-      onSuccess: (resp) => {
+      onSuccess: (resp, vars) => {
         setActiveRunId(resp.data.id);
+        setActiveRunSkillId(vars.data.skillId ?? null);
         void qc.invalidateQueries();
       },
     },
@@ -295,6 +307,7 @@ export default function ChatPage() {
           goal: text,
           conversationId: conversation.id,
           ...(model ? { modelName: model } : {}),
+          ...(skillId !== "auto" ? { skillId } : {}),
         },
       });
       setInput("");
@@ -331,6 +344,7 @@ export default function ChatPage() {
   const newConversation = () => {
     setActiveConversation(null);
     setActiveRunId(null);
+    setActiveRunSkillId(null);
     setActiveApproval(null);
   };
 
@@ -424,6 +438,13 @@ export default function ChatPage() {
                   messages={runMessages}
                   conversationMessages={conversationMessages}
                   isLoading={messagesQuery.isLoading}
+                  modelUsed={run?.modelName ?? null}
+                  skillName={
+                    activeRunSkillId
+                      ? installedSkills.find((s) => s.id === activeRunSkillId)
+                          ?.name ?? null
+                      : null
+                  }
                 />
               ) : (
                 <ChatTranscript messages={conversationMessages} />
@@ -442,6 +463,50 @@ export default function ChatPage() {
                 <div className="mb-3 space-y-3">
                   <StarterChips onPick={(prompt) => setInput(prompt)} />
                   <InlineHints onPick={(prompt) => setInput(prompt)} />
+                </div>
+              ) : null}
+              {agentMode ? (
+                <div
+                  className="mb-3 flex flex-wrap items-center gap-1.5"
+                  data-testid="skill-chips"
+                >
+                  <span className="mr-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Skill
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="skill-chip-auto"
+                    onClick={() => setSkillId("auto")}
+                    className={cn(
+                      "hover-elevate rounded-full border px-3 py-1 text-xs",
+                      skillId === "auto"
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border bg-card text-muted-foreground",
+                    )}
+                  >
+                    Auto-route
+                  </button>
+                  {installedSkills.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      data-testid={`skill-chip-${s.id}`}
+                      onClick={() => setSkillId(s.id)}
+                      className={cn(
+                        "hover-elevate rounded-full border px-3 py-1 text-xs",
+                        skillId === s.id
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground",
+                      )}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                  {installedSkills.length === 0 ? (
+                    <span className="text-[11px] text-muted-foreground">
+                      No skills installed yet — visit the Skills page to add one.
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
               <div className="flex items-end gap-2">
@@ -632,11 +697,15 @@ function AgentTranscript({
   messages,
   conversationMessages,
   isLoading,
+  modelUsed,
+  skillName,
 }: {
   runId: string | null;
   messages: Message[];
   conversationMessages: ConversationMessage[];
   isLoading: boolean;
+  modelUsed: string | null;
+  skillName: string | null;
 }) {
   // Prefer the per-run transcript when an agent run is active so we get the
   // full system / user / assistant timeline. When no run is selected but the
@@ -667,28 +736,50 @@ function AgentTranscript({
   }
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      {messages.map((m) => (
-        <div
-          key={m.id}
-          className={cn(
-            "rounded-lg border border-border p-4",
-            m.role === "user" ? "bg-card" : "bg-muted/40",
-          )}
-          data-testid={`agent-message-${m.role}`}
-        >
-          <div className="mb-1 flex items-center gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {m.role}
-            </span>
-            <span className="text-[10px] text-muted-foreground">
-              {new Date(m.createdAt).toLocaleTimeString()}
-            </span>
+      {messages.map((m) => {
+        // Each assistant turn carries an attribution receipt so users can see
+        // which skill (if any) and which local model produced the response.
+        const showAttribution = m.role === "assistant";
+        return (
+          <div
+            key={m.id}
+            className={cn(
+              "rounded-lg border border-border p-4",
+              m.role === "user" ? "bg-card" : "bg-muted/40",
+            )}
+            data-testid={`agent-message-${m.role}`}
+          >
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {m.role}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {new Date(m.createdAt).toLocaleTimeString()}
+              </span>
+              {showAttribution && (modelUsed || skillName) ? (
+                <span
+                  className="ml-auto flex items-center gap-2"
+                  data-testid={`message-attribution-${m.id}`}
+                >
+                  {skillName ? (
+                    <Badge variant="outline" className="text-[10px]">
+                      Skill: {skillName}
+                    </Badge>
+                  ) : null}
+                  {modelUsed ? (
+                    <Badge variant="secondary" className="text-[10px] font-mono">
+                      {modelUsed}
+                    </Badge>
+                  ) : null}
+                </span>
+              ) : null}
+            </div>
+            <p className="whitespace-pre-wrap text-sm text-foreground">
+              {m.content}
+            </p>
           </div>
-          <p className="whitespace-pre-wrap text-sm text-foreground">
-            {m.content}
-          </p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

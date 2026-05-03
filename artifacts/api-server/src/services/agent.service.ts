@@ -45,6 +45,7 @@ import {
   markDesktopUsed,
   touchConversation,
 } from "./conversation.service";
+import { getSkill, matchSkillForGoal, type SkillRow } from "./skill.service";
 
 export interface AgentRunRow {
   id: string;
@@ -54,6 +55,8 @@ export interface AgentRunRow {
   summary: string | null;
   error: string | null;
   modelName: string | null;
+  routedSkillId: string | null;
+  routedSkillName: string | null;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
@@ -101,6 +104,8 @@ export interface CreateAgentRunInput {
    * are searchable together, and export as one markdown file (Task #41).
    */
   conversationId?: string;
+  /** When set, the Router uses this skill explicitly (skip trigger matching). */
+  skillId?: string;
 }
 
 function toRunRow(r: typeof agentRuns.$inferSelect): AgentRunRow {
@@ -112,6 +117,8 @@ function toRunRow(r: typeof agentRuns.$inferSelect): AgentRunRow {
     summary: r.summary,
     error: r.error,
     modelName: r.modelName,
+    routedSkillId: r.routedSkillId,
+    routedSkillName: r.routedSkillName,
     startedAt: r.startedAt ? new Date(r.startedAt).toISOString() : null,
     completedAt: r.completedAt ? new Date(r.completedAt).toISOString() : null,
     createdAt: new Date(r.createdAt).toISOString(),
@@ -154,17 +161,20 @@ interface PlanStep {
   rationale: string;
 }
 
+type RouterDecision = "planner" | "research" | "memory" | "skill" | "desktop";
+
 /**
  * Router classifier — picks the downstream agent for a goal.
  *
- * Tier 1 uses a deterministic keyword router. Desktop intents short-circuit
- * to the dedicated `/desktop` orchestrator; the agent loop records the
- * intent + redirect in the plan so the audit trail still shows the routing
- * decision even when the actual execution lives in another service.
+ * Tier 1 uses a deterministic keyword router. An installed skill match
+ * short-circuits to the skill branch; otherwise desktop intents route to
+ * the dedicated `/desktop` orchestrator. The agent loop records the
+ * intent + redirect in the plan so the audit trail still shows the
+ * routing decision even when the actual execution lives in another
+ * service.
  */
-function routerAgent(
-  goal: string,
-): "planner" | "research" | "memory" | "desktop" {
+function routerAgent(goal: string, hasSkill: boolean): RouterDecision {
+  if (hasSkill) return "skill";
   const g = goal.toLowerCase();
   if (g.includes("remember") || g.includes("recall")) return "memory";
   if (g.includes("research") || g.includes("look up")) return "research";
@@ -282,7 +292,17 @@ export async function createAgentRun(
 ): Promise<AgentRunRow> {
   const id = `run_${nanoid()}`;
   const startedAt = Date.now();
-  const route = routerAgent(input.goal);
+
+  // Skill resolution — explicit id wins; otherwise the Router consults
+  // installed skills to find a trigger match.
+  let activeSkill: SkillRow | null = null;
+  if (input.skillId) {
+    activeSkill = await getSkill(ctx, input.skillId);
+  } else {
+    activeSkill = await matchSkillForGoal(ctx, input.goal);
+  }
+
+  const route = routerAgent(input.goal, activeSkill !== null);
   const memorySummary = route === "memory" ? await memoryAgent(ctx) : null;
   const researchSummary = route === "research" ? researchAgent(input.goal) : null;
   const desktopNote = route === "desktop" ? desktopRouterNote(input.goal) : null;
@@ -318,6 +338,8 @@ export async function createAgentRun(
       status: "running",
       plan: planText,
       modelName: input.modelName ?? null,
+      routedSkillId: activeSkill?.id ?? null,
+      routedSkillName: activeSkill?.name ?? null,
       startedAt,
       conversationId: input.conversationId ?? null,
     }),
@@ -346,6 +368,16 @@ export async function createAgentRun(
         runId: id,
         role: "system",
         content: `Knowledge base context:\n${knowledgeSummary}`,
+      }),
+    );
+  }
+  if (activeSkill) {
+    await db.insert(messagesTable).values(
+      withTenantValues(ctx, {
+        id: `msg_${nanoid()}`,
+        runId: id,
+        role: "system",
+        content: `Skill "${activeSkill.name}" (${activeSkill.slug}) injected by Router:\n${activeSkill.content}`,
       }),
     );
   }
@@ -449,12 +481,41 @@ export async function createAgentRun(
     await touchConversation(ctx, input.conversationId, verdict.summary, 1);
   }
 
+  const modelUsed = input.modelName ?? "default";
+  const toolNames = outputs.map((o) => o.toolName).join(",") || "none";
+  // High-risk tools surface an approval prompt in the UI; we record whether
+  // any plan step would have required user approval to satisfy auditability.
+  const approvalsTriggered = plan.some((p) => {
+    const tool = getToolByName(p.toolName);
+    return tool?.riskLevel === "high";
+  });
+
+  if (activeSkill) {
+    // Structured invocation receipt: which skill, which model, which tools,
+    // and whether approval was triggered. The detail field is a query-friendly
+    // single-line key=value list so it can be filtered from the privacy log.
+    await logPrivacyEvent(ctx, {
+      eventType: "skill.invoke",
+      actor: ctx.userId ?? ctx.tenantId,
+      target: activeSkill.id,
+      severity: "info",
+      detail:
+        `slug=${activeSkill.slug} runId=${id} model=${modelUsed} ` +
+        `tools=${toolNames} approvalsTriggered=${approvalsTriggered} ` +
+        `status=${verdict.ok ? "completed" : "failed"}`,
+    });
+  }
+
   await logPrivacyEvent(ctx, {
     eventType: "agent.run",
     actor: ctx.userId ?? ctx.tenantId,
     target: id,
     severity: "info",
-    detail: `route=${route} status=${verdict.ok ? "completed" : "failed"}`,
+    detail:
+      `route=${route} status=${verdict.ok ? "completed" : "failed"} ` +
+      `model=${modelUsed} tools=${toolNames} ` +
+      `approvalsTriggered=${approvalsTriggered}` +
+      (activeSkill ? ` skill=${activeSkill.slug}` : ""),
   });
 
   // We resolve the row at the very end so callers see the final state.

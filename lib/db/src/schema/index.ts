@@ -61,3 +61,4 @@ export * from "./legal-acceptances";
 export * from "./incident-reports";
 export * from "./age-confirmations";
 export * from "./undo-actions";
+export * from "./skills";

@@ -213,6 +213,8 @@ export interface AgentRun {
   completedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  routedSkillId?: string | null;
+  routedSkillName?: string | null;
 }
 
 export interface AgentRunListPage {
@@ -237,6 +239,8 @@ export interface CreateAgentRunRequest {
   conversationId?: string;
   useKnowledgeBase?: boolean;
   knowledgeCollectionId?: string;
+  /** Optional installed skill to inject into the run. */
+  skillId?: string;
 }
 
 export interface Message {
@@ -3988,6 +3992,67 @@ export interface DiagnosticCatalogResponse {
   data: DiagnosticCatalogResponseData;
 }
 
+export interface UndoAction {
+  id: string;
+  taskId?: string | null;
+  actionType: string;
+  description: string;
+  target?: string | null;
+  reversible: boolean;
+  /** One of `available`, `undone`, `expired`, `failed`, `irreversible`. */
+  status: string;
+  beforeState?: unknown | null;
+  afterState?: unknown | null;
+  error?: string | null;
+  createdAt: string;
+  undoneAt?: string | null;
+  expiresAt?: string | null;
+  updatedAt: string;
+}
+
+export interface UndoActionResponse {
+  success: boolean;
+  data: UndoAction;
+}
+
+export interface UndoActionListPage {
+  items: UndoAction[];
+  nextCursor: string | null;
+}
+
+export interface UndoActionListResponse {
+  success: boolean;
+  data: UndoActionListPage;
+}
+
+export interface UndoTaskRequest {
+  /** Must be `true` — task-level undo requires explicit confirmation. */
+  confirm: boolean;
+}
+
+export interface UndoTaskResult {
+  taskId: string;
+  attempted: number;
+  undone: number;
+  failed: number;
+  results: UndoAction[];
+}
+
+export interface UndoTaskResponse {
+  success: boolean;
+  data: UndoTaskResult;
+}
+
+export interface UndoActionTypes {
+  reversible: string[];
+  irreversible: string[];
+}
+
+export interface UndoActionTypesResponse {
+  success: boolean;
+  data: UndoActionTypes;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -4111,6 +4176,106 @@ export interface ImportWorkspaceRequest {
    * @maxLength 80
    */
   name?: string;
+}
+
+export interface CreateSkillRequest {
+  slug?: string;
+  name: string;
+  description?: string;
+  content: string;
+  modelTags?: string[];
+  triggers?: string[];
+  category?: string;
+  author?: string;
+}
+
+export interface Skill {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  content: string;
+  modelTags: string[];
+  triggers: string[];
+  category: string;
+  author: string;
+  isInstalled: boolean;
+  installCount: number;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SkillDeleteReceipt {
+  id: string;
+  deleted: boolean;
+}
+
+export interface SkillDeleteResponse {
+  success: boolean;
+  data: SkillDeleteReceipt;
+}
+
+export type SkillManifestOmninitySkillVersion =
+  (typeof SkillManifestOmninitySkillVersion)[keyof typeof SkillManifestOmninitySkillVersion];
+
+export const SkillManifestOmninitySkillVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export interface SkillManifest {
+  omninitySkillVersion: SkillManifestOmninitySkillVersion;
+  slug: string;
+  name: string;
+  description: string;
+  content: string;
+  modelTags: string[];
+  triggers: string[];
+  category: string;
+  author: string;
+  version: number;
+}
+
+export interface SkillExportResponse {
+  success: boolean;
+  data: SkillManifest;
+}
+
+export interface SkillImportRequest {
+  manifest: SkillManifest;
+  install?: boolean;
+}
+
+export interface SkillInvokeRequest {
+  goal: string;
+  modelName?: string;
+  autoExecute?: boolean;
+}
+
+export interface SkillListPage {
+  items: Skill[];
+  nextCursor: string | null;
+}
+
+export interface SkillListResponse {
+  success: boolean;
+  data: SkillListPage;
+}
+
+export interface SkillResponse {
+  success: boolean;
+  data: Skill;
+}
+
+export interface UpdateSkillRequest {
+  name?: string;
+  description?: string;
+  content?: string;
+  modelTags?: string[];
+  triggers?: string[];
+  category?: string;
+  /** Expected current version for optimistic concurrency control. */
+  version?: number;
 }
 
 /**
@@ -4801,4 +4966,50 @@ export type ListDiagnosticErrorsParams = {
    * @maximum 200
    */
   limit?: number;
+};
+
+export type ListUndoActionsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  /**
+   * Restrict the listing to actions belonging to one task.
+   */
+  taskId?: string;
+};
+
+export type ListUndoTaskActionsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListSkillsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  category?: string;
+  installed?: boolean;
+  search?: string;
 };

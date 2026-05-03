@@ -1723,7 +1723,6 @@ const cases: TestCase[] = [
       }
     },
   },
-
   // ─── Knowledge base (Task #12) ─────────────────────────────────────────
   {
     name: "knowledge: ingest text + list + dedupe",
@@ -3617,6 +3616,205 @@ const cases: TestCase[] = [
         .send({ template: { not: "valid" } })
         .expect(400);
       assert.equal(bad.body.error.code, "INVALID_TEMPLATE");
+    },
+  },
+
+  // ─── Skills Marketplace (Task #3) ───────────────────────────────────────
+  {
+    name: "skills CRUD round-trips through pagination envelope",
+    run: async () => {
+      const create = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          name: "Inbox Triage Test",
+          description: "Quietly classify inbound mail",
+          content: "You are a careful inbox triage assistant. Be quiet.",
+          modelTags: ["llama3.1", "qwen2.5"],
+          triggers: ["triage my inbox"],
+          category: "Communication",
+          author: "tester",
+        });
+      assert.equal(create.status, 200, JSON.stringify(create.body));
+      const id = create.body.data.id;
+      assert.equal(create.body.data.name, "Inbox Triage Test");
+      assert.equal(create.body.data.isInstalled, false);
+      assert.deepEqual(create.body.data.modelTags, ["llama3.1", "qwen2.5"]);
+
+      const list = await request(app).get("/api/skills").set("X-Tenant-ID", TENANT);
+      assert.equal(list.status, 200);
+      assert.equal(list.body.success, true);
+      assert.ok(Array.isArray(list.body.data.items));
+      assert.ok(list.body.data.items.some((s: { id: string }) => s.id === id));
+      assert.ok("nextCursor" in list.body.data);
+
+      const update = await request(app)
+        .put(`/api/skills/${id}`)
+        .set("X-Tenant-ID", TENANT)
+        .send({ description: "Updated description" });
+      assert.equal(update.status, 200);
+      assert.equal(update.body.data.description, "Updated description");
+      assert.ok(update.body.data.version > 1);
+    },
+  },
+  {
+    name: "skills install/uninstall flips state and writes privacy events",
+    run: async () => {
+      const created = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", TENANT)
+        .send({ name: "Daily Standup", content: "Summarise yesterday's commits." });
+      const id = created.body.data.id;
+
+      const install = await request(app)
+        .post(`/api/skills/${id}/install`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(install.status, 200);
+      assert.equal(install.body.data.isInstalled, true);
+      assert.equal(install.body.data.installCount, 1);
+
+      const uninstall = await request(app)
+        .post(`/api/skills/${id}/uninstall`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(uninstall.status, 200);
+      assert.equal(uninstall.body.data.isInstalled, false);
+
+      const events = await request(app)
+        .get("/api/privacy/events?limit=50")
+        .set("X-Tenant-ID", TENANT);
+      const types = new Set(
+        events.body.data.items.map((e: { eventType: string }) => e.eventType),
+      );
+      assert.ok(types.has("skill.create"));
+      assert.ok(types.has("skill.install"));
+      assert.ok(types.has("skill.uninstall"));
+    },
+  },
+  {
+    name: "skills export/import round-trips the manifest",
+    run: async () => {
+      const created = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          name: "Code Review Pal",
+          content: "You are a careful code reviewer.",
+          modelTags: ["qwen2.5"],
+          triggers: ["review my pr"],
+          category: "Developer Tools",
+        });
+      const id = created.body.data.id;
+
+      const exp = await request(app)
+        .get(`/api/skills/${id}/export`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(exp.status, 200);
+      assert.equal(exp.body.data.omninitySkillVersion, 1);
+      assert.equal(exp.body.data.name, "Code Review Pal");
+
+      const imported = await request(app)
+        .post("/api/skills/import")
+        .set("X-Tenant-ID", TENANT_2)
+        .send({ manifest: exp.body.data, install: true });
+      assert.equal(imported.status, 200, JSON.stringify(imported.body));
+      assert.equal(imported.body.data.name, "Code Review Pal");
+      assert.equal(imported.body.data.isInstalled, true);
+
+      const cross = await request(app)
+        .get(`/api/skills/${id}`)
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(cross.status, 404, "tenant 2 must not see tenant 1's original skill row");
+
+      const badVersion = await request(app)
+        .post("/api/skills/import")
+        .set("X-Tenant-ID", TENANT)
+        .send({ manifest: { ...exp.body.data, omninitySkillVersion: 2 } });
+      assert.equal(badVersion.status, 400);
+    },
+  },
+  {
+    name: "skill invocation injects content into the agent run + logs skill.invoke",
+    run: async () => {
+      const created = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          name: "Triage Pipeline",
+          content: "SKILL_CONTENT_MARKER:triage-helper",
+          triggers: ["pipeline-trigger-token"],
+        });
+      const skillId = created.body.data.id;
+      await request(app).post(`/api/skills/${skillId}/install`).set("X-Tenant-ID", TENANT);
+
+      // Explicit-id invocation through /skills/:id/invoke
+      const invoked = await request(app)
+        .post(`/api/skills/${skillId}/invoke`)
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "any goal text here" });
+      assert.equal(invoked.status, 200, JSON.stringify(invoked.body));
+      const runId = invoked.body.data.id;
+      assert.equal(invoked.body.data.status, "completed");
+
+      const messages = await request(app)
+        .get(`/api/agent/runs/${runId}/messages?limit=20`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(messages.status, 200);
+      const blob = messages.body.data.items
+        .map((m: { content: string }) => m.content)
+        .join("\n");
+      assert.ok(
+        blob.includes("SKILL_CONTENT_MARKER:triage-helper"),
+        "skill content must be injected into run messages",
+      );
+
+      // Trigger-word matching through /agent/runs
+      const auto = await request(app)
+        .post("/api/agent/runs")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "please run the pipeline-trigger-token now" });
+      assert.equal(auto.status, 200);
+      const autoMessages = await request(app)
+        .get(`/api/agent/runs/${auto.body.data.id}/messages?limit=20`)
+        .set("X-Tenant-ID", TENANT);
+      const autoBlob = autoMessages.body.data.items
+        .map((m: { content: string }) => m.content)
+        .join("\n");
+      assert.ok(
+        autoBlob.includes("SKILL_CONTENT_MARKER:triage-helper"),
+        "trigger-word match must inject the skill",
+      );
+
+      const events = await request(app)
+        .get("/api/privacy/events?limit=50")
+        .set("X-Tenant-ID", TENANT);
+      const invokeEvents = events.body.data.items.filter(
+        (e: { eventType: string }) => e.eventType === "skill.invoke",
+      );
+      assert.ok(invokeEvents.length >= 2, "every skill activation logs a skill.invoke event");
+    },
+  },
+  {
+    name: "skills tenant isolation: tenant 2 cannot see tenant 1's skills",
+    run: async () => {
+      const created = await request(app)
+        .post("/api/skills")
+        .set("X-Tenant-ID", TENANT)
+        .send({ name: "Private skill", content: "secret payload" });
+      const id = created.body.data.id;
+
+      const cross = await request(app)
+        .get(`/api/skills/${id}`)
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(cross.status, 404);
+      assert.equal(cross.body.success, false);
+
+      const crossList = await request(app)
+        .get("/api/skills")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.ok(
+        !crossList.body.data.items.some((s: { id: string }) => s.id === id),
+        "cross-tenant list must not leak the row",
+      );
     },
   },
 ];

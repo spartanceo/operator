@@ -8,6 +8,7 @@ import {
   Library,
   Inbox,
   Settings,
+  Sparkles,
   ArrowLeft,
   Monitor,
   Image as ImageIcon,
@@ -39,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/undo", label: "Undo", icon: Undo2 },
   { href: "/activity", label: "Activity", icon: Activity },
+  { href: "/skills", label: "Skills", icon: Sparkles },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

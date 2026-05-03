@@ -89,6 +89,7 @@ import type {
   CreateNotificationRequest,
   CreateOutreachSequenceRequest,
   CreatePrivacyEventRequest,
+  CreateSkillRequest,
   CreateWorkspaceRequest,
   DeleteConversationResponse,
   DeleteWorkspaceParams,
@@ -186,8 +187,11 @@ import type {
   ListOutreachEnrolmentsParams,
   ListOutreachSequencesParams,
   ListPrivacyEventsParams,
+  ListSkillsParams,
   ListTelemetryEventsParams,
   ListToolsParams,
+  ListUndoActionsParams,
+  ListUndoTaskActionsParams,
   ListVoipCallsParams,
   LoginRequest,
   MasterPasswordSetRequest,
@@ -270,6 +274,12 @@ import type {
   SecurityReportResponse,
   SecurityWebhookSecretsListParams,
   SelectModelRequest,
+  SkillDeleteResponse,
+  SkillExportResponse,
+  SkillImportRequest,
+  SkillInvokeRequest,
+  SkillListResponse,
+  SkillResponse,
   SubmitCrashReportRequest,
   TelemetryConsentResponse,
   TelemetryConsentUpdateRequest,
@@ -282,10 +292,16 @@ import type {
   ToolInvokeRequest,
   ToolInvokeResponse,
   ToolListResponse,
+  UndoActionListResponse,
+  UndoActionResponse,
+  UndoActionTypesResponse,
+  UndoTaskRequest,
+  UndoTaskResponse,
   UpdateCalendarEventRequest,
   UpdateCheckResponse,
   UpdateContactRequest,
   UpdateConversationRequest,
+  UpdateSkillRequest,
   UpdateTelemetryConsentRequest,
   UpdateVoipCallStatusRequest,
   UpdateWorkspaceRequest,
@@ -19131,6 +19147,1504 @@ export function useGetDiagnosticCatalog<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetDiagnosticCatalogQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Paginated undo history for the current tenant
+ */
+export const getListUndoActionsUrl = (params?: ListUndoActionsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/undo/actions?${stringifiedParams}`
+    : `/api/undo/actions`;
+};
+
+export const listUndoActions = async (
+  params?: ListUndoActionsParams,
+  options?: RequestInit,
+): Promise<UndoActionListResponse> => {
+  return customFetch<UndoActionListResponse>(getListUndoActionsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListUndoActionsQueryKey = (params?: ListUndoActionsParams) => {
+  return [`/api/undo/actions`, ...(params ? [params] : [])] as const;
+};
+
+export const getListUndoActionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUndoActions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUndoActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUndoActionsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listUndoActions>>> = ({
+    signal,
+  }) => listUndoActions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUndoActionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUndoActions>>
+>;
+export type ListUndoActionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Paginated undo history for the current tenant
+ */
+
+export function useListUndoActions<
+  TData = Awaited<ReturnType<typeof listUndoActions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUndoActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUndoActionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch one undo action
+ */
+export const getGetUndoActionUrl = (id: string) => {
+  return `/api/undo/actions/${id}`;
+};
+
+export const getUndoAction = async (
+  id: string,
+  options?: RequestInit,
+): Promise<UndoActionResponse> => {
+  return customFetch<UndoActionResponse>(getGetUndoActionUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUndoActionQueryKey = (id: string) => {
+  return [`/api/undo/actions/${id}`] as const;
+};
+
+export const getGetUndoActionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUndoAction>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUndoAction>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUndoActionQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUndoAction>>> = ({
+    signal,
+  }) => getUndoAction(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUndoAction>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUndoActionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUndoAction>>
+>;
+export type GetUndoActionQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one undo action
+ */
+
+export function useGetUndoAction<
+  TData = Awaited<ReturnType<typeof getUndoAction>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUndoAction>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUndoActionQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Reverse one recorded action
+ */
+export const getUndoActionUrl = (id: string) => {
+  return `/api/undo/actions/${id}/undo`;
+};
+
+export const undoAction = async (
+  id: string,
+  options?: RequestInit,
+): Promise<UndoActionResponse> => {
+  return customFetch<UndoActionResponse>(getUndoActionUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getUndoActionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof undoAction>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof undoAction>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["undoAction"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof undoAction>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return undoAction(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UndoActionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof undoAction>>
+>;
+
+export type UndoActionMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Reverse one recorded action
+ */
+export const useUndoAction = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof undoAction>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof undoAction>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getUndoActionMutationOptions(options));
+};
+
+/**
+ * @summary Reverse every reversible action belonging to a task
+ */
+export const getUndoTaskUrl = (taskId: string) => {
+  return `/api/undo/tasks/${taskId}/undo`;
+};
+
+export const undoTask = async (
+  taskId: string,
+  undoTaskRequest: UndoTaskRequest,
+  options?: RequestInit,
+): Promise<UndoTaskResponse> => {
+  return customFetch<UndoTaskResponse>(getUndoTaskUrl(taskId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(undoTaskRequest),
+  });
+};
+
+export const getUndoTaskMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof undoTask>>,
+    TError,
+    { taskId: string; data: BodyType<UndoTaskRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof undoTask>>,
+  TError,
+  { taskId: string; data: BodyType<UndoTaskRequest> },
+  TContext
+> => {
+  const mutationKey = ["undoTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof undoTask>>,
+    { taskId: string; data: BodyType<UndoTaskRequest> }
+  > = (props) => {
+    const { taskId, data } = props ?? {};
+
+    return undoTask(taskId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UndoTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof undoTask>>
+>;
+export type UndoTaskMutationBody = BodyType<UndoTaskRequest>;
+export type UndoTaskMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Reverse every reversible action belonging to a task
+ */
+export const useUndoTask = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof undoTask>>,
+    TError,
+    { taskId: string; data: BodyType<UndoTaskRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof undoTask>>,
+  TError,
+  { taskId: string; data: BodyType<UndoTaskRequest> },
+  TContext
+> => {
+  return useMutation(getUndoTaskMutationOptions(options));
+};
+
+/**
+ * @summary List the undo actions belonging to a task
+ */
+export const getListUndoTaskActionsUrl = (
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/undo/tasks/${taskId}/actions?${stringifiedParams}`
+    : `/api/undo/tasks/${taskId}/actions`;
+};
+
+export const listUndoTaskActions = async (
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+  options?: RequestInit,
+): Promise<UndoActionListResponse> => {
+  return customFetch<UndoActionListResponse>(
+    getListUndoTaskActionsUrl(taskId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListUndoTaskActionsQueryKey = (
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+) => {
+  return [
+    `/api/undo/tasks/${taskId}/actions`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListUndoTaskActionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUndoTaskActions>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoTaskActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListUndoTaskActionsQueryKey(taskId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listUndoTaskActions>>
+  > = ({ signal }) =>
+    listUndoTaskActions(taskId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!taskId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoTaskActions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUndoTaskActionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUndoTaskActions>>
+>;
+export type ListUndoTaskActionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the undo actions belonging to a task
+ */
+
+export function useListUndoTaskActions<
+  TData = Awaited<ReturnType<typeof listUndoTaskActions>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoTaskActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUndoTaskActionsQueryOptions(
+    taskId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Static catalog of reversible / irreversible action types
+ */
+export const getListUndoActionTypesUrl = () => {
+  return `/api/undo/irreversible-types`;
+};
+
+export const listUndoActionTypes = async (
+  options?: RequestInit,
+): Promise<UndoActionTypesResponse> => {
+  return customFetch<UndoActionTypesResponse>(getListUndoActionTypesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListUndoActionTypesQueryKey = () => {
+  return [`/api/undo/irreversible-types`] as const;
+};
+
+export const getListUndoActionTypesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUndoActionTypes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActionTypes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUndoActionTypesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listUndoActionTypes>>
+  > = ({ signal }) => listUndoActionTypes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActionTypes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUndoActionTypesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUndoActionTypes>>
+>;
+export type ListUndoActionTypesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Static catalog of reversible / irreversible action types
+ */
+
+export function useListUndoActionTypes<
+  TData = Awaited<ReturnType<typeof listUndoActionTypes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActionTypes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUndoActionTypesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Browse the local Skills Marketplace (all skills, tenant-scoped)
+ */
+export const getListSkillsUrl = (params?: ListSkillsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/skills?${stringifiedParams}`
+    : `/api/skills`;
+};
+
+export const listSkills = async (
+  params?: ListSkillsParams,
+  options?: RequestInit,
+): Promise<SkillListResponse> => {
+  return customFetch<SkillListResponse>(getListSkillsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSkillsQueryKey = (params?: ListSkillsParams) => {
+  return [`/api/skills`, ...(params ? [params] : [])] as const;
+};
+
+export const getListSkillsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSkills>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSkillsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSkills>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSkillsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSkills>>> = ({
+    signal,
+  }) => listSkills(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSkills>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSkillsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSkills>>
+>;
+export type ListSkillsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Browse the local Skills Marketplace (all skills, tenant-scoped)
+ */
+
+export function useListSkills<
+  TData = Awaited<ReturnType<typeof listSkills>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSkillsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSkills>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSkillsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new skill (no-code; user-authored)
+ */
+export const getCreateSkillUrl = () => {
+  return `/api/skills`;
+};
+
+export const createSkill = async (
+  createSkillRequest: CreateSkillRequest,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getCreateSkillUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSkillRequest),
+  });
+};
+
+export const getCreateSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSkill>>,
+    TError,
+    { data: BodyType<CreateSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSkill>>,
+  TError,
+  { data: BodyType<CreateSkillRequest> },
+  TContext
+> => {
+  const mutationKey = ["createSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSkill>>,
+    { data: BodyType<CreateSkillRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSkill(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSkill>>
+>;
+export type CreateSkillMutationBody = BodyType<CreateSkillRequest>;
+export type CreateSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new skill (no-code; user-authored)
+ */
+export const useCreateSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSkill>>,
+    TError,
+    { data: BodyType<CreateSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSkill>>,
+  TError,
+  { data: BodyType<CreateSkillRequest> },
+  TContext
+> => {
+  return useMutation(getCreateSkillMutationOptions(options));
+};
+
+/**
+ * @summary Import a skill from a .skill JSON file
+ */
+export const getImportSkillUrl = () => {
+  return `/api/skills/import`;
+};
+
+export const importSkill = async (
+  skillImportRequest: SkillImportRequest,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getImportSkillUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(skillImportRequest),
+  });
+};
+
+export const getImportSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importSkill>>,
+    TError,
+    { data: BodyType<SkillImportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importSkill>>,
+  TError,
+  { data: BodyType<SkillImportRequest> },
+  TContext
+> => {
+  const mutationKey = ["importSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importSkill>>,
+    { data: BodyType<SkillImportRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importSkill(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importSkill>>
+>;
+export type ImportSkillMutationBody = BodyType<SkillImportRequest>;
+export type ImportSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Import a skill from a .skill JSON file
+ */
+export const useImportSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importSkill>>,
+    TError,
+    { data: BodyType<SkillImportRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importSkill>>,
+  TError,
+  { data: BodyType<SkillImportRequest> },
+  TContext
+> => {
+  return useMutation(getImportSkillMutationOptions(options));
+};
+
+/**
+ * @summary Fetch one skill by id
+ */
+export const getGetSkillUrl = (id: string) => {
+  return `/api/skills/${id}`;
+};
+
+export const getSkill = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getGetSkillUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSkillQueryKey = (id: string) => {
+  return [`/api/skills/${id}`] as const;
+};
+
+export const getGetSkillQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkill>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkill>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSkillQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSkill>>> = ({
+    signal,
+  }) => getSkill(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getSkill>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetSkillQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkill>>
+>;
+export type GetSkillQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one skill by id
+ */
+
+export function useGetSkill<
+  TData = Awaited<ReturnType<typeof getSkill>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkill>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update an existing skill
+ */
+export const getUpdateSkillUrl = (id: string) => {
+  return `/api/skills/${id}`;
+};
+
+export const updateSkill = async (
+  id: string,
+  updateSkillRequest: UpdateSkillRequest,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getUpdateSkillUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSkillRequest),
+  });
+};
+
+export const getUpdateSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSkill>>,
+    TError,
+    { id: string; data: BodyType<UpdateSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSkill>>,
+  TError,
+  { id: string; data: BodyType<UpdateSkillRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSkill>>,
+    { id: string; data: BodyType<UpdateSkillRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSkill(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSkill>>
+>;
+export type UpdateSkillMutationBody = BodyType<UpdateSkillRequest>;
+export type UpdateSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update an existing skill
+ */
+export const useUpdateSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSkill>>,
+    TError,
+    { id: string; data: BodyType<UpdateSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSkill>>,
+  TError,
+  { id: string; data: BodyType<UpdateSkillRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateSkillMutationOptions(options));
+};
+
+/**
+ * @summary Delete a skill
+ */
+export const getDeleteSkillUrl = (id: string) => {
+  return `/api/skills/${id}`;
+};
+
+export const deleteSkill = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillDeleteResponse> => {
+  return customFetch<SkillDeleteResponse>(getDeleteSkillUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSkill>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSkill>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSkill>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSkill(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSkill>>
+>;
+
+export type DeleteSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a skill
+ */
+export const useDeleteSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSkill>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSkill>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteSkillMutationOptions(options));
+};
+
+/**
+ * @summary Export a skill as a .skill JSON manifest
+ */
+export const getExportSkillUrl = (id: string) => {
+  return `/api/skills/${id}/export`;
+};
+
+export const exportSkill = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillExportResponse> => {
+  return customFetch<SkillExportResponse>(getExportSkillUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportSkillQueryKey = (id: string) => {
+  return [`/api/skills/${id}/export`] as const;
+};
+
+export const getExportSkillQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportSkill>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportSkill>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getExportSkillQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof exportSkill>>> = ({
+    signal,
+  }) => exportSkill(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportSkill>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportSkillQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportSkill>>
+>;
+export type ExportSkillQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Export a skill as a .skill JSON manifest
+ */
+
+export function useExportSkill<
+  TData = Awaited<ReturnType<typeof exportSkill>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportSkill>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportSkillQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Install a skill into this workspace
+ */
+export const getInstallSkillUrl = (id: string) => {
+  return `/api/skills/${id}/install`;
+};
+
+export const installSkill = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getInstallSkillUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getInstallSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installSkill>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof installSkill>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["installSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof installSkill>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return installSkill(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InstallSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof installSkill>>
+>;
+
+export type InstallSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Install a skill into this workspace
+ */
+export const useInstallSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installSkill>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof installSkill>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getInstallSkillMutationOptions(options));
+};
+
+/**
+ * @summary Invoke a skill against a goal (creates an agent run)
+ */
+export const getInvokeSkillUrl = (id: string) => {
+  return `/api/skills/${id}/invoke`;
+};
+
+export const invokeSkill = async (
+  id: string,
+  skillInvokeRequest: SkillInvokeRequest,
+  options?: RequestInit,
+): Promise<AgentRunResponse> => {
+  return customFetch<AgentRunResponse>(getInvokeSkillUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(skillInvokeRequest),
+  });
+};
+
+export const getInvokeSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof invokeSkill>>,
+    TError,
+    { id: string; data: BodyType<SkillInvokeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof invokeSkill>>,
+  TError,
+  { id: string; data: BodyType<SkillInvokeRequest> },
+  TContext
+> => {
+  const mutationKey = ["invokeSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof invokeSkill>>,
+    { id: string; data: BodyType<SkillInvokeRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return invokeSkill(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InvokeSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof invokeSkill>>
+>;
+export type InvokeSkillMutationBody = BodyType<SkillInvokeRequest>;
+export type InvokeSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Invoke a skill against a goal (creates an agent run)
+ */
+export const useInvokeSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof invokeSkill>>,
+    TError,
+    { id: string; data: BodyType<SkillInvokeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof invokeSkill>>,
+  TError,
+  { id: string; data: BodyType<SkillInvokeRequest> },
+  TContext
+> => {
+  return useMutation(getInvokeSkillMutationOptions(options));
+};
+
+/**
+ * @summary Uninstall a skill from this workspace
+ */
+export const getUninstallSkillUrl = (id: string) => {
+  return `/api/skills/${id}/uninstall`;
+};
+
+export const uninstallSkill = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getUninstallSkillUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getUninstallSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uninstallSkill>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uninstallSkill>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["uninstallSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uninstallSkill>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return uninstallSkill(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UninstallSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uninstallSkill>>
+>;
+
+export type UninstallSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Uninstall a skill from this workspace
+ */
+export const useUninstallSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uninstallSkill>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof uninstallSkill>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getUninstallSkillMutationOptions(options));
+};
+
+/**
+ * @summary Export a skill (alternate path-shape required by spec)
+ */
+export const getExportSkillByIdPathUrl = (id: string) => {
+  return `/api/skills/export/${id}`;
+};
+
+export const exportSkillByIdPath = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillExportResponse> => {
+  return customFetch<SkillExportResponse>(getExportSkillByIdPathUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportSkillByIdPathQueryKey = (id: string) => {
+  return [`/api/skills/export/${id}`] as const;
+};
+
+export const getExportSkillByIdPathQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportSkillByIdPath>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportSkillByIdPath>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getExportSkillByIdPathQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportSkillByIdPath>>
+  > = ({ signal }) => exportSkillByIdPath(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportSkillByIdPath>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportSkillByIdPathQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportSkillByIdPath>>
+>;
+export type ExportSkillByIdPathQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Export a skill (alternate path-shape required by spec)
+ */
+
+export function useExportSkillByIdPath<
+  TData = Awaited<ReturnType<typeof exportSkillByIdPath>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportSkillByIdPath>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportSkillByIdPathQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

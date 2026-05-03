@@ -26,6 +26,8 @@ export const agentRuns = sqliteTable(
     summary: text("summary"),
     error: text("error"),
     modelName: text("model_name"),
+    routedSkillId: text("routed_skill_id"),
+    routedSkillName: text("routed_skill_name"),
     startedAt: integer("started_at"),
     completedAt: integer("completed_at"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),

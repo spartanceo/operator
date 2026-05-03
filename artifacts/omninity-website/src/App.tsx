@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useGetOnboardingProfile } from "@workspace/api-client-react";
@@ -29,18 +30,19 @@ import DocsPage from "@/pages/docs";
 import ApiReferencePage from "@/pages/api-reference";
 import NotFound from "@/pages/not-found";
 import ChatPage from "@/pages/operator/chat";
-import AgentsPage from "@/pages/operator/agents";
-import DesktopPage from "@/pages/operator/desktop";
-import ToolsPage from "@/pages/operator/tools";
-import MediaPage from "@/pages/operator/media";
-import PrivacyPage from "@/pages/operator/privacy";
-import MemoryPage from "@/pages/operator/memory";
-import KnowledgePage from "@/pages/operator/knowledge";
-import CommunicationsPage from "@/pages/operator/communications";
-import ActivityPage from "@/pages/operator/activity";
-import ApprovalsPage from "@/pages/operator/approvals";
-import UndoPage from "@/pages/operator/undo";
-import SettingsPage from "@/pages/operator/settings";
+const AgentsPage = lazy(() => import("@/pages/operator/agents"));
+const DesktopPage = lazy(() => import("@/pages/operator/desktop"));
+const ToolsPage = lazy(() => import("@/pages/operator/tools"));
+const MediaPage = lazy(() => import("@/pages/operator/media"));
+const PrivacyPage = lazy(() => import("@/pages/operator/privacy"));
+const MemoryPage = lazy(() => import("@/pages/operator/memory"));
+const KnowledgePage = lazy(() => import("@/pages/operator/knowledge"));
+const CommunicationsPage = lazy(() => import("@/pages/operator/communications"));
+const ActivityPage = lazy(() => import("@/pages/operator/activity"));
+const ApprovalsPage = lazy(() => import("@/pages/operator/approvals"));
+const UndoPage = lazy(() => import("@/pages/operator/undo"));
+const SkillsPage = lazy(() => import("@/pages/operator/skills"));
+const SettingsPage = lazy(() => import("@/pages/operator/settings"));
 import OnboardingPage from "@/pages/operator/onboarding";
 import MobilePage from "@/pages/mobile";
 import LegalPage from "@/pages/legal";
@@ -64,6 +66,7 @@ const OPERATOR_ROUTES = new Set([
   "/approvals",
   "/undo",
   "/activity",
+  "/skills",
   "/settings",
 ]);
 
@@ -158,21 +161,33 @@ function OperatorShell() {
 
 function OperatorRoutes() {
   return (
-    <Switch>
-      <Route path="/chat" component={ChatPage} />
-      <Route path="/agents" component={AgentsPage} />
-      <Route path="/desktop" component={DesktopPage} />
-      <Route path="/tools" component={ToolsPage} />
-      <Route path="/media" component={MediaPage} />
-      <Route path="/privacy" component={PrivacyPage} />
-      <Route path="/memory" component={MemoryPage} />
-      <Route path="/knowledge" component={KnowledgePage} />
-      <Route path="/communications" component={CommunicationsPage} />
-      <Route path="/approvals" component={ApprovalsPage} />
-      <Route path="/undo" component={UndoPage} />
-      <Route path="/activity" component={ActivityPage} />
-      <Route path="/settings" component={SettingsPage} />
-    </Switch>
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[60vh] w-full place-items-center"
+          data-testid="operator-route-loading"
+        >
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <Switch>
+        <Route path="/chat" component={ChatPage} />
+        <Route path="/agents" component={AgentsPage} />
+        <Route path="/desktop" component={DesktopPage} />
+        <Route path="/tools" component={ToolsPage} />
+        <Route path="/media" component={MediaPage} />
+        <Route path="/privacy" component={PrivacyPage} />
+        <Route path="/memory" component={MemoryPage} />
+        <Route path="/knowledge" component={KnowledgePage} />
+        <Route path="/communications" component={CommunicationsPage} />
+        <Route path="/approvals" component={ApprovalsPage} />
+        <Route path="/undo" component={UndoPage} />
+        <Route path="/activity" component={ActivityPage} />
+        <Route path="/skills" component={SkillsPage} />
+        <Route path="/settings" component={SettingsPage} />
+      </Switch>
+    </Suspense>
   );
 }
 
