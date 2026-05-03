@@ -100,6 +100,7 @@ function fromApi(s: ApiSkill): DisplaySkill {
 }
 
 function fromStore(s: StoreSkill): DisplaySkill {
+  const lastUpdated = new Date(s.createdAt).getTime();
   return {
     slug: `${s.creatorHandle}-${s.slug}`,
     name: s.name,
@@ -111,10 +112,13 @@ function fromStore(s: StoreSkill): DisplaySkill {
     rating: 4.7,
     ratingCount: s.installCount,
     installs: s.installCount,
-    installedAt: new Date(s.createdAt).getTime(),
+    installedAt: lastUpdated,
     modelTags: s.modelTags,
     source: "store",
     seedRef: null,
+    version: "1.0.0",
+    lastUpdated,
+    unmaintained: Date.now() - lastUpdated > UNMAINTAINED_THRESHOLD_MS,
     storeKey: { creatorHandle: s.creatorHandle, slug: s.slug },
   };
 }

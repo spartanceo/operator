@@ -6120,7 +6120,7 @@ export type ListDiagnosticErrorsParams = {
   limit?: number;
 };
 
-export type ListQueuedTasksParams = {
+export type ListUndoActionsParams = {
   /**
    * Opaque cursor returned by the previous page.
    */
@@ -6135,6 +6135,19 @@ export type ListQueuedTasksParams = {
    * Restrict the listing to actions belonging to one task.
    */
   taskId?: string;
+};
+
+export type ListQueuedTasksParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
   status?: QueuedTaskStatus;
 };
 

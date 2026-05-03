@@ -190,7 +190,8 @@ function checkHardcodedColours(): CheckResult {
 
 // ─── Check 5: Drizzle tables have required columns ───────────────────────────
 const REQUIRED_COLS = ["id", "tenantId", "createdAt", "updatedAt"];
-// Tables whose names contain these keywords are exempt from the version requirement
+// Tables whose names contain these keywords are exempt from the version
+// requirement AND from the updatedAt requirement (append-only by design).
 const VERSION_EXEMPT_KEYWORDS = [
   "idempotency",
   "event",
@@ -201,6 +202,7 @@ const VERSION_EXEMPT_KEYWORDS = [
   "junction",
   "membership",
   "interaction",
+  "vote",
 ];
 
 function checkDrizzleSchema(): CheckResult {
@@ -236,26 +238,61 @@ function checkDrizzleSchema(): CheckResult {
       .filter((line) => !/^\s*\/\//.test(line))
       .join("\n");
 
-    const tableRe = /(?:sqliteTable|pgTable)\s*\(\s*["'`](\w+)["'`]\s*,\s*\{([^}]+)\}/gs;
+    // Match the table name + start of the column object, then walk forward
+    // brace-by-brace (respecting string literals) to find its true end.
+    // The previous `[^}]+` body capture truncated at the first `}` inside
+    // any string literal (e.g. `default("{}")`) or inline option object
+    // (e.g. `{ mode: "boolean" }`), producing false-positive "missing column"
+    // reports for every column declared after such a token.
+    const tableHeadRe = /(?:sqliteTable|pgTable)\s*\(\s*["'`](\w+)["'`]\s*,\s*\{/g;
+    const rel = path.relative(ROOT, file);
     let m: RegExpExecArray | null;
-    while ((m = tableRe.exec(src)) !== null) {
+    while ((m = tableHeadRe.exec(src)) !== null) {
       const tableName = m[1];
-      const body = m[2];
-      const rel = path.relative(ROOT, file);
+      const bodyStart = tableHeadRe.lastIndex; // first char inside the `{`
+      let depth = 1;
+      let i = bodyStart;
+      let inStr: string | null = null;
+      let inTpl = false;
+      while (i < src.length && depth > 0) {
+        const ch = src[i];
+        const prev = src[i - 1];
+        if (inStr) {
+          if (ch === inStr && prev !== "\\") inStr = null;
+        } else if (inTpl) {
+          if (ch === "`" && prev !== "\\") inTpl = false;
+        } else if (ch === '"' || ch === "'") {
+          inStr = ch;
+        } else if (ch === "`") {
+          inTpl = true;
+        } else if (ch === "{") {
+          depth++;
+        } else if (ch === "}") {
+          depth--;
+        }
+        i++;
+      }
+      const body = src.slice(bodyStart, i - 1);
+      const isAppendOnly = VERSION_EXEMPT_KEYWORDS.some((kw) =>
+        tableName.toLowerCase().includes(kw),
+      );
 
       for (const col of REQUIRED_COLS) {
+        // Append-only tables (event logs, votes, audit rows, etc.) don't
+        // need an `updatedAt` column — the row is never mutated.
+        if (col === "updatedAt" && isAppendOnly) continue;
         const colSnake = col.replace(/([A-Z])/g, "_$1").toLowerCase();
         if (!body.includes(col) && !body.includes(colSnake)) {
           problems.push(`${rel}: table "${tableName}" missing column "${col}"`);
         }
       }
 
-      const needsVersion = !VERSION_EXEMPT_KEYWORDS.some((kw) =>
-        tableName.toLowerCase().includes(kw),
-      );
-      if (needsVersion && !body.includes("version")) {
+      if (!isAppendOnly && !body.includes("version")) {
         problems.push(`${rel}: table "${tableName}" missing "version" column (mutable record)`);
       }
+      // Reset regex lastIndex past this table to keep iteration moving even
+      // on malformed input (defensive — exec() already moves on a match).
+      tableHeadRe.lastIndex = i;
     }
   }
 

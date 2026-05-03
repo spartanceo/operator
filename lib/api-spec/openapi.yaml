@@ -5051,12 +5051,6 @@ paths:
       tags:
         - undo
       summary: Paginated undo history for the current tenant
-  /tasks:
-    get:
-      operationId: listQueuedTasks
-      tags:
-        - tasks
-      summary: List queued / running / completed tasks (paginated)
       parameters:
         - $ref: '#/components/parameters/TenantHeader'
         - $ref: '#/components/parameters/CursorParam'
@@ -5067,11 +5061,6 @@ paths:
           description: Restrict the listing to actions belonging to one task.
           schema:
             type: string
-        - name: status
-          in: query
-          required: false
-          schema:
-            $ref: "#/components/schemas/QueuedTaskStatus"
       responses:
         '200':
           description: Undo actions page
@@ -5079,6 +5068,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UndoActionListResponse'
+  /tasks:
+    get:
+      operationId: listQueuedTasks
+      tags:
+        - tasks
+      summary: List queued / running / completed tasks (paginated)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/QueuedTaskStatus"
+      responses:
+        '200':
+          description: Queued tasks page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueuedTaskListResponse'
     post:
       operationId: enqueueTask
       tags:

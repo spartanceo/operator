@@ -9459,12 +9459,12 @@ export const GetDiagnosticCatalogResponse = zod.object({
 });
 
 /**
- * @summary List queued / running / completed tasks (paginated)
+ * @summary Paginated undo history for the current tenant
  */
-export const listQueuedTasksQueryLimitDefault = 20;
-export const listQueuedTasksQueryLimitMax = 100;
+export const listUndoActionsQueryLimitDefault = 20;
+export const listUndoActionsQueryLimitMax = 100;
 
-export const ListQueuedTasksQueryParams = zod.object({
+export const ListUndoActionsQueryParams = zod.object({
   cursor: zod.coerce
     .string()
     .optional()
@@ -9472,19 +9472,16 @@ export const ListQueuedTasksQueryParams = zod.object({
   limit: zod.coerce
     .number()
     .min(1)
-    .max(listQueuedTasksQueryLimitMax)
-    .default(listQueuedTasksQueryLimitDefault)
+    .max(listUndoActionsQueryLimitMax)
+    .default(listUndoActionsQueryLimitDefault)
     .describe("Page size, default 20, max 100."),
   taskId: zod.coerce
     .string()
     .optional()
     .describe("Restrict the listing to actions belonging to one task."),
-  status: zod
-    .enum(["queued", "running", "completed", "failed", "cancelled", "stale"])
-    .optional(),
 });
 
-export const ListQueuedTasksHeader = zod.object({
+export const ListUndoActionsHeader = zod.object({
   "X-Tenant-ID": zod
     .string()
     .describe(
@@ -9492,7 +9489,7 @@ export const ListQueuedTasksHeader = zod.object({
     ),
 });
 
-export const ListQueuedTasksResponse = zod.object({
+export const ListUndoActionsResponse = zod.object({
   success: zod.literal(true),
   data: zod.object({
     items: zod.array(
@@ -9518,6 +9515,82 @@ export const ListQueuedTasksResponse = zod.object({
       }),
     ),
     nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary List queued / running / completed tasks (paginated)
+ */
+export const listQueuedTasksQueryLimitDefault = 20;
+export const listQueuedTasksQueryLimitMax = 100;
+
+export const ListQueuedTasksQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listQueuedTasksQueryLimitMax)
+    .default(listQueuedTasksQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  status: zod
+    .enum(["queued", "running", "completed", "failed", "cancelled", "stale"])
+    .optional(),
+});
+
+export const ListQueuedTasksHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListQueuedTasksResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        goal: zod.string(),
+        modelName: zod.string().nullish(),
+        useKnowledgeBase: zod.boolean(),
+        knowledgeCollectionId: zod.string().nullish(),
+        priority: zod.enum(["high", "normal", "low"]),
+        status: zod.enum([
+          "queued",
+          "running",
+          "completed",
+          "failed",
+          "cancelled",
+          "stale",
+        ]),
+        runId: zod.string().nullish(),
+        contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
+        staleReason: zod.string().nullish(),
+        error: zod.string().nullish(),
+        summary: zod.string().nullish(),
+        position: zod
+          .number()
+          .nullish()
+          .describe(
+            "0-based position among queued entries (null when not queued).",
+          ),
+        estimatedWaitMs: zod
+          .number()
+          .nullish()
+          .describe(
+            "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
+          ),
+        startedAt: zod.coerce.date().nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullish(),
   }),
 });
 

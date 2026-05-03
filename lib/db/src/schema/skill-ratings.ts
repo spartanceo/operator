@@ -193,6 +193,7 @@ export const skillReviewFlags = sqliteTable(
     workspaceIdx: index("idx_review_flags_workspace").on(t.workspaceId),
     statusIdx: index("idx_review_flags_status").on(t.tenantId, t.status),
     ratingIdx: index("idx_review_flags_rating").on(t.tenantId, t.ratingId),
+    skillIdx: index("idx_review_flags_skill").on(t.tenantId, t.skillId),
   }),
 );
 

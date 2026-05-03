@@ -211,6 +211,7 @@ import type {
   ListTelemetryEventsParams,
   ListToolsParams,
   ListTrendingSkillsParams,
+  ListUndoActionsParams,
   ListUndoTaskActionsParams,
   ListVoipCallsParams,
   LoginRequest,
@@ -290,6 +291,7 @@ import type {
   QueueEnqueueRequest,
   QueueSetPriorityRequest,
   QueueSnapshotResponse,
+  QueuedTaskListResponse,
   QueuedTaskResponse,
   RecordLegalAcceptanceRequest,
   RecordSkillUsageRequest,
@@ -20375,41 +20377,57 @@ export function useGetDiagnosticCatalog<
 /**
  * @summary Paginated undo history for the current tenant
  */
-export const getListUndoActionsUrl = () => {
-  return `/api/undo/actions`;
+export const getListUndoActionsUrl = (params?: ListUndoActionsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/undo/actions?${stringifiedParams}`
+    : `/api/undo/actions`;
 };
 
 export const listUndoActions = async (
+  params?: ListUndoActionsParams,
   options?: RequestInit,
-): Promise<unknown> => {
-  return customFetch<unknown>(getListUndoActionsUrl(), {
+): Promise<UndoActionListResponse> => {
+  return customFetch<UndoActionListResponse>(getListUndoActionsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListUndoActionsQueryKey = () => {
-  return [`/api/undo/actions`] as const;
+export const getListUndoActionsQueryKey = (params?: ListUndoActionsParams) => {
+  return [`/api/undo/actions`, ...(params ? [params] : [])] as const;
 };
 
 export const getListUndoActionsQueryOptions = <
   TData = Awaited<ReturnType<typeof listUndoActions>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listUndoActions>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListUndoActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListUndoActionsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListUndoActionsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listUndoActions>>> = ({
     signal,
-  }) => listUndoActions({ signal, ...requestOptions });
+  }) => listUndoActions(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listUndoActions>>,
@@ -20430,15 +20448,18 @@ export type ListUndoActionsQueryError = ErrorType<unknown>;
 export function useListUndoActions<
   TData = Awaited<ReturnType<typeof listUndoActions>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listUndoActions>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListUndoActionsQueryOptions(options);
+>(
+  params?: ListUndoActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUndoActionsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -20469,8 +20490,8 @@ export const getListQueuedTasksUrl = (params?: ListQueuedTasksParams) => {
 export const listQueuedTasks = async (
   params?: ListQueuedTasksParams,
   options?: RequestInit,
-): Promise<UndoActionListResponse> => {
-  return customFetch<UndoActionListResponse>(getListQueuedTasksUrl(params), {
+): Promise<QueuedTaskListResponse> => {
+  return customFetch<QueuedTaskListResponse>(getListQueuedTasksUrl(params), {
     ...options,
     method: "GET",
   });
