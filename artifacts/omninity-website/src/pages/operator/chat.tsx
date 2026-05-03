@@ -16,14 +16,19 @@ import {
   useListSkills,
   useTranscribeAudio,
   useSynthesizeSpeech,
+  useGetConversationContext,
+  useResetConversationContext,
+  usePinConversationMessage,
+  useUnpinConversationMessage,
   type ChatMessage,
   type Approval,
   type Message,
   type Conversation,
   type ConversationMessage,
+  type ContextUsage,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, Square, RefreshCw, Sparkles, Bookmark } from "lucide-react";
+import { Send, Square, RefreshCw, Sparkles, Bookmark, Pin, PinOff } from "lucide-react";
 import { OperatorLayout } from "@/components/operator/layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,6 +48,7 @@ import { PlanCard } from "@/components/operator/plan-card";
 import { ApprovalModal } from "@/components/operator/approval-modal";
 import { ExecutionTimeline } from "@/components/operator/timeline";
 import { ConversationSidebar } from "@/components/operator/conversation-sidebar";
+import { ContextUsageBar } from "@/components/operator/context-usage-bar";
 import { QuickLaunchBar } from "@/components/operator/quick-launch-bar";
 import { SaveTemplateDialog } from "@/components/operator/save-template-dialog";
 import { StarterChips } from "@/components/onboarding/starter-chips";
@@ -140,6 +146,65 @@ export default function ChatPage() {
   );
   const conversationMessages =
     conversationMessagesQuery.data?.data.items ?? [];
+
+  // Context-window usage indicator (Task #51). Polled while the user
+  // is composing so the bar reflects pending input + new messages
+  // shortly after they land. Disabled when no conversation is active.
+  const contextQuery = useGetConversationContext(
+    activeConversation?.id ?? "",
+    {
+      ...(model ? { model } : {}),
+      ...(input.trim() ? { pendingInput: input } : {}),
+    },
+    {
+      query: {
+        enabled: Boolean(activeConversation),
+        refetchInterval: 5000,
+      } as never,
+    },
+  );
+  const contextUsage: ContextUsage | null =
+    (contextQuery.data?.data as ContextUsage | undefined) ?? null;
+
+  const resetContext = useResetConversationContext({
+    mutation: {
+      onSuccess: () => {
+        if (activeConversation) {
+          void qc.invalidateQueries({
+            queryKey: [`/conversations/${activeConversation.id}/context`],
+          });
+        }
+      },
+    },
+  });
+  const pinMessage = usePinConversationMessage({
+    mutation: {
+      onSuccess: () => {
+        if (activeConversation) {
+          void qc.invalidateQueries({
+            queryKey: [`/conversations/${activeConversation.id}/messages`],
+          });
+          void qc.invalidateQueries({
+            queryKey: [`/conversations/${activeConversation.id}/context`],
+          });
+        }
+      },
+    },
+  });
+  const unpinMessage = useUnpinConversationMessage({
+    mutation: {
+      onSuccess: () => {
+        if (activeConversation) {
+          void qc.invalidateQueries({
+            queryKey: [`/conversations/${activeConversation.id}/messages`],
+          });
+          void qc.invalidateQueries({
+            queryKey: [`/conversations/${activeConversation.id}/context`],
+          });
+        }
+      },
+    },
+  });
 
   const createConversation = useCreateConversation({
     mutation: {
@@ -420,9 +485,16 @@ export default function ChatPage() {
           ...history,
           { role: "user", content: text },
         ];
+        // Hand the conversationId to the server so it can rebuild context
+        // honouring pinned messages, prior summaries, and overflow protection
+        // (Task #51). The server ignores the verbose `messages` history
+        // when conversationId is present.
+        const conversation =
+          activeConversation ?? (await ensureConversation(text));
         chatMutation.mutate({
           data: {
             messages: newMessages,
+            conversationId: conversation.id,
             ...(model ? { model } : {}),
           },
         });
@@ -432,6 +504,7 @@ export default function ChatPage() {
     },
     [
       agentMode,
+      activeConversation,
       chatMutation,
       conversationMessages,
       createRun,
@@ -607,7 +680,19 @@ export default function ChatPage() {
                   }
                 />
               ) : (
-                <ChatTranscript messages={conversationMessages} />
+                <ChatTranscript
+                  messages={conversationMessages}
+                  conversationId={activeConversation?.id ?? null}
+                  onTogglePin={(msg) => {
+                    if (!activeConversation) return;
+                    const args = {
+                      id: activeConversation.id,
+                      msgId: msg.id,
+                    };
+                    if (msg.pinned) unpinMessage.mutate(args);
+                    else pinMessage.mutate(args);
+                  }}
+                />
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -706,6 +791,16 @@ export default function ChatPage() {
                     </span>
                   ) : null}
                 </div>
+              ) : null}
+              {activeConversation ? (
+                <ContextUsageBar
+                  usage={contextUsage}
+                  modelName={model}
+                  onReset={() =>
+                    resetContext.mutate({ id: activeConversation.id })
+                  }
+                  busy={resetContext.isPending}
+                />
               ) : null}
               <QuickLaunchBar
                 onResolved={(resolvedPrompt, tpl) => {
@@ -886,7 +981,15 @@ export default function ChatPage() {
   );
 }
 
-function ChatTranscript({ messages }: { messages: ConversationMessage[] }) {
+function ChatTranscript({
+  messages,
+  conversationId,
+  onTogglePin,
+}: {
+  messages: ConversationMessage[];
+  conversationId?: string | null;
+  onTogglePin?: (msg: ConversationMessage) => void;
+}) {
   if (messages.length === 0) {
     return (
       <EmptyState
@@ -898,28 +1001,86 @@ function ChatTranscript({ messages }: { messages: ConversationMessage[] }) {
   }
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      {messages.map((m) => (
-        <div
-          key={m.id}
-          className={cn(
-            "rounded-lg border border-border p-4",
-            m.role === "user" ? "bg-card" : "bg-muted/40",
-          )}
-          data-testid={`chat-turn-${m.role}`}
-        >
-          <div className="mb-1 flex items-center gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {m.role === "user" ? "You" : m.role === "assistant" ? "Assistant" : m.role}
-            </span>
-            <span className="text-[10px] text-muted-foreground">
-              {new Date(m.createdAt).toLocaleTimeString()}
-            </span>
+      {messages.map((m) => {
+        if (m.isSummary) {
+          // Summary banner — visually distinct from regular turns so the
+          // user knows the model sees a compressed version of earlier
+          // history (Task #51).
+          return (
+            <div
+              key={m.id}
+              className="rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 p-4"
+              data-testid="chat-summary-banner"
+            >
+              <div className="mb-1 flex items-center gap-2">
+                <Sparkles className="h-3 w-3 text-amber-600" />
+                <span className="text-xs font-medium uppercase tracking-wide text-amber-700">
+                  Earlier conversation summarised
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {new Date(m.createdAt).toLocaleTimeString()}
+                </span>
+              </div>
+              <p className="whitespace-pre-wrap text-sm text-foreground">
+                {m.content}
+              </p>
+            </div>
+          );
+        }
+        return (
+          <div
+            key={m.id}
+            className={cn(
+              "group relative rounded-lg border border-border p-4",
+              m.role === "user" ? "bg-card" : "bg-muted/40",
+              m.pinned && "ring-1 ring-primary/40",
+            )}
+            data-testid={`chat-turn-${m.role}`}
+            data-pinned={m.pinned ? "true" : "false"}
+          >
+            <div className="mb-1 flex items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {m.role === "user" ? "You" : m.role === "assistant" ? "Assistant" : m.role}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {new Date(m.createdAt).toLocaleTimeString()}
+              </span>
+              {m.pinned ? (
+                <span
+                  className="flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+                  data-testid={`message-pinned-${m.id}`}
+                >
+                  <Pin className="h-2.5 w-2.5" /> pinned
+                </span>
+              ) : null}
+              {conversationId && onTogglePin ? (
+                <button
+                  type="button"
+                  onClick={() => onTogglePin(m)}
+                  className="ml-auto rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100 data-[pinned=true]:opacity-100"
+                  data-pinned={m.pinned ? "true" : "false"}
+                  data-testid={`button-pin-${m.id}`}
+                  aria-label={m.pinned ? "Unpin message" : "Pin message"}
+                  title={
+                    m.pinned
+                      ? "Unpin — let this turn be summarised again"
+                      : "Pin — keep this turn verbatim in context"
+                  }
+                >
+                  {m.pinned ? (
+                    <PinOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Pin className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              ) : null}
+            </div>
+            <p className="whitespace-pre-wrap text-sm text-foreground">
+              {m.content}
+            </p>
           </div>
-          <p className="whitespace-pre-wrap text-sm text-foreground">
-            {m.content}
-          </p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

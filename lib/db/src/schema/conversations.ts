@@ -47,6 +47,8 @@ export const conversations = sqliteTable(
     agentMode: integer("agent_mode").notNull().default(0),
     modelName: text("model_name"),
     desktopUsed: integer("desktop_used").notNull().default(0),
+    summarisedThroughTs: integer("summarised_through_ts"),
+    contextResetTs: integer("context_reset_ts"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
     version: integer("version").notNull().default(1),

@@ -25,6 +25,9 @@ export const messages = sqliteTable(
     content: text("content").notNull(),
     tokensIn: integer("tokens_in"),
     tokensOut: integer("tokens_out"),
+    pinned: integer("pinned").notNull().default(0),
+    pinnedAt: integer("pinned_at"),
+    isSummary: integer("is_summary").notNull().default(0),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
     version: integer("version").notNull().default(1),
@@ -34,6 +37,8 @@ export const messages = sqliteTable(
     workspaceIdx: index("idx_messages_workspace").on(t.workspaceId),
     runIdx: index("idx_messages_run").on(t.runId),
     conversationIdx: index("idx_messages_conversation").on(t.conversationId),
+    pinnedIdx: index("idx_messages_pinned").on(t.tenantId, t.conversationId, t.pinned),
+    summaryIdx: index("idx_messages_summary").on(t.tenantId, t.conversationId, t.isSummary),
   }),
 );
 

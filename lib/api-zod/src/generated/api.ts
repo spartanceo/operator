@@ -1443,6 +1443,12 @@ export const ChatBody = zod.object({
     .min(chatBodyTemperatureMin)
     .max(chatBodyTemperatureMax)
     .optional(),
+  conversationId: zod
+    .string()
+    .optional()
+    .describe(
+      "When supplied, the server rebuilds context from the persisted transcript honouring pinned messages, summaries, and overflow protection.",
+    ),
 });
 
 export const ChatResponse = zod.object({
@@ -1455,6 +1461,22 @@ export const ChatResponse = zod.object({
     }),
     tokensIn: zod.number().nullish(),
     tokensOut: zod.number().nullish(),
+    contextUsage: zod
+      .object({
+        contextWindow: zod.number(),
+        usedTokens: zod.number(),
+        inputBudget: zod.number(),
+        pct: zod.number(),
+        summariseAtPct: zod.number(),
+        status: zod.enum(["ok", "amber", "red", "overflow"]),
+        hasSummary: zod.boolean(),
+        pinnedCount: zod.number(),
+        effectiveMessageCount: zod.number(),
+        storedMessageCount: zod.number(),
+      })
+      .optional(),
+    summarisedThisCall: zod.boolean().optional(),
+    compressedMessageCount: zod.number().optional(),
   }),
 });
 
@@ -1750,6 +1772,8 @@ export const ListConversationMessagesResponse = zod.object({
         role: zod.string(),
         content: zod.string(),
         runId: zod.string().nullish(),
+        pinned: zod.boolean().optional(),
+        isSummary: zod.boolean().optional(),
         createdAt: zod.coerce.date(),
       }),
     ),
@@ -1782,6 +1806,154 @@ export const AppendConversationMessageResponse = zod.object({
   success: zod.literal(true),
   data: zod.object({
     id: zod.string(),
+  }),
+});
+
+/**
+ * @summary Current context-window usage for a conversation
+ */
+export const GetConversationContextParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetConversationContextQueryParams = zod.object({
+  model: zod.coerce.string().optional(),
+  pendingInput: zod.coerce.string().optional(),
+});
+
+export const GetConversationContextHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetConversationContextResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    contextWindow: zod.number(),
+    usedTokens: zod.number(),
+    inputBudget: zod.number(),
+    pct: zod.number(),
+    summariseAtPct: zod.number(),
+    status: zod.enum(["ok", "amber", "red", "overflow"]),
+    hasSummary: zod.boolean(),
+    pinnedCount: zod.number(),
+    effectiveMessageCount: zod.number(),
+    storedMessageCount: zod.number(),
+  }),
+});
+
+/**
+ * @summary Reset the LLM context window (transcript stays visible)
+ */
+export const ResetConversationContextParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ResetConversationContextHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ResetConversationContextResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    contextResetTs: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Pin a message so it survives rolling summarisation
+ */
+export const PinConversationMessageParams = zod.object({
+  id: zod.coerce.string(),
+  msgId: zod.coerce.string(),
+});
+
+export const PinConversationMessageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PinConversationMessageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    pinned: zod.boolean(),
+    pinnedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Unpin a message
+ */
+export const UnpinConversationMessageParams = zod.object({
+  id: zod.coerce.string(),
+  msgId: zod.coerce.string(),
+});
+
+export const UnpinConversationMessageHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UnpinConversationMessageResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    pinned: zod.boolean(),
+    pinnedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Split a long input into model-fit chunks
+ */
+export const ChunkDocumentHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const chunkDocumentBodyChunkOverlapTokensMin = 0;
+export const chunkDocumentBodyChunkOverlapTokensMax = 2048;
+
+export const ChunkDocumentBody = zod.object({
+  text: zod.string(),
+  model: zod.string().optional(),
+  chunkOverlapTokens: zod
+    .number()
+    .min(chunkDocumentBodyChunkOverlapTokensMin)
+    .max(chunkDocumentBodyChunkOverlapTokensMax)
+    .optional(),
+});
+
+export const ChunkDocumentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    chunks: zod.array(
+      zod.object({
+        index: zod.number(),
+        total: zod.number(),
+        content: zod.string(),
+        estimatedTokens: zod.number(),
+      }),
+    ),
+    totalChunks: zod.number(),
+    contextWindow: zod.number(),
   }),
 });
 

@@ -391,6 +391,8 @@ export async function listConversationMessages(
     role: string;
     content: string;
     runId: string | null;
+    pinned: boolean;
+    isSummary: boolean;
     createdAt: string;
   }>
 > {
@@ -418,6 +420,8 @@ export async function listConversationMessages(
       role: r.role,
       content: r.content,
       runId: r.runId,
+      pinned: Boolean(r.pinned),
+      isSummary: Boolean(r.isSummary),
       createdAt: new Date(r.createdAt).toISOString(),
     })),
     limit,

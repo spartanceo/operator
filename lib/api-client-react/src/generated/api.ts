@@ -86,6 +86,8 @@ import type {
   CategoryDeletionResponse,
   ChatRequest,
   ChatResponse,
+  ChunkDocumentRequest,
+  ChunkDocumentResponse,
   CommAccountDisconnectResponse,
   CommAccountListResponse,
   CommAccountResponse,
@@ -96,6 +98,8 @@ import type {
   ContactDeleteResponse,
   ContactListResponse,
   ContactResponse,
+  ContextResetResponse,
+  ContextUsageResponse,
   ConversationExportResponse,
   ConversationListResponse,
   ConversationMessageListResponse,
@@ -208,6 +212,7 @@ import type {
   GenerateCreatorTaxDocumentRequest,
   GenerateImageRequest,
   GenerateVideoRequest,
+  GetConversationContextParams,
   GetCreatorAgreementStateParams,
   GetCreatorLeaderboardParams,
   GetCreatorPayoutSettingsParams,
@@ -422,6 +427,7 @@ import type {
   PermissionListResponse,
   PermissionReportRequest,
   PermissionViewResponse,
+  PinMessageResponse,
   PinTaskTemplateRequest,
   PlaceVoipCallRequest,
   PluginInvokeRequest,
@@ -6082,6 +6088,472 @@ export const useAppendConversationMessage = <
   TContext
 > => {
   return useMutation(getAppendConversationMessageMutationOptions(options));
+};
+
+/**
+ * @summary Current context-window usage for a conversation
+ */
+export const getGetConversationContextUrl = (
+  id: string,
+  params?: GetConversationContextParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/conversations/${id}/context?${stringifiedParams}`
+    : `/api/conversations/${id}/context`;
+};
+
+export const getConversationContext = async (
+  id: string,
+  params?: GetConversationContextParams,
+  options?: RequestInit,
+): Promise<ContextUsageResponse> => {
+  return customFetch<ContextUsageResponse>(
+    getGetConversationContextUrl(id, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetConversationContextQueryKey = (
+  id: string,
+  params?: GetConversationContextParams,
+) => {
+  return [
+    `/api/conversations/${id}/context`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetConversationContextQueryOptions = <
+  TData = Awaited<ReturnType<typeof getConversationContext>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  params?: GetConversationContextParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConversationContext>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetConversationContextQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getConversationContext>>
+  > = ({ signal }) =>
+    getConversationContext(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getConversationContext>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetConversationContextQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getConversationContext>>
+>;
+export type GetConversationContextQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Current context-window usage for a conversation
+ */
+
+export function useGetConversationContext<
+  TData = Awaited<ReturnType<typeof getConversationContext>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  params?: GetConversationContextParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConversationContext>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetConversationContextQueryOptions(
+    id,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Reset the LLM context window (transcript stays visible)
+ */
+export const getResetConversationContextUrl = (id: string) => {
+  return `/api/conversations/${id}/context/reset`;
+};
+
+export const resetConversationContext = async (
+  id: string,
+  options?: RequestInit,
+): Promise<ContextResetResponse> => {
+  return customFetch<ContextResetResponse>(getResetConversationContextUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getResetConversationContextMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetConversationContext>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resetConversationContext>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["resetConversationContext"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resetConversationContext>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return resetConversationContext(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResetConversationContextMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resetConversationContext>>
+>;
+
+export type ResetConversationContextMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Reset the LLM context window (transcript stays visible)
+ */
+export const useResetConversationContext = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetConversationContext>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resetConversationContext>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getResetConversationContextMutationOptions(options));
+};
+
+/**
+ * @summary Pin a message so it survives rolling summarisation
+ */
+export const getPinConversationMessageUrl = (id: string, msgId: string) => {
+  return `/api/conversations/${id}/messages/${msgId}/pin`;
+};
+
+export const pinConversationMessage = async (
+  id: string,
+  msgId: string,
+  options?: RequestInit,
+): Promise<PinMessageResponse> => {
+  return customFetch<PinMessageResponse>(
+    getPinConversationMessageUrl(id, msgId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getPinConversationMessageMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pinConversationMessage>>,
+    TError,
+    { id: string; msgId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pinConversationMessage>>,
+  TError,
+  { id: string; msgId: string },
+  TContext
+> => {
+  const mutationKey = ["pinConversationMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pinConversationMessage>>,
+    { id: string; msgId: string }
+  > = (props) => {
+    const { id, msgId } = props ?? {};
+
+    return pinConversationMessage(id, msgId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PinConversationMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pinConversationMessage>>
+>;
+
+export type PinConversationMessageMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Pin a message so it survives rolling summarisation
+ */
+export const usePinConversationMessage = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pinConversationMessage>>,
+    TError,
+    { id: string; msgId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pinConversationMessage>>,
+  TError,
+  { id: string; msgId: string },
+  TContext
+> => {
+  return useMutation(getPinConversationMessageMutationOptions(options));
+};
+
+/**
+ * @summary Unpin a message
+ */
+export const getUnpinConversationMessageUrl = (id: string, msgId: string) => {
+  return `/api/conversations/${id}/messages/${msgId}/pin`;
+};
+
+export const unpinConversationMessage = async (
+  id: string,
+  msgId: string,
+  options?: RequestInit,
+): Promise<PinMessageResponse> => {
+  return customFetch<PinMessageResponse>(
+    getUnpinConversationMessageUrl(id, msgId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getUnpinConversationMessageMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unpinConversationMessage>>,
+    TError,
+    { id: string; msgId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unpinConversationMessage>>,
+  TError,
+  { id: string; msgId: string },
+  TContext
+> => {
+  const mutationKey = ["unpinConversationMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unpinConversationMessage>>,
+    { id: string; msgId: string }
+  > = (props) => {
+    const { id, msgId } = props ?? {};
+
+    return unpinConversationMessage(id, msgId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnpinConversationMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unpinConversationMessage>>
+>;
+
+export type UnpinConversationMessageMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Unpin a message
+ */
+export const useUnpinConversationMessage = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unpinConversationMessage>>,
+    TError,
+    { id: string; msgId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unpinConversationMessage>>,
+  TError,
+  { id: string; msgId: string },
+  TContext
+> => {
+  return useMutation(getUnpinConversationMessageMutationOptions(options));
+};
+
+/**
+ * @summary Split a long input into model-fit chunks
+ */
+export const getChunkDocumentUrl = () => {
+  return `/api/context/chunk`;
+};
+
+export const chunkDocument = async (
+  chunkDocumentRequest: ChunkDocumentRequest,
+  options?: RequestInit,
+): Promise<ChunkDocumentResponse> => {
+  return customFetch<ChunkDocumentResponse>(getChunkDocumentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(chunkDocumentRequest),
+  });
+};
+
+export const getChunkDocumentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof chunkDocument>>,
+    TError,
+    { data: BodyType<ChunkDocumentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof chunkDocument>>,
+  TError,
+  { data: BodyType<ChunkDocumentRequest> },
+  TContext
+> => {
+  const mutationKey = ["chunkDocument"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof chunkDocument>>,
+    { data: BodyType<ChunkDocumentRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return chunkDocument(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ChunkDocumentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof chunkDocument>>
+>;
+export type ChunkDocumentMutationBody = BodyType<ChunkDocumentRequest>;
+export type ChunkDocumentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Split a long input into model-fit chunks
+ */
+export const useChunkDocument = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof chunkDocument>>,
+    TError,
+    { data: BodyType<ChunkDocumentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof chunkDocument>>,
+  TError,
+  { data: BodyType<ChunkDocumentRequest> },
+  TContext
+> => {
+  return useMutation(getChunkDocumentMutationOptions(options));
 };
 
 /**

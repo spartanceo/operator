@@ -443,6 +443,31 @@ export interface ChatRequest {
    * @maximum 2
    */
   temperature?: number;
+  /** When supplied, the server rebuilds context from the persisted transcript honouring pinned messages, summaries, and overflow protection. */
+  conversationId?: string;
+}
+
+export type ContextUsageStatus =
+  (typeof ContextUsageStatus)[keyof typeof ContextUsageStatus];
+
+export const ContextUsageStatus = {
+  ok: "ok",
+  amber: "amber",
+  red: "red",
+  overflow: "overflow",
+} as const;
+
+export interface ContextUsage {
+  contextWindow: number;
+  usedTokens: number;
+  inputBudget: number;
+  pct: number;
+  summariseAtPct: number;
+  status: ContextUsageStatus;
+  hasSummary: boolean;
+  pinnedCount: number;
+  effectiveMessageCount: number;
+  storedMessageCount: number;
 }
 
 export interface ChatResult {
@@ -450,6 +475,9 @@ export interface ChatResult {
   message: ChatMessage;
   tokensIn?: number | null;
   tokensOut?: number | null;
+  contextUsage?: ContextUsage;
+  summarisedThisCall?: boolean;
+  compressedMessageCount?: number;
 }
 
 export interface ChatResponse {
@@ -605,7 +633,62 @@ export interface ConversationMessage {
   role: string;
   content: string;
   runId?: string | null;
+  pinned?: boolean;
+  isSummary?: boolean;
   createdAt: string;
+}
+
+export interface ContextUsageResponse {
+  success: boolean;
+  data: ContextUsage;
+}
+
+export type ContextResetResponseData = {
+  contextResetTs: string;
+};
+
+export interface ContextResetResponse {
+  success: boolean;
+  data: ContextResetResponseData;
+}
+
+export type PinMessageResponseData = {
+  id: string;
+  pinned: boolean;
+  pinnedAt?: string | null;
+};
+
+export interface PinMessageResponse {
+  success: boolean;
+  data: PinMessageResponseData;
+}
+
+export interface ChunkDocumentRequest {
+  text: string;
+  model?: string;
+  /**
+   * @minimum 0
+   * @maximum 2048
+   */
+  chunkOverlapTokens?: number;
+}
+
+export interface ChunkDocumentChunk {
+  index: number;
+  total: number;
+  content: string;
+  estimatedTokens: number;
+}
+
+export type ChunkDocumentResponseData = {
+  chunks: ChunkDocumentChunk[];
+  totalChunks: number;
+  contextWindow: number;
+};
+
+export interface ChunkDocumentResponse {
+  success: boolean;
+  data: ChunkDocumentResponseData;
 }
 
 export interface ConversationMessageListPage {
@@ -8084,6 +8167,11 @@ export type ListConversationMessagesParams = {
    * @maximum 100
    */
   limit?: LimitParamParameter;
+};
+
+export type GetConversationContextParams = {
+  model?: string;
+  pendingInput?: string;
 };
 
 export type ExportConversationParams = {

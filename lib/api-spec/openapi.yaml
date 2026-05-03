@@ -1393,6 +1393,150 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /conversations/{id}/context:
+    get:
+      operationId: getConversationContext
+      tags:
+        - chat
+      summary: Current context-window usage for a conversation
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: model
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pendingInput
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Context usage envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextUsageResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /conversations/{id}/context/reset:
+    post:
+      operationId: resetConversationContext
+      tags:
+        - chat
+      summary: Reset the LLM context window (transcript stays visible)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reset acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextResetResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /conversations/{id}/messages/{msgId}/pin:
+    post:
+      operationId: pinConversationMessage
+      tags:
+        - chat
+      summary: Pin a message so it survives rolling summarisation
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: msgId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pinned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinMessageResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    delete:
+      operationId: unpinConversationMessage
+      tags:
+        - chat
+      summary: Unpin a message
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: msgId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Unpinned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinMessageResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /context/chunk:
+    post:
+      operationId: chunkDocument
+      tags:
+        - chat
+      summary: Split a long input into model-fit chunks
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChunkDocumentRequest'
+      responses:
+        '200':
+          description: Chunks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChunkDocumentResponse'
   /conversations/{id}/export:
     get:
       operationId: exportConversation
@@ -11987,6 +12131,9 @@ components:
           type: number
           minimum: 0
           maximum: 2
+        conversationId:
+          type: string
+          description: When supplied, the server rebuilds context from the persisted transcript honouring pinned messages, summaries, and overflow protection.
     ChatResult:
       type: object
       required:
@@ -12003,6 +12150,12 @@ components:
         tokensOut:
           type: integer
           nullable: true
+        contextUsage:
+          $ref: '#/components/schemas/ContextUsage'
+        summarisedThisCall:
+          type: boolean
+        compressedMessageCount:
+          type: integer
     ChatResponse:
       type: object
       required:
@@ -12384,9 +12537,160 @@ components:
         runId:
           type: string
           nullable: true
+        pinned:
+          type: boolean
+        isSummary:
+          type: boolean
         createdAt:
           type: string
           format: date-time
+    ContextUsage:
+      type: object
+      required:
+        - contextWindow
+        - usedTokens
+        - inputBudget
+        - pct
+        - summariseAtPct
+        - status
+        - hasSummary
+        - pinnedCount
+        - effectiveMessageCount
+        - storedMessageCount
+      properties:
+        contextWindow:
+          type: integer
+        usedTokens:
+          type: integer
+        inputBudget:
+          type: integer
+        pct:
+          type: integer
+        summariseAtPct:
+          type: integer
+        status:
+          type: string
+          enum:
+            - ok
+            - amber
+            - red
+            - overflow
+        hasSummary:
+          type: boolean
+        pinnedCount:
+          type: integer
+        effectiveMessageCount:
+          type: integer
+        storedMessageCount:
+          type: integer
+    ContextUsageResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/ContextUsage'
+    ContextResetResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - contextResetTs
+          properties:
+            contextResetTs:
+              type: string
+              format: date-time
+    PinMessageResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - id
+            - pinned
+          properties:
+            id:
+              type: string
+            pinned:
+              type: boolean
+            pinnedAt:
+              type: string
+              format: date-time
+              nullable: true
+    ChunkDocumentRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+        model:
+          type: string
+        chunkOverlapTokens:
+          type: integer
+          minimum: 0
+          maximum: 2048
+    ChunkDocumentChunk:
+      type: object
+      required:
+        - index
+        - total
+        - content
+        - estimatedTokens
+      properties:
+        index:
+          type: integer
+        total:
+          type: integer
+        content:
+          type: string
+        estimatedTokens:
+          type: integer
+    ChunkDocumentResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - chunks
+            - totalChunks
+            - contextWindow
+          properties:
+            chunks:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChunkDocumentChunk'
+            totalChunks:
+              type: integer
+            contextWindow:
+              type: integer
     ConversationMessageListPage:
       type: object
       required:

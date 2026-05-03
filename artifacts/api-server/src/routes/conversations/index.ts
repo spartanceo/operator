@@ -32,6 +32,11 @@ import {
   searchConversations,
   updateConversation,
 } from "../../services/conversation.service";
+import {
+  getConversationContextUsage,
+  resetConversationContext,
+  setMessagePin,
+} from "../../services/context.service";
 
 const router: IRouter = Router();
 
@@ -228,6 +233,109 @@ router.post("/:id/messages", requireTenant(), async (req, res, next) => {
     next(e);
   }
 });
+
+const ContextQuerySchema = z.object({
+  model: z.string().min(1).max(200).optional(),
+  pendingInput: z.string().max(64_000).optional(),
+});
+
+router.get("/:id/context", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = ContextQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid context query"));
+      return;
+    }
+    const conv = await getConversation(ctx, String(req.params.id));
+    if (!conv) {
+      res.status(404).json(err("NOT_FOUND", "Conversation not found"));
+      return;
+    }
+    const usage = await getConversationContextUsage(
+      ctx,
+      String(req.params.id),
+      parsed.data.model ?? conv.modelName,
+      parsed.data.pendingInput ?? null,
+    );
+    res.json(ok(usage));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/:id/context/reset", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const conv = await getConversation(ctx, String(req.params.id));
+    if (!conv) {
+      res.status(404).json(err("NOT_FOUND", "Conversation not found"));
+      return;
+    }
+    const result = await resetConversationContext(ctx, String(req.params.id));
+    res.json(
+      ok({
+        contextResetTs: new Date(result.contextResetTs).toISOString(),
+      }),
+    );
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post(
+  "/:id/messages/:msgId/pin",
+  requireTenant(),
+  async (req, res, next) => {
+    try {
+      const ctx = requireTenantContext();
+      const result = await setMessagePin(
+        ctx,
+        String(req.params.id),
+        String(req.params.msgId),
+        true,
+      );
+      if (!result) {
+        res.status(404).json(err("NOT_FOUND", "Message not found"));
+        return;
+      }
+      res.json(
+        ok({
+          id: result.id,
+          pinned: result.pinned,
+          pinnedAt: result.pinnedAt
+            ? new Date(result.pinnedAt).toISOString()
+            : null,
+        }),
+      );
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
+router.delete(
+  "/:id/messages/:msgId/pin",
+  requireTenant(),
+  async (req, res, next) => {
+    try {
+      const ctx = requireTenantContext();
+      const result = await setMessagePin(
+        ctx,
+        String(req.params.id),
+        String(req.params.msgId),
+        false,
+      );
+      if (!result) {
+        res.status(404).json(err("NOT_FOUND", "Message not found"));
+        return;
+      }
+      res.json(ok({ id: result.id, pinned: false, pinnedAt: null }));
+    } catch (e) {
+      next(e);
+    }
+  },
+);
 
 router.get("/:id/export", requireTenant(), async (req, res, next) => {
   try {
