@@ -1,20 +1,9 @@
-import pino from "pino";
-
-const isProduction = process.env.NODE_ENV === "production";
-
-export const logger = pino({
-  level: process.env.LOG_LEVEL ?? "info",
-  redact: [
-    "req.headers.authorization",
-    "req.headers.cookie",
-    "res.headers['set-cookie']",
-  ],
-  ...(isProduction
-    ? {}
-    : {
-        transport: {
-          target: "pino-pretty",
-          options: { colorize: true },
-        },
-      }),
-});
+/**
+ * Back-compat shim — Task 40.
+ *
+ * The structured logging framework lives in `./logging/`. This module keeps
+ * the legacy `import { logger } from "./lib/logger"` form working by
+ * re-exporting the pino instance bound to the `app` channel.
+ */
+export { pinoInstance as logger } from "./logging";
+export { getLogger } from "./logging";

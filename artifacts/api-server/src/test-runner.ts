@@ -29,7 +29,14 @@ process.env["OMNINITY_HARDWARE_OVERRIDE"] = JSON.stringify({
 // so the orchestrator path (plan + execute + approval gate) is exercised.
 process.env["FEATURE_DESKTOP_CONTROL"] = "1";
 
+// Task #40 — point structured-logging output at a per-run temp dir so the
+// rotation tests don't collide with the developer's real logs/ directory.
+process.env["LOG_DIR"] = `/tmp/omninity-logs-${Date.now()}`;
+process.env["LOG_CONSOLE_ONLY"] = "0";
+
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 
 import request from "supertest";
 
@@ -72,6 +79,11 @@ function syntheticHardware(
     ...overrides,
   };
 }
+import { getLogger, recentLogs } from "./lib/logging";
+import { sanitise } from "./lib/logging/sanitiser";
+import { RotatingFileStream } from "./lib/logging/rotation";
+import { buildZip } from "./lib/logging/zip";
+import { _setBundleSources } from "./routes/diagnostics";
 
 const TENANT = "tenant_test_1";
 const TENANT_2 = "tenant_test_2";
@@ -5047,6 +5059,153 @@ const cases: TestCase[] = [
         .set("X-Tenant-ID", tenant)
         .send({ apiToken: "definitely-not-a-real-token" })
         .expect(401);
+    },
+  },
+  {
+    name: "log sanitiser strips credentials, JWTs, and external paths",
+    run: async () => {
+      const dirty = {
+        password: "supersecret",
+        api_key: "AKIAEXAMPLE12345",
+        nested: {
+          token: "abcd1234",
+          authorization: "Bearer abcdef0123456789ABCDEF0123456789",
+        },
+        msg: "user said hello with bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.s",
+        prompt: "raw user message that should never appear",
+        file: "/etc/passwd is bad",
+      };
+      const clean = sanitise(dirty);
+      const json = JSON.stringify(clean);
+      assert.ok(!json.includes("supersecret"), "password leaked");
+      assert.ok(!json.includes("AKIAEXAMPLE"), "api_key leaked");
+      assert.ok(!json.includes("eyJhbGciOiJIUzI1NiJ9"), "jwt leaked");
+      assert.ok(!json.includes("/etc/passwd"), "external path leaked");
+      assert.ok(!json.includes("raw user message"), "user content leaked");
+    },
+  },
+  {
+    name: "rotating file stream rolls files at the size cap",
+    run: async () => {
+      const dir = `/tmp/omninity-rot-${Date.now()}`;
+      fs.mkdirSync(dir, { recursive: true });
+      const fp = path.join(dir, "x.log");
+      const stream = new RotatingFileStream({
+        filePath: fp,
+        maxBytes: 1024,
+        maxFiles: 3,
+      });
+      const line = `${"a".repeat(200)}\n`;
+      for (let i = 0; i < 12; i++) stream.write(line);
+      await new Promise<void>((r) => stream.end(() => r()));
+      assert.ok(fs.existsSync(fp), "live file missing");
+      assert.ok(fs.existsSync(`${fp}.1`), "first rotation missing");
+      assert.ok(!fs.existsSync(`${fp}.4`), "rotation overflow not pruned");
+      const live = fs.statSync(fp);
+      assert.ok(live.size <= 1024 + line.length, "live file exceeded cap");
+    },
+  },
+  {
+    name: "module logger writes to ring buffer + level filter works",
+    run: async () => {
+      const before = recentLogs.length;
+      const log = getLogger("test.module", "tools");
+      log.debug("debug-line");
+      log.info("info-line");
+      log.warn("warn-line");
+      log.error("error-line", { detail: "something broke" });
+      assert.ok(recentLogs.length >= before + 3);
+      const errs = recentLogs.query({
+        level: "error",
+        modules: ["test.module"],
+        limit: 5,
+      });
+      assert.ok(errs.some((r) => r.msg === "error-line"));
+      assert.equal(errs[0]?.module, "test.module");
+    },
+  },
+  {
+    name: "GET /api/diagnostics/logs returns filtered records",
+    run: async () => {
+      getLogger("diagnostic.api.test", "app").warn("test-warn");
+      const res = await request(app).get(
+        "/api/diagnostics/logs?level=warn&modules=diagnostic.api.test&limit=10",
+      );
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.ok(Array.isArray(res.body.data.records));
+      const found = res.body.data.records.some(
+        (r: { msg: string }) => r.msg === "test-warn",
+      );
+      assert.ok(found, "warn record not surfaced");
+    },
+  },
+  {
+    name: "GET /api/diagnostics/bundle/preview describes contents without leaking",
+    run: async () => {
+      _setBundleSources({
+        installedSkills: () => ["calendar.read", "files.write"],
+        installedModels: () => ["llama3.2:3b", "qwen2.5:7b"],
+        opVersion: () => "1.2.3-test",
+      });
+      const res = await request(app).get("/api/diagnostics/bundle/preview");
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.opVersion, "1.2.3-test");
+      assert.deepEqual(res.body.data.skills, [
+        "calendar.read",
+        "files.write",
+      ]);
+      assert.ok(
+        res.body.data.excludes.length >= 3,
+        "excludes list missing",
+      );
+    },
+  },
+  {
+    name: "POST /api/diagnostics/bundle returns a valid ZIP",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/diagnostics/bundle")
+        .buffer(true)
+        .parse((response, cb) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (c: Buffer) => chunks.push(c));
+          response.on("end", () => cb(null, Buffer.concat(chunks)));
+        });
+      assert.equal(res.status, 200);
+      assert.equal(res.headers["content-type"], "application/zip");
+      const buf = res.body as Buffer;
+      // PK\x03\x04 magic at offset 0
+      assert.equal(buf[0], 0x50);
+      assert.equal(buf[1], 0x4b);
+      assert.equal(buf[2], 0x03);
+      assert.equal(buf[3], 0x04);
+      // Some EOCD signature must be present in the tail.
+      const tail = buf.subarray(buf.length - 22);
+      assert.equal(tail.readUInt32LE(0), 0x06054b50);
+    },
+  },
+  {
+    name: "POST /api/diagnostics/crash-report no-ops when opt-out",
+    run: async () => {
+      delete process.env["OP_CRASH_REPORTING"];
+      const res = await request(app)
+        .post("/api/diagnostics/crash-report")
+        .send({ context: { source: "test" } });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.delivered, false);
+      assert.equal(res.body.data.reason, "opt-out");
+    },
+  },
+  {
+    name: "buildZip produces a parseable archive",
+    run: async () => {
+      const buf = buildZip([
+        { name: "hello.txt", data: "world" },
+        { name: "nested/x.json", data: JSON.stringify({ a: 1 }) },
+      ]);
+      assert.ok(buf.length > 50);
+      assert.equal(buf.readUInt32LE(0), 0x04034b50);
     },
   },
 ];
