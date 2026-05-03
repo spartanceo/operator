@@ -29,8 +29,11 @@ import {
   signupCreator,
 } from "../../services/store.service";
 import { DraftNotFoundError, DraftValidationError } from "../../services/skill-draft.service";
+import moderationRouter from "./moderation";
 
 const router: IRouter = Router();
+
+router.use("/", moderationRouter);
 
 const ExternalLinkSchema = z.object({
   label: z.string().min(1).max(80),

@@ -10,6 +10,7 @@ import { Router, type IRouter } from "express";
 
 import enterpriseRouter from "./enterprise";
 import enterpriseAuditRouter from "./enterprise-audit";
+import moderationRouter from "./moderation";
 import superRouter from "./super";
 import tenantDataRouter from "./tenant-data";
 
@@ -21,6 +22,7 @@ router.use("/", superRouter);
 // enterprise router so the more-specific `/enterprise/audit/*` paths
 // are matched first.
 router.use("/", enterpriseAuditRouter);
+router.use("/", moderationRouter);
 router.use("/", enterpriseRouter);
 
 export default router;

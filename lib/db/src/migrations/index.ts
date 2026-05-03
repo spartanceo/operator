@@ -51,6 +51,7 @@ import { migration as m0037 } from "./0037_privacy_dashboard";
 import { migration as m0038 } from "./0038_admin_dashboard";
 import { migration as m0039 } from "./0039_crash_recovery";
 import { migration as m0040 } from "./0040_compliance_audit";
+import { migration as m0041 } from "./0041_skill_moderation_pipeline";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -102,6 +103,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0038,
   m0039,
   m0040,
+  m0041,
 ];
 
 /**

@@ -338,6 +338,12 @@ export async function listCreators(
  * tenant the request originated from — multiple tenants can share a
  * single store creator account).
  */
+export async function authenticateCreatorByApiToken(
+  token: string | null,
+): Promise<typeof creatorAccounts.$inferSelect> {
+  return authenticateCreatorToken(token);
+}
+
 async function authenticateCreatorToken(token: string | null): Promise<typeof creatorAccounts.$inferSelect> {
   if (!token) throw new CreatorAuthError("Missing creator API token");
   const hash = hashToken(token);
