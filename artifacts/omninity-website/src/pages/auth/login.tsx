@@ -113,12 +113,15 @@ export default function LoginPage() {
               type="password"
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               required
-              minLength={8}
+              minLength={mode === "register" ? 12 : 1}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             />
+            {mode === "register" && (
+              <p className="text-xs text-muted-foreground">Minimum 12 characters</p>
+            )}
           </div>
 
           {errorMessage && (
