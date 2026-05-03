@@ -206,6 +206,76 @@ test("missing metadata.vulnerabilities yields zero counts", () => {
   assert.strictEqual(out!.critical, 0);
 });
 
+// Architect-flagged fragility: pnpm changed its audit envelope shape in v8+.
+// The parser must accept the newer { vulnerabilities: [...] } array shape
+// without falsely returning null or zero counts.
+test("parses newer { vulnerabilities: [...] } array envelope", () => {
+  const json = JSON.stringify({
+    vulnerabilities: [
+      { name: "lodash", severity: "high", title: "Prototype pollution" },
+      { name: "minimist", severity: "critical", title: "Prototype pollution" },
+      { name: "qs", severity: "moderate", title: "Prototype pollution" },
+    ],
+  });
+  const out = parseAuditOutput(json);
+  assert.ok(out, "expected summary, got null");
+  assert.strictEqual(out!.high, 1);
+  assert.strictEqual(out!.critical, 1);
+  assert.strictEqual(out!.moderate, 1);
+  assert.strictEqual(out!.advisoryTitles.length, 2, JSON.stringify(out));
+  assert.ok(out!.advisoryTitles.some((t) => t.includes("lodash") && t.includes("high")));
+  assert.ok(out!.advisoryTitles.some((t) => t.includes("minimist") && t.includes("critical")));
+});
+
+test("parses npm v7+ { vulnerabilities: { <pkg>: {...} } } map envelope", () => {
+  const json = JSON.stringify({
+    vulnerabilities: {
+      lodash: { name: "lodash", severity: "critical" },
+      qs: { name: "qs", severity: "low" },
+    },
+  });
+  const out = parseAuditOutput(json);
+  assert.ok(out);
+  assert.strictEqual(out!.critical, 1);
+  assert.strictEqual(out!.low, 1);
+  assert.strictEqual(out!.advisoryTitles.length, 1);
+  assert.ok(out!.advisoryTitles[0].includes("lodash"));
+});
+
+// pnpm sometimes emits progress / WARN lines BEFORE the JSON envelope — the
+// parser must skip the noise and still find the document. This is the case
+// the architect flagged as "could silently skip or false-fail".
+test("tolerates non-JSON prefix lines before the JSON document", () => {
+  const json = JSON.stringify({
+    advisories: {
+      "1": { severity: "high", title: "RCE in foo", module_name: "foo" },
+    },
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0 } },
+  });
+  const noisy = [
+    " WARN  GET https://registry.npmjs.org/foo — slow response",
+    "Progress: resolved 1234, reused 1200, downloaded 0, added 0",
+    "✦ ❯ scanning workspace…",
+    json,
+  ].join("\n");
+  const out = parseAuditOutput(noisy);
+  assert.ok(out, "expected summary, got null");
+  assert.strictEqual(out!.high, 1);
+  assert.strictEqual(out!.advisoryTitles.length, 1);
+});
+
+test("tolerates trailing noise after the JSON document", () => {
+  const json = JSON.stringify({ advisories: {}, metadata: { vulnerabilities: { high: 0, critical: 0 } } });
+  const out = parseAuditOutput(json + "\n\nDone in 2.4s using pnpm v10.26.1\n");
+  assert.ok(out);
+  assert.strictEqual(out!.high, 0);
+});
+
+test("returns null when there is no JSON document anywhere in the output", () => {
+  const out = parseAuditOutput("ENOTFOUND registry.npmjs.org\nnetwork unreachable");
+  assert.strictEqual(out, null);
+});
+
 // ─── Check 14: findRawSqlInterpolation ────────────────────────────────────────
 
 test("flags db.run with template literal containing ${...}", () => {

@@ -8161,6 +8161,77 @@ export interface CustomModelDeleteResponse {
   data: CustomModelDeleteResponseData;
 }
 
+export type OrchestrationResponseData = { [key: string]: unknown };
+
+export interface OrchestrationResponse {
+  success: boolean;
+  data: OrchestrationResponseData;
+}
+
+export type OrchestrationListResponseData = { [key: string]: unknown };
+
+export interface OrchestrationListResponse {
+  success: boolean;
+  data: OrchestrationListResponseData;
+}
+
+export type OrchestrationDetailResponseData = { [key: string]: unknown };
+
+export interface OrchestrationDetailResponse {
+  success: boolean;
+  data: OrchestrationDetailResponseData;
+}
+
+export type OrchestrationTraceResponseData = { [key: string]: unknown };
+
+export interface OrchestrationTraceResponse {
+  success: boolean;
+  data: OrchestrationTraceResponseData;
+}
+
+export type OrchestrationNodeResponseData = { [key: string]: unknown };
+
+export interface OrchestrationNodeResponse {
+  success: boolean;
+  data: OrchestrationNodeResponseData;
+}
+
+export type OrchestrationAgentsResponseData = { [key: string]: unknown };
+
+export interface OrchestrationAgentsResponse {
+  success: boolean;
+  data: OrchestrationAgentsResponseData;
+}
+
+export type OrchestrationPlanResponseData = { [key: string]: unknown };
+
+export interface OrchestrationPlanResponse {
+  success: boolean;
+  data: OrchestrationPlanResponseData;
+}
+
+export interface CreateOrchestrationRequest {
+  goal: string;
+  conversationId?: string;
+  parentOrchestrationId?: string;
+}
+
+export interface DecomposeOrchestrationRequest {
+  goal: string;
+}
+
+export type OrchestrationDecisionRequestDecision =
+  (typeof OrchestrationDecisionRequestDecision)[keyof typeof OrchestrationDecisionRequestDecision];
+
+export const OrchestrationDecisionRequestDecision = {
+  approved: "approved",
+  denied: "denied",
+} as const;
+
+export interface OrchestrationDecisionRequest {
+  decision: OrchestrationDecisionRequestDecision;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -9335,6 +9406,19 @@ export type ListQueuedTasksParams = {
    */
   limit?: LimitParamParameter;
   status?: QueuedTaskStatus;
+};
+
+export type ListOrchestrationsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
 };
 
 export type ListUndoTaskActionsParams = {

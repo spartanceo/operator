@@ -129,6 +129,7 @@ import type {
   CreateKnowledgeCollectionRequest,
   CreateMemoryRequest,
   CreateNotificationRequest,
+  CreateOrchestrationRequest,
   CreateOutreachSequenceRequest,
   CreatePrivacyEventRequest,
   CreateScheduleRequest,
@@ -158,6 +159,7 @@ import type {
   CustomModelStatusPatch,
   DataCategoriesResponse,
   DataInventoryResponse,
+  DecomposeOrchestrationRequest,
   DeleteCategoryRequest,
   DeleteConversationResponse,
   DeleteScheduleResponse,
@@ -330,6 +332,7 @@ import type {
   ListModerationQueueParams,
   ListNetworkCallsParams,
   ListNotificationsParams,
+  ListOrchestrationsParams,
   ListOutreachEnrolmentsParams,
   ListOutreachSequencesParams,
   ListPrivacyEventsParams,
@@ -436,6 +439,14 @@ import type {
   OnboardingStarterTaskResponse,
   OpEventListResponse,
   OptInTelemetryConsentResponse,
+  OrchestrationAgentsResponse,
+  OrchestrationDecisionRequest,
+  OrchestrationDetailResponse,
+  OrchestrationListResponse,
+  OrchestrationNodeResponse,
+  OrchestrationPlanResponse,
+  OrchestrationResponse,
+  OrchestrationTraceResponse,
   OutreachEnrolmentListResponse,
   OutreachEnrolmentResponse,
   OutreachRunRequest,
@@ -28925,6 +28936,733 @@ export const useSetQueuedTaskPriority = <
   TContext
 > => {
   return useMutation(getSetQueuedTaskPriorityMutationOptions(options));
+};
+
+/**
+ * @summary List multi-agent orchestrations for the tenant
+ */
+export const getListOrchestrationsUrl = (params?: ListOrchestrationsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/orchestrations?${stringifiedParams}`
+    : `/api/orchestrations`;
+};
+
+export const listOrchestrations = async (
+  params?: ListOrchestrationsParams,
+  options?: RequestInit,
+): Promise<OrchestrationListResponse> => {
+  return customFetch<OrchestrationListResponse>(
+    getListOrchestrationsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListOrchestrationsQueryKey = (
+  params?: ListOrchestrationsParams,
+) => {
+  return [`/api/orchestrations`, ...(params ? [params] : [])] as const;
+};
+
+export const getListOrchestrationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listOrchestrations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListOrchestrationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listOrchestrations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListOrchestrationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listOrchestrations>>
+  > = ({ signal }) => listOrchestrations(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listOrchestrations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListOrchestrationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listOrchestrations>>
+>;
+export type ListOrchestrationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List multi-agent orchestrations for the tenant
+ */
+
+export function useListOrchestrations<
+  TData = Awaited<ReturnType<typeof listOrchestrations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListOrchestrationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listOrchestrations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListOrchestrationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Decompose a goal into a DAG and start executing it
+ */
+export const getCreateOrchestrationUrl = () => {
+  return `/api/orchestrations`;
+};
+
+export const createOrchestration = async (
+  createOrchestrationRequest: CreateOrchestrationRequest,
+  options?: RequestInit,
+): Promise<OrchestrationResponse> => {
+  return customFetch<OrchestrationResponse>(getCreateOrchestrationUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createOrchestrationRequest),
+  });
+};
+
+export const getCreateOrchestrationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createOrchestration>>,
+    TError,
+    { data: BodyType<CreateOrchestrationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createOrchestration>>,
+  TError,
+  { data: BodyType<CreateOrchestrationRequest> },
+  TContext
+> => {
+  const mutationKey = ["createOrchestration"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createOrchestration>>,
+    { data: BodyType<CreateOrchestrationRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createOrchestration(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateOrchestrationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createOrchestration>>
+>;
+export type CreateOrchestrationMutationBody =
+  BodyType<CreateOrchestrationRequest>;
+export type CreateOrchestrationMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Decompose a goal into a DAG and start executing it
+ */
+export const useCreateOrchestration = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createOrchestration>>,
+    TError,
+    { data: BodyType<CreateOrchestrationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createOrchestration>>,
+  TError,
+  { data: BodyType<CreateOrchestrationRequest> },
+  TContext
+> => {
+  return useMutation(getCreateOrchestrationMutationOptions(options));
+};
+
+/**
+ * @summary List the built-in specialised agents
+ */
+export const getListOrchestrationAgentsUrl = () => {
+  return `/api/orchestrations/agents`;
+};
+
+export const listOrchestrationAgents = async (
+  options?: RequestInit,
+): Promise<OrchestrationAgentsResponse> => {
+  return customFetch<OrchestrationAgentsResponse>(
+    getListOrchestrationAgentsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListOrchestrationAgentsQueryKey = () => {
+  return [`/api/orchestrations/agents`] as const;
+};
+
+export const getListOrchestrationAgentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listOrchestrationAgents>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listOrchestrationAgents>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListOrchestrationAgentsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listOrchestrationAgents>>
+  > = ({ signal }) => listOrchestrationAgents({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listOrchestrationAgents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListOrchestrationAgentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listOrchestrationAgents>>
+>;
+export type ListOrchestrationAgentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the built-in specialised agents
+ */
+
+export function useListOrchestrationAgents<
+  TData = Awaited<ReturnType<typeof listOrchestrationAgents>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listOrchestrationAgents>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListOrchestrationAgentsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Preview the DAG for a goal without executing it
+ */
+export const getDecomposeOrchestrationGoalUrl = () => {
+  return `/api/orchestrations/decompose`;
+};
+
+export const decomposeOrchestrationGoal = async (
+  decomposeOrchestrationRequest: DecomposeOrchestrationRequest,
+  options?: RequestInit,
+): Promise<OrchestrationPlanResponse> => {
+  return customFetch<OrchestrationPlanResponse>(
+    getDecomposeOrchestrationGoalUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(decomposeOrchestrationRequest),
+    },
+  );
+};
+
+export const getDecomposeOrchestrationGoalMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decomposeOrchestrationGoal>>,
+    TError,
+    { data: BodyType<DecomposeOrchestrationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof decomposeOrchestrationGoal>>,
+  TError,
+  { data: BodyType<DecomposeOrchestrationRequest> },
+  TContext
+> => {
+  const mutationKey = ["decomposeOrchestrationGoal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof decomposeOrchestrationGoal>>,
+    { data: BodyType<DecomposeOrchestrationRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return decomposeOrchestrationGoal(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DecomposeOrchestrationGoalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof decomposeOrchestrationGoal>>
+>;
+export type DecomposeOrchestrationGoalMutationBody =
+  BodyType<DecomposeOrchestrationRequest>;
+export type DecomposeOrchestrationGoalMutationError =
+  ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Preview the DAG for a goal without executing it
+ */
+export const useDecomposeOrchestrationGoal = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decomposeOrchestrationGoal>>,
+    TError,
+    { data: BodyType<DecomposeOrchestrationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof decomposeOrchestrationGoal>>,
+  TError,
+  { data: BodyType<DecomposeOrchestrationRequest> },
+  TContext
+> => {
+  return useMutation(getDecomposeOrchestrationGoalMutationOptions(options));
+};
+
+/**
+ * @summary Fetch an orchestration with its node timeline
+ */
+export const getGetOrchestrationUrl = (id: string) => {
+  return `/api/orchestrations/${id}`;
+};
+
+export const getOrchestration = async (
+  id: string,
+  options?: RequestInit,
+): Promise<OrchestrationDetailResponse> => {
+  return customFetch<OrchestrationDetailResponse>(getGetOrchestrationUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetOrchestrationQueryKey = (id: string) => {
+  return [`/api/orchestrations/${id}`] as const;
+};
+
+export const getGetOrchestrationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOrchestration>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOrchestration>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOrchestrationQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOrchestration>>
+  > = ({ signal }) => getOrchestration(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOrchestration>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOrchestrationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOrchestration>>
+>;
+export type GetOrchestrationQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch an orchestration with its node timeline
+ */
+
+export function useGetOrchestration<
+  TData = Awaited<ReturnType<typeof getOrchestration>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOrchestration>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOrchestrationQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch the explainability trace for an orchestration
+ */
+export const getGetOrchestrationTraceUrl = (id: string) => {
+  return `/api/orchestrations/${id}/trace`;
+};
+
+export const getOrchestrationTrace = async (
+  id: string,
+  options?: RequestInit,
+): Promise<OrchestrationTraceResponse> => {
+  return customFetch<OrchestrationTraceResponse>(
+    getGetOrchestrationTraceUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetOrchestrationTraceQueryKey = (id: string) => {
+  return [`/api/orchestrations/${id}/trace`] as const;
+};
+
+export const getGetOrchestrationTraceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOrchestrationTrace>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOrchestrationTrace>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetOrchestrationTraceQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOrchestrationTrace>>
+  > = ({ signal }) => getOrchestrationTrace(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOrchestrationTrace>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOrchestrationTraceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOrchestrationTrace>>
+>;
+export type GetOrchestrationTraceQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch the explainability trace for an orchestration
+ */
+
+export function useGetOrchestrationTrace<
+  TData = Awaited<ReturnType<typeof getOrchestrationTrace>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOrchestrationTrace>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOrchestrationTraceQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Cancel an in-flight orchestration
+ */
+export const getCancelOrchestrationUrl = (id: string) => {
+  return `/api/orchestrations/${id}/cancel`;
+};
+
+export const cancelOrchestration = async (
+  id: string,
+  options?: RequestInit,
+): Promise<OrchestrationResponse> => {
+  return customFetch<OrchestrationResponse>(getCancelOrchestrationUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCancelOrchestrationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelOrchestration>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelOrchestration>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["cancelOrchestration"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelOrchestration>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return cancelOrchestration(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CancelOrchestrationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof cancelOrchestration>>
+>;
+
+export type CancelOrchestrationMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Cancel an in-flight orchestration
+ */
+export const useCancelOrchestration = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelOrchestration>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof cancelOrchestration>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getCancelOrchestrationMutationOptions(options));
+};
+
+/**
+ * @summary Approve or deny a gated orchestration node
+ */
+export const getDecideOrchestrationApprovalUrl = (
+  id: string,
+  nodeKey: string,
+) => {
+  return `/api/orchestrations/${id}/nodes/${nodeKey}/decide`;
+};
+
+export const decideOrchestrationApproval = async (
+  id: string,
+  nodeKey: string,
+  orchestrationDecisionRequest: OrchestrationDecisionRequest,
+  options?: RequestInit,
+): Promise<OrchestrationNodeResponse> => {
+  return customFetch<OrchestrationNodeResponse>(
+    getDecideOrchestrationApprovalUrl(id, nodeKey),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(orchestrationDecisionRequest),
+    },
+  );
+};
+
+export const getDecideOrchestrationApprovalMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decideOrchestrationApproval>>,
+    TError,
+    {
+      id: string;
+      nodeKey: string;
+      data: BodyType<OrchestrationDecisionRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof decideOrchestrationApproval>>,
+  TError,
+  { id: string; nodeKey: string; data: BodyType<OrchestrationDecisionRequest> },
+  TContext
+> => {
+  const mutationKey = ["decideOrchestrationApproval"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof decideOrchestrationApproval>>,
+    {
+      id: string;
+      nodeKey: string;
+      data: BodyType<OrchestrationDecisionRequest>;
+    }
+  > = (props) => {
+    const { id, nodeKey, data } = props ?? {};
+
+    return decideOrchestrationApproval(id, nodeKey, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DecideOrchestrationApprovalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof decideOrchestrationApproval>>
+>;
+export type DecideOrchestrationApprovalMutationBody =
+  BodyType<OrchestrationDecisionRequest>;
+export type DecideOrchestrationApprovalMutationError =
+  ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Approve or deny a gated orchestration node
+ */
+export const useDecideOrchestrationApproval = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decideOrchestrationApproval>>,
+    TError,
+    {
+      id: string;
+      nodeKey: string;
+      data: BodyType<OrchestrationDecisionRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof decideOrchestrationApproval>>,
+  TError,
+  { id: string; nodeKey: string; data: BodyType<OrchestrationDecisionRequest> },
+  TContext
+> => {
+  return useMutation(getDecideOrchestrationApprovalMutationOptions(options));
 };
 
 /**

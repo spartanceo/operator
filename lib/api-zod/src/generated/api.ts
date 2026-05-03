@@ -11829,6 +11829,181 @@ export const SetQueuedTaskPriorityResponse = zod.object({
 });
 
 /**
+ * @summary List multi-agent orchestrations for the tenant
+ */
+export const listOrchestrationsQueryLimitDefault = 20;
+export const listOrchestrationsQueryLimitMax = 100;
+
+export const ListOrchestrationsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listOrchestrationsQueryLimitMax)
+    .default(listOrchestrationsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListOrchestrationsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListOrchestrationsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Decompose a goal into a DAG and start executing it
+ */
+export const CreateOrchestrationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateOrchestrationBody = zod.object({
+  goal: zod.string(),
+  conversationId: zod.string().optional(),
+  parentOrchestrationId: zod.string().optional(),
+});
+
+export const CreateOrchestrationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary List the built-in specialised agents
+ */
+export const ListOrchestrationAgentsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListOrchestrationAgentsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Preview the DAG for a goal without executing it
+ */
+export const DecomposeOrchestrationGoalHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DecomposeOrchestrationGoalBody = zod.object({
+  goal: zod.string(),
+});
+
+export const DecomposeOrchestrationGoalResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Fetch an orchestration with its node timeline
+ */
+export const GetOrchestrationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetOrchestrationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetOrchestrationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Fetch the explainability trace for an orchestration
+ */
+export const GetOrchestrationTraceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetOrchestrationTraceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetOrchestrationTraceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Cancel an in-flight orchestration
+ */
+export const CancelOrchestrationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CancelOrchestrationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CancelOrchestrationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Approve or deny a gated orchestration node
+ */
+export const DecideOrchestrationApprovalParams = zod.object({
+  id: zod.coerce.string(),
+  nodeKey: zod.coerce.string(),
+});
+
+export const DecideOrchestrationApprovalHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DecideOrchestrationApprovalBody = zod.object({
+  decision: zod.enum(["approved", "denied"]),
+});
+
+export const DecideOrchestrationApprovalResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
  * @summary List the undo actions belonging to a task
  */
 export const ListUndoTaskActionsParams = zod.object({

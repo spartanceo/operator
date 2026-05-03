@@ -1419,41 +1419,157 @@ export interface AuditSummary {
   advisoryTitles: string[]; // titles of high/critical advisories, for reporting
 }
 
+// Locate the first parseable top-level JSON document inside a possibly-noisy
+// stdout buffer. pnpm sometimes prefixes audit output with progress lines,
+// "WARN" notices, or unicode glyphs before the JSON envelope. We scan for the
+// first '{' or '[' and then walk balanced brackets (respecting string literals
+// and escapes) to find the matching close, so trailing noise is ignored too.
+function extractFirstJsonDocument(text: string): string | null {
+  const len = text.length;
+  for (let start = 0; start < len; start++) {
+    const ch = text[start];
+    if (ch !== "{" && ch !== "[") continue;
+    const open = ch;
+    const close = open === "{" ? "}" : "]";
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < len; i++) {
+      const c = text[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (inString) {
+        if (c === "\\") {
+          escape = true;
+        } else if (c === '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (c === '"') {
+        inString = true;
+        continue;
+      }
+      if (c === open) depth++;
+      else if (c === close) {
+        depth--;
+        if (depth === 0) {
+          const candidate = text.slice(start, i + 1);
+          try {
+            JSON.parse(candidate);
+            return candidate;
+          } catch {
+            break; // invalid here — try the next opener
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export function parseAuditOutput(jsonText: string): AuditSummary | null {
+  const doc = extractFirstJsonDocument(jsonText);
+  if (!doc) return null;
+
   let data: unknown;
   try {
-    data = JSON.parse(jsonText);
+    data = JSON.parse(doc);
   } catch {
     return null;
   }
   if (!data || typeof data !== "object") return null;
-  const obj = data as Record<string, unknown>;
 
-  // pnpm audit --json shape: { advisories: { [id]: {...} }, metadata: { vulnerabilities: { ... } } }
-  const meta = obj.metadata as Record<string, unknown> | undefined;
-  const vulns = (meta?.vulnerabilities ?? {}) as Record<string, unknown>;
   const num = (v: unknown): number => (typeof v === "number" ? v : 0);
-
   const summary: AuditSummary = {
-    info: num(vulns.info),
-    low: num(vulns.low),
-    moderate: num(vulns.moderate),
-    high: num(vulns.high),
-    critical: num(vulns.critical),
+    info: 0,
+    low: 0,
+    moderate: 0,
+    high: 0,
+    critical: 0,
     advisoryTitles: [],
   };
+
+  const SEV_KEYS = new Set(["info", "low", "moderate", "high", "critical"]);
+  const pushAdvisory = (severity: unknown, moduleName: unknown, title: unknown) => {
+    const sev = String(severity ?? "").toLowerCase();
+    if (sev === "high" || sev === "critical") {
+      const t = String(title ?? "(no title)");
+      const m = String(moduleName ?? "?");
+      summary.advisoryTitles.push(`${sev}: ${m} — ${t}`);
+    }
+  };
+
+  // ── Shape C (bare array of vulnerability objects) ───────────────────────────
+  if (Array.isArray(data)) {
+    for (const a of data) {
+      if (!a || typeof a !== "object") continue;
+      const ao = a as Record<string, unknown>;
+      const sev = String(ao.severity ?? "").toLowerCase();
+      if (SEV_KEYS.has(sev)) {
+        (summary as unknown as Record<string, number>)[sev]++;
+      }
+      pushAdvisory(ao.severity, ao.module_name ?? ao.moduleName ?? ao.name, ao.title);
+    }
+    return summary;
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  // ── Shape A (pnpm/npm v6 audit envelope) ────────────────────────────────────
+  // { advisories: { [id]: {...} }, metadata: { vulnerabilities: { info, low, ... } } }
+  const meta = obj.metadata as Record<string, unknown> | undefined;
+  const metaVulns = meta?.vulnerabilities;
+
+  if (metaVulns && typeof metaVulns === "object" && !Array.isArray(metaVulns)) {
+    const v = metaVulns as Record<string, unknown>;
+    summary.info = num(v.info);
+    summary.low = num(v.low);
+    summary.moderate = num(v.moderate);
+    summary.high = num(v.high);
+    summary.critical = num(v.critical);
+  }
 
   const advisories = obj.advisories as Record<string, unknown> | undefined;
   if (advisories && typeof advisories === "object") {
     for (const a of Object.values(advisories)) {
       if (!a || typeof a !== "object") continue;
       const ao = a as Record<string, unknown>;
-      const sev = String(ao.severity ?? "");
-      if (sev === "high" || sev === "critical") {
-        const title = String(ao.title ?? "(no title)");
-        const moduleName = String(ao.module_name ?? ao.moduleName ?? "?");
-        summary.advisoryTitles.push(`${sev}: ${moduleName} — ${title}`);
+      pushAdvisory(ao.severity, ao.module_name ?? ao.moduleName, ao.title);
+    }
+  }
+
+  // ── Shape B (newer pnpm audit envelope) ─────────────────────────────────────
+  // Two flavours observed in the wild:
+  //   { vulnerabilities: [ { name, severity, title?, ... }, ... ] }
+  //   { vulnerabilities: { "<pkg>": { severity, ... }, ... } }   (npm v7+)
+  // If Shape A's metadata already populated counts we keep those and only
+  // gather titles, to avoid double-counting in mixed envelopes.
+  const metaProvidedCounts =
+    summary.info + summary.low + summary.moderate + summary.high + summary.critical > 0;
+  const topVulns = obj.vulnerabilities;
+
+  if (Array.isArray(topVulns)) {
+    for (const a of topVulns) {
+      if (!a || typeof a !== "object") continue;
+      const ao = a as Record<string, unknown>;
+      const sev = String(ao.severity ?? "").toLowerCase();
+      if (!metaProvidedCounts && SEV_KEYS.has(sev)) {
+        (summary as unknown as Record<string, number>)[sev]++;
       }
+      pushAdvisory(ao.severity, ao.module_name ?? ao.moduleName ?? ao.name, ao.title);
+    }
+  } else if (topVulns && typeof topVulns === "object") {
+    for (const [name, a] of Object.entries(topVulns)) {
+      if (!a || typeof a !== "object") continue;
+      const ao = a as Record<string, unknown>;
+      const sev = String(ao.severity ?? "").toLowerCase();
+      if (!metaProvidedCounts && SEV_KEYS.has(sev)) {
+        (summary as unknown as Record<string, number>)[sev]++;
+      }
+      pushAdvisory(ao.severity, ao.name ?? name, ao.title ?? `vulnerability in ${name}`);
     }
   }
 
@@ -1463,33 +1579,27 @@ export function parseAuditOutput(jsonText: string): AuditSummary | null {
 function checkDependencyAudit(): CheckResult {
   const { output } = run("pnpm audit --json --prod");
 
-  // Heuristic: if the output looks like a network failure (no JSON at all),
-  // skip rather than fail so offline development isn't blocked.
-  const trimmed = output.trim();
-  const looksLikeJson = trimmed.startsWith("{");
-  if (!looksLikeJson) {
+  // First try to extract a JSON document from anywhere in the output, so a
+  // pnpm progress line / WARN prefix doesn't make us misclassify the result.
+  const summary = parseAuditOutput(output);
+
+  if (!summary) {
+    // No parseable JSON anywhere. Distinguish "audit could not run because
+    // the network was unreachable" (skip) from "audit ran but emitted
+    // unexpected output" (fail) so the tier-review banner is explicit.
     const networkHints = /ENOTFOUND|ETIMEDOUT|ECONNREFUSED|registry|getaddrinfo|network/i;
     if (networkHints.test(output)) {
       return {
         name: "Dependency audit clean of high/critical",
         passed: true,
         skipped: true,
-        message: "pnpm audit could not reach the registry — skipped (offline)",
+        message: "audit could not run — network unreachable (offline, skipped)",
       };
     }
     return {
       name: "Dependency audit clean of high/critical",
       passed: false,
-      message: `pnpm audit produced no JSON output: ${output.slice(0, 200)}`,
-    };
-  }
-
-  const summary = parseAuditOutput(output);
-  if (!summary) {
-    return {
-      name: "Dependency audit clean of high/critical",
-      passed: false,
-      message: `Could not parse pnpm audit JSON output (length ${output.length})`,
+      message: `audit ran but produced no parseable JSON envelope: ${output.slice(0, 200)}`,
     };
   }
 
