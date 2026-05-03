@@ -35,8 +35,13 @@ import { listProviders } from "./integration-registry";
 import { executeIntegrationAction } from "./integrations.service";
 import * as mediaService from "./media.service";
 import * as memoryService from "./memory.service";
-import { chat as ollamaChat } from "./ollama.service";
 import { logPrivacyEvent } from "./privacy.service";
+import {
+  CloudConsentRequiredError,
+  CloudCredentialMissingError,
+  RuntimeUnavailableError,
+  chatWithActiveRuntime,
+} from "./runtime.service";
 
 import { emitOpEvent } from "../lib/event-bus";
 
@@ -193,23 +198,72 @@ const TOOLS: ToolEntry[] = [
     },
   },
   {
-    name: "ollama.chat",
-    description: "Single-turn chat completion against the local Ollama model.",
+    // Renamed-conceptually: this tool now dispatches through the active
+    // runtime adapter, not Ollama directly. Kept under the legacy name
+    // so existing agent plans keep working — registered alias below.
+    name: "model.chat",
+    description: "Single-turn chat completion against the active runtime adapter.",
     riskLevel: "low",
     handler: async (ctx, input) => {
       const messages = Array.isArray(input["messages"]) ? input["messages"] : [];
-      const r = await ollamaChat(ctx, {
-        model: typeof input["model"] === "string" ? (input["model"] as string) : "llama3",
-        messages: messages as Array<{
-          role: "system" | "user" | "assistant" | "tool";
-          content: string;
-        }>,
-        temperature:
-          typeof input["temperature"] === "number"
-            ? (input["temperature"] as number)
-            : undefined,
-      });
-      return { ...r };
+      // Per-session cloud confirmations are inherited from the
+      // TenantContext (populated by the tenant-context middleware
+      // from the express-session cookie). This makes the tool path
+      // indistinguishable from the chat route: confirming a cloud
+      // runtime in Settings authorises every server-side caller —
+      // including the agent orchestrator. Background workers that
+      // construct their own ctx omit the field, so deny-by-default
+      // still applies (no cloud egress without explicit opt-in).
+      const confirmed = ctx.confirmedRuntimeIds ?? [];
+      try {
+        const r = await chatWithActiveRuntime(
+          ctx,
+          {
+            model: typeof input["model"] === "string" ? (input["model"] as string) : "",
+            messages: messages as Array<{
+              role: "system" | "user" | "assistant" | "tool";
+              content: string;
+            }>,
+            ...(typeof input["temperature"] === "number"
+              ? { temperature: input["temperature"] as number }
+              : {}),
+          },
+          [...confirmed],
+        );
+        return { ...r };
+      } catch (e) {
+        if (e instanceof CloudCredentialMissingError) {
+          throw new ToolValidationError(
+            `Cloud runtime "${e.runtimeId}" is missing an API key — open Settings → Runtime to add one.`,
+          );
+        }
+        if (e instanceof CloudConsentRequiredError) {
+          throw new ToolValidationError(
+            `Runtime "${e.runtimeId}" requires explicit per-session cloud confirmation in Settings before agent tools can dispatch to it.`,
+          );
+        }
+        if (e instanceof RuntimeUnavailableError) {
+          // Pause-and-notify: surface unavailability as a stable
+          // validation error so the orchestrator can prompt the user
+          // to start the runtime (or switch) instead of crashing.
+          throw new ToolValidationError(
+            `Runtime "${e.runtimeId}" is unreachable (${e.health.detail ?? "no detail"}) — start it or switch active runtime, then retry.`,
+          );
+        }
+        throw e;
+      }
+    },
+  },
+  {
+    // Backwards-compat alias — older plans reference "ollama.chat" by
+    // name. Forwards to the abstraction layer just like model.chat.
+    name: "ollama.chat",
+    description: "Alias of model.chat (kept for backwards compatibility).",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const tool = TOOLS.find((t) => t.name === "model.chat");
+      if (!tool) throw new ToolNotFoundError("model.chat");
+      return tool.handler(ctx, input);
     },
   },
   {

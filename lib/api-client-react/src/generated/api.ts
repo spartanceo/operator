@@ -29,6 +29,7 @@ import type {
   AbuseReportPageResponse,
   AbuseReportResponse,
   AcquisitionChannelResponse,
+  ActiveRuntimeResponse,
   ActivityEventListResponse,
   ActivityEventResponse,
   Admin2faCodeRequest,
@@ -88,6 +89,8 @@ import type {
   CommAccountDisconnectResponse,
   CommAccountListResponse,
   CommAccountResponse,
+  ConfirmRuntimeSessionRequest,
+  ConfirmRuntimeSessionResponse,
   ConnectCommAccountRequest,
   ConnectIntegrationRequest,
   ContactDeleteResponse,
@@ -481,6 +484,7 @@ import type {
   RejectModerationItemBody,
   RejectPrivateSkillPackageBody,
   RemoveStoreSkillBody,
+  ResidencySignalResponse,
   ResolveAbuseReportBody,
   RestoreBackupRequest,
   RestoreBackupResponse,
@@ -489,6 +493,9 @@ import type {
   RollbackSkillRequest,
   RunTaskTemplateRequest,
   RunTaskTemplateResponse,
+  RuntimeCredentialDeleteResponse,
+  RuntimeCredentialReceiptResponse,
+  RuntimeListResponse,
   ScanSkillRequest,
   ScanSkillResponse,
   ScheduleSettingsResponse,
@@ -510,9 +517,12 @@ import type {
   SecurityWebhookSecretsListParams,
   SelectModelRequest,
   SetAcquisitionChannelRequest,
+  SetActiveRuntimeRequest,
+  SetActiveRuntimeResponse,
   SetEnterpriseAuditRetentionBody,
   SetEnterpriseWhitelistEntryBody,
   SetFeatureFlagBody,
+  SetRuntimeCredentialRequest,
   SetSkillPermissionRequest,
   SetSkillTrustFlagsRequest,
   SettingsExportResponse,
@@ -45636,3 +45646,670 @@ export const useUninstallPrivateSkill = <
 > => {
   return useMutation(getUninstallPrivateSkillMutationOptions(options));
 };
+
+/**
+ * @summary List installed model runtime adapters with health
+ */
+export const getListRuntimesUrl = () => {
+  return `/api/runtimes`;
+};
+
+export const listRuntimes = async (
+  options?: RequestInit,
+): Promise<RuntimeListResponse> => {
+  return customFetch<RuntimeListResponse>(getListRuntimesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRuntimesQueryKey = () => {
+  return [`/api/runtimes`] as const;
+};
+
+export const getListRuntimesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRuntimes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRuntimes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRuntimesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listRuntimes>>> = ({
+    signal,
+  }) => listRuntimes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRuntimes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRuntimesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRuntimes>>
+>;
+export type ListRuntimesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List installed model runtime adapters with health
+ */
+
+export function useListRuntimes<
+  TData = Awaited<ReturnType<typeof listRuntimes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRuntimes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRuntimesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Active runtime + residency signal
+ */
+export const getGetActiveRuntimeUrl = () => {
+  return `/api/runtimes/active`;
+};
+
+export const getActiveRuntime = async (
+  options?: RequestInit,
+): Promise<ActiveRuntimeResponse> => {
+  return customFetch<ActiveRuntimeResponse>(getGetActiveRuntimeUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetActiveRuntimeQueryKey = () => {
+  return [`/api/runtimes/active`] as const;
+};
+
+export const getGetActiveRuntimeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getActiveRuntime>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getActiveRuntime>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetActiveRuntimeQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getActiveRuntime>>
+  > = ({ signal }) => getActiveRuntime({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getActiveRuntime>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetActiveRuntimeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getActiveRuntime>>
+>;
+export type GetActiveRuntimeQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Active runtime + residency signal
+ */
+
+export function useGetActiveRuntime<
+  TData = Awaited<ReturnType<typeof getActiveRuntime>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getActiveRuntime>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetActiveRuntimeQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Hot-switch the active runtime adapter
+ */
+export const getSetActiveRuntimeUrl = () => {
+  return `/api/runtimes/active`;
+};
+
+export const setActiveRuntime = async (
+  setActiveRuntimeRequest: SetActiveRuntimeRequest,
+  options?: RequestInit,
+): Promise<SetActiveRuntimeResponse> => {
+  return customFetch<SetActiveRuntimeResponse>(getSetActiveRuntimeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setActiveRuntimeRequest),
+  });
+};
+
+export const getSetActiveRuntimeMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setActiveRuntime>>,
+    TError,
+    { data: BodyType<SetActiveRuntimeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setActiveRuntime>>,
+  TError,
+  { data: BodyType<SetActiveRuntimeRequest> },
+  TContext
+> => {
+  const mutationKey = ["setActiveRuntime"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setActiveRuntime>>,
+    { data: BodyType<SetActiveRuntimeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setActiveRuntime(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetActiveRuntimeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setActiveRuntime>>
+>;
+export type SetActiveRuntimeMutationBody = BodyType<SetActiveRuntimeRequest>;
+export type SetActiveRuntimeMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Hot-switch the active runtime adapter
+ */
+export const useSetActiveRuntime = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setActiveRuntime>>,
+    TError,
+    { data: BodyType<SetActiveRuntimeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setActiveRuntime>>,
+  TError,
+  { data: BodyType<SetActiveRuntimeRequest> },
+  TContext
+> => {
+  return useMutation(getSetActiveRuntimeMutationOptions(options));
+};
+
+/**
+ * @summary List models served by one runtime
+ */
+export const getListRuntimeModelsUrl = (id: string) => {
+  return `/api/runtimes/${id}/models`;
+};
+
+export const listRuntimeModels = async (
+  id: string,
+  options?: RequestInit,
+): Promise<ModelListResponse> => {
+  return customFetch<ModelListResponse>(getListRuntimeModelsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRuntimeModelsQueryKey = (id: string) => {
+  return [`/api/runtimes/${id}/models`] as const;
+};
+
+export const getListRuntimeModelsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRuntimeModels>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRuntimeModels>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRuntimeModelsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRuntimeModels>>
+  > = ({ signal }) => listRuntimeModels(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRuntimeModels>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRuntimeModelsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRuntimeModels>>
+>;
+export type ListRuntimeModelsQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary List models served by one runtime
+ */
+
+export function useListRuntimeModels<
+  TData = Awaited<ReturnType<typeof listRuntimeModels>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRuntimeModels>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRuntimeModelsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Store an encrypted API key for a cloud runtime
+ */
+export const getSetRuntimeCredentialUrl = (id: string) => {
+  return `/api/runtimes/${id}/credentials`;
+};
+
+export const setRuntimeCredential = async (
+  id: string,
+  setRuntimeCredentialRequest: SetRuntimeCredentialRequest,
+  options?: RequestInit,
+): Promise<RuntimeCredentialReceiptResponse> => {
+  return customFetch<RuntimeCredentialReceiptResponse>(
+    getSetRuntimeCredentialUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(setRuntimeCredentialRequest),
+    },
+  );
+};
+
+export const getSetRuntimeCredentialMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setRuntimeCredential>>,
+    TError,
+    { id: string; data: BodyType<SetRuntimeCredentialRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setRuntimeCredential>>,
+  TError,
+  { id: string; data: BodyType<SetRuntimeCredentialRequest> },
+  TContext
+> => {
+  const mutationKey = ["setRuntimeCredential"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setRuntimeCredential>>,
+    { id: string; data: BodyType<SetRuntimeCredentialRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return setRuntimeCredential(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetRuntimeCredentialMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setRuntimeCredential>>
+>;
+export type SetRuntimeCredentialMutationBody =
+  BodyType<SetRuntimeCredentialRequest>;
+export type SetRuntimeCredentialMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Store an encrypted API key for a cloud runtime
+ */
+export const useSetRuntimeCredential = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setRuntimeCredential>>,
+    TError,
+    { id: string; data: BodyType<SetRuntimeCredentialRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setRuntimeCredential>>,
+  TError,
+  { id: string; data: BodyType<SetRuntimeCredentialRequest> },
+  TContext
+> => {
+  return useMutation(getSetRuntimeCredentialMutationOptions(options));
+};
+
+/**
+ * @summary Remove a stored API key
+ */
+export const getDeleteRuntimeCredentialUrl = (id: string) => {
+  return `/api/runtimes/${id}/credentials`;
+};
+
+export const deleteRuntimeCredential = async (
+  id: string,
+  options?: RequestInit,
+): Promise<RuntimeCredentialDeleteResponse> => {
+  return customFetch<RuntimeCredentialDeleteResponse>(
+    getDeleteRuntimeCredentialUrl(id),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteRuntimeCredentialMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRuntimeCredential>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteRuntimeCredential>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteRuntimeCredential"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteRuntimeCredential>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteRuntimeCredential(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteRuntimeCredentialMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteRuntimeCredential>>
+>;
+
+export type DeleteRuntimeCredentialMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a stored API key
+ */
+export const useDeleteRuntimeCredential = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRuntimeCredential>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteRuntimeCredential>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteRuntimeCredentialMutationOptions(options));
+};
+
+/**
+ * @summary Per-session opt-in for cloud-residency runtimes
+ */
+export const getConfirmRuntimeSessionUrl = (id: string) => {
+  return `/api/runtimes/${id}/confirm-session`;
+};
+
+export const confirmRuntimeSession = async (
+  id: string,
+  confirmRuntimeSessionRequest: ConfirmRuntimeSessionRequest,
+  options?: RequestInit,
+): Promise<ConfirmRuntimeSessionResponse> => {
+  return customFetch<ConfirmRuntimeSessionResponse>(
+    getConfirmRuntimeSessionUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(confirmRuntimeSessionRequest),
+    },
+  );
+};
+
+export const getConfirmRuntimeSessionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmRuntimeSession>>,
+    TError,
+    { id: string; data: BodyType<ConfirmRuntimeSessionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmRuntimeSession>>,
+  TError,
+  { id: string; data: BodyType<ConfirmRuntimeSessionRequest> },
+  TContext
+> => {
+  const mutationKey = ["confirmRuntimeSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmRuntimeSession>>,
+    { id: string; data: BodyType<ConfirmRuntimeSessionRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return confirmRuntimeSession(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmRuntimeSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmRuntimeSession>>
+>;
+export type ConfirmRuntimeSessionMutationBody =
+  BodyType<ConfirmRuntimeSessionRequest>;
+export type ConfirmRuntimeSessionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Per-session opt-in for cloud-residency runtimes
+ */
+export const useConfirmRuntimeSession = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmRuntimeSession>>,
+    TError,
+    { id: string; data: BodyType<ConfirmRuntimeSessionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmRuntimeSession>>,
+  TError,
+  { id: string; data: BodyType<ConfirmRuntimeSessionRequest> },
+  TContext
+> => {
+  return useMutation(getConfirmRuntimeSessionMutationOptions(options));
+};
+
+/**
+ * @summary Real-time data-residency signal for the Privacy Meter
+ */
+export const getGetResidencySignalUrl = () => {
+  return `/api/privacy/residency`;
+};
+
+export const getResidencySignal = async (
+  options?: RequestInit,
+): Promise<ResidencySignalResponse> => {
+  return customFetch<ResidencySignalResponse>(getGetResidencySignalUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetResidencySignalQueryKey = () => {
+  return [`/api/privacy/residency`] as const;
+};
+
+export const getGetResidencySignalQueryOptions = <
+  TData = Awaited<ReturnType<typeof getResidencySignal>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getResidencySignal>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetResidencySignalQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getResidencySignal>>
+  > = ({ signal }) => getResidencySignal({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getResidencySignal>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetResidencySignalQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getResidencySignal>>
+>;
+export type GetResidencySignalQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Real-time data-residency signal for the Privacy Meter
+ */
+
+export function useGetResidencySignal<
+  TData = Awaited<ReturnType<typeof getResidencySignal>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getResidencySignal>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetResidencySignalQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

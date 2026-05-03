@@ -11,6 +11,7 @@
 process.env["SQLITE_PATH"] = ":memory:";
 process.env["NODE_ENV"] = "test";
 process.env["SESSION_SECRET"] = "test-session-secret-omninity-tier-1";
+process.env["RUNTIME_KEY_SECRET"] = "test-runtime-key-secret-omninity-tier-1";
 process.env["SANDBOX_ROOT"] = `/tmp/omninity-sandbox-${Date.now()}`;
 // Deterministic hardware probe for the onboarding tests — overrides the
 // real `os.*` reads with a known 16GB Apple Silicon profile so the
@@ -256,6 +257,347 @@ const cases: TestCase[] = [
         .send({ path: "notes/hello.txt" });
       assert.equal(read.status, 200);
       assert.equal(read.body.data.content, "hi");
+    },
+  },
+  {
+    name: "GET /api/runtimes lists adapters with health + residency",
+    run: async () => {
+      const res = await request(app).get("/api/runtimes").set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.success, true);
+      const items: Array<{ id: string; residency: string; health: { status: string } }> =
+        res.body.data.items;
+      assert.ok(Array.isArray(items));
+      const ids = new Set(items.map((r) => r.id));
+      for (const expected of ["ollama", "lmstudio", "jan", "llamafile", "openai", "anthropic"]) {
+        assert.ok(ids.has(expected), `missing runtime ${expected}`);
+      }
+      const ollama = items.find((r) => r.id === "ollama")!;
+      assert.equal(ollama.residency, "local");
+      const openai = items.find((r) => r.id === "openai")!;
+      assert.equal(openai.residency, "cloud-required");
+      assert.ok(["healthy", "unreachable", "needs-credentials", "unknown"].includes(openai.health.status));
+    },
+  },
+  {
+    name: "GET /api/runtimes/active defaults to ollama + local residency",
+    run: async () => {
+      const res = await request(app).get("/api/runtimes/active").set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.data.activeRuntimeId, "ollama");
+      assert.equal(res.body.data.residency, "local");
+      assert.equal(typeof res.body.data.cloudConfirmedThisSession, "boolean");
+      assert.ok(Array.isArray(res.body.data.detectedRuntimeIds));
+    },
+  },
+  {
+    name: "POST /api/runtimes/active hot-switches the runtime",
+    run: async () => {
+      const swap = await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "lmstudio", defaultModel: "llama-3-8b" });
+      assert.equal(swap.status, 200, JSON.stringify(swap.body));
+      assert.equal(swap.body.data.activeRuntimeId, "lmstudio");
+      assert.equal(swap.body.data.residency, "local");
+
+      const restore = await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "ollama", defaultModel: null });
+      assert.equal(restore.status, 200);
+    },
+  },
+  {
+    name: "POST /api/runtimes/active rejects unknown runtime ids",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "nonsense" });
+      assert.equal(res.status, 404);
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.error.code, "NOT_FOUND");
+    },
+  },
+  {
+    name: "cloud chat refuses without per-session confirmation",
+    run: async () => {
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "openai", defaultModel: null });
+
+      const chat = await request(app)
+        .post("/api/chat")
+        .set("X-Tenant-ID", TENANT)
+        .send({ messages: [{ role: "user", content: "hello" }] });
+      assert.equal(chat.status, 412, JSON.stringify(chat.body));
+      assert.equal(chat.body.error.code, "CLOUD_CONSENT_REQUIRED");
+      assert.equal(chat.body.error.details.runtimeId, "openai");
+
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "ollama", defaultModel: null });
+    },
+  },
+  {
+    name: "cloud chat returns 412 MISSING_CREDENTIALS when confirmed but no key",
+    run: async () => {
+      // Switch to openai (no key configured), confirm the cloud session,
+      // then verify the route maps CloudCredentialMissingError to a 412
+      // MISSING_CREDENTIALS envelope rather than a generic 500.
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "openai", defaultModel: null });
+      const agent = request.agent(app);
+      await agent
+        .post("/api/runtimes/openai/confirm-session")
+        .set("X-Tenant-ID", TENANT)
+        .send({ confirmed: true });
+      const chat = await agent
+        .post("/api/chat")
+        .set("X-Tenant-ID", TENANT)
+        .send({ messages: [{ role: "user", content: "hi" }] });
+      assert.equal(chat.status, 412, JSON.stringify(chat.body));
+      assert.equal(chat.body.error.code, "MISSING_CREDENTIALS");
+      assert.equal(chat.body.error.details.runtimeId, "openai");
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "ollama", defaultModel: null });
+    },
+  },
+  {
+    name: "ollama.chat tool dispatches through runtime abstraction (pauses on unreachable)",
+    run: async () => {
+      // After the refactor the legacy ollama.chat tool routes through
+      // the runtime abstraction (no direct ollama.service import). The
+      // ensureHealthy() preflight surfaces unreachable Ollama as a
+      // ToolValidationError (400) — that's the pause-and-notify
+      // contract the orchestrator relies on. A green test environment
+      // running a real Ollama would instead return 200; both outcomes
+      // prove the tool is dispatching through the abstraction.
+      const r = await request(app)
+        .post("/api/tools/ollama.chat/invoke")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          input: { model: "llama3", messages: [{ role: "user", content: "hi" }] },
+        });
+      if (r.status === 200) {
+        assert.equal(r.body.data.toolName, "ollama.chat");
+        assert.equal(r.body.data.output?.message?.role, "assistant");
+      } else {
+        assert.equal(r.status, 400, JSON.stringify(r.body));
+        assert.equal(r.body.error.code, "TOOL_VALIDATION");
+        assert.match(String(r.body.error.message), /unreachable|ollama/i);
+      }
+    },
+  },
+  {
+    name: "per-runtime confirmation: confirming openai does not authorise anthropic",
+    run: async () => {
+      // Confirming OpenAI must NOT implicitly confirm Anthropic — the
+    // session set is keyed by runtime id, so each cloud provider needs
+    // its own opt-in before any traffic can leave the device.
+      const agent = request.agent(app);
+      await agent
+        .post("/api/runtimes/openai/confirm-session")
+        .set("X-Tenant-ID", TENANT)
+        .send({ confirmed: true });
+
+      // Switch to anthropic and verify the chat call still demands its
+      // own confirmation despite OpenAI being approved.
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "anthropic", defaultModel: null });
+      const chat = await agent
+        .post("/api/chat")
+        .set("X-Tenant-ID", TENANT)
+        .send({ messages: [{ role: "user", content: "hi" }] });
+      assert.equal(chat.status, 412, JSON.stringify(chat.body));
+      assert.equal(chat.body.error.code, "CLOUD_CONSENT_REQUIRED");
+      assert.equal(chat.body.error.details.runtimeId, "anthropic");
+
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "ollama", defaultModel: null });
+    },
+  },
+  {
+    name: "residency signal flips to cloud-assist when user-owned key is set",
+    run: async () => {
+      // With no key configured, openai-as-active should report
+      // cloud-required; once a user-supplied key is stored the meter
+      // must transition to cloud-assist (user owns the credential path).
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "openai", defaultModel: null });
+
+      const before = await request(app)
+        .get("/api/privacy/residency")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(before.body.data.residency, "cloud-required");
+
+      await request(app)
+        .post("/api/runtimes/openai/credentials")
+        .set("X-Tenant-ID", TENANT)
+        .send({ apiKey: "sk-test-residency-flip" });
+
+      const after = await request(app)
+        .get("/api/privacy/residency")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(after.body.data.residency, "cloud-assist");
+
+      await request(app)
+        .delete("/api/runtimes/openai/credentials")
+        .set("X-Tenant-ID", TENANT);
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "ollama", defaultModel: null });
+    },
+  },
+  {
+    name: "cloud adapter upstream failure normalizes to 503 RUNTIME_UNAVAILABLE",
+    run: async () => {
+      // Verifies fix for review finding #2: cloud adapters must throw
+      // RuntimeUpstreamError on provider failures, which the runtime
+      // service rethrows as RuntimeUnavailableError so /api/chat
+      // returns a clean 503 instead of a stub assistant message.
+      // We point OpenAI at an obviously invalid key so the provider
+      // returns 401 — the adapter must normalize that to a structured
+      // error, NOT a successful chat response.
+      const agent = request.agent(app);
+      await agent
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "openai", defaultModel: null });
+      await agent
+        .post("/api/runtimes/openai/confirm-session")
+        .set("X-Tenant-ID", TENANT)
+        .send({ confirmed: true });
+      await agent
+        .post("/api/runtimes/openai/credentials")
+        .set("X-Tenant-ID", TENANT)
+        .send({ apiKey: "sk-this-key-is-deliberately-invalid-for-the-test" });
+
+      const res = await agent
+        .post("/api/chat")
+        .set("X-Tenant-ID", TENANT)
+        .send({ messages: [{ role: "user", content: "hi" }] });
+      // Either RUNTIME_UNAVAILABLE (network reachable, 401 from
+      // ensureHealthy) or another runtime error code is acceptable —
+      // the contract is "no stub assistant message and no 200" so the
+      // orchestrator can pause-and-notify deterministically.
+      assert.notEqual(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.status, 503);
+      assert.equal(res.body.error.code, "RUNTIME_UNAVAILABLE");
+      assert.equal(res.body.error.details.runtimeId, "openai");
+
+      // Cleanup: revoke confirmation, drop key, restore default runtime.
+      await agent
+        .delete("/api/runtimes/openai/credentials")
+        .set("X-Tenant-ID", TENANT);
+      await agent
+        .post("/api/runtimes/openai/confirm-session")
+        .set("X-Tenant-ID", TENANT)
+        .send({ confirmed: false });
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "ollama", defaultModel: null });
+    },
+  },
+  {
+    name: "ModelRuntime contract exposes embed + chatStream",
+    run: async () => {
+      // Contract-level assertion — guards against a future adapter
+      // regressing the streaming/embeddings surface that the runtime
+      // abstraction promises to its callers.
+      const { ollamaAdapter } = await import("./services/runtime/adapters/ollama.adapter");
+      assert.equal(typeof ollamaAdapter.embed, "function");
+      assert.equal(typeof ollamaAdapter.chatStream, "function");
+      assert.equal(ollamaAdapter.capabilities.embeddings, true);
+    },
+  },
+  {
+    name: "POST /api/runtimes/openai/credentials stores encrypted key",
+    run: async () => {
+      const r = await request(app)
+        .post("/api/runtimes/openai/credentials")
+        .set("X-Tenant-ID", TENANT)
+        .send({ apiKey: "sk-test-1234567890", label: "test-key" });
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      assert.equal(r.body.data.runtimeId, "openai");
+      assert.equal(r.body.data.hasCredential, true);
+
+      const list = await request(app).get("/api/runtimes").set("X-Tenant-ID", TENANT);
+      const openai = list.body.data.items.find((x: { id: string }) => x.id === "openai");
+      assert.equal(openai.hasCredential, true);
+
+      const del = await request(app)
+        .delete("/api/runtimes/openai/credentials")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(del.status, 200);
+      assert.equal(del.body.data.deleted, true);
+    },
+  },
+  {
+    name: "POST /api/runtimes/ollama/credentials rejects no-key runtime",
+    run: async () => {
+      const r = await request(app)
+        .post("/api/runtimes/ollama/credentials")
+        .set("X-Tenant-ID", TENANT)
+        .send({ apiKey: "sk-irrelevant" });
+      assert.equal(r.status, 400);
+      assert.equal(r.body.error.code, "VALIDATION");
+    },
+  },
+  {
+    name: "GET /api/privacy/residency reports active runtime + signal",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/privacy/residency")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.runtimeId, "ollama");
+      assert.equal(res.body.data.residency, "local");
+      assert.equal(typeof res.body.data.cloudConfirmedThisSession, "boolean");
+    },
+  },
+  {
+    name: "tenant isolation: runtime selection does not bleed across tenants",
+    run: async () => {
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "jan", defaultModel: null });
+      const other = await request(app)
+        .get("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(other.status, 200);
+      assert.equal(other.body.data.activeRuntimeId, "ollama");
+      await request(app)
+        .post("/api/runtimes/active")
+        .set("X-Tenant-ID", TENANT)
+        .send({ runtimeId: "ollama", defaultModel: null });
+    },
+  },
+  {
+    name: "privacy events log records the in-band activity",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/privacy/events?limit=100")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.ok(Array.isArray(res.body.data.items));
     },
   },
   {

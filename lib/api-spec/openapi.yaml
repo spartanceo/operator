@@ -10936,6 +10936,179 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PrivateSkillRemovalResponse' }
+  /runtimes:
+    get:
+      operationId: listRuntimes
+      tags: [runtimes]
+      summary: List installed model runtime adapters with health
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Runtime page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeListResponse"
+
+  /runtimes/active:
+    get:
+      operationId: getActiveRuntime
+      tags: [runtimes]
+      summary: Active runtime + residency signal
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Active runtime info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveRuntimeResponse"
+    post:
+      operationId: setActiveRuntime
+      tags: [runtimes]
+      summary: Hot-switch the active runtime adapter
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetActiveRuntimeRequest"
+      responses:
+        "200":
+          description: Updated selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetActiveRuntimeResponse"
+        "404":
+          description: Unknown runtime
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /runtimes/{id}/models:
+    get:
+      operationId: listRuntimeModels
+      tags: [runtimes]
+      summary: List models served by one runtime
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime model page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelListResponse"
+        "404":
+          description: Unknown runtime
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /runtimes/{id}/credentials:
+    post:
+      operationId: setRuntimeCredential
+      tags: [runtimes]
+      summary: Store an encrypted API key for a cloud runtime
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetRuntimeCredentialRequest"
+      responses:
+        "200":
+          description: Credential stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeCredentialReceiptResponse"
+        "404":
+          description: Unknown runtime
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: deleteRuntimeCredential
+      tags: [runtimes]
+      summary: Remove a stored API key
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Credential removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeCredentialDeleteResponse"
+
+  /runtimes/{id}/confirm-session:
+    post:
+      operationId: confirmRuntimeSession
+      tags: [runtimes]
+      summary: Per-session opt-in for cloud-residency runtimes
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmRuntimeSessionRequest"
+      responses:
+        "200":
+          description: Confirmation recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmRuntimeSessionResponse"
+
+  /privacy/residency:
+    get:
+      operationId: getResidencySignal
+      tags: [privacy]
+      summary: Real-time data-residency signal for the Privacy Meter
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Residency signal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResidencySignalResponse"
+
+
 components:
   parameters:
     TenantHeader:
@@ -25607,6 +25780,242 @@ components:
           type: object
           additionalProperties: true
 
+    RuntimeResidency:
+      type: string
+      enum: [local, cloud-assist, cloud-required]
+
+    RuntimeCapabilities:
+      type: object
+      required: [streaming, toolCalling, vision, embeddings]
+      properties:
+        streaming:
+          type: boolean
+        toolCalling:
+          type: boolean
+        vision:
+          type: boolean
+        embeddings:
+          type: boolean
+
+    RuntimeHealth:
+      type: object
+      required: [status, detectedAt]
+      properties:
+        status:
+          type: string
+          enum: [healthy, unreachable, needs-credentials, unknown]
+        detail:
+          type: string
+          nullable: true
+        detectedAt:
+          type: string
+          format: date-time
+
+    RuntimeDescriptor:
+      type: object
+      required: [id, displayName, residency, requiresApiKey, hasCredential, capabilities, health]
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        residency:
+          $ref: "#/components/schemas/RuntimeResidency"
+        requiresApiKey:
+          type: boolean
+        hasCredential:
+          type: boolean
+        capabilities:
+          $ref: "#/components/schemas/RuntimeCapabilities"
+        health:
+          $ref: "#/components/schemas/RuntimeHealth"
+
+    RuntimeListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RuntimeDescriptor"
+        nextCursor:
+          type: string
+          nullable: true
+
+    RuntimeListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/RuntimeListPage"
+
+    ActiveRuntimeInfo:
+      type: object
+      required: [activeRuntimeId, residency, detectedRuntimeIds, cloudConfirmedThisSession]
+      properties:
+        activeRuntimeId:
+          type: string
+        defaultModel:
+          type: string
+          nullable: true
+        residency:
+          $ref: "#/components/schemas/RuntimeResidency"
+        detectedRuntimeIds:
+          type: array
+          items:
+            type: string
+        cloudConfirmedThisSession:
+          type: boolean
+
+    ActiveRuntimeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ActiveRuntimeInfo"
+
+    SetActiveRuntimeRequest:
+      type: object
+      required: [runtimeId]
+      properties:
+        runtimeId:
+          type: string
+        defaultModel:
+          type: string
+          nullable: true
+
+    SetActiveRuntimeReceipt:
+      type: object
+      required: [activeRuntimeId, residency, cloudConfirmedThisSession]
+      properties:
+        activeRuntimeId:
+          type: string
+        defaultModel:
+          type: string
+          nullable: true
+        residency:
+          $ref: "#/components/schemas/RuntimeResidency"
+        cloudConfirmedThisSession:
+          type: boolean
+
+    SetActiveRuntimeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/SetActiveRuntimeReceipt"
+
+    SetRuntimeCredentialRequest:
+      type: object
+      required: [apiKey]
+      properties:
+        apiKey:
+          type: string
+          minLength: 8
+        label:
+          type: string
+          nullable: true
+
+    RuntimeCredentialReceipt:
+      type: object
+      required: [runtimeId, hasCredential]
+      properties:
+        runtimeId:
+          type: string
+        hasCredential:
+          type: boolean
+          enum: [true]
+
+    RuntimeCredentialReceiptResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/RuntimeCredentialReceipt"
+
+    RuntimeCredentialDeleteReceipt:
+      type: object
+      required: [runtimeId, deleted]
+      properties:
+        runtimeId:
+          type: string
+        deleted:
+          type: boolean
+
+    RuntimeCredentialDeleteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/RuntimeCredentialDeleteReceipt"
+
+    ConfirmRuntimeSessionRequest:
+      type: object
+      required: [confirmed]
+      properties:
+        confirmed:
+          type: boolean
+
+    ConfirmRuntimeSessionReceipt:
+      type: object
+      required: [runtimeId, residency, cloudConfirmedThisSession]
+      properties:
+        runtimeId:
+          type: string
+        residency:
+          $ref: "#/components/schemas/RuntimeResidency"
+        cloudConfirmedThisSession:
+          type: boolean
+
+    ConfirmRuntimeSessionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ConfirmRuntimeSessionReceipt"
+
+    ResidencySignal:
+      type: object
+      required: [runtimeId, residency, cloudConfirmedThisSession, detectedRuntimeIds]
+      properties:
+        runtimeId:
+          type: string
+        residency:
+          $ref: "#/components/schemas/RuntimeResidency"
+        cloudConfirmedThisSession:
+          type: boolean
+        detectedRuntimeIds:
+          type: array
+          items:
+            type: string
+
+    ResidencySignalResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ResidencySignal"
   responses: {}
   requestBodies: {}
   headers: {}

@@ -16,6 +16,7 @@ import type { TenantContext } from "@workspace/types";
 import { runWithTenantContext } from "../lib/tenant-context";
 import { err } from "../lib/api-envelope";
 import { ensureTenantWorkspace } from "../lib/tenant-ensure";
+import { listConfirmedRuntimeIds } from "../lib/cloud-session";
 
 const TENANT_HEADER = "x-tenant-id";
 const WORKSPACE_HEADER = "x-workspace-id";
@@ -81,11 +82,18 @@ export function tenantContext() {
       req.header(WORKSPACE_HEADER) || `default-${tenantId}`;
     const userId = req.header(USER_HEADER) || undefined;
 
+    // Snapshot per-session cloud confirmations so downstream services
+    // (tools, agent orchestrator) inherit them automatically without
+    // every signature having to plumb the list. Background jobs that
+    // build their own ctx omit this field — deny-by-default for cloud.
+    const confirmedRuntimeIds = listConfirmedRuntimeIds(req);
+
     const ctx: TenantContext = {
       tenantId,
       workspaceId,
       ...(userId !== undefined ? { userId } : {}),
       requestId,
+      confirmedRuntimeIds,
     };
 
     const cacheKey = `${tenantId}:${workspaceId}`;

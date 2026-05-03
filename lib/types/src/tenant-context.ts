@@ -15,6 +15,18 @@ export interface TenantContext {
   readonly userId?: string;
   /** Opaque trace identifier propagated as `X-Request-ID` end-to-end. */
   readonly requestId: string;
+  /**
+   * Runtime ids the operator confirmed this session for cloud egress.
+   * Populated by the tenant-context middleware from the session cookie so
+   * that *any* server-side caller (routes, tools, agent orchestrator)
+   * can dispatch to a confirmed cloud runtime without plumbing the list
+   * through every signature.
+   *
+   * Background workers / scheduled jobs that build their own context
+   * may omit this field; in that case the runtime service treats no
+   * cloud runtime as confirmed (deny-by-default).
+   */
+  readonly confirmedRuntimeIds?: readonly string[];
 }
 
 /**

@@ -20900,3 +20900,227 @@ export const UninstallPrivateSkillResponse = zod.object({
     removed: zod.boolean(),
   }),
 });
+
+/**
+ * @summary List installed model runtime adapters with health
+ */
+export const ListRuntimesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListRuntimesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        displayName: zod.string(),
+        residency: zod.enum(["local", "cloud-assist", "cloud-required"]),
+        requiresApiKey: zod.boolean(),
+        hasCredential: zod.boolean(),
+        capabilities: zod.object({
+          streaming: zod.boolean(),
+          toolCalling: zod.boolean(),
+          vision: zod.boolean(),
+          embeddings: zod.boolean(),
+        }),
+        health: zod.object({
+          status: zod.enum([
+            "healthy",
+            "unreachable",
+            "needs-credentials",
+            "unknown",
+          ]),
+          detail: zod.string().nullish(),
+          detectedAt: zod.coerce.date(),
+        }),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Active runtime + residency signal
+ */
+export const GetActiveRuntimeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetActiveRuntimeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    activeRuntimeId: zod.string(),
+    defaultModel: zod.string().nullish(),
+    residency: zod.enum(["local", "cloud-assist", "cloud-required"]),
+    detectedRuntimeIds: zod.array(zod.string()),
+    cloudConfirmedThisSession: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Hot-switch the active runtime adapter
+ */
+export const SetActiveRuntimeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetActiveRuntimeBody = zod.object({
+  runtimeId: zod.string(),
+  defaultModel: zod.string().nullish(),
+});
+
+export const SetActiveRuntimeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    activeRuntimeId: zod.string(),
+    defaultModel: zod.string().nullish(),
+    residency: zod.enum(["local", "cloud-assist", "cloud-required"]),
+    cloudConfirmedThisSession: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary List models served by one runtime
+ */
+export const ListRuntimeModelsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ListRuntimeModelsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListRuntimeModelsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        name: zod.string(),
+        status: zod.string(),
+        sizeBytes: zod.number().nullish(),
+        family: zod.string().nullish(),
+        modifiedAt: zod.coerce.date().nullish(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Store an encrypted API key for a cloud runtime
+ */
+export const SetRuntimeCredentialParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SetRuntimeCredentialHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const setRuntimeCredentialBodyApiKeyMin = 8;
+
+export const SetRuntimeCredentialBody = zod.object({
+  apiKey: zod.string().min(setRuntimeCredentialBodyApiKeyMin),
+  label: zod.string().nullish(),
+});
+
+export const SetRuntimeCredentialResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    runtimeId: zod.string(),
+    hasCredential: zod.literal(true),
+  }),
+});
+
+/**
+ * @summary Remove a stored API key
+ */
+export const DeleteRuntimeCredentialParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteRuntimeCredentialHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteRuntimeCredentialResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    runtimeId: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Per-session opt-in for cloud-residency runtimes
+ */
+export const ConfirmRuntimeSessionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ConfirmRuntimeSessionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ConfirmRuntimeSessionBody = zod.object({
+  confirmed: zod.boolean(),
+});
+
+export const ConfirmRuntimeSessionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    runtimeId: zod.string(),
+    residency: zod.enum(["local", "cloud-assist", "cloud-required"]),
+    cloudConfirmedThisSession: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Real-time data-residency signal for the Privacy Meter
+ */
+export const GetResidencySignalHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetResidencySignalResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    runtimeId: zod.string(),
+    residency: zod.enum(["local", "cloud-assist", "cloud-required"]),
+    cloudConfirmedThisSession: zod.boolean(),
+    detectedRuntimeIds: zod.array(zod.string()),
+  }),
+});

@@ -9305,6 +9305,141 @@ export interface SystemIntegrationTrayStatusResponse {
   data: SystemIntegrationTrayStatusResponseData;
 }
 
+export type RuntimeResidency =
+  (typeof RuntimeResidency)[keyof typeof RuntimeResidency];
+
+export const RuntimeResidency = {
+  local: "local",
+  "cloud-assist": "cloud-assist",
+  "cloud-required": "cloud-required",
+} as const;
+
+export interface RuntimeCapabilities {
+  streaming: boolean;
+  toolCalling: boolean;
+  vision: boolean;
+  embeddings: boolean;
+}
+
+export type RuntimeHealthStatus =
+  (typeof RuntimeHealthStatus)[keyof typeof RuntimeHealthStatus];
+
+export const RuntimeHealthStatus = {
+  healthy: "healthy",
+  unreachable: "unreachable",
+  "needs-credentials": "needs-credentials",
+  unknown: "unknown",
+} as const;
+
+export interface RuntimeHealth {
+  status: RuntimeHealthStatus;
+  detail?: string | null;
+  detectedAt: string;
+}
+
+export interface RuntimeDescriptor {
+  id: string;
+  displayName: string;
+  residency: RuntimeResidency;
+  requiresApiKey: boolean;
+  hasCredential: boolean;
+  capabilities: RuntimeCapabilities;
+  health: RuntimeHealth;
+}
+
+export interface RuntimeListPage {
+  items: RuntimeDescriptor[];
+  nextCursor: string | null;
+}
+
+export interface RuntimeListResponse {
+  success: boolean;
+  data: RuntimeListPage;
+}
+
+export interface ActiveRuntimeInfo {
+  activeRuntimeId: string;
+  defaultModel?: string | null;
+  residency: RuntimeResidency;
+  detectedRuntimeIds: string[];
+  cloudConfirmedThisSession: boolean;
+}
+
+export interface ActiveRuntimeResponse {
+  success: boolean;
+  data: ActiveRuntimeInfo;
+}
+
+export interface SetActiveRuntimeRequest {
+  runtimeId: string;
+  defaultModel?: string | null;
+}
+
+export interface SetActiveRuntimeReceipt {
+  activeRuntimeId: string;
+  defaultModel?: string | null;
+  residency: RuntimeResidency;
+  cloudConfirmedThisSession: boolean;
+}
+
+export interface SetActiveRuntimeResponse {
+  success: boolean;
+  data: SetActiveRuntimeReceipt;
+}
+
+export interface SetRuntimeCredentialRequest {
+  /** @minLength 8 */
+  apiKey: string;
+  label?: string | null;
+}
+
+export interface RuntimeCredentialReceipt {
+  runtimeId: string;
+  hasCredential: boolean;
+}
+
+export interface RuntimeCredentialReceiptResponse {
+  success: boolean;
+  data: RuntimeCredentialReceipt;
+}
+
+export interface RuntimeCredentialDeleteReceipt {
+  runtimeId: string;
+  deleted: boolean;
+}
+
+export interface RuntimeCredentialDeleteResponse {
+  success: boolean;
+  data: RuntimeCredentialDeleteReceipt;
+}
+
+export interface ConfirmRuntimeSessionRequest {
+  confirmed: boolean;
+}
+
+export interface ConfirmRuntimeSessionReceipt {
+  runtimeId: string;
+  residency: RuntimeResidency;
+  cloudConfirmedThisSession: boolean;
+}
+
+export interface ConfirmRuntimeSessionResponse {
+  success: boolean;
+  data: ConfirmRuntimeSessionReceipt;
+}
+
+export interface ResidencySignal {
+  runtimeId: string;
+  residency: RuntimeResidency;
+  cloudConfirmedThisSession: boolean;
+  detectedRuntimeIds: string[];
+}
+
+export interface ResidencySignalResponse {
+  success: boolean;
+  data: ResidencySignal;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
