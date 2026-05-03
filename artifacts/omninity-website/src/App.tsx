@@ -1,8 +1,9 @@
 import { Suspense, lazy } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useGetOnboardingProfile } from "@workspace/api-client-react";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout/layout";
 import { ThemeProvider } from "@/contexts/theme-context";
@@ -56,6 +57,7 @@ const SupportPage = lazy(() => import("@/pages/operator/support"));
 const FeatureRequestsPage = lazy(() => import("@/pages/feature-requests"));
 const StatusPage = lazy(() => import("@/pages/status"));
 import OnboardingPage from "@/pages/operator/onboarding";
+import LoginPage from "@/pages/auth/login";
 import MobilePage from "@/pages/mobile";
 import LegalPage from "@/pages/legal";
 const SuperAdminPage = lazy(() => import("@/pages/admin/super"));
@@ -139,7 +141,42 @@ function MarketingShell() {
 }
 
 /**
- * Operator shell — gated by the onboarding profile.
+ * Auth gate — sits in front of OperatorShell (Task #71).
+ *
+ * Calls GET /api/auth/me. Three states:
+ *   - loading  → full-screen spinner (avoids flash of login page on warm sessions)
+ *   - 401/error → redirect to /login so the user can sign in or register
+ *   - authenticated → render children
+ *
+ * The X-Tenant-ID header is still sent for the bootstrap case; the /me
+ * endpoint checks session.sessionId specifically, so header-only requests
+ * correctly resolve as unauthenticated.
+ */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, isError } = useAuth();
+  const [, navigate] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div
+        className="grid min-h-screen w-full place-items-center bg-background text-foreground"
+        data-testid="auth-loading"
+      >
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError || !isAuthenticated) {
+    void navigate("/login", { replace: true });
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+/**
+ * Operator shell — gated by session auth (Task #71) then onboarding profile.
  *
  * The first visit hits `/api/onboarding/profile` and renders the wizard
  * when no completed profile exists. On wizard completion we invalidate the
@@ -182,6 +219,19 @@ function OperatorShell() {
     <LegalGate>
       <OperatorRoutes />
     </LegalGate>
+  );
+}
+
+/**
+ * Auth-gated operator shell — wraps OperatorShell with the session check.
+ * Extracted so the AuthGate hook calls (useAuth → react-query) are always
+ * inside QueryClientProvider and always triggered on operator paths.
+ */
+function OperatorShellGated() {
+  return (
+    <AuthGate>
+      <OperatorShell />
+    </AuthGate>
   );
 }
 
@@ -230,9 +280,13 @@ function Router() {
   const relativePath = base && path.startsWith(base) ? path.slice(base.length) || "/" : path;
   const isMobile = relativePath === "/mobile" || relativePath.startsWith("/mobile/");
   const isAdmin = relativePath.startsWith("/admin/");
-  const isOperator = !isMobile && !isAdmin && isOperatorPath(relativePath);
+  const isLogin = relativePath === "/login";
+  const isOperator = !isMobile && !isAdmin && !isLogin && isOperatorPath(relativePath);
   if (isMobile) {
     return <MobilePage />;
+  }
+  if (isLogin) {
+    return <LoginPage />;
   }
   if (isAdmin) {
     return (
@@ -255,7 +309,7 @@ function Router() {
   }
   return (
     <>
-      {isOperator ? <OperatorShell /> : <MarketingShell />}
+      {isOperator ? <OperatorShellGated /> : <MarketingShell />}
       {isOperator ? (
         <>
           <HelpPanel />

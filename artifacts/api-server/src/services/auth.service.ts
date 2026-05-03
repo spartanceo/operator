@@ -217,6 +217,46 @@ export async function getSession(
   };
 }
 
+/**
+ * Look up a session by ID without requiring a pre-existing TenantContext.
+ * Used by the tenant-context middleware (Task #72) to bootstrap identity
+ * from the session cookie before any TenantContext exists.
+ *
+ * Returns null if the session is expired or the row is missing.
+ */
+export async function getSessionUnscoped(sessionId: string): Promise<{
+  tenantId: string;
+  userId: string;
+  role: string;
+  expiresAt: number;
+} | null> {
+  const rows = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.id, sessionId))
+    .limit(1);
+  const session = rows[0];
+  if (!session) return null;
+  if (session.expiresAt < Date.now()) {
+    // Expired — clean it up opportunistically but never block on it.
+    void db.delete(sessions).where(eq(sessions.id, sessionId)).catch(() => undefined);
+    return null;
+  }
+  const userRows = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, session.userId))
+    .limit(1);
+  const user = userRows[0];
+  if (!user) return null;
+  return {
+    tenantId: session.tenantId,
+    userId: session.userId,
+    role: user.role,
+    expiresAt: session.expiresAt,
+  };
+}
+
 export async function destroySession(
   ctx: TenantContext,
   sessionId: string,

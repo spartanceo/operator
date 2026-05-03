@@ -40,6 +40,13 @@ export interface OllamaChatRequest {
   model: string;
   messages: OllamaChatMessage[];
   temperature?: number;
+  /**
+   * Optional per-call network timeout in milliseconds.
+   * Overrides DEFAULT_TIMEOUT_MS when set. Intended for non-blocking
+   * background calls (e.g. plan description generation) so they fail fast
+   * when Ollama is unavailable without keeping the process alive.
+   */
+  timeoutMs?: number;
 }
 
 export interface OllamaChatResult {
@@ -70,6 +77,7 @@ async function ollamaFetch(
   url: string,
   init: RequestInit,
   privacyTarget: string,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<Response | null> {
   // logPrivacyEvent below MUST run within ±10 lines of the fetch() call so
   // the tier-review gate (Check #8) sees the audit pairing. Keep the
@@ -83,7 +91,7 @@ async function ollamaFetch(
   });
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), DEFAULT_TIMEOUT_MS);
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
     const res = await fetch(url, { ...init, signal: ctrl.signal });
     clearTimeout(t);
     return res;
@@ -159,6 +167,7 @@ export async function chat(
         body: JSON.stringify(body),
       },
       `ollama:/api/chat:${req.model}`,
+      req.timeoutMs,
     ),
   );
   if (!res || !res.ok) {

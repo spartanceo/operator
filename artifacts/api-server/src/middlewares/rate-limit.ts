@@ -1,14 +1,13 @@
 /**
  * Rate limiting (Standard 12).
  *
- * Two tiers in v1:
+ * Three tiers:
  *   - `defaultLimiter`  — applied to every route. Generous; the local-first
  *     desktop app is the typical caller and shouldn't hit it.
  *   - `adminLimiter`    — tight cap on the GDPR data-export / data-erasure
  *     routes because they are expensive and destructive.
- *
- * Auth routes (Task #4) and LLM-bound routes (Task #5) will add their own
- * limiters when they ship.
+ *   - `authLimiter`     — strict cap on auth endpoints to block brute-force
+ *     credential stuffing (Task #72).
  */
 import rateLimit from "express-rate-limit";
 
@@ -42,6 +41,29 @@ export const adminLimiter = rateLimit({
         err(
           "RATE_LIMITED",
           "Too many admin requests — try again in a minute",
+        ),
+      );
+  },
+});
+
+/**
+ * Tight limiter for authentication endpoints (login, register, logout).
+ * 10 attempts per minute per IP — generous enough for human use, strict
+ * enough to block automated credential-stuffing bursts (Task #72).
+ */
+export const authLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  skip: () => process.env["NODE_ENV"] === "test",
+  handler: (_req, res) => {
+    res
+      .status(429)
+      .json(
+        err(
+          "RATE_LIMITED",
+          "Too many authentication attempts — try again in a minute",
         ),
       );
   },

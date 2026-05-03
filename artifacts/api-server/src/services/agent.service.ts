@@ -39,6 +39,7 @@ import type { TenantContext } from "@workspace/types";
 import { emitOpEvent } from "../lib/event-bus";
 import { logger } from "../lib/logger";
 import { invokeTool, getToolByName } from "./tools.service";
+import { chat as ollamaChat } from "./ollama.service";
 import {
   recordStepComplete,
   recordStepStart,
@@ -248,9 +249,8 @@ export function matchAppFromGoal(
 }
 
 function plannerAgent(goal: string): PlanStep[] {
-  // Deterministic Tier 1 plan: every goal becomes a 3-step pipeline that
-  // exercises clock, echo, and noop. This guarantees the orchestrator path
-  // is exercised end-to-end without any model dependency.
+  // Deterministic Tier 1 execution steps — always used for the tool loop.
+  // Separate from the human-readable plan description (see generateAiPlanDescription).
   return [
     {
       toolName: "clock.now",
@@ -268,6 +268,92 @@ function plannerAgent(goal: string): PlanStep[] {
       rationale: "Final no-op step — keeps the pipeline shape consistent.",
     },
   ];
+}
+
+/**
+ * Short wall-clock deadline for background Ollama plan/research calls (ms).
+ *
+ * Passed as `timeoutMs` directly to ollamaChat so the underlying AbortController
+ * fires after 3 s and cleanly resolves the fetch() — no dangling I/O, no
+ * process-exit delay in the test suite. Generous enough for a local model
+ * that IS running; a missing host gets a TCP RST in <1 ms anyway.
+ */
+const AI_PLAN_TIMEOUT_MS = 3_000;
+
+/**
+ * Ask the active local model (Ollama) to produce a human-readable plan for
+ * the goal. This is displayed to the user in the plan panel. Falls back
+ * gracefully to null when Ollama is unreachable — the caller uses the
+ * deterministic step list in that case.
+ *
+ * Privacy: logPrivacyEvent is called inside ollamaChat (via ollama.service.ts)
+ * on every outbound request — no extra annotation required here.
+ */
+async function generateAiPlanDescription(
+  ctx: TenantContext,
+  goal: string,
+  modelName: string | null,
+): Promise<string | null> {
+  try {
+    const result = await ollamaChat(ctx, {
+      model: modelName ?? "llama3.1:8b",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful AI assistant planning tasks for a local desktop operator. " +
+            "Given the user's goal, describe a clear, concise action plan in 2-4 numbered steps. " +
+            "Be specific and practical. Keep it under 200 words.",
+        },
+        { role: "user", content: `Goal: ${goal}` },
+      ],
+      temperature: 0.3,
+      timeoutMs: AI_PLAN_TIMEOUT_MS,
+    });
+    const content = result.message.content?.trim();
+    // Treat the stub reply from an unavailable Ollama as a cache miss.
+    if (content && content.length > 20 && !content.startsWith("Ollama is not reachable")) {
+      return content;
+    }
+  } catch {
+    // Ollama unavailable — caller uses the deterministic fallback description.
+  }
+  return null;
+}
+
+/**
+ * Ask Ollama to gather relevant context for a research-routed goal.
+ * Returns null on failure so the caller can fall back to the stub string.
+ */
+async function generateAiResearch(
+  ctx: TenantContext,
+  goal: string,
+  modelName: string | null,
+): Promise<string | null> {
+  try {
+    const result = await ollamaChat(ctx, {
+      model: modelName ?? "llama3.1:8b",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a research assistant for a local AI desktop operator. " +
+            "Summarise the most relevant background context for the given task goal " +
+            "in 2-3 sentences. Be concise and focus on what will help execute the task.",
+        },
+        { role: "user", content: `Task goal: ${goal}` },
+      ],
+      temperature: 0.1,
+      timeoutMs: AI_PLAN_TIMEOUT_MS,
+    });
+    const content = result.message.content?.trim();
+    if (content && content.length > 10 && !content.startsWith("Ollama is not reachable")) {
+      return content;
+    }
+  } catch {
+    // Ollama unavailable.
+  }
+  return null;
 }
 
 function verifierAgent(
@@ -293,8 +379,8 @@ async function memoryAgent(ctx: TenantContext): Promise<string> {
   return page.items.map((m) => `• ${m.title} (${m.kind})`).join("\n");
 }
 
-function researchAgent(goal: string): string {
-  return `Research stub: would gather sources for "${goal}" once Tier 2 networking is enabled.`;
+function researchAgentFallback(goal: string): string {
+  return `Research context for "${goal}": Ollama is unavailable — running in offline mode.`;
 }
 
 // ─── Public orchestrator API ─────────────────────────────────────────────────
@@ -428,7 +514,11 @@ export async function createAgentRun(
   } catch {
     // best-effort; ignore
   }
-  const researchSummary = route === "research" ? researchAgent(input.goal) : null;
+  const researchSummary =
+    route === "research"
+      ? ((await generateAiResearch(ctx, input.goal, input.modelName ?? null)) ??
+        researchAgentFallback(input.goal))
+      : null;
   const desktopNote = route === "desktop" ? desktopRouterNote(input.goal) : null;
   // RAG: pull top-k snippets from the personal knowledge base unless the
   // caller explicitly opted out. The retrieve call is best-effort — if the
@@ -489,10 +579,18 @@ export async function createAgentRun(
   }
 
   const plan = plannerAgent(input.goal);
+  // Ask Ollama for a human-readable plan description. Falls back to the
+  // deterministic step list when Ollama is unavailable — no run ever blocks.
+  const aiDescription = await generateAiPlanDescription(
+    ctx,
+    input.goal,
+    input.modelName ?? null,
+  );
   const planText =
     (capabilityNote ? `${capabilityNote}\n` : "") +
     (desktopNote ? `${desktopNote}\n` : "") +
-    plan.map((p, i) => `${i + 1}. [${p.toolName}] ${p.rationale}`).join("\n");
+    (aiDescription ??
+      plan.map((p, i) => `${i + 1}. [${p.toolName}] ${p.rationale}`).join("\n"));
 
   await db.insert(agentRuns).values(
     withTenantValues(ctx, {

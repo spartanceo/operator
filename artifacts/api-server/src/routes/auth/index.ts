@@ -15,6 +15,7 @@ import { z } from "zod";
 import { err, ok } from "../../lib/api-envelope";
 import { requireTenantContext } from "../../lib/tenant-context";
 import { requireTenant } from "../../middlewares/tenant-context";
+import { authLimiter } from "../../middlewares/rate-limit";
 import {
   AuthError,
   destroySession,
@@ -42,7 +43,7 @@ declare module "express-session" {
   }
 }
 
-router.post("/register", requireTenant(), async (req, res, next) => {
+router.post("/register", authLimiter, requireTenant(), async (req, res, next) => {
   try {
     const ctx = requireTenantContext();
     const parsed = RegisterSchema.safeParse(req.body);
@@ -63,7 +64,7 @@ router.post("/register", requireTenant(), async (req, res, next) => {
   }
 });
 
-router.post("/login", requireTenant(), async (req, res, next) => {
+router.post("/login", authLimiter, requireTenant(), async (req, res, next) => {
   try {
     const ctx = requireTenantContext();
     const parsed = LoginSchema.safeParse(req.body);
@@ -83,7 +84,7 @@ router.post("/login", requireTenant(), async (req, res, next) => {
   }
 });
 
-router.post("/logout", async (req, res, next) => {
+router.post("/logout", authLimiter, async (req, res, next) => {
   try {
     const sid = req.session?.sessionId;
     const tenantId = req.header("x-tenant-id");

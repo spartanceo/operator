@@ -1,22 +1,27 @@
 /**
- * Tenant-context middleware.
+ * Tenant-context middleware (Task #72).
  *
- * Until Task #4 (Authentication) lands, the tenant identifier is read from
- * the `X-Tenant-ID` header. Once auth ships, this middleware will be the
- * one place that swaps in JWT-derived context — every other route will
- * keep working unchanged because they read context via `getTenantContext()`.
+ * Identity resolution order:
+ *   1. Session cookie (`omninity.sid`) — preferred after login/register.
+ *      The session row carries tenantId + userId; we also resolve the user's
+ *      role so requireRole() guards can check it without an extra query.
+ *      workspaceId is derived as `default-{tenantId}` (matches the bootstrap
+ *      convention in auth.service.ts / ensureTenantWorkspace).
+ *   2. X-Tenant-ID header fallback — kept for automated tests and for the
+ *      very first bootstrap request (before any session exists). Header
+ *      requests still go through ensureTenantWorkspace to seed DB rows.
  *
- * Routes that require a tenant context use the `requireTenant()` middleware
- * exported below; public routes (e.g. `/healthz`) do not, and skip the
- * 401 short-circuit.
+ * Every other route reads context via getTenantContext() /
+ * requireTenantContext() — none of them need to change.
  */
 import type { NextFunction, Request, Response } from "express";
-import type { TenantContext } from "@workspace/types";
+import type { TenantContext, TenantRole } from "@workspace/types";
 
-import { runWithTenantContext } from "../lib/tenant-context";
+import { requireTenantContext, runWithTenantContext } from "../lib/tenant-context";
 import { err } from "../lib/api-envelope";
 import { ensureTenantWorkspace } from "../lib/tenant-ensure";
 import { listConfirmedRuntimeIds } from "../lib/cloud-session";
+import { getSessionUnscoped } from "../services/auth.service";
 
 const TENANT_HEADER = "x-tenant-id";
 const WORKSPACE_HEADER = "x-workspace-id";
@@ -46,16 +51,10 @@ export function clearTenantBootstrapCacheForTests(): void {
 }
 
 /**
- * If the tenant header is present, populate the AsyncLocalStorage context
- * for the duration of the request. Missing header is allowed here —
- * `requireTenant()` is the gate that rejects anonymous requests.
- *
- * On the first request we see for a `(tenantId, workspaceId)` pair, this
- * middleware also lazily seeds the parent `tenants` + `workspaces` rows
- * via `ensureTenantWorkspace`. Without this, every tenant-scoped write
- * (model select, install, knowledge ingest, media generate, comm
- * connect, …) would 500 with `SQLITE_CONSTRAINT_FOREIGNKEY` on a fresh
- * install — first surfaced as a wizard-blocking bug after Task #22.
+ * Populate the AsyncLocalStorage TenantContext for the duration of the
+ * request. Prefers session-based identity (Task #72); falls back to the
+ * X-Tenant-ID header for automated tests and the initial bootstrap request
+ * (before any session exists).
  */
 export function tenantContext() {
   return async function tenantContextMiddleware(
@@ -64,11 +63,40 @@ export function tenantContext() {
     next: NextFunction,
   ) {
     const requestId = (res.locals["requestId"] as string | undefined) ?? "req_unknown";
+    const confirmedRuntimeIds = listConfirmedRuntimeIds(req);
+
+    // ── 1. Session-based identity (preferred post-login) ──────────────────
+    const sessionId = req.session?.sessionId;
+    if (sessionId) {
+      try {
+        const sess = await getSessionUnscoped(sessionId);
+        if (sess) {
+          const workspaceId = `default-${sess.tenantId}`;
+          const ctx: TenantContext = {
+            tenantId: sess.tenantId,
+            workspaceId,
+            userId: sess.userId,
+            role: sess.role as TenantRole,
+            requestId,
+            confirmedRuntimeIds,
+          };
+          runWithTenantContext(ctx, () => next());
+          return;
+        }
+        // Session id in cookie but row is expired/missing — clear the stale
+        // field so the client gets a clean 401 rather than a loop.
+        req.session.sessionId = undefined;
+      } catch {
+        // Session lookup failure is non-fatal — fall through to header path.
+      }
+    }
+
+    // ── 2. Header-based fallback (automated tests + pre-auth bootstrap) ───
     const tenantId = req.header(TENANT_HEADER);
 
     if (!tenantId) {
-      // No tenant on this request — continue without entering the store.
-      // requireTenant() below will 401 if the route needs one.
+      // Neither session nor header — continue without context.
+      // requireTenant() will 401 if the route needs authentication.
       next();
       return;
     }
@@ -81,12 +109,6 @@ export function tenantContext() {
     const workspaceId =
       req.header(WORKSPACE_HEADER) || `default-${tenantId}`;
     const userId = req.header(USER_HEADER) || undefined;
-
-    // Snapshot per-session cloud confirmations so downstream services
-    // (tools, agent orchestrator) inherit them automatically without
-    // every signature having to plumb the list. Background jobs that
-    // build their own ctx omit this field — deny-by-default for cloud.
-    const confirmedRuntimeIds = listConfirmedRuntimeIds(req);
 
     const ctx: TenantContext = {
       tenantId,
@@ -116,7 +138,8 @@ export function tenantContext() {
 
 /**
  * Route-level guard: rejects with 401 if no tenant context is bound.
- * Use as `router.get("/foo", requireTenant(), handler)`.
+ * After Task #72 this passes when either a valid session cookie OR an
+ * X-Tenant-ID header is present (header kept for automated tests).
  */
 export function requireTenant() {
   return function requireTenantMiddleware(
@@ -124,12 +147,58 @@ export function requireTenant() {
     res: Response,
     next: NextFunction,
   ) {
-    if (!req.header(TENANT_HEADER)) {
-      res
-        .status(401)
-        .json(err("UNAUTHENTICATED", "Missing X-Tenant-ID header"));
+    const hasSession = Boolean(req.session?.sessionId);
+    const hasHeader = Boolean(req.header(TENANT_HEADER));
+    if (!hasSession && !hasHeader) {
+      res.status(401).json(err("UNAUTHENTICATED", "Authentication required"));
       return;
     }
+    next();
+  };
+}
+
+/**
+ * Role guard: rejects with 401/403 unless the authenticated user holds one
+ * of the specified roles. Must be placed AFTER requireTenant() so the
+ * TenantContext is already in AsyncLocalStorage.
+ *
+ * Header-based requests (automated tests) carry no role — they are treated
+ * as implicitly privileged in test environments only.
+ *
+ * Usage: `router.delete("/tenant-data", requireRole("owner", "admin"), handler)`
+ */
+export function requireRole(...roles: TenantRole[]) {
+  return function requireRoleMiddleware(
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    let ctx: TenantContext;
+    try {
+      ctx = requireTenantContext();
+    } catch {
+      res.status(401).json(err("UNAUTHENTICATED", "Authentication required"));
+      return;
+    }
+
+    const role = ctx.role;
+
+    if (!role) {
+      // No role in context → header-based request (test / bootstrap path).
+      // Allow only in test mode; production always requires a real session.
+      if (process.env["NODE_ENV"] === "test") {
+        next();
+        return;
+      }
+      res.status(401).json(err("UNAUTHENTICATED", "Authentication required"));
+      return;
+    }
+
+    if (!roles.includes(role)) {
+      res.status(403).json(err("FORBIDDEN", "Insufficient permissions for this action"));
+      return;
+    }
+
     next();
   };
 }

@@ -15,7 +15,7 @@ import { Router, type IRouter } from "express";
 import { ok, err } from "../../lib/api-envelope";
 import { requireTenantContext } from "../../lib/tenant-context";
 import { adminLimiter } from "../../middlewares/rate-limit";
-import { requireTenant } from "../../middlewares/tenant-context";
+import { requireTenant, requireRole } from "../../middlewares/tenant-context";
 import {
   eraseTenantData,
   exportTenantData,
@@ -23,7 +23,7 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/tenant-data", adminLimiter, requireTenant(), async (_req, res) => {
+router.get("/tenant-data", adminLimiter, requireTenant(), requireRole("owner", "admin"), async (_req, res) => {
   const ctx = requireTenantContext();
   const snapshot = await exportTenantData(ctx);
   if (!snapshot) {
@@ -37,6 +37,7 @@ router.delete(
   "/tenant-data",
   adminLimiter,
   requireTenant(),
+  requireRole("owner"),
   async (_req, res) => {
     const ctx = requireTenantContext();
     const receipt = await eraseTenantData(ctx);

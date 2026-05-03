@@ -13,6 +13,8 @@ export interface TenantContext {
   readonly tenantId: string;
   readonly workspaceId?: string;
   readonly userId?: string;
+  /** Role of the authenticated user within the tenant (populated by session middleware from Task #72). */
+  readonly role?: TenantRole;
   /** Opaque trace identifier propagated as `X-Request-ID` end-to-end. */
   readonly requestId: string;
   /**
