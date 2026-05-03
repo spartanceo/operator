@@ -44,6 +44,7 @@ import storeRouter from "./store";
 import subscriptionRouter from "./subscription";
 import creatorRevenueRouter from "./creator-revenue";
 import systemIntegrationRouter from "./system-integration";
+import creatorLegalRouter from "./creator-legal";
 
 import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
@@ -97,6 +98,7 @@ router.use("/schedules", schedulesRouter);
 router.use("/referrals", referralsRouter);
 router.use("/share", shareRouter);
 router.use("/creators", creatorProfilesRouter);
+router.use("/creator-legal", creatorLegalRouter);
 router.use("/waitlist", waitlistRouter);
 
 router.use("/store", storeRouter);

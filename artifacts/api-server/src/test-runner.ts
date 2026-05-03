@@ -40,7 +40,8 @@ import path from "node:path";
 
 import request from "supertest";
 
-import { db, getRawSqlite, runMigrations, tenants, users, workspaces } from "@workspace/db";
+import { createHash } from "node:crypto";
+import { db, getRawSqlite, runMigrations, tenants, users, workspaces, creatorAccounts } from "@workspace/db";
 
 import app from "./app";
 import {
@@ -3580,6 +3581,10 @@ const cases: TestCase[] = [
       assert.ok(
         reasons.some((r: string) => /URL contains credentials/.test(r)),
         "url cred reason",
+      );
+    },
+  },
+  {
     name: "backup: settings GET upserts a singleton with sane defaults",
     run: async () => {
       const res = await request(app)
@@ -3749,6 +3754,10 @@ const cases: TestCase[] = [
         items.some(
           (m) => m.bundledByDefault && m.commercialUse !== "non_commercial_only",
         ),
+      );
+    },
+  },
+  {
     name: "backup: selective restore (memories only) replays into a fresh tenant",
     run: async () => {
       // Snapshot tenant 1's current state, then restore the `memories` scope
@@ -3809,6 +3818,12 @@ const cases: TestCase[] = [
 
       const list2 = await request(app)
         .get("/api/telemetry/events")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(list2.status, 200);
+      assert.equal(list2.body.data.items.length, 0);
+    },
+  },
+  {
     name: "backup: jobs list is paginated and isolated per-tenant",
     run: async () => {
       const list = await request(app)
@@ -5654,6 +5669,9 @@ const cases: TestCase[] = [
         .get("/api/p2p/swarms")
         .set("X-Tenant-ID", TENANT_2);
       assert.equal(otherSwarms.body.data.swarms.length, 0);
+    },
+  },
+  {
     name: "backup: retention prune keeps the latest N completed jobs",
     run: async () => {
       // Tighten retention then create three more backups so the prune step
@@ -6262,6 +6280,187 @@ const cases: TestCase[] = [
       unsubOther();
       endProgress(T, id);
       endProgress("tenant_b", id);
+    },
+  },
+  {
+    name: "creator-legal: agreement doc is publicly readable + hashed",
+    run: async () => {
+      const res = await request(app).get("/api/creator-legal/agreement").expect(200);
+      assert.equal(res.body.success, true);
+      assert.ok(res.body.data.agreement.version);
+      assert.match(res.body.data.agreement.hash, /^[0-9a-f]{64}$/);
+      assert.ok(res.body.data.agreement.body.length > 50);
+    },
+  },
+  {
+    name: "creator-legal: agreement sign + state round-trip",
+    run: async () => {
+      const tenant = `tenant_legal_sign_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const creatorId = `cr_${Date.now()}`;
+      await db.insert(creatorAccounts).values({
+        id: creatorId,
+        tenantId: tenant,
+        workspaceId: `default-${tenant}`,
+        handle: `legal-sign-${Date.now()}`,
+        displayName: "Legal Sign",
+      });
+      const before = await request(app)
+        .get("/api/creator-legal/agreement/state")
+        .set("X-Tenant-ID", tenant)
+        .query({ creatorId })
+        .expect(200);
+      assert.equal(before.body.data.state, "pending");
+      const sign = await request(app)
+        .post("/api/creator-legal/agreement/sign")
+        .set("X-Tenant-ID", tenant)
+        .send({ creatorId, signedName: "Jane Creator" })
+        .expect(200);
+      assert.equal(sign.body.data.state, "accepted");
+      assert.equal(sign.body.data.signedName, "Jane Creator");
+      const after = await request(app)
+        .get("/api/creator-legal/agreement/state")
+        .set("X-Tenant-ID", tenant)
+        .query({ creatorId })
+        .expect(200);
+      assert.equal(after.body.data.state, "accepted");
+    },
+  },
+  {
+    name: "creator-legal: DMCA takedown is publicly submittable",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/creator-legal/dmca/takedowns")
+        .send({
+          claimantName: "Acme Rights",
+          claimantEmail: "legal@acme.test",
+          claimantAddress: "1 Acme Way, Springfield",
+          workDescription: "Original chapter 4 of our book Foo Bar Baz",
+          infringementDescription: "Skill bundle copies chapter 4 verbatim",
+          goodFaithStatement: true,
+          accuracyStatement: true,
+          signature: "Acme Counsel",
+          skillSlug: "infringing-skill",
+        })
+        .expect(200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.data.takedown.status, "received");
+      assert.ok(res.body.data.takedown.id);
+    },
+  },
+  {
+    name: "creator-legal: DMCA validates required attestations",
+    run: async () => {
+      await request(app)
+        .post("/api/creator-legal/dmca/takedowns")
+        .send({
+          claimantName: "X",
+          claimantEmail: "x@x.test",
+          claimantAddress: "addr",
+          workDescription: "short",
+          infringementDescription: "short",
+          goodFaithStatement: false,
+          accuracyStatement: false,
+          signature: "X",
+        })
+        .expect(400);
+    },
+  },
+  {
+    name: "creator-legal: tax quote charges 20% UK VAT for consumer",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/creator-legal/tax/quote")
+        .send({ buyerCountry: "GB", netAmountCents: 10000, isBusiness: false })
+        .expect(200);
+      const q = res.body.data.quote;
+      assert.equal(q.taxType, "vat");
+      assert.equal(q.taxRateBps, 2000);
+      assert.equal(q.taxAmountCents, 2000);
+      assert.equal(q.grossAmountCents, 12000);
+      assert.equal(q.remittanceBucket, "uk_vat");
+      assert.equal(q.reverseCharged, false);
+    },
+  },
+  {
+    name: "creator-legal: tax quote applies B2B reverse charge in EU",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/creator-legal/tax/quote")
+        .send({
+          buyerCountry: "DE",
+          netAmountCents: 10000,
+          isBusiness: true,
+          businessVatNumber: "DE123456789",
+        })
+        .expect(200);
+      const q = res.body.data.quote;
+      assert.equal(q.reverseCharged, true);
+      assert.equal(q.taxAmountCents, 0);
+      assert.equal(q.grossAmountCents, 10000);
+    },
+  },
+  {
+    name: "creator-legal: tax jurisdictions enumerates EU/UK/AU",
+    run: async () => {
+      const res = await request(app).get("/api/creator-legal/tax/jurisdictions").expect(200);
+      const items = res.body.data.items as Array<{ country: string; remittanceBucket: string }>;
+      assert.ok(items.some((j) => j.country === "GB" && j.remittanceBucket === "uk_vat"));
+      assert.ok(items.some((j) => j.country === "DE" && j.remittanceBucket === "eu_oss"));
+      assert.ok(items.some((j) => j.country === "AU" && j.remittanceBucket === "au_gst"));
+    },
+  },
+  {
+    name: "creator-legal: payout settings auto-restrict sanctioned country",
+    run: async () => {
+      const tenant = `tenant_legal_pay_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const creatorId = `cr_${Date.now()}_pay`;
+      const token = `tok_${Date.now()}`;
+      await db.insert(creatorAccounts).values({
+        id: creatorId,
+        tenantId: tenant,
+        workspaceId: `default-${tenant}`,
+        handle: `legal-pay-${Date.now()}`,
+        displayName: "Legal Pay",
+        apiTokenHash: createHash("sha256").update(token).digest("hex"),
+      });
+      const res = await request(app)
+        .put("/api/creator-legal/payout-settings")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ recipientCountry: "IR", method: "stripe_connect" })
+        .expect(200);
+      const s = res.body.data.settings;
+      assert.equal(s.restricted, true);
+      assert.equal(s.method, "restricted");
+      assert.ok(s.restrictionReason && s.restrictionReason.length > 0);
+    },
+  },
+  {
+    name: "creator-legal: sanctions screening flags SDN-listed name",
+    run: async () => {
+      const tenant = `tenant_legal_screen_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const creatorId = `cr_${Date.now()}_scr`;
+      await db.insert(creatorAccounts).values({
+        id: creatorId,
+        tenantId: tenant,
+        workspaceId: `default-${tenant}`,
+        handle: `legal-scr-${Date.now()}`,
+        displayName: "Legal Scr",
+      });
+      const clean = await request(app)
+        .post("/api/creator-legal/payout-settings/screen")
+        .set("X-Tenant-ID", tenant)
+        .send({ creatorId, fullName: "Avery Normal", country: "US" })
+        .expect(200);
+      assert.equal(clean.body.data.overall, "clear");
+      const hit = await request(app)
+        .post("/api/creator-legal/payout-settings/screen")
+        .set("X-Tenant-ID", tenant)
+        .send({ creatorId, fullName: "Avery Normal", country: "IR" })
+        .expect(200);
+      assert.notEqual(hit.body.data.overall, "clear");
     },
   },
 ];

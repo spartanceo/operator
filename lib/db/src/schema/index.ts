@@ -102,3 +102,12 @@ export * from "./update-pinning";
 
 export * from "./backup-settings";
 export * from "./backup-jobs";
+
+export * from "./creator-agreement-signatures";
+export * from "./dmca-takedowns";
+export * from "./dmca-counter-notices";
+export * from "./creator-tax-forms";
+export * from "./creator-tax-documents";
+export * from "./tax-collections";
+export * from "./creator-payout-settings";
+export * from "./creator-payout-screenings";

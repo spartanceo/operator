@@ -110,13 +110,19 @@ import type {
   CreateWaitlistSignupRequest,
   CreateWebhookSubscriptionRequest,
   CreateWorkspaceRequest,
+  CreatorAgreementResponse,
+  CreatorAgreementStateResponse,
   CreatorBadgeResponse,
   CreatorEarningsRequest,
   CreatorEarningsResponse,
   CreatorLeaderboardResponse,
   CreatorMilestoneListResponse,
   CreatorMilestoneResponse,
+  CreatorPayoutSettingsResponse,
   CreatorProfileResponse,
+  CreatorTaxDocumentListResponse,
+  CreatorTaxDocumentResponse,
+  CreatorTaxFormStateResponse,
   DeleteConversationResponse,
   DeleteScheduleResponse,
   DeleteWorkspaceParams,
@@ -130,6 +136,12 @@ import type {
   DiagnosticClearResponse,
   DiagnosticDiskResponse,
   DiagnosticErrorListResponse,
+  DmcaCounterNoticeRequest,
+  DmcaCounterNoticeResponse,
+  DmcaDecideRequest,
+  DmcaTakedownListResponse,
+  DmcaTakedownRequest,
+  DmcaTakedownResponse,
   EmailCategoryRequest,
   EmailDraftListResponse,
   EmailDraftResponse,
@@ -156,9 +168,14 @@ import type {
   ForgetAllMemoriesParams,
   FullDataExportResponse,
   GenerateAudioRequest,
+  GenerateCreatorTaxDocumentRequest,
   GenerateImageRequest,
   GenerateVideoRequest,
+  GetCreatorAgreementStateParams,
   GetCreatorLeaderboardParams,
+  GetCreatorPayoutSettingsParams,
+  GetCreatorTaxFormStateParams,
+  GetTaxRemittanceReportParams,
   GetUpdateChangelogParams,
   GetUpdateReleaseParams,
   GetUpdateRollbackDecisionParams,
@@ -218,10 +235,12 @@ import type {
   ListConversationsParams,
   ListCrashReportsParams,
   ListCreatorMilestonesParams,
+  ListCreatorTaxDocumentsParams,
   ListDesktopSessionStepsParams,
   ListDesktopSessionsParams,
   ListDiagnosticErrorsParams,
   ListDistributionPermissionsParams,
+  ListDmcaTakedownsParams,
   ListEmailDraftsParams,
   ListEmailMessagesParams,
   ListFilesParams,
@@ -376,6 +395,7 @@ import type {
   RecordShareEventRequest,
   RecordSkillUsageRequest,
   RecordSkillUsageResponse,
+  RecordTaxCollectionRequest,
   RecordTelemetryEventsRequest,
   RecordTelemetryEventsResponse,
   RecordVoipCallRequest,
@@ -402,6 +422,8 @@ import type {
   ScheduledTaskRunResponse,
   SchedulerTickRequest,
   SchedulerTickResponse,
+  ScreenCreatorPayoutRequest,
+  ScreenCreatorPayoutResponse,
   SearchConversationsParams,
   SecurityAuditListParams,
   SecurityEventListResponse,
@@ -416,6 +438,7 @@ import type {
   SettingsExportResponse,
   ShareEventListResponse,
   ShareEventResponse,
+  SignCreatorAgreementRequest,
   SimilarSkillsResponse,
   SkillAdoptionResponse,
   SkillAutoUpdateRequest,
@@ -460,6 +483,7 @@ import type {
   StoreSkillResponse,
   StoreSkillUpdatesResponse,
   SubmitCrashReportRequest,
+  SubmitCreatorTaxFormRequest,
   SubmitSkillRatingRequest,
   SubscriptionCheckoutRequest,
   SubscriptionCheckoutResponse,
@@ -486,6 +510,11 @@ import type {
   TaskTemplateExportResponse,
   TaskTemplateListResponse,
   TaskTemplateResponse,
+  TaxCollectionResponse,
+  TaxJurisdictionListResponse,
+  TaxQuoteRequest,
+  TaxQuoteResponse,
+  TaxRemittanceReportResponse,
   TelemetryConsentResponse,
   TelemetryConsentUpdateRequest,
   TelemetryErasureResponse,
@@ -509,6 +538,7 @@ import type {
   UpdateCheckResponse,
   UpdateContactRequest,
   UpdateConversationRequest,
+  UpdateCreatorPayoutSettingsRequest,
   UpdateInstallAttemptListResponse,
   UpdateInstallAttemptResponse,
   UpdateInstallResultRequest,
@@ -37488,3 +37518,1670 @@ export function useExportSettingsConfig<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Fetch the current Creator Agreement (versioned, public).
+ */
+export const getGetCreatorAgreementDocUrl = () => {
+  return `/api/creator-legal/agreement`;
+};
+
+export const getCreatorAgreementDoc = async (
+  options?: RequestInit,
+): Promise<CreatorAgreementResponse> => {
+  return customFetch<CreatorAgreementResponse>(getGetCreatorAgreementDocUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCreatorAgreementDocQueryKey = () => {
+  return [`/api/creator-legal/agreement`] as const;
+};
+
+export const getGetCreatorAgreementDocQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCreatorAgreementDoc>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorAgreementDoc>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCreatorAgreementDocQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCreatorAgreementDoc>>
+  > = ({ signal }) => getCreatorAgreementDoc({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorAgreementDoc>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCreatorAgreementDocQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCreatorAgreementDoc>>
+>;
+export type GetCreatorAgreementDocQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fetch the current Creator Agreement (versioned, public).
+ */
+
+export function useGetCreatorAgreementDoc<
+  TData = Awaited<ReturnType<typeof getCreatorAgreementDoc>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorAgreementDoc>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCreatorAgreementDocQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Has the current creator accepted the latest agreement?
+ */
+export const getGetCreatorAgreementStateUrl = (
+  params?: GetCreatorAgreementStateParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/creator-legal/agreement/state?${stringifiedParams}`
+    : `/api/creator-legal/agreement/state`;
+};
+
+export const getCreatorAgreementState = async (
+  params?: GetCreatorAgreementStateParams,
+  options?: RequestInit,
+): Promise<CreatorAgreementStateResponse> => {
+  return customFetch<CreatorAgreementStateResponse>(
+    getGetCreatorAgreementStateUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetCreatorAgreementStateQueryKey = (
+  params?: GetCreatorAgreementStateParams,
+) => {
+  return [
+    `/api/creator-legal/agreement/state`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetCreatorAgreementStateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCreatorAgreementState>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCreatorAgreementStateParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorAgreementState>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCreatorAgreementStateQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCreatorAgreementState>>
+  > = ({ signal }) =>
+    getCreatorAgreementState(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorAgreementState>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCreatorAgreementStateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCreatorAgreementState>>
+>;
+export type GetCreatorAgreementStateQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Has the current creator accepted the latest agreement?
+ */
+
+export function useGetCreatorAgreementState<
+  TData = Awaited<ReturnType<typeof getCreatorAgreementState>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCreatorAgreementStateParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorAgreementState>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCreatorAgreementStateQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Record a digital signature for the current agreement.
+ */
+export const getSignCreatorAgreementUrl = () => {
+  return `/api/creator-legal/agreement/sign`;
+};
+
+export const signCreatorAgreement = async (
+  signCreatorAgreementRequest: SignCreatorAgreementRequest,
+  options?: RequestInit,
+): Promise<CreatorAgreementStateResponse> => {
+  return customFetch<CreatorAgreementStateResponse>(
+    getSignCreatorAgreementUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(signCreatorAgreementRequest),
+    },
+  );
+};
+
+export const getSignCreatorAgreementMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signCreatorAgreement>>,
+    TError,
+    { data: BodyType<SignCreatorAgreementRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof signCreatorAgreement>>,
+  TError,
+  { data: BodyType<SignCreatorAgreementRequest> },
+  TContext
+> => {
+  const mutationKey = ["signCreatorAgreement"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof signCreatorAgreement>>,
+    { data: BodyType<SignCreatorAgreementRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return signCreatorAgreement(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SignCreatorAgreementMutationResult = NonNullable<
+  Awaited<ReturnType<typeof signCreatorAgreement>>
+>;
+export type SignCreatorAgreementMutationBody =
+  BodyType<SignCreatorAgreementRequest>;
+export type SignCreatorAgreementMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Record a digital signature for the current agreement.
+ */
+export const useSignCreatorAgreement = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signCreatorAgreement>>,
+    TError,
+    { data: BodyType<SignCreatorAgreementRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof signCreatorAgreement>>,
+  TError,
+  { data: BodyType<SignCreatorAgreementRequest> },
+  TContext
+> => {
+  return useMutation(getSignCreatorAgreementMutationOptions(options));
+};
+
+/**
+ * @summary Public DMCA takedown notice submission.
+ */
+export const getSubmitDmcaTakedownUrl = () => {
+  return `/api/creator-legal/dmca/takedowns`;
+};
+
+export const submitDmcaTakedown = async (
+  dmcaTakedownRequest: DmcaTakedownRequest,
+  options?: RequestInit,
+): Promise<DmcaTakedownResponse> => {
+  return customFetch<DmcaTakedownResponse>(getSubmitDmcaTakedownUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(dmcaTakedownRequest),
+  });
+};
+
+export const getSubmitDmcaTakedownMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitDmcaTakedown>>,
+    TError,
+    { data: BodyType<DmcaTakedownRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitDmcaTakedown>>,
+  TError,
+  { data: BodyType<DmcaTakedownRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitDmcaTakedown"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitDmcaTakedown>>,
+    { data: BodyType<DmcaTakedownRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitDmcaTakedown(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitDmcaTakedownMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitDmcaTakedown>>
+>;
+export type SubmitDmcaTakedownMutationBody = BodyType<DmcaTakedownRequest>;
+export type SubmitDmcaTakedownMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Public DMCA takedown notice submission.
+ */
+export const useSubmitDmcaTakedown = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitDmcaTakedown>>,
+    TError,
+    { data: BodyType<DmcaTakedownRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitDmcaTakedown>>,
+  TError,
+  { data: BodyType<DmcaTakedownRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitDmcaTakedownMutationOptions(options));
+};
+
+/**
+ * @summary Admin — list DMCA takedowns (paginated).
+ */
+export const getListDmcaTakedownsUrl = (params?: ListDmcaTakedownsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/creator-legal/dmca/takedowns?${stringifiedParams}`
+    : `/api/creator-legal/dmca/takedowns`;
+};
+
+export const listDmcaTakedowns = async (
+  params?: ListDmcaTakedownsParams,
+  options?: RequestInit,
+): Promise<DmcaTakedownListResponse> => {
+  return customFetch<DmcaTakedownListResponse>(
+    getListDmcaTakedownsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDmcaTakedownsQueryKey = (
+  params?: ListDmcaTakedownsParams,
+) => {
+  return [
+    `/api/creator-legal/dmca/takedowns`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListDmcaTakedownsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDmcaTakedowns>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDmcaTakedownsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDmcaTakedowns>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDmcaTakedownsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDmcaTakedowns>>
+  > = ({ signal }) => listDmcaTakedowns(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDmcaTakedowns>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDmcaTakedownsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDmcaTakedowns>>
+>;
+export type ListDmcaTakedownsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Admin — list DMCA takedowns (paginated).
+ */
+
+export function useListDmcaTakedowns<
+  TData = Awaited<ReturnType<typeof listDmcaTakedowns>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDmcaTakedownsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDmcaTakedowns>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDmcaTakedownsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Admin — uphold or reject a DMCA takedown.
+ */
+export const getDecideDmcaTakedownUrl = (id: string) => {
+  return `/api/creator-legal/dmca/takedowns/${id}/decide`;
+};
+
+export const decideDmcaTakedown = async (
+  id: string,
+  dmcaDecideRequest: DmcaDecideRequest,
+  options?: RequestInit,
+): Promise<DmcaTakedownResponse> => {
+  return customFetch<DmcaTakedownResponse>(getDecideDmcaTakedownUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(dmcaDecideRequest),
+  });
+};
+
+export const getDecideDmcaTakedownMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decideDmcaTakedown>>,
+    TError,
+    { id: string; data: BodyType<DmcaDecideRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof decideDmcaTakedown>>,
+  TError,
+  { id: string; data: BodyType<DmcaDecideRequest> },
+  TContext
+> => {
+  const mutationKey = ["decideDmcaTakedown"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof decideDmcaTakedown>>,
+    { id: string; data: BodyType<DmcaDecideRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return decideDmcaTakedown(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DecideDmcaTakedownMutationResult = NonNullable<
+  Awaited<ReturnType<typeof decideDmcaTakedown>>
+>;
+export type DecideDmcaTakedownMutationBody = BodyType<DmcaDecideRequest>;
+export type DecideDmcaTakedownMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Admin — uphold or reject a DMCA takedown.
+ */
+export const useDecideDmcaTakedown = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decideDmcaTakedown>>,
+    TError,
+    { id: string; data: BodyType<DmcaDecideRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof decideDmcaTakedown>>,
+  TError,
+  { id: string; data: BodyType<DmcaDecideRequest> },
+  TContext
+> => {
+  return useMutation(getDecideDmcaTakedownMutationOptions(options));
+};
+
+/**
+ * @summary Submit a counter-notice for a DMCA takedown.
+ */
+export const getSubmitDmcaCounterNoticeUrl = () => {
+  return `/api/creator-legal/dmca/counter-notices`;
+};
+
+export const submitDmcaCounterNotice = async (
+  dmcaCounterNoticeRequest: DmcaCounterNoticeRequest,
+  options?: RequestInit,
+): Promise<DmcaCounterNoticeResponse> => {
+  return customFetch<DmcaCounterNoticeResponse>(
+    getSubmitDmcaCounterNoticeUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(dmcaCounterNoticeRequest),
+    },
+  );
+};
+
+export const getSubmitDmcaCounterNoticeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitDmcaCounterNotice>>,
+    TError,
+    { data: BodyType<DmcaCounterNoticeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitDmcaCounterNotice>>,
+  TError,
+  { data: BodyType<DmcaCounterNoticeRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitDmcaCounterNotice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitDmcaCounterNotice>>,
+    { data: BodyType<DmcaCounterNoticeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitDmcaCounterNotice(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitDmcaCounterNoticeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitDmcaCounterNotice>>
+>;
+export type SubmitDmcaCounterNoticeMutationBody =
+  BodyType<DmcaCounterNoticeRequest>;
+export type SubmitDmcaCounterNoticeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit a counter-notice for a DMCA takedown.
+ */
+export const useSubmitDmcaCounterNotice = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitDmcaCounterNotice>>,
+    TError,
+    { data: BodyType<DmcaCounterNoticeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitDmcaCounterNotice>>,
+  TError,
+  { data: BodyType<DmcaCounterNoticeRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitDmcaCounterNoticeMutationOptions(options));
+};
+
+/**
+ * @summary Current creator's W-9 / W-8BEN state.
+ */
+export const getGetCreatorTaxFormStateUrl = (
+  params?: GetCreatorTaxFormStateParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/creator-legal/tax-forms?${stringifiedParams}`
+    : `/api/creator-legal/tax-forms`;
+};
+
+export const getCreatorTaxFormState = async (
+  params?: GetCreatorTaxFormStateParams,
+  options?: RequestInit,
+): Promise<CreatorTaxFormStateResponse> => {
+  return customFetch<CreatorTaxFormStateResponse>(
+    getGetCreatorTaxFormStateUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetCreatorTaxFormStateQueryKey = (
+  params?: GetCreatorTaxFormStateParams,
+) => {
+  return [`/api/creator-legal/tax-forms`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetCreatorTaxFormStateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCreatorTaxFormState>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCreatorTaxFormStateParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorTaxFormState>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCreatorTaxFormStateQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCreatorTaxFormState>>
+  > = ({ signal }) =>
+    getCreatorTaxFormState(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorTaxFormState>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCreatorTaxFormStateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCreatorTaxFormState>>
+>;
+export type GetCreatorTaxFormStateQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Current creator's W-9 / W-8BEN state.
+ */
+
+export function useGetCreatorTaxFormState<
+  TData = Awaited<ReturnType<typeof getCreatorTaxFormState>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCreatorTaxFormStateParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorTaxFormState>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCreatorTaxFormStateQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit or replace a W-9 / W-8BEN form.
+ */
+export const getSubmitCreatorTaxFormUrl = () => {
+  return `/api/creator-legal/tax-forms`;
+};
+
+export const submitCreatorTaxForm = async (
+  submitCreatorTaxFormRequest: SubmitCreatorTaxFormRequest,
+  options?: RequestInit,
+): Promise<CreatorTaxFormStateResponse> => {
+  return customFetch<CreatorTaxFormStateResponse>(
+    getSubmitCreatorTaxFormUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(submitCreatorTaxFormRequest),
+    },
+  );
+};
+
+export const getSubmitCreatorTaxFormMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitCreatorTaxForm>>,
+    TError,
+    { data: BodyType<SubmitCreatorTaxFormRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitCreatorTaxForm>>,
+  TError,
+  { data: BodyType<SubmitCreatorTaxFormRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitCreatorTaxForm"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitCreatorTaxForm>>,
+    { data: BodyType<SubmitCreatorTaxFormRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitCreatorTaxForm(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitCreatorTaxFormMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitCreatorTaxForm>>
+>;
+export type SubmitCreatorTaxFormMutationBody =
+  BodyType<SubmitCreatorTaxFormRequest>;
+export type SubmitCreatorTaxFormMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit or replace a W-9 / W-8BEN form.
+ */
+export const useSubmitCreatorTaxForm = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitCreatorTaxForm>>,
+    TError,
+    { data: BodyType<SubmitCreatorTaxFormRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitCreatorTaxForm>>,
+  TError,
+  { data: BodyType<SubmitCreatorTaxFormRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitCreatorTaxFormMutationOptions(options));
+};
+
+/**
+ * @summary List 1099-K / annual tax documents for the creator.
+ */
+export const getListCreatorTaxDocumentsUrl = (
+  params?: ListCreatorTaxDocumentsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/creator-legal/tax-documents?${stringifiedParams}`
+    : `/api/creator-legal/tax-documents`;
+};
+
+export const listCreatorTaxDocuments = async (
+  params?: ListCreatorTaxDocumentsParams,
+  options?: RequestInit,
+): Promise<CreatorTaxDocumentListResponse> => {
+  return customFetch<CreatorTaxDocumentListResponse>(
+    getListCreatorTaxDocumentsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListCreatorTaxDocumentsQueryKey = (
+  params?: ListCreatorTaxDocumentsParams,
+) => {
+  return [
+    `/api/creator-legal/tax-documents`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListCreatorTaxDocumentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCreatorTaxDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCreatorTaxDocumentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCreatorTaxDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCreatorTaxDocumentsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCreatorTaxDocuments>>
+  > = ({ signal }) =>
+    listCreatorTaxDocuments(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCreatorTaxDocuments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCreatorTaxDocumentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCreatorTaxDocuments>>
+>;
+export type ListCreatorTaxDocumentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List 1099-K / annual tax documents for the creator.
+ */
+
+export function useListCreatorTaxDocuments<
+  TData = Awaited<ReturnType<typeof listCreatorTaxDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCreatorTaxDocumentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCreatorTaxDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCreatorTaxDocumentsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Admin — generate a 1099-K for a creator's tax year.
+ */
+export const getGenerateCreatorTaxDocumentUrl = () => {
+  return `/api/creator-legal/tax-documents/generate`;
+};
+
+export const generateCreatorTaxDocument = async (
+  generateCreatorTaxDocumentRequest: GenerateCreatorTaxDocumentRequest,
+  options?: RequestInit,
+): Promise<CreatorTaxDocumentResponse> => {
+  return customFetch<CreatorTaxDocumentResponse>(
+    getGenerateCreatorTaxDocumentUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(generateCreatorTaxDocumentRequest),
+    },
+  );
+};
+
+export const getGenerateCreatorTaxDocumentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateCreatorTaxDocument>>,
+    TError,
+    { data: BodyType<GenerateCreatorTaxDocumentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateCreatorTaxDocument>>,
+  TError,
+  { data: BodyType<GenerateCreatorTaxDocumentRequest> },
+  TContext
+> => {
+  const mutationKey = ["generateCreatorTaxDocument"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateCreatorTaxDocument>>,
+    { data: BodyType<GenerateCreatorTaxDocumentRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateCreatorTaxDocument(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateCreatorTaxDocumentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateCreatorTaxDocument>>
+>;
+export type GenerateCreatorTaxDocumentMutationBody =
+  BodyType<GenerateCreatorTaxDocumentRequest>;
+export type GenerateCreatorTaxDocumentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Admin — generate a 1099-K for a creator's tax year.
+ */
+export const useGenerateCreatorTaxDocument = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateCreatorTaxDocument>>,
+    TError,
+    { data: BodyType<GenerateCreatorTaxDocumentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateCreatorTaxDocument>>,
+  TError,
+  { data: BodyType<GenerateCreatorTaxDocumentRequest> },
+  TContext
+> => {
+  return useMutation(getGenerateCreatorTaxDocumentMutationOptions(options));
+};
+
+/**
+ * @summary Compute VAT/GST/sales-tax for one transaction (public).
+ */
+export const getQuoteCheckoutTaxUrl = () => {
+  return `/api/creator-legal/tax/quote`;
+};
+
+export const quoteCheckoutTax = async (
+  taxQuoteRequest: TaxQuoteRequest,
+  options?: RequestInit,
+): Promise<TaxQuoteResponse> => {
+  return customFetch<TaxQuoteResponse>(getQuoteCheckoutTaxUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(taxQuoteRequest),
+  });
+};
+
+export const getQuoteCheckoutTaxMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof quoteCheckoutTax>>,
+    TError,
+    { data: BodyType<TaxQuoteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof quoteCheckoutTax>>,
+  TError,
+  { data: BodyType<TaxQuoteRequest> },
+  TContext
+> => {
+  const mutationKey = ["quoteCheckoutTax"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof quoteCheckoutTax>>,
+    { data: BodyType<TaxQuoteRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return quoteCheckoutTax(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type QuoteCheckoutTaxMutationResult = NonNullable<
+  Awaited<ReturnType<typeof quoteCheckoutTax>>
+>;
+export type QuoteCheckoutTaxMutationBody = BodyType<TaxQuoteRequest>;
+export type QuoteCheckoutTaxMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Compute VAT/GST/sales-tax for one transaction (public).
+ */
+export const useQuoteCheckoutTax = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof quoteCheckoutTax>>,
+    TError,
+    { data: BodyType<TaxQuoteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof quoteCheckoutTax>>,
+  TError,
+  { data: BodyType<TaxQuoteRequest> },
+  TContext
+> => {
+  return useMutation(getQuoteCheckoutTaxMutationOptions(options));
+};
+
+/**
+ * @summary Supported tax jurisdictions and rates.
+ */
+export const getListTaxJurisdictionsUrl = () => {
+  return `/api/creator-legal/tax/jurisdictions`;
+};
+
+export const listTaxJurisdictions = async (
+  options?: RequestInit,
+): Promise<TaxJurisdictionListResponse> => {
+  return customFetch<TaxJurisdictionListResponse>(
+    getListTaxJurisdictionsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListTaxJurisdictionsQueryKey = () => {
+  return [`/api/creator-legal/tax/jurisdictions`] as const;
+};
+
+export const getListTaxJurisdictionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTaxJurisdictions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTaxJurisdictions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListTaxJurisdictionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTaxJurisdictions>>
+  > = ({ signal }) => listTaxJurisdictions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTaxJurisdictions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTaxJurisdictionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTaxJurisdictions>>
+>;
+export type ListTaxJurisdictionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Supported tax jurisdictions and rates.
+ */
+
+export function useListTaxJurisdictions<
+  TData = Awaited<ReturnType<typeof listTaxJurisdictions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTaxJurisdictions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTaxJurisdictionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Record a tax-collected transaction.
+ */
+export const getRecordTaxCollectionUrl = () => {
+  return `/api/creator-legal/tax/collections`;
+};
+
+export const recordTaxCollection = async (
+  recordTaxCollectionRequest: RecordTaxCollectionRequest,
+  options?: RequestInit,
+): Promise<TaxCollectionResponse> => {
+  return customFetch<TaxCollectionResponse>(getRecordTaxCollectionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(recordTaxCollectionRequest),
+  });
+};
+
+export const getRecordTaxCollectionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordTaxCollection>>,
+    TError,
+    { data: BodyType<RecordTaxCollectionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordTaxCollection>>,
+  TError,
+  { data: BodyType<RecordTaxCollectionRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordTaxCollection"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordTaxCollection>>,
+    { data: BodyType<RecordTaxCollectionRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordTaxCollection(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordTaxCollectionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordTaxCollection>>
+>;
+export type RecordTaxCollectionMutationBody =
+  BodyType<RecordTaxCollectionRequest>;
+export type RecordTaxCollectionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Record a tax-collected transaction.
+ */
+export const useRecordTaxCollection = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordTaxCollection>>,
+    TError,
+    { data: BodyType<RecordTaxCollectionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordTaxCollection>>,
+  TError,
+  { data: BodyType<RecordTaxCollectionRequest> },
+  TContext
+> => {
+  return useMutation(getRecordTaxCollectionMutationOptions(options));
+};
+
+/**
+ * @summary Aggregated tax-collection report for OSS / HMRC / ATO returns.
+ */
+export const getGetTaxRemittanceReportUrl = (
+  params: GetTaxRemittanceReportParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/creator-legal/tax/remittance?${stringifiedParams}`
+    : `/api/creator-legal/tax/remittance`;
+};
+
+export const getTaxRemittanceReport = async (
+  params: GetTaxRemittanceReportParams,
+  options?: RequestInit,
+): Promise<TaxRemittanceReportResponse> => {
+  return customFetch<TaxRemittanceReportResponse>(
+    getGetTaxRemittanceReportUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetTaxRemittanceReportQueryKey = (
+  params?: GetTaxRemittanceReportParams,
+) => {
+  return [
+    `/api/creator-legal/tax/remittance`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetTaxRemittanceReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTaxRemittanceReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetTaxRemittanceReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTaxRemittanceReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTaxRemittanceReportQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTaxRemittanceReport>>
+  > = ({ signal }) =>
+    getTaxRemittanceReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTaxRemittanceReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTaxRemittanceReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTaxRemittanceReport>>
+>;
+export type GetTaxRemittanceReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Aggregated tax-collection report for OSS / HMRC / ATO returns.
+ */
+
+export function useGetTaxRemittanceReport<
+  TData = Awaited<ReturnType<typeof getTaxRemittanceReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetTaxRemittanceReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTaxRemittanceReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTaxRemittanceReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Current creator's payout settings.
+ */
+export const getGetCreatorPayoutSettingsUrl = (
+  params?: GetCreatorPayoutSettingsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/creator-legal/payout-settings?${stringifiedParams}`
+    : `/api/creator-legal/payout-settings`;
+};
+
+export const getCreatorPayoutSettings = async (
+  params?: GetCreatorPayoutSettingsParams,
+  options?: RequestInit,
+): Promise<CreatorPayoutSettingsResponse> => {
+  return customFetch<CreatorPayoutSettingsResponse>(
+    getGetCreatorPayoutSettingsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetCreatorPayoutSettingsQueryKey = (
+  params?: GetCreatorPayoutSettingsParams,
+) => {
+  return [
+    `/api/creator-legal/payout-settings`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetCreatorPayoutSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCreatorPayoutSettings>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCreatorPayoutSettingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorPayoutSettings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCreatorPayoutSettingsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCreatorPayoutSettings>>
+  > = ({ signal }) =>
+    getCreatorPayoutSettings(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCreatorPayoutSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCreatorPayoutSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCreatorPayoutSettings>>
+>;
+export type GetCreatorPayoutSettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Current creator's payout settings.
+ */
+
+export function useGetCreatorPayoutSettings<
+  TData = Awaited<ReturnType<typeof getCreatorPayoutSettings>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCreatorPayoutSettingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCreatorPayoutSettings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCreatorPayoutSettingsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update payout settings.
+ */
+export const getUpdateCreatorPayoutSettingsUrl = () => {
+  return `/api/creator-legal/payout-settings`;
+};
+
+export const updateCreatorPayoutSettings = async (
+  updateCreatorPayoutSettingsRequest: UpdateCreatorPayoutSettingsRequest,
+  options?: RequestInit,
+): Promise<CreatorPayoutSettingsResponse> => {
+  return customFetch<CreatorPayoutSettingsResponse>(
+    getUpdateCreatorPayoutSettingsUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateCreatorPayoutSettingsRequest),
+    },
+  );
+};
+
+export const getUpdateCreatorPayoutSettingsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCreatorPayoutSettings>>,
+    TError,
+    { data: BodyType<UpdateCreatorPayoutSettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCreatorPayoutSettings>>,
+  TError,
+  { data: BodyType<UpdateCreatorPayoutSettingsRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateCreatorPayoutSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCreatorPayoutSettings>>,
+    { data: BodyType<UpdateCreatorPayoutSettingsRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateCreatorPayoutSettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCreatorPayoutSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCreatorPayoutSettings>>
+>;
+export type UpdateCreatorPayoutSettingsMutationBody =
+  BodyType<UpdateCreatorPayoutSettingsRequest>;
+export type UpdateCreatorPayoutSettingsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update payout settings.
+ */
+export const useUpdateCreatorPayoutSettings = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCreatorPayoutSettings>>,
+    TError,
+    { data: BodyType<UpdateCreatorPayoutSettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCreatorPayoutSettings>>,
+  TError,
+  { data: BodyType<UpdateCreatorPayoutSettingsRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateCreatorPayoutSettingsMutationOptions(options));
+};
+
+/**
+ * @summary Run sanctions screening (OFAC / UK HMT / EU consolidated).
+ */
+export const getScreenCreatorPayoutUrl = () => {
+  return `/api/creator-legal/payout-settings/screen`;
+};
+
+export const screenCreatorPayout = async (
+  screenCreatorPayoutRequest: ScreenCreatorPayoutRequest,
+  options?: RequestInit,
+): Promise<ScreenCreatorPayoutResponse> => {
+  return customFetch<ScreenCreatorPayoutResponse>(getScreenCreatorPayoutUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(screenCreatorPayoutRequest),
+  });
+};
+
+export const getScreenCreatorPayoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof screenCreatorPayout>>,
+    TError,
+    { data: BodyType<ScreenCreatorPayoutRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof screenCreatorPayout>>,
+  TError,
+  { data: BodyType<ScreenCreatorPayoutRequest> },
+  TContext
+> => {
+  const mutationKey = ["screenCreatorPayout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof screenCreatorPayout>>,
+    { data: BodyType<ScreenCreatorPayoutRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return screenCreatorPayout(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ScreenCreatorPayoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof screenCreatorPayout>>
+>;
+export type ScreenCreatorPayoutMutationBody =
+  BodyType<ScreenCreatorPayoutRequest>;
+export type ScreenCreatorPayoutMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Run sanctions screening (OFAC / UK HMT / EU consolidated).
+ */
+export const useScreenCreatorPayout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof screenCreatorPayout>>,
+    TError,
+    { data: BodyType<ScreenCreatorPayoutRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof screenCreatorPayout>>,
+  TError,
+  { data: BodyType<ScreenCreatorPayoutRequest> },
+  TContext
+> => {
+  return useMutation(getScreenCreatorPayoutMutationOptions(options));
+};

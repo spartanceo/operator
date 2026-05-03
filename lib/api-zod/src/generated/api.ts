@@ -18338,3 +18338,689 @@ export const ExportSettingsConfigResponse = zod.object({
     }),
   }),
 });
+
+/**
+ * @summary Fetch the current Creator Agreement (versioned, public).
+ */
+export const GetCreatorAgreementDocResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    agreement: zod.object({
+      version: zod.string(),
+      hash: zod.string(),
+      title: zod.string(),
+      summary: zod.string(),
+      body: zod.string(),
+      effectiveDate: zod.string(),
+    }),
+  }),
+});
+
+/**
+ * @summary Has the current creator accepted the latest agreement?
+ */
+export const GetCreatorAgreementStateQueryParams = zod.object({
+  creatorId: zod.coerce.string().optional(),
+});
+
+export const GetCreatorAgreementStateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetCreatorAgreementStateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    state: zod.enum(["pending", "accepted"]),
+    currentVersion: zod.string(),
+    currentHash: zod.string(),
+    title: zod.string(),
+    summary: zod.string(),
+    signedAt: zod.number().nullish(),
+    signedName: zod.string().nullish(),
+    lastSignedVersion: zod.string().nullish(),
+    lastSignedAt: zod.number().nullish(),
+  }),
+});
+
+/**
+ * @summary Record a digital signature for the current agreement.
+ */
+export const SignCreatorAgreementHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SignCreatorAgreementBody = zod.object({
+  creatorId: zod.string().optional(),
+  signedName: zod.string(),
+  locale: zod.string().optional(),
+});
+
+export const SignCreatorAgreementResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    state: zod.enum(["pending", "accepted"]),
+    currentVersion: zod.string(),
+    currentHash: zod.string(),
+    title: zod.string(),
+    summary: zod.string(),
+    signedAt: zod.number().nullish(),
+    signedName: zod.string().nullish(),
+    lastSignedVersion: zod.string().nullish(),
+    lastSignedAt: zod.number().nullish(),
+  }),
+});
+
+/**
+ * @summary Public DMCA takedown notice submission.
+ */
+export const SubmitDmcaTakedownBody = zod.object({
+  storeSkillId: zod.string().optional(),
+  creatorHandle: zod.string().optional(),
+  skillSlug: zod.string().optional(),
+  skillUrl: zod.string().optional(),
+  claimantName: zod.string(),
+  claimantEmail: zod.string(),
+  claimantAddress: zod.string(),
+  claimantPhone: zod.string().optional(),
+  workDescription: zod.string(),
+  infringementDescription: zod.string(),
+  goodFaithStatement: zod.boolean(),
+  accuracyStatement: zod.boolean(),
+  signature: zod.string(),
+});
+
+export const SubmitDmcaTakedownResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    takedown: zod.object({
+      id: zod.string(),
+      status: zod.enum([
+        "received",
+        "reviewing",
+        "upheld",
+        "rejected",
+        "counter_noticed",
+        "restored",
+      ]),
+      storeSkillId: zod.string().nullish(),
+      creatorHandle: zod.string().nullish(),
+      skillSlug: zod.string().nullish(),
+      skillUrl: zod.string().nullish(),
+      claimantName: zod.string(),
+      claimantEmail: zod.string(),
+      workDescription: zod.string(),
+      infringementDescription: zod.string(),
+      decisionNotes: zod.string().nullish(),
+      decidedAt: zod.number().nullish(),
+      decidedBy: zod.string().nullish(),
+      skillRemovedAt: zod.number().nullish(),
+      counterNoticeId: zod.string().nullish(),
+      createdAt: zod.number(),
+      updatedAt: zod.number(),
+    }),
+  }),
+});
+
+/**
+ * @summary Admin — list DMCA takedowns (paginated).
+ */
+export const ListDmcaTakedownsQueryParams = zod.object({
+  status: zod
+    .enum([
+      "received",
+      "reviewing",
+      "upheld",
+      "rejected",
+      "counter_noticed",
+      "restored",
+    ])
+    .optional(),
+  cursor: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListDmcaTakedownsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListDmcaTakedownsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        status: zod.enum([
+          "received",
+          "reviewing",
+          "upheld",
+          "rejected",
+          "counter_noticed",
+          "restored",
+        ]),
+        storeSkillId: zod.string().nullish(),
+        creatorHandle: zod.string().nullish(),
+        skillSlug: zod.string().nullish(),
+        skillUrl: zod.string().nullish(),
+        claimantName: zod.string(),
+        claimantEmail: zod.string(),
+        workDescription: zod.string(),
+        infringementDescription: zod.string(),
+        decisionNotes: zod.string().nullish(),
+        decidedAt: zod.number().nullish(),
+        decidedBy: zod.string().nullish(),
+        skillRemovedAt: zod.number().nullish(),
+        counterNoticeId: zod.string().nullish(),
+        createdAt: zod.number(),
+        updatedAt: zod.number(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Admin — uphold or reject a DMCA takedown.
+ */
+export const DecideDmcaTakedownParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DecideDmcaTakedownHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DecideDmcaTakedownBody = zod.object({
+  decision: zod.enum(["uphold", "reject"]),
+  notes: zod.string().optional(),
+});
+
+export const DecideDmcaTakedownResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    takedown: zod.object({
+      id: zod.string(),
+      status: zod.enum([
+        "received",
+        "reviewing",
+        "upheld",
+        "rejected",
+        "counter_noticed",
+        "restored",
+      ]),
+      storeSkillId: zod.string().nullish(),
+      creatorHandle: zod.string().nullish(),
+      skillSlug: zod.string().nullish(),
+      skillUrl: zod.string().nullish(),
+      claimantName: zod.string(),
+      claimantEmail: zod.string(),
+      workDescription: zod.string(),
+      infringementDescription: zod.string(),
+      decisionNotes: zod.string().nullish(),
+      decidedAt: zod.number().nullish(),
+      decidedBy: zod.string().nullish(),
+      skillRemovedAt: zod.number().nullish(),
+      counterNoticeId: zod.string().nullish(),
+      createdAt: zod.number(),
+      updatedAt: zod.number(),
+    }),
+  }),
+});
+
+/**
+ * @summary Submit a counter-notice for a DMCA takedown.
+ */
+export const SubmitDmcaCounterNoticeBody = zod.object({
+  takedownId: zod.string(),
+  creatorId: zod.string().optional(),
+  creatorName: zod.string(),
+  creatorEmail: zod.string(),
+  creatorAddress: zod.string(),
+  statement: zod.string(),
+  consentToJurisdiction: zod.boolean(),
+  perjuryStatement: zod.boolean(),
+  signature: zod.string(),
+});
+
+export const SubmitDmcaCounterNoticeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    counterNoticeId: zod.string(),
+    takedownId: zod.string(),
+  }),
+});
+
+/**
+ * @summary Current creator's W-9 / W-8BEN state.
+ */
+export const GetCreatorTaxFormStateQueryParams = zod.object({
+  creatorId: zod.coerce.string().optional(),
+});
+
+export const GetCreatorTaxFormStateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetCreatorTaxFormStateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    state: zod.enum(["present", "missing"]),
+    backupWithholdingBps: zod.number(),
+    id: zod.string().optional(),
+    formType: zod.enum(["w9", "w8ben"]).optional(),
+    status: zod.enum(["active", "superseded", "invalid"]).optional(),
+    valid: zod.boolean().optional(),
+    countryCode: zod.string().optional(),
+    submittedAt: zod.number().optional(),
+    taxIdLast4: zod.string().optional(),
+    fullName: zod.string().optional(),
+  }),
+});
+
+/**
+ * @summary Submit or replace a W-9 / W-8BEN form.
+ */
+export const SubmitCreatorTaxFormHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SubmitCreatorTaxFormBody = zod.object({
+  creatorId: zod.string().optional(),
+  formType: zod.enum(["w9", "w8ben"]),
+  fullName: zod.string(),
+  businessName: zod.string().optional(),
+  address: zod.string(),
+  taxId: zod.string(),
+  countryCode: zod.string(),
+});
+
+export const SubmitCreatorTaxFormResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    state: zod.enum(["present", "missing"]),
+    backupWithholdingBps: zod.number(),
+    id: zod.string().optional(),
+    formType: zod.enum(["w9", "w8ben"]).optional(),
+    status: zod.enum(["active", "superseded", "invalid"]).optional(),
+    valid: zod.boolean().optional(),
+    countryCode: zod.string().optional(),
+    submittedAt: zod.number().optional(),
+    taxIdLast4: zod.string().optional(),
+    fullName: zod.string().optional(),
+  }),
+});
+
+/**
+ * @summary List 1099-K / annual tax documents for the creator.
+ */
+export const ListCreatorTaxDocumentsQueryParams = zod.object({
+  creatorId: zod.coerce.string().optional(),
+});
+
+export const ListCreatorTaxDocumentsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListCreatorTaxDocumentsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        documentType: zod.string(),
+        taxYear: zod.number(),
+        grossAmountCents: zod.number(),
+        transactionCount: zod.number(),
+        backupWithholdingCents: zod.number(),
+        bodyHash: zod.string(),
+        status: zod.string(),
+        createdAt: zod.number(),
+        deliveredAt: zod.number().nullish(),
+        filedAt: zod.number().nullish(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Admin — generate a 1099-K for a creator's tax year.
+ */
+export const GenerateCreatorTaxDocumentHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GenerateCreatorTaxDocumentBody = zod.object({
+  creatorId: zod.string(),
+  taxYear: zod.number(),
+  grossAmountCents: zod.number(),
+  transactionCount: zod.number(),
+  backupWithholdingCents: zod.number().optional(),
+  documentType: zod
+    .enum(["form_1099_k", "form_1099_misc", "annual_summary"])
+    .optional(),
+});
+
+export const GenerateCreatorTaxDocumentResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    document: zod.object({
+      id: zod.string(),
+      documentType: zod.string(),
+      taxYear: zod.number(),
+      grossAmountCents: zod.number(),
+      transactionCount: zod.number(),
+      backupWithholdingCents: zod.number(),
+      bodyHash: zod.string(),
+      status: zod.string(),
+      createdAt: zod.number(),
+      deliveredAt: zod.number().nullish(),
+      filedAt: zod.number().nullish(),
+    }),
+  }),
+});
+
+/**
+ * @summary Compute VAT/GST/sales-tax for one transaction (public).
+ */
+export const QuoteCheckoutTaxBody = zod.object({
+  buyerCountry: zod.string(),
+  netAmountCents: zod.number(),
+  isBusiness: zod.boolean().optional(),
+  businessVatNumber: zod.string().optional(),
+});
+
+export const QuoteCheckoutTaxResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    quote: zod.object({
+      buyerCountry: zod.string(),
+      taxType: zod.enum(["vat", "gst", "sales_tax", "none"]),
+      taxRateBps: zod.number(),
+      netAmountCents: zod.number(),
+      taxAmountCents: zod.number(),
+      grossAmountCents: zod.number(),
+      remittanceBucket: zod.enum([
+        "eu_oss",
+        "uk_vat",
+        "au_gst",
+        "us_sales_tax",
+        "none",
+      ]),
+      isBusiness: zod.boolean(),
+      reverseCharged: zod.boolean(),
+      displayLabel: zod.string(),
+    }),
+    jurisdiction: zod
+      .object({
+        country: zod.string(),
+        name: zod.string(),
+        taxType: zod.string(),
+        rateBps: zod.number(),
+        remittanceBucket: zod.string(),
+        reverseChargeForBusiness: zod.boolean().optional(),
+      })
+      .nullish(),
+  }),
+});
+
+/**
+ * @summary Supported tax jurisdictions and rates.
+ */
+export const ListTaxJurisdictionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        country: zod.string(),
+        name: zod.string(),
+        taxType: zod.string(),
+        rateBps: zod.number(),
+        remittanceBucket: zod.string(),
+        reverseChargeForBusiness: zod.boolean().optional(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Record a tax-collected transaction.
+ */
+export const RecordTaxCollectionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RecordTaxCollectionBody = zod.object({
+  source: zod.string(),
+  sourceRef: zod.string().optional(),
+  buyerCountry: zod.string(),
+  buyerRegion: zod.string().optional(),
+  netAmountCents: zod.number(),
+  currency: zod.string().optional(),
+  isBusiness: zod.boolean().optional(),
+  businessVatNumber: zod.string().optional(),
+  invoiceNumber: zod.string().optional(),
+});
+
+export const RecordTaxCollectionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    collection: zod.object({
+      id: zod.string(),
+      source: zod.string(),
+      buyerCountry: zod.string(),
+      taxType: zod.string(),
+      taxRateBps: zod.number(),
+      netAmountCents: zod.number(),
+      taxAmountCents: zod.number(),
+      grossAmountCents: zod.number(),
+      remittanceBucket: zod.string(),
+      currency: zod.string(),
+      collectedAt: zod.number(),
+    }),
+  }),
+});
+
+/**
+ * @summary Aggregated tax-collection report for OSS / HMRC / ATO returns.
+ */
+export const GetTaxRemittanceReportQueryParams = zod.object({
+  fromTs: zod.coerce.number(),
+  toTs: zod.coerce.number(),
+});
+
+export const GetTaxRemittanceReportHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetTaxRemittanceReportResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        bucket: zod.string(),
+        buyerCountry: zod.string(),
+        netAmountCents: zod.number(),
+        taxAmountCents: zod.number(),
+        transactionCount: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Current creator's payout settings.
+ */
+export const GetCreatorPayoutSettingsQueryParams = zod.object({
+  creatorId: zod.coerce.string().optional(),
+});
+
+export const GetCreatorPayoutSettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetCreatorPayoutSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    settings: zod
+      .object({
+        id: zod.string(),
+        creatorId: zod.string(),
+        method: zod.enum([
+          "stripe_connect",
+          "bank_transfer",
+          "gift_card",
+          "account_credit",
+          "restricted",
+        ]),
+        currency: zod.string(),
+        minimumThresholdCents: zod.number(),
+        schedule: zod.enum(["monthly", "weekly", "manual"]),
+        recipientCountry: zod.string(),
+        restricted: zod.boolean(),
+        restrictionReason: zod.string().nullish(),
+        publishStatus: zod.enum(["active", "suspended", "ban"]),
+        lastPayoutAt: zod.number().nullish(),
+        lastPayoutCents: zod.number(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Update payout settings.
+ */
+export const UpdateCreatorPayoutSettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateCreatorPayoutSettingsBody = zod.object({
+  creatorId: zod.string().optional(),
+  recipientCountry: zod.string().optional(),
+  method: zod
+    .enum([
+      "stripe_connect",
+      "bank_transfer",
+      "gift_card",
+      "account_credit",
+      "restricted",
+    ])
+    .optional(),
+  currency: zod.string().optional(),
+  minimumThresholdCents: zod.number().optional(),
+  schedule: zod.enum(["monthly", "weekly", "manual"]).optional(),
+  publishStatus: zod.enum(["active", "suspended", "ban"]).optional(),
+});
+
+export const UpdateCreatorPayoutSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    settings: zod
+      .object({
+        id: zod.string(),
+        creatorId: zod.string(),
+        method: zod.enum([
+          "stripe_connect",
+          "bank_transfer",
+          "gift_card",
+          "account_credit",
+          "restricted",
+        ]),
+        currency: zod.string(),
+        minimumThresholdCents: zod.number(),
+        schedule: zod.enum(["monthly", "weekly", "manual"]),
+        recipientCountry: zod.string(),
+        restricted: zod.boolean(),
+        restrictionReason: zod.string().nullish(),
+        publishStatus: zod.enum(["active", "suspended", "ban"]),
+        lastPayoutAt: zod.number().nullish(),
+        lastPayoutCents: zod.number(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Run sanctions screening (OFAC / UK HMT / EU consolidated).
+ */
+export const ScreenCreatorPayoutHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ScreenCreatorPayoutBody = zod.object({
+  creatorId: zod.string().optional(),
+  fullName: zod.string(),
+  country: zod.string(),
+});
+
+export const ScreenCreatorPayoutResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    screeningId: zod.string(),
+    overall: zod.enum(["clear", "hit", "manual_review"]),
+    results: zod.array(
+      zod.object({
+        list: zod.enum([
+          "ofac_sdn",
+          "ofac_consolidated",
+          "uk_hmt",
+          "eu_consolidated",
+        ]),
+        result: zod.enum(["clear", "hit", "manual_review"]),
+        matchedName: zod.string().nullish(),
+        matchedCountry: zod.string().nullish(),
+        notes: zod.string(),
+      }),
+    ),
+  }),
+});

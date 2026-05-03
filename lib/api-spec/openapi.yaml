@@ -9211,6 +9211,321 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SettingsExportResponse"
+  /creator-legal/agreement:
+    get:
+      operationId: getCreatorAgreementDoc
+      tags: [creator-legal]
+      summary: Fetch the current Creator Agreement (versioned, public).
+      responses:
+        '200':
+          description: Current agreement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorAgreementResponse'
+  /creator-legal/agreement/state:
+    get:
+      operationId: getCreatorAgreementState
+      tags: [creator-legal]
+      summary: Has the current creator accepted the latest agreement?
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - in: query
+          name: creatorId
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Acceptance state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorAgreementStateResponse'
+  /creator-legal/agreement/sign:
+    post:
+      operationId: signCreatorAgreement
+      tags: [creator-legal]
+      summary: Record a digital signature for the current agreement.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignCreatorAgreementRequest' }
+      responses:
+        '200':
+          description: Signed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatorAgreementStateResponse' }
+  /creator-legal/dmca/takedowns:
+    post:
+      operationId: submitDmcaTakedown
+      tags: [creator-legal]
+      summary: Public DMCA takedown notice submission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DmcaTakedownRequest' }
+      responses:
+        '200':
+          description: Takedown received
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DmcaTakedownResponse' }
+    get:
+      operationId: listDmcaTakedowns
+      tags: [creator-legal]
+      summary: Admin — list DMCA takedowns (paginated).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [received, reviewing, upheld, rejected, counter_noticed, restored]
+        - in: query
+          name: cursor
+          required: false
+          schema: { type: string }
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Paginated list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DmcaTakedownListResponse' }
+  /creator-legal/dmca/takedowns/{id}/decide:
+    post:
+      operationId: decideDmcaTakedown
+      tags: [creator-legal]
+      summary: Admin — uphold or reject a DMCA takedown.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DmcaDecideRequest' }
+      responses:
+        '200':
+          description: Decision recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DmcaTakedownResponse' }
+  /creator-legal/dmca/counter-notices:
+    post:
+      operationId: submitDmcaCounterNotice
+      tags: [creator-legal]
+      summary: Submit a counter-notice for a DMCA takedown.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DmcaCounterNoticeRequest' }
+      responses:
+        '200':
+          description: Counter-notice received
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DmcaCounterNoticeResponse' }
+  /creator-legal/tax-forms:
+    get:
+      operationId: getCreatorTaxFormState
+      tags: [creator-legal]
+      summary: Current creator's W-9 / W-8BEN state.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - in: query
+          name: creatorId
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Tax form state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatorTaxFormStateResponse' }
+    post:
+      operationId: submitCreatorTaxForm
+      tags: [creator-legal]
+      summary: Submit or replace a W-9 / W-8BEN form.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitCreatorTaxFormRequest' }
+      responses:
+        '200':
+          description: Submitted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatorTaxFormStateResponse' }
+  /creator-legal/tax-documents:
+    get:
+      operationId: listCreatorTaxDocuments
+      tags: [creator-legal]
+      summary: List 1099-K / annual tax documents for the creator.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - in: query
+          name: creatorId
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Documents
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatorTaxDocumentListResponse' }
+  /creator-legal/tax-documents/generate:
+    post:
+      operationId: generateCreatorTaxDocument
+      tags: [creator-legal]
+      summary: Admin — generate a 1099-K for a creator's tax year.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GenerateCreatorTaxDocumentRequest' }
+      responses:
+        '200':
+          description: Issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatorTaxDocumentResponse' }
+  /creator-legal/tax/quote:
+    post:
+      operationId: quoteCheckoutTax
+      tags: [creator-legal]
+      summary: Compute VAT/GST/sales-tax for one transaction (public).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaxQuoteRequest' }
+      responses:
+        '200':
+          description: Tax quote
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaxQuoteResponse' }
+  /creator-legal/tax/jurisdictions:
+    get:
+      operationId: listTaxJurisdictions
+      tags: [creator-legal]
+      summary: Supported tax jurisdictions and rates.
+      responses:
+        '200':
+          description: Jurisdictions
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaxJurisdictionListResponse' }
+  /creator-legal/tax/collections:
+    post:
+      operationId: recordTaxCollection
+      tags: [creator-legal]
+      summary: Record a tax-collected transaction.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecordTaxCollectionRequest' }
+      responses:
+        '200':
+          description: Collection recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaxCollectionResponse' }
+  /creator-legal/tax/remittance:
+    get:
+      operationId: getTaxRemittanceReport
+      tags: [creator-legal]
+      summary: Aggregated tax-collection report for OSS / HMRC / ATO returns.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - in: query
+          name: fromTs
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: toTs
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Remittance report
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaxRemittanceReportResponse' }
+  /creator-legal/payout-settings:
+    get:
+      operationId: getCreatorPayoutSettings
+      tags: [creator-legal]
+      summary: Current creator's payout settings.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - in: query
+          name: creatorId
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Payout settings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatorPayoutSettingsResponse' }
+    put:
+      operationId: updateCreatorPayoutSettings
+      tags: [creator-legal]
+      summary: Update payout settings.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCreatorPayoutSettingsRequest' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatorPayoutSettingsResponse' }
+  /creator-legal/payout-settings/screen:
+    post:
+      operationId: screenCreatorPayout
+      tags: [creator-legal]
+      summary: Run sanctions screening (OFAC / UK HMT / EU consolidated).
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScreenCreatorPayoutRequest' }
+      responses:
+        '200':
+          description: Screening result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScreenCreatorPayoutResponse' }
 components:
   parameters:
     TenantHeader:
@@ -22774,6 +23089,438 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/FullDataExport"
+
+    CreatorAgreementDoc:
+      type: object
+      required: [version, hash, title, summary, body, effectiveDate]
+      properties:
+        version: { type: string }
+        hash: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        body: { type: string }
+        effectiveDate: { type: string }
+    CreatorAgreementResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [agreement]
+          properties:
+            agreement: { $ref: '#/components/schemas/CreatorAgreementDoc' }
+    CreatorAgreementState:
+      type: object
+      required: [state, currentVersion, currentHash, title, summary]
+      properties:
+        state: { type: string, enum: [pending, accepted] }
+        currentVersion: { type: string }
+        currentHash: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        signedAt: { type: integer, nullable: true }
+        signedName: { type: string, nullable: true }
+        lastSignedVersion: { type: string, nullable: true }
+        lastSignedAt: { type: integer, nullable: true }
+    CreatorAgreementStateResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/CreatorAgreementState' }
+    SignCreatorAgreementRequest:
+      type: object
+      required: [signedName]
+      properties:
+        creatorId: { type: string }
+        signedName: { type: string }
+        locale: { type: string }
+
+    DmcaTakedownRequest:
+      type: object
+      required:
+        - claimantName
+        - claimantEmail
+        - claimantAddress
+        - workDescription
+        - infringementDescription
+        - goodFaithStatement
+        - accuracyStatement
+        - signature
+      properties:
+        storeSkillId: { type: string }
+        creatorHandle: { type: string }
+        skillSlug: { type: string }
+        skillUrl: { type: string }
+        claimantName: { type: string }
+        claimantEmail: { type: string }
+        claimantAddress: { type: string }
+        claimantPhone: { type: string }
+        workDescription: { type: string }
+        infringementDescription: { type: string }
+        goodFaithStatement: { type: boolean }
+        accuracyStatement: { type: boolean }
+        signature: { type: string }
+    DmcaTakedown:
+      type: object
+      required: [id, status, claimantName, claimantEmail, workDescription, infringementDescription, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        status:
+          type: string
+          enum: [received, reviewing, upheld, rejected, counter_noticed, restored]
+        storeSkillId: { type: string, nullable: true }
+        creatorHandle: { type: string, nullable: true }
+        skillSlug: { type: string, nullable: true }
+        skillUrl: { type: string, nullable: true }
+        claimantName: { type: string }
+        claimantEmail: { type: string }
+        workDescription: { type: string }
+        infringementDescription: { type: string }
+        decisionNotes: { type: string, nullable: true }
+        decidedAt: { type: integer, nullable: true }
+        decidedBy: { type: string, nullable: true }
+        skillRemovedAt: { type: integer, nullable: true }
+        counterNoticeId: { type: string, nullable: true }
+        createdAt: { type: integer }
+        updatedAt: { type: integer }
+    DmcaTakedownResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [takedown]
+          properties:
+            takedown: { $ref: '#/components/schemas/DmcaTakedown' }
+    DmcaTakedownListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/DmcaTakedown' }
+            nextCursor: { type: string, nullable: true }
+    DmcaDecideRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [uphold, reject] }
+        notes: { type: string }
+    DmcaCounterNoticeRequest:
+      type: object
+      required:
+        - takedownId
+        - creatorName
+        - creatorEmail
+        - creatorAddress
+        - statement
+        - consentToJurisdiction
+        - perjuryStatement
+        - signature
+      properties:
+        takedownId: { type: string }
+        creatorId: { type: string }
+        creatorName: { type: string }
+        creatorEmail: { type: string }
+        creatorAddress: { type: string }
+        statement: { type: string }
+        consentToJurisdiction: { type: boolean }
+        perjuryStatement: { type: boolean }
+        signature: { type: string }
+    DmcaCounterNoticeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [counterNoticeId, takedownId]
+          properties:
+            counterNoticeId: { type: string }
+            takedownId: { type: string }
+
+    SubmitCreatorTaxFormRequest:
+      type: object
+      required: [formType, fullName, address, taxId, countryCode]
+      properties:
+        creatorId: { type: string }
+        formType: { type: string, enum: [w9, w8ben] }
+        fullName: { type: string }
+        businessName: { type: string }
+        address: { type: string }
+        taxId: { type: string }
+        countryCode: { type: string }
+    CreatorTaxFormState:
+      type: object
+      required: [state, backupWithholdingBps]
+      properties:
+        state: { type: string, enum: [present, missing] }
+        backupWithholdingBps: { type: integer }
+        id: { type: string }
+        formType: { type: string, enum: [w9, w8ben] }
+        status: { type: string, enum: [active, superseded, invalid] }
+        valid: { type: boolean }
+        countryCode: { type: string }
+        submittedAt: { type: integer }
+        taxIdLast4: { type: string }
+        fullName: { type: string }
+    CreatorTaxFormStateResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/CreatorTaxFormState' }
+
+    GenerateCreatorTaxDocumentRequest:
+      type: object
+      required: [creatorId, taxYear, grossAmountCents, transactionCount]
+      properties:
+        creatorId: { type: string }
+        taxYear: { type: integer }
+        grossAmountCents: { type: integer }
+        transactionCount: { type: integer }
+        backupWithholdingCents: { type: integer }
+        documentType:
+          type: string
+          enum: [form_1099_k, form_1099_misc, annual_summary]
+    CreatorTaxDocument:
+      type: object
+      required: [id, documentType, taxYear, grossAmountCents, transactionCount, backupWithholdingCents, bodyHash, status, createdAt]
+      properties:
+        id: { type: string }
+        documentType: { type: string }
+        taxYear: { type: integer }
+        grossAmountCents: { type: integer }
+        transactionCount: { type: integer }
+        backupWithholdingCents: { type: integer }
+        bodyHash: { type: string }
+        status: { type: string }
+        createdAt: { type: integer }
+        deliveredAt: { type: integer, nullable: true }
+        filedAt: { type: integer, nullable: true }
+    CreatorTaxDocumentResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [document]
+          properties:
+            document: { $ref: '#/components/schemas/CreatorTaxDocument' }
+    CreatorTaxDocumentListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/CreatorTaxDocument' }
+
+    TaxQuoteRequest:
+      type: object
+      required: [buyerCountry, netAmountCents]
+      properties:
+        buyerCountry: { type: string }
+        netAmountCents: { type: integer }
+        isBusiness: { type: boolean }
+        businessVatNumber: { type: string }
+    TaxQuote:
+      type: object
+      required: [buyerCountry, taxType, taxRateBps, netAmountCents, taxAmountCents, grossAmountCents, remittanceBucket, isBusiness, reverseCharged, displayLabel]
+      properties:
+        buyerCountry: { type: string }
+        taxType: { type: string, enum: [vat, gst, sales_tax, none] }
+        taxRateBps: { type: integer }
+        netAmountCents: { type: integer }
+        taxAmountCents: { type: integer }
+        grossAmountCents: { type: integer }
+        remittanceBucket:
+          type: string
+          enum: [eu_oss, uk_vat, au_gst, us_sales_tax, none]
+        isBusiness: { type: boolean }
+        reverseCharged: { type: boolean }
+        displayLabel: { type: string }
+    TaxJurisdiction:
+      type: object
+      required: [country, name, taxType, rateBps, remittanceBucket]
+      properties:
+        country: { type: string }
+        name: { type: string }
+        taxType: { type: string }
+        rateBps: { type: integer }
+        remittanceBucket: { type: string }
+        reverseChargeForBusiness: { type: boolean }
+    TaxQuoteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [quote]
+          properties:
+            quote: { $ref: '#/components/schemas/TaxQuote' }
+            jurisdiction:
+              nullable: true
+              allOf: [{ $ref: '#/components/schemas/TaxJurisdiction' }]
+    TaxJurisdictionListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/TaxJurisdiction' }
+    RecordTaxCollectionRequest:
+      type: object
+      required: [source, buyerCountry, netAmountCents]
+      properties:
+        source: { type: string }
+        sourceRef: { type: string }
+        buyerCountry: { type: string }
+        buyerRegion: { type: string }
+        netAmountCents: { type: integer }
+        currency: { type: string }
+        isBusiness: { type: boolean }
+        businessVatNumber: { type: string }
+        invoiceNumber: { type: string }
+    TaxCollection:
+      type: object
+      required: [id, source, buyerCountry, taxType, taxRateBps, netAmountCents, taxAmountCents, grossAmountCents, remittanceBucket, currency, collectedAt]
+      properties:
+        id: { type: string }
+        source: { type: string }
+        buyerCountry: { type: string }
+        taxType: { type: string }
+        taxRateBps: { type: integer }
+        netAmountCents: { type: integer }
+        taxAmountCents: { type: integer }
+        grossAmountCents: { type: integer }
+        remittanceBucket: { type: string }
+        currency: { type: string }
+        collectedAt: { type: integer }
+    TaxCollectionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [collection]
+          properties:
+            collection: { $ref: '#/components/schemas/TaxCollection' }
+    TaxRemittanceReportItem:
+      type: object
+      required: [bucket, buyerCountry, netAmountCents, taxAmountCents, transactionCount]
+      properties:
+        bucket: { type: string }
+        buyerCountry: { type: string }
+        netAmountCents: { type: integer }
+        taxAmountCents: { type: integer }
+        transactionCount: { type: integer }
+    TaxRemittanceReportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/TaxRemittanceReportItem' }
+
+    CreatorPayoutSettings:
+      type: object
+      required: [id, creatorId, method, currency, minimumThresholdCents, schedule, recipientCountry, restricted, publishStatus, lastPayoutCents]
+      properties:
+        id: { type: string }
+        creatorId: { type: string }
+        method:
+          type: string
+          enum: [stripe_connect, bank_transfer, gift_card, account_credit, restricted]
+        currency: { type: string }
+        minimumThresholdCents: { type: integer }
+        schedule: { type: string, enum: [monthly, weekly, manual] }
+        recipientCountry: { type: string }
+        restricted: { type: boolean }
+        restrictionReason: { type: string, nullable: true }
+        publishStatus: { type: string, enum: [active, suspended, ban] }
+        lastPayoutAt: { type: integer, nullable: true }
+        lastPayoutCents: { type: integer }
+    CreatorPayoutSettingsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [settings]
+          properties:
+            settings:
+              nullable: true
+              allOf: [{ $ref: '#/components/schemas/CreatorPayoutSettings' }]
+    UpdateCreatorPayoutSettingsRequest:
+      type: object
+      properties:
+        creatorId: { type: string }
+        recipientCountry: { type: string }
+        method:
+          type: string
+          enum: [stripe_connect, bank_transfer, gift_card, account_credit, restricted]
+        currency: { type: string }
+        minimumThresholdCents: { type: integer }
+        schedule: { type: string, enum: [monthly, weekly, manual] }
+        publishStatus: { type: string, enum: [active, suspended, ban] }
+    ScreenCreatorPayoutRequest:
+      type: object
+      required: [fullName, country]
+      properties:
+        creatorId: { type: string }
+        fullName: { type: string }
+        country: { type: string }
+    SanctionsScreeningOutcome:
+      type: object
+      required: [list, result, notes]
+      properties:
+        list: { type: string, enum: [ofac_sdn, ofac_consolidated, uk_hmt, eu_consolidated] }
+        result: { type: string, enum: [clear, hit, manual_review] }
+        matchedName: { type: string, nullable: true }
+        matchedCountry: { type: string, nullable: true }
+        notes: { type: string }
+    ScreenCreatorPayoutResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [screeningId, overall, results]
+          properties:
+            screeningId: { type: string }
+            overall: { type: string, enum: [clear, hit, manual_review] }
+            results:
+              type: array
+              items: { $ref: '#/components/schemas/SanctionsScreeningOutcome' }
+
   responses: {}
   requestBodies: {}
   headers: {}

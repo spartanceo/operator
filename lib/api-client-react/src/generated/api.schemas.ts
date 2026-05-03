@@ -8138,6 +8138,534 @@ export interface FullDataExportResponse {
   data: FullDataExport;
 }
 
+export interface CreatorAgreementDoc {
+  version: string;
+  hash: string;
+  title: string;
+  summary: string;
+  body: string;
+  effectiveDate: string;
+}
+
+export type CreatorAgreementResponseData = {
+  agreement: CreatorAgreementDoc;
+};
+
+export interface CreatorAgreementResponse {
+  success: boolean;
+  data: CreatorAgreementResponseData;
+}
+
+export type CreatorAgreementStateState =
+  (typeof CreatorAgreementStateState)[keyof typeof CreatorAgreementStateState];
+
+export const CreatorAgreementStateState = {
+  pending: "pending",
+  accepted: "accepted",
+} as const;
+
+export interface CreatorAgreementState {
+  state: CreatorAgreementStateState;
+  currentVersion: string;
+  currentHash: string;
+  title: string;
+  summary: string;
+  signedAt?: number | null;
+  signedName?: string | null;
+  lastSignedVersion?: string | null;
+  lastSignedAt?: number | null;
+}
+
+export interface CreatorAgreementStateResponse {
+  success: boolean;
+  data: CreatorAgreementState;
+}
+
+export interface SignCreatorAgreementRequest {
+  creatorId?: string;
+  signedName: string;
+  locale?: string;
+}
+
+export interface DmcaTakedownRequest {
+  storeSkillId?: string;
+  creatorHandle?: string;
+  skillSlug?: string;
+  skillUrl?: string;
+  claimantName: string;
+  claimantEmail: string;
+  claimantAddress: string;
+  claimantPhone?: string;
+  workDescription: string;
+  infringementDescription: string;
+  goodFaithStatement: boolean;
+  accuracyStatement: boolean;
+  signature: string;
+}
+
+export type DmcaTakedownStatus =
+  (typeof DmcaTakedownStatus)[keyof typeof DmcaTakedownStatus];
+
+export const DmcaTakedownStatus = {
+  received: "received",
+  reviewing: "reviewing",
+  upheld: "upheld",
+  rejected: "rejected",
+  counter_noticed: "counter_noticed",
+  restored: "restored",
+} as const;
+
+export interface DmcaTakedown {
+  id: string;
+  status: DmcaTakedownStatus;
+  storeSkillId?: string | null;
+  creatorHandle?: string | null;
+  skillSlug?: string | null;
+  skillUrl?: string | null;
+  claimantName: string;
+  claimantEmail: string;
+  workDescription: string;
+  infringementDescription: string;
+  decisionNotes?: string | null;
+  decidedAt?: number | null;
+  decidedBy?: string | null;
+  skillRemovedAt?: number | null;
+  counterNoticeId?: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type DmcaTakedownResponseData = {
+  takedown: DmcaTakedown;
+};
+
+export interface DmcaTakedownResponse {
+  success: boolean;
+  data: DmcaTakedownResponseData;
+}
+
+export type DmcaTakedownListResponseData = {
+  items: DmcaTakedown[];
+  nextCursor: string | null;
+};
+
+export interface DmcaTakedownListResponse {
+  success: boolean;
+  data: DmcaTakedownListResponseData;
+}
+
+export type DmcaDecideRequestDecision =
+  (typeof DmcaDecideRequestDecision)[keyof typeof DmcaDecideRequestDecision];
+
+export const DmcaDecideRequestDecision = {
+  uphold: "uphold",
+  reject: "reject",
+} as const;
+
+export interface DmcaDecideRequest {
+  decision: DmcaDecideRequestDecision;
+  notes?: string;
+}
+
+export interface DmcaCounterNoticeRequest {
+  takedownId: string;
+  creatorId?: string;
+  creatorName: string;
+  creatorEmail: string;
+  creatorAddress: string;
+  statement: string;
+  consentToJurisdiction: boolean;
+  perjuryStatement: boolean;
+  signature: string;
+}
+
+export type DmcaCounterNoticeResponseData = {
+  counterNoticeId: string;
+  takedownId: string;
+};
+
+export interface DmcaCounterNoticeResponse {
+  success: boolean;
+  data: DmcaCounterNoticeResponseData;
+}
+
+export type SubmitCreatorTaxFormRequestFormType =
+  (typeof SubmitCreatorTaxFormRequestFormType)[keyof typeof SubmitCreatorTaxFormRequestFormType];
+
+export const SubmitCreatorTaxFormRequestFormType = {
+  w9: "w9",
+  w8ben: "w8ben",
+} as const;
+
+export interface SubmitCreatorTaxFormRequest {
+  creatorId?: string;
+  formType: SubmitCreatorTaxFormRequestFormType;
+  fullName: string;
+  businessName?: string;
+  address: string;
+  taxId: string;
+  countryCode: string;
+}
+
+export type CreatorTaxFormStateState =
+  (typeof CreatorTaxFormStateState)[keyof typeof CreatorTaxFormStateState];
+
+export const CreatorTaxFormStateState = {
+  present: "present",
+  missing: "missing",
+} as const;
+
+export type CreatorTaxFormStateFormType =
+  (typeof CreatorTaxFormStateFormType)[keyof typeof CreatorTaxFormStateFormType];
+
+export const CreatorTaxFormStateFormType = {
+  w9: "w9",
+  w8ben: "w8ben",
+} as const;
+
+export type CreatorTaxFormStateStatus =
+  (typeof CreatorTaxFormStateStatus)[keyof typeof CreatorTaxFormStateStatus];
+
+export const CreatorTaxFormStateStatus = {
+  active: "active",
+  superseded: "superseded",
+  invalid: "invalid",
+} as const;
+
+export interface CreatorTaxFormState {
+  state: CreatorTaxFormStateState;
+  backupWithholdingBps: number;
+  id?: string;
+  formType?: CreatorTaxFormStateFormType;
+  status?: CreatorTaxFormStateStatus;
+  valid?: boolean;
+  countryCode?: string;
+  submittedAt?: number;
+  taxIdLast4?: string;
+  fullName?: string;
+}
+
+export interface CreatorTaxFormStateResponse {
+  success: boolean;
+  data: CreatorTaxFormState;
+}
+
+export type GenerateCreatorTaxDocumentRequestDocumentType =
+  (typeof GenerateCreatorTaxDocumentRequestDocumentType)[keyof typeof GenerateCreatorTaxDocumentRequestDocumentType];
+
+export const GenerateCreatorTaxDocumentRequestDocumentType = {
+  form_1099_k: "form_1099_k",
+  form_1099_misc: "form_1099_misc",
+  annual_summary: "annual_summary",
+} as const;
+
+export interface GenerateCreatorTaxDocumentRequest {
+  creatorId: string;
+  taxYear: number;
+  grossAmountCents: number;
+  transactionCount: number;
+  backupWithholdingCents?: number;
+  documentType?: GenerateCreatorTaxDocumentRequestDocumentType;
+}
+
+export interface CreatorTaxDocument {
+  id: string;
+  documentType: string;
+  taxYear: number;
+  grossAmountCents: number;
+  transactionCount: number;
+  backupWithholdingCents: number;
+  bodyHash: string;
+  status: string;
+  createdAt: number;
+  deliveredAt?: number | null;
+  filedAt?: number | null;
+}
+
+export type CreatorTaxDocumentResponseData = {
+  document: CreatorTaxDocument;
+};
+
+export interface CreatorTaxDocumentResponse {
+  success: boolean;
+  data: CreatorTaxDocumentResponseData;
+}
+
+export type CreatorTaxDocumentListResponseData = {
+  items: CreatorTaxDocument[];
+};
+
+export interface CreatorTaxDocumentListResponse {
+  success: boolean;
+  data: CreatorTaxDocumentListResponseData;
+}
+
+export interface TaxQuoteRequest {
+  buyerCountry: string;
+  netAmountCents: number;
+  isBusiness?: boolean;
+  businessVatNumber?: string;
+}
+
+export type TaxQuoteTaxType =
+  (typeof TaxQuoteTaxType)[keyof typeof TaxQuoteTaxType];
+
+export const TaxQuoteTaxType = {
+  vat: "vat",
+  gst: "gst",
+  sales_tax: "sales_tax",
+  none: "none",
+} as const;
+
+export type TaxQuoteRemittanceBucket =
+  (typeof TaxQuoteRemittanceBucket)[keyof typeof TaxQuoteRemittanceBucket];
+
+export const TaxQuoteRemittanceBucket = {
+  eu_oss: "eu_oss",
+  uk_vat: "uk_vat",
+  au_gst: "au_gst",
+  us_sales_tax: "us_sales_tax",
+  none: "none",
+} as const;
+
+export interface TaxQuote {
+  buyerCountry: string;
+  taxType: TaxQuoteTaxType;
+  taxRateBps: number;
+  netAmountCents: number;
+  taxAmountCents: number;
+  grossAmountCents: number;
+  remittanceBucket: TaxQuoteRemittanceBucket;
+  isBusiness: boolean;
+  reverseCharged: boolean;
+  displayLabel: string;
+}
+
+export interface TaxJurisdiction {
+  country: string;
+  name: string;
+  taxType: string;
+  rateBps: number;
+  remittanceBucket: string;
+  reverseChargeForBusiness?: boolean;
+}
+
+export type TaxQuoteResponseData = {
+  quote: TaxQuote;
+  jurisdiction?: TaxJurisdiction | null;
+};
+
+export interface TaxQuoteResponse {
+  success: boolean;
+  data: TaxQuoteResponseData;
+}
+
+export type TaxJurisdictionListResponseData = {
+  items: TaxJurisdiction[];
+};
+
+export interface TaxJurisdictionListResponse {
+  success: boolean;
+  data: TaxJurisdictionListResponseData;
+}
+
+export interface RecordTaxCollectionRequest {
+  source: string;
+  sourceRef?: string;
+  buyerCountry: string;
+  buyerRegion?: string;
+  netAmountCents: number;
+  currency?: string;
+  isBusiness?: boolean;
+  businessVatNumber?: string;
+  invoiceNumber?: string;
+}
+
+export interface TaxCollection {
+  id: string;
+  source: string;
+  buyerCountry: string;
+  taxType: string;
+  taxRateBps: number;
+  netAmountCents: number;
+  taxAmountCents: number;
+  grossAmountCents: number;
+  remittanceBucket: string;
+  currency: string;
+  collectedAt: number;
+}
+
+export type TaxCollectionResponseData = {
+  collection: TaxCollection;
+};
+
+export interface TaxCollectionResponse {
+  success: boolean;
+  data: TaxCollectionResponseData;
+}
+
+export interface TaxRemittanceReportItem {
+  bucket: string;
+  buyerCountry: string;
+  netAmountCents: number;
+  taxAmountCents: number;
+  transactionCount: number;
+}
+
+export type TaxRemittanceReportResponseData = {
+  items: TaxRemittanceReportItem[];
+};
+
+export interface TaxRemittanceReportResponse {
+  success: boolean;
+  data: TaxRemittanceReportResponseData;
+}
+
+export type CreatorPayoutSettingsMethod =
+  (typeof CreatorPayoutSettingsMethod)[keyof typeof CreatorPayoutSettingsMethod];
+
+export const CreatorPayoutSettingsMethod = {
+  stripe_connect: "stripe_connect",
+  bank_transfer: "bank_transfer",
+  gift_card: "gift_card",
+  account_credit: "account_credit",
+  restricted: "restricted",
+} as const;
+
+export type CreatorPayoutSettingsSchedule =
+  (typeof CreatorPayoutSettingsSchedule)[keyof typeof CreatorPayoutSettingsSchedule];
+
+export const CreatorPayoutSettingsSchedule = {
+  monthly: "monthly",
+  weekly: "weekly",
+  manual: "manual",
+} as const;
+
+export type CreatorPayoutSettingsPublishStatus =
+  (typeof CreatorPayoutSettingsPublishStatus)[keyof typeof CreatorPayoutSettingsPublishStatus];
+
+export const CreatorPayoutSettingsPublishStatus = {
+  active: "active",
+  suspended: "suspended",
+  ban: "ban",
+} as const;
+
+export interface CreatorPayoutSettings {
+  id: string;
+  creatorId: string;
+  method: CreatorPayoutSettingsMethod;
+  currency: string;
+  minimumThresholdCents: number;
+  schedule: CreatorPayoutSettingsSchedule;
+  recipientCountry: string;
+  restricted: boolean;
+  restrictionReason?: string | null;
+  publishStatus: CreatorPayoutSettingsPublishStatus;
+  lastPayoutAt?: number | null;
+  lastPayoutCents: number;
+}
+
+export type CreatorPayoutSettingsResponseData = {
+  settings: CreatorPayoutSettings | null;
+};
+
+export interface CreatorPayoutSettingsResponse {
+  success: boolean;
+  data: CreatorPayoutSettingsResponseData;
+}
+
+export type UpdateCreatorPayoutSettingsRequestMethod =
+  (typeof UpdateCreatorPayoutSettingsRequestMethod)[keyof typeof UpdateCreatorPayoutSettingsRequestMethod];
+
+export const UpdateCreatorPayoutSettingsRequestMethod = {
+  stripe_connect: "stripe_connect",
+  bank_transfer: "bank_transfer",
+  gift_card: "gift_card",
+  account_credit: "account_credit",
+  restricted: "restricted",
+} as const;
+
+export type UpdateCreatorPayoutSettingsRequestSchedule =
+  (typeof UpdateCreatorPayoutSettingsRequestSchedule)[keyof typeof UpdateCreatorPayoutSettingsRequestSchedule];
+
+export const UpdateCreatorPayoutSettingsRequestSchedule = {
+  monthly: "monthly",
+  weekly: "weekly",
+  manual: "manual",
+} as const;
+
+export type UpdateCreatorPayoutSettingsRequestPublishStatus =
+  (typeof UpdateCreatorPayoutSettingsRequestPublishStatus)[keyof typeof UpdateCreatorPayoutSettingsRequestPublishStatus];
+
+export const UpdateCreatorPayoutSettingsRequestPublishStatus = {
+  active: "active",
+  suspended: "suspended",
+  ban: "ban",
+} as const;
+
+export interface UpdateCreatorPayoutSettingsRequest {
+  creatorId?: string;
+  recipientCountry?: string;
+  method?: UpdateCreatorPayoutSettingsRequestMethod;
+  currency?: string;
+  minimumThresholdCents?: number;
+  schedule?: UpdateCreatorPayoutSettingsRequestSchedule;
+  publishStatus?: UpdateCreatorPayoutSettingsRequestPublishStatus;
+}
+
+export interface ScreenCreatorPayoutRequest {
+  creatorId?: string;
+  fullName: string;
+  country: string;
+}
+
+export type SanctionsScreeningOutcomeList =
+  (typeof SanctionsScreeningOutcomeList)[keyof typeof SanctionsScreeningOutcomeList];
+
+export const SanctionsScreeningOutcomeList = {
+  ofac_sdn: "ofac_sdn",
+  ofac_consolidated: "ofac_consolidated",
+  uk_hmt: "uk_hmt",
+  eu_consolidated: "eu_consolidated",
+} as const;
+
+export type SanctionsScreeningOutcomeResult =
+  (typeof SanctionsScreeningOutcomeResult)[keyof typeof SanctionsScreeningOutcomeResult];
+
+export const SanctionsScreeningOutcomeResult = {
+  clear: "clear",
+  hit: "hit",
+  manual_review: "manual_review",
+} as const;
+
+export interface SanctionsScreeningOutcome {
+  list: SanctionsScreeningOutcomeList;
+  result: SanctionsScreeningOutcomeResult;
+  matchedName?: string | null;
+  matchedCountry?: string | null;
+  notes: string;
+}
+
+export type ScreenCreatorPayoutResponseDataOverall =
+  (typeof ScreenCreatorPayoutResponseDataOverall)[keyof typeof ScreenCreatorPayoutResponseDataOverall];
+
+export const ScreenCreatorPayoutResponseDataOverall = {
+  clear: "clear",
+  hit: "hit",
+  manual_review: "manual_review",
+} as const;
+
+export type ScreenCreatorPayoutResponseData = {
+  screeningId: string;
+  overall: ScreenCreatorPayoutResponseDataOverall;
+  results: SanctionsScreeningOutcome[];
+};
+
+export interface ScreenCreatorPayoutResponse {
+  success: boolean;
+  data: ScreenCreatorPayoutResponseData;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -9300,3 +9828,42 @@ export const ExportConversationsFormat = {
   json: "json",
   markdown: "markdown",
 } as const;
+
+export type GetCreatorAgreementStateParams = {
+  creatorId?: string;
+};
+
+export type ListDmcaTakedownsParams = {
+  status?: ListDmcaTakedownsStatus;
+  cursor?: string;
+  limit?: number;
+};
+
+export type ListDmcaTakedownsStatus =
+  (typeof ListDmcaTakedownsStatus)[keyof typeof ListDmcaTakedownsStatus];
+
+export const ListDmcaTakedownsStatus = {
+  received: "received",
+  reviewing: "reviewing",
+  upheld: "upheld",
+  rejected: "rejected",
+  counter_noticed: "counter_noticed",
+  restored: "restored",
+} as const;
+
+export type GetCreatorTaxFormStateParams = {
+  creatorId?: string;
+};
+
+export type ListCreatorTaxDocumentsParams = {
+  creatorId?: string;
+};
+
+export type GetTaxRemittanceReportParams = {
+  fromTs: number;
+  toTs: number;
+};
+
+export type GetCreatorPayoutSettingsParams = {
+  creatorId?: string;
+};

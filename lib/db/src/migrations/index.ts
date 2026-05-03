@@ -46,6 +46,7 @@ import { migration as m0032 } from "./0032_desktop_updates";
 import { migration as m0033 } from "./0033_backups";
 import { migration as m0034 } from "./0034_skill_execution_manifest";
 import { migration as m0035 } from "./0035_mdm_enterprise";
+import { migration as m0036 } from "./0036_creator_legal_tax";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -92,6 +93,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0033,
   m0034,
   m0035,
+  m0036,
 ];
 
 /**
