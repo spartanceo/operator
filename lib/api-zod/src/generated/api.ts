@@ -8560,12 +8560,12 @@ export const GetDiagnosticCatalogResponse = zod.object({
 });
 
 /**
- * @summary Paginated undo history for the current tenant
+ * @summary List queued / running / completed tasks (paginated)
  */
-export const listUndoActionsQueryLimitDefault = 20;
-export const listUndoActionsQueryLimitMax = 100;
+export const listQueuedTasksQueryLimitDefault = 20;
+export const listQueuedTasksQueryLimitMax = 100;
 
-export const ListUndoActionsQueryParams = zod.object({
+export const ListQueuedTasksQueryParams = zod.object({
   cursor: zod.coerce
     .string()
     .optional()
@@ -8573,16 +8573,19 @@ export const ListUndoActionsQueryParams = zod.object({
   limit: zod.coerce
     .number()
     .min(1)
-    .max(listUndoActionsQueryLimitMax)
-    .default(listUndoActionsQueryLimitDefault)
+    .max(listQueuedTasksQueryLimitMax)
+    .default(listQueuedTasksQueryLimitDefault)
     .describe("Page size, default 20, max 100."),
   taskId: zod.coerce
     .string()
     .optional()
     .describe("Restrict the listing to actions belonging to one task."),
+  status: zod
+    .enum(["queued", "running", "completed", "failed", "cancelled", "stale"])
+    .optional(),
 });
 
-export const ListUndoActionsHeader = zod.object({
+export const ListQueuedTasksHeader = zod.object({
   "X-Tenant-ID": zod
     .string()
     .describe(
@@ -8590,7 +8593,7 @@ export const ListUndoActionsHeader = zod.object({
     ),
 });
 
-export const ListUndoActionsResponse = zod.object({
+export const ListQueuedTasksResponse = zod.object({
   success: zod.literal(true),
   data: zod.object({
     items: zod.array(
@@ -8616,6 +8619,72 @@ export const ListUndoActionsResponse = zod.object({
       }),
     ),
     nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Enqueue a new task; runs immediately if a slot is free
+ */
+export const EnqueueTaskHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const EnqueueTaskBody = zod.object({
+  goal: zod.string(),
+  modelName: zod.string().optional(),
+  useKnowledgeBase: zod.boolean().optional(),
+  knowledgeCollectionId: zod.string().optional(),
+  priority: zod.enum(["high", "normal", "low"]).optional(),
+  contextSnapshot: zod
+    .record(zod.string(), zod.unknown())
+    .optional()
+    .describe(
+      "Optional snapshot the queue runner uses to flag stale entries\nbefore execution. Currently honoured: `requiredFiles: string[]`\n(each entry must exist inside the workspace sandbox at the\nmoment the runner picks the task up).\n",
+    ),
+});
+
+export const EnqueueTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    goal: zod.string(),
+    modelName: zod.string().nullish(),
+    useKnowledgeBase: zod.boolean(),
+    knowledgeCollectionId: zod.string().nullish(),
+    priority: zod.enum(["high", "normal", "low"]),
+    status: zod.enum([
+      "queued",
+      "running",
+      "completed",
+      "failed",
+      "cancelled",
+      "stale",
+    ]),
+    runId: zod.string().nullish(),
+    contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
+    staleReason: zod.string().nullish(),
+    error: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    position: zod
+      .number()
+      .nullish()
+      .describe(
+        "0-based position among queued entries (null when not queued).",
+      ),
+    estimatedWaitMs: zod
+      .number()
+      .nullish()
+      .describe(
+        "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
+      ),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
   }),
 });
 
@@ -8659,6 +8728,227 @@ export const GetUndoActionResponse = zod.object({
 });
 
 /**
+ * @summary Active + queued + recently completed tasks for the queue panel
+ */
+export const GetQueueSnapshotHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetQueueSnapshotResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    mode: zod.enum(["sequential", "parallel"]),
+    parallelism: zod
+      .number()
+      .describe(
+        "Maximum concurrent runs the coordinator allows (1 in sequential mode).",
+      ),
+    active: zod.array(
+      zod.object({
+        id: zod.string(),
+        goal: zod.string(),
+        modelName: zod.string().nullish(),
+        useKnowledgeBase: zod.boolean(),
+        knowledgeCollectionId: zod.string().nullish(),
+        priority: zod.enum(["high", "normal", "low"]),
+        status: zod.enum([
+          "queued",
+          "running",
+          "completed",
+          "failed",
+          "cancelled",
+          "stale",
+        ]),
+        runId: zod.string().nullish(),
+        contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
+        staleReason: zod.string().nullish(),
+        error: zod.string().nullish(),
+        summary: zod.string().nullish(),
+        position: zod
+          .number()
+          .nullish()
+          .describe(
+            "0-based position among queued entries (null when not queued).",
+          ),
+        estimatedWaitMs: zod
+          .number()
+          .nullish()
+          .describe(
+            "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
+          ),
+        startedAt: zod.coerce.date().nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    queued: zod.array(
+      zod.object({
+        id: zod.string(),
+        goal: zod.string(),
+        modelName: zod.string().nullish(),
+        useKnowledgeBase: zod.boolean(),
+        knowledgeCollectionId: zod.string().nullish(),
+        priority: zod.enum(["high", "normal", "low"]),
+        status: zod.enum([
+          "queued",
+          "running",
+          "completed",
+          "failed",
+          "cancelled",
+          "stale",
+        ]),
+        runId: zod.string().nullish(),
+        contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
+        staleReason: zod.string().nullish(),
+        error: zod.string().nullish(),
+        summary: zod.string().nullish(),
+        position: zod
+          .number()
+          .nullish()
+          .describe(
+            "0-based position among queued entries (null when not queued).",
+          ),
+        estimatedWaitMs: zod
+          .number()
+          .nullish()
+          .describe(
+            "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
+          ),
+        startedAt: zod.coerce.date().nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    recent: zod.array(
+      zod.object({
+        id: zod.string(),
+        goal: zod.string(),
+        modelName: zod.string().nullish(),
+        useKnowledgeBase: zod.boolean(),
+        knowledgeCollectionId: zod.string().nullish(),
+        priority: zod.enum(["high", "normal", "low"]),
+        status: zod.enum([
+          "queued",
+          "running",
+          "completed",
+          "failed",
+          "cancelled",
+          "stale",
+        ]),
+        runId: zod.string().nullish(),
+        contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
+        staleReason: zod.string().nullish(),
+        error: zod.string().nullish(),
+        summary: zod.string().nullish(),
+        position: zod
+          .number()
+          .nullish()
+          .describe(
+            "0-based position among queued entries (null when not queued).",
+          ),
+        estimatedWaitMs: zod
+          .number()
+          .nullish()
+          .describe(
+            "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
+          ),
+        startedAt: zod.coerce.date().nullish(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Cancel every still-queued task (active runs are left alone)
+ */
+export const ClearQueuedTasksHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ClearQueuedTasksBody = zod.object({
+  confirm: zod
+    .boolean()
+    .optional()
+    .describe("Must be true — guards against accidental queue wipes."),
+});
+
+export const ClearQueuedTasksResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    cleared: zod.number(),
+  }),
+});
+
+/**
+ * @summary Fetch a single task by id
+ */
+export const GetQueuedTaskParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetQueuedTaskHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetQueuedTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    goal: zod.string(),
+    modelName: zod.string().nullish(),
+    useKnowledgeBase: zod.boolean(),
+    knowledgeCollectionId: zod.string().nullish(),
+    priority: zod.enum(["high", "normal", "low"]),
+    status: zod.enum([
+      "queued",
+      "running",
+      "completed",
+      "failed",
+      "cancelled",
+      "stale",
+    ]),
+    runId: zod.string().nullish(),
+    contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
+    staleReason: zod.string().nullish(),
+    error: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    position: zod
+      .number()
+      .nullish()
+      .describe(
+        "0-based position among queued entries (null when not queued).",
+      ),
+    estimatedWaitMs: zod
+      .number()
+      .nullish()
+      .describe(
+        "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
+      ),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
  * @summary Reverse one recorded action
  */
 export const UndoActionParams = zod.object({
@@ -8693,6 +8983,62 @@ export const UndoActionResponse = zod.object({
     createdAt: zod.coerce.date(),
     undoneAt: zod.coerce.date().nullish(),
     expiresAt: zod.coerce.date().nullish(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Cancel a queued or running task
+ */
+export const CancelQueuedTaskParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CancelQueuedTaskHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CancelQueuedTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    goal: zod.string(),
+    modelName: zod.string().nullish(),
+    useKnowledgeBase: zod.boolean(),
+    knowledgeCollectionId: zod.string().nullish(),
+    priority: zod.enum(["high", "normal", "low"]),
+    status: zod.enum([
+      "queued",
+      "running",
+      "completed",
+      "failed",
+      "cancelled",
+      "stale",
+    ]),
+    runId: zod.string().nullish(),
+    contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
+    staleReason: zod.string().nullish(),
+    error: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    position: zod
+      .number()
+      .nullish()
+      .describe(
+        "0-based position among queued entries (null when not queued).",
+      ),
+    estimatedWaitMs: zod
+      .number()
+      .nullish()
+      .describe(
+        "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
+      ),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
 });
@@ -8749,6 +9095,66 @@ export const UndoTaskResponse = zod.object({
         updatedAt: zod.coerce.date(),
       }),
     ),
+  }),
+});
+
+/**
+ * @summary Reorder a queued task by changing its priority
+ */
+export const SetQueuedTaskPriorityParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SetQueuedTaskPriorityHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetQueuedTaskPriorityBody = zod.object({
+  priority: zod.enum(["high", "normal", "low"]),
+});
+
+export const SetQueuedTaskPriorityResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    goal: zod.string(),
+    modelName: zod.string().nullish(),
+    useKnowledgeBase: zod.boolean(),
+    knowledgeCollectionId: zod.string().nullish(),
+    priority: zod.enum(["high", "normal", "low"]),
+    status: zod.enum([
+      "queued",
+      "running",
+      "completed",
+      "failed",
+      "cancelled",
+      "stale",
+    ]),
+    runId: zod.string().nullish(),
+    contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
+    staleReason: zod.string().nullish(),
+    error: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    position: zod
+      .number()
+      .nullish()
+      .describe(
+        "0-based position among queued entries (null when not queued).",
+      ),
+    estimatedWaitMs: zod
+      .number()
+      .nullish()
+      .describe(
+        "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
+      ),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
   }),
 });
 

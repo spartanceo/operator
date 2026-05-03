@@ -14,6 +14,7 @@
  */
 import type { TenantContext } from "@workspace/types";
 
+import { withModelLock } from "../lib/model-lock";
 import { logPrivacyEvent } from "./privacy.service";
 
 const DEFAULT_TIMEOUT_MS = 60_000;
@@ -145,15 +146,20 @@ export async function chat(
       temperature: req.temperature ?? 0.2,
     },
   };
-  const res = await ollamaFetch(
-    ctx,
-    url,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    },
-    `ollama:/api/chat:${req.model}`,
+  // Serialize every real model invocation across the process. The task
+  // queue runs N tasks in parallel on capable hardware, but the underlying
+  // model adapter must serve them one at a time to avoid VRAM/RAM thrash.
+  const res = await withModelLock(() =>
+    ollamaFetch(
+      ctx,
+      url,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+      `ollama:/api/chat:${req.model}`,
+    ),
   );
   if (!res || !res.ok) {
     // Degrade gracefully: return a deterministic stub message so the chat

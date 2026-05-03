@@ -63,7 +63,9 @@ tags:
   - name: undo
     description: Undo stack for desktop / file actions (Task
   - name: workspaces
-    description: Workspace switcher — create, rename, delete, customise, overview, template export/import (Task
+    description: Workspace switcher — create, rename, delete, customise, overview, template export/import (Task #42)
+  - name: tasks
+    description: Multi-task queue, priority controls, and concurrent task management (Task #38)
 paths:
   /healthz:
     get:
@@ -4783,6 +4785,12 @@ paths:
       tags:
         - undo
       summary: Paginated undo history for the current tenant
+  /tasks:
+    get:
+      operationId: listQueuedTasks
+      tags:
+        - tasks
+      summary: List queued / running / completed tasks (paginated)
       parameters:
         - $ref: '#/components/parameters/TenantHeader'
         - $ref: '#/components/parameters/CursorParam'
@@ -4793,6 +4801,11 @@ paths:
           description: Restrict the listing to actions belonging to one task.
           schema:
             type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/QueuedTaskStatus"
       responses:
         '200':
           description: Undo actions page
@@ -4800,6 +4813,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UndoActionListResponse'
+    post:
+      operationId: enqueueTask
+      tags:
+        - tasks
+      summary: Enqueue a new task; runs immediately if a slot is free
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueueEnqueueRequest"
+      responses:
+        "200":
+          description: Task accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueuedTaskResponse"
   /undo/actions/{id}:
     get:
       operationId: getUndoAction
@@ -4826,6 +4859,74 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /tasks/snapshot:
+    get:
+      operationId: getQueueSnapshot
+      tags:
+        - tasks
+      summary: Active + queued + recently completed tasks for the queue panel
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Queue snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueSnapshotResponse"
+  /tasks/clear:
+    post:
+      operationId: clearQueuedTasks
+      tags:
+        - tasks
+      summary: Cancel every still-queued task (active runs are left alone)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueueClearRequest"
+      responses:
+        "200":
+          description: Cleared count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueClearResponse"
+        "400":
+          description: Confirmation flag missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /tasks/{id}:
+    get:
+      operationId: getQueuedTask
+      tags:
+        - tasks
+      summary: Fetch a single task by id
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueuedTaskResponse"
+        "404":
+          description: Unknown task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
   /undo/actions/{id}/undo:
     post:
       operationId: undoAction
@@ -4858,6 +4959,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /tasks/{id}/cancel:
+    post:
+      operationId: cancelQueuedTask
+      tags:
+        - tasks
+      summary: Cancel a queued or running task
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueuedTaskResponse"
+        "404":
+          description: Unknown task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
   /undo/tasks/{taskId}/undo:
     post:
       operationId: undoTask
@@ -4890,6 +5017,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /tasks/{id}/priority:
+    post:
+      operationId: setQueuedTaskPriority
+      tags:
+        - tasks
+      summary: Reorder a queued task by changing its priority
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueueSetPriorityRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueuedTaskResponse"
+        "404":
+          description: Unknown task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
   /undo/tasks/{taskId}/actions:
     get:
       operationId: listUndoTaskActions
@@ -13158,6 +13317,80 @@ components:
         updatedAt:
           type: string
           format: date-time
+    QueuedTaskPriority:
+      type: string
+      enum: [high, normal, low]
+    QueuedTaskStatus:
+      type: string
+      enum: [queued, running, completed, failed, cancelled, stale]
+    QueuedTask:
+      type: object
+      required:
+        - id
+        - goal
+        - priority
+        - status
+        - useKnowledgeBase
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        goal:
+          type: string
+        modelName:
+          type: string
+          nullable: true
+        useKnowledgeBase:
+          type: boolean
+        knowledgeCollectionId:
+          type: string
+          nullable: true
+        priority:
+          $ref: "#/components/schemas/QueuedTaskPriority"
+        status:
+          $ref: "#/components/schemas/QueuedTaskStatus"
+        runId:
+          type: string
+          nullable: true
+        contextSnapshot:
+          type: object
+          nullable: true
+          additionalProperties: true
+        staleReason:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        position:
+          type: integer
+          nullable: true
+          description: 0-based position among queued entries (null when not queued).
+        estimatedWaitMs:
+          type: integer
+          nullable: true
+          description: |
+            Projected milliseconds before this task is expected to start,
+            computed from recent run durations and the current parallelism
+            budget. Null for tasks that are not queued.
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     SkillDeleteReceipt:
       type: object
       required:
@@ -13311,6 +13544,123 @@ components:
         version:
           type: integer
           description: Expected current version for optimistic concurrency control.
+    QueueEnqueueRequest:
+      type: object
+      required:
+        - goal
+      properties:
+        goal:
+          type: string
+        modelName:
+          type: string
+        useKnowledgeBase:
+          type: boolean
+        knowledgeCollectionId:
+          type: string
+        priority:
+          $ref: "#/components/schemas/QueuedTaskPriority"
+        contextSnapshot:
+          type: object
+          additionalProperties: true
+          description: |
+            Optional snapshot the queue runner uses to flag stale entries
+            before execution. Currently honoured: `requiredFiles: string[]`
+            (each entry must exist inside the workspace sandbox at the
+            moment the runner picks the task up).
+    QueueSetPriorityRequest:
+      type: object
+      required:
+        - priority
+      properties:
+        priority:
+          $ref: "#/components/schemas/QueuedTaskPriority"
+    QueueClearRequest:
+      type: object
+      properties:
+        confirm:
+          type: boolean
+          description: Must be true — guards against accidental queue wipes.
+    QueueClearResult:
+      type: object
+      required:
+        - cleared
+      properties:
+        cleared:
+          type: integer
+    QueueSnapshot:
+      type: object
+      required:
+        - active
+        - queued
+        - recent
+        - mode
+        - parallelism
+      properties:
+        mode:
+          type: string
+          enum: [sequential, parallel]
+        parallelism:
+          type: integer
+          description: Maximum concurrent runs the coordinator allows (1 in sequential mode).
+        active:
+          type: array
+          items:
+            $ref: "#/components/schemas/QueuedTask"
+        queued:
+          type: array
+          items:
+            $ref: "#/components/schemas/QueuedTask"
+        recent:
+          type: array
+          items:
+            $ref: "#/components/schemas/QueuedTask"
+    QueuedTaskResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/QueuedTask"
+    QueueSnapshotResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/QueueSnapshot"
+    QueueClearResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/QueueClearResult"
+    QueuedTaskListPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QueuedTask"
+        nextCursor:
+          type: string
+          nullable: true
+    QueuedTaskListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/QueuedTaskListPage"
   responses: {}
   requestBodies: {}
   headers: {}

@@ -4206,6 +4206,55 @@ export interface Skill {
   updatedAt: string;
 }
 
+export type QueuedTaskPriority =
+  (typeof QueuedTaskPriority)[keyof typeof QueuedTaskPriority];
+
+export const QueuedTaskPriority = {
+  high: "high",
+  normal: "normal",
+  low: "low",
+} as const;
+
+export type QueuedTaskStatus =
+  (typeof QueuedTaskStatus)[keyof typeof QueuedTaskStatus];
+
+export const QueuedTaskStatus = {
+  queued: "queued",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
+  cancelled: "cancelled",
+  stale: "stale",
+} as const;
+
+export type QueuedTaskContextSnapshot = { [key: string]: unknown } | null;
+
+export interface QueuedTask {
+  id: string;
+  goal: string;
+  modelName?: string | null;
+  useKnowledgeBase: boolean;
+  knowledgeCollectionId?: string | null;
+  priority: QueuedTaskPriority;
+  status: QueuedTaskStatus;
+  runId?: string | null;
+  contextSnapshot?: QueuedTaskContextSnapshot;
+  staleReason?: string | null;
+  error?: string | null;
+  summary?: string | null;
+  /** 0-based position among queued entries (null when not queued). */
+  position?: number | null;
+  /** Projected milliseconds before this task is expected to start,
+computed from recent run durations and the current parallelism
+budget. Null for tasks that are not queued.
+ */
+  estimatedWaitMs?: number | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SkillDeleteReceipt {
   id: string;
   deleted: boolean;
@@ -4276,6 +4325,84 @@ export interface UpdateSkillRequest {
   category?: string;
   /** Expected current version for optimistic concurrency control. */
   version?: number;
+}
+
+/**
+ * Optional snapshot the queue runner uses to flag stale entries
+before execution. Currently honoured: `requiredFiles: string[]`
+(each entry must exist inside the workspace sandbox at the
+moment the runner picks the task up).
+
+ */
+export type QueueEnqueueRequestContextSnapshot = { [key: string]: unknown };
+
+export interface QueueEnqueueRequest {
+  goal: string;
+  modelName?: string;
+  useKnowledgeBase?: boolean;
+  knowledgeCollectionId?: string;
+  priority?: QueuedTaskPriority;
+  /** Optional snapshot the queue runner uses to flag stale entries
+before execution. Currently honoured: `requiredFiles: string[]`
+(each entry must exist inside the workspace sandbox at the
+moment the runner picks the task up).
+ */
+  contextSnapshot?: QueueEnqueueRequestContextSnapshot;
+}
+
+export interface QueueSetPriorityRequest {
+  priority: QueuedTaskPriority;
+}
+
+export interface QueueClearRequest {
+  /** Must be true — guards against accidental queue wipes. */
+  confirm?: boolean;
+}
+
+export interface QueueClearResult {
+  cleared: number;
+}
+
+export type QueueSnapshotMode =
+  (typeof QueueSnapshotMode)[keyof typeof QueueSnapshotMode];
+
+export const QueueSnapshotMode = {
+  sequential: "sequential",
+  parallel: "parallel",
+} as const;
+
+export interface QueueSnapshot {
+  mode: QueueSnapshotMode;
+  /** Maximum concurrent runs the coordinator allows (1 in sequential mode). */
+  parallelism: number;
+  active: QueuedTask[];
+  queued: QueuedTask[];
+  recent: QueuedTask[];
+}
+
+export interface QueuedTaskResponse {
+  success: boolean;
+  data: QueuedTask;
+}
+
+export interface QueueSnapshotResponse {
+  success: boolean;
+  data: QueueSnapshot;
+}
+
+export interface QueueClearResponse {
+  success: boolean;
+  data: QueueClearResult;
+}
+
+export interface QueuedTaskListPage {
+  items: QueuedTask[];
+  nextCursor?: string | null;
+}
+
+export interface QueuedTaskListResponse {
+  success: boolean;
+  data: QueuedTaskListPage;
 }
 
 /**
@@ -4968,7 +5095,7 @@ export type ListDiagnosticErrorsParams = {
   limit?: number;
 };
 
-export type ListUndoActionsParams = {
+export type ListQueuedTasksParams = {
   /**
    * Opaque cursor returned by the previous page.
    */
@@ -4983,6 +5110,7 @@ export type ListUndoActionsParams = {
    * Restrict the listing to actions belonging to one task.
    */
   taskId?: string;
+  status?: QueuedTaskStatus;
 };
 
 export type ListUndoTaskActionsParams = {

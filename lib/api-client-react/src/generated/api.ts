@@ -187,10 +187,10 @@ import type {
   ListOutreachEnrolmentsParams,
   ListOutreachSequencesParams,
   ListPrivacyEventsParams,
+  ListQueuedTasksParams,
   ListSkillsParams,
   ListTelemetryEventsParams,
   ListToolsParams,
-  ListUndoActionsParams,
   ListUndoTaskActionsParams,
   ListVoipCallsParams,
   LoginRequest,
@@ -258,6 +258,12 @@ import type {
   PlaceVoipCallRequest,
   PrivacyEventListResponse,
   PrivacyEventResponse,
+  QueueClearRequest,
+  QueueClearResponse,
+  QueueEnqueueRequest,
+  QueueSetPriorityRequest,
+  QueueSnapshotResponse,
+  QueuedTaskResponse,
   RecordLegalAcceptanceRequest,
   RecordTelemetryEventsRequest,
   RecordTelemetryEventsResponse,
@@ -19158,57 +19164,41 @@ export function useGetDiagnosticCatalog<
 /**
  * @summary Paginated undo history for the current tenant
  */
-export const getListUndoActionsUrl = (params?: ListUndoActionsParams) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/api/undo/actions?${stringifiedParams}`
-    : `/api/undo/actions`;
+export const getListUndoActionsUrl = () => {
+  return `/api/undo/actions`;
 };
 
 export const listUndoActions = async (
-  params?: ListUndoActionsParams,
   options?: RequestInit,
-): Promise<UndoActionListResponse> => {
-  return customFetch<UndoActionListResponse>(getListUndoActionsUrl(params), {
+): Promise<unknown> => {
+  return customFetch<unknown>(getListUndoActionsUrl(), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListUndoActionsQueryKey = (params?: ListUndoActionsParams) => {
-  return [`/api/undo/actions`, ...(params ? [params] : [])] as const;
+export const getListUndoActionsQueryKey = () => {
+  return [`/api/undo/actions`] as const;
 };
 
 export const getListUndoActionsQueryOptions = <
   TData = Awaited<ReturnType<typeof listUndoActions>>,
   TError = ErrorType<unknown>,
->(
-  params?: ListUndoActionsParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listUndoActions>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListUndoActionsQueryKey(params);
+  const queryKey = queryOptions?.queryKey ?? getListUndoActionsQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listUndoActions>>> = ({
     signal,
-  }) => listUndoActions(params, { signal, ...requestOptions });
+  }) => listUndoActions({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listUndoActions>>,
@@ -19229,18 +19219,15 @@ export type ListUndoActionsQueryError = ErrorType<unknown>;
 export function useListUndoActions<
   TData = Awaited<ReturnType<typeof listUndoActions>>,
   TError = ErrorType<unknown>,
->(
-  params?: ListUndoActionsParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listUndoActions>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListUndoActionsQueryOptions(params, options);
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUndoActionsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -19248,6 +19235,186 @@ export function useListUndoActions<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List queued / running / completed tasks (paginated)
+ */
+export const getListQueuedTasksUrl = (params?: ListQueuedTasksParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tasks?${stringifiedParams}`
+    : `/api/tasks`;
+};
+
+export const listQueuedTasks = async (
+  params?: ListQueuedTasksParams,
+  options?: RequestInit,
+): Promise<UndoActionListResponse> => {
+  return customFetch<UndoActionListResponse>(getListQueuedTasksUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListQueuedTasksQueryKey = (params?: ListQueuedTasksParams) => {
+  return [`/api/tasks`, ...(params ? [params] : [])] as const;
+};
+
+export const getListQueuedTasksQueryOptions = <
+  TData = Awaited<ReturnType<typeof listQueuedTasks>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListQueuedTasksParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listQueuedTasks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListQueuedTasksQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listQueuedTasks>>> = ({
+    signal,
+  }) => listQueuedTasks(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listQueuedTasks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListQueuedTasksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listQueuedTasks>>
+>;
+export type ListQueuedTasksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List queued / running / completed tasks (paginated)
+ */
+
+export function useListQueuedTasks<
+  TData = Awaited<ReturnType<typeof listQueuedTasks>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListQueuedTasksParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listQueuedTasks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListQueuedTasksQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Enqueue a new task; runs immediately if a slot is free
+ */
+export const getEnqueueTaskUrl = () => {
+  return `/api/tasks`;
+};
+
+export const enqueueTask = async (
+  queueEnqueueRequest: QueueEnqueueRequest,
+  options?: RequestInit,
+): Promise<QueuedTaskResponse> => {
+  return customFetch<QueuedTaskResponse>(getEnqueueTaskUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(queueEnqueueRequest),
+  });
+};
+
+export const getEnqueueTaskMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof enqueueTask>>,
+    TError,
+    { data: BodyType<QueueEnqueueRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof enqueueTask>>,
+  TError,
+  { data: BodyType<QueueEnqueueRequest> },
+  TContext
+> => {
+  const mutationKey = ["enqueueTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof enqueueTask>>,
+    { data: BodyType<QueueEnqueueRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return enqueueTask(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EnqueueTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof enqueueTask>>
+>;
+export type EnqueueTaskMutationBody = BodyType<QueueEnqueueRequest>;
+export type EnqueueTaskMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Enqueue a new task; runs immediately if a slot is free
+ */
+export const useEnqueueTask = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof enqueueTask>>,
+    TError,
+    { data: BodyType<QueueEnqueueRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof enqueueTask>>,
+  TError,
+  { data: BodyType<QueueEnqueueRequest> },
+  TContext
+> => {
+  return useMutation(getEnqueueTaskMutationOptions(options));
+};
 
 /**
  * @summary Fetch one undo action
@@ -19328,6 +19495,254 @@ export function useGetUndoAction<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetUndoActionQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Active + queued + recently completed tasks for the queue panel
+ */
+export const getGetQueueSnapshotUrl = () => {
+  return `/api/tasks/snapshot`;
+};
+
+export const getQueueSnapshot = async (
+  options?: RequestInit,
+): Promise<QueueSnapshotResponse> => {
+  return customFetch<QueueSnapshotResponse>(getGetQueueSnapshotUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetQueueSnapshotQueryKey = () => {
+  return [`/api/tasks/snapshot`] as const;
+};
+
+export const getGetQueueSnapshotQueryOptions = <
+  TData = Awaited<ReturnType<typeof getQueueSnapshot>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getQueueSnapshot>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetQueueSnapshotQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getQueueSnapshot>>
+  > = ({ signal }) => getQueueSnapshot({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getQueueSnapshot>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetQueueSnapshotQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getQueueSnapshot>>
+>;
+export type GetQueueSnapshotQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Active + queued + recently completed tasks for the queue panel
+ */
+
+export function useGetQueueSnapshot<
+  TData = Awaited<ReturnType<typeof getQueueSnapshot>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getQueueSnapshot>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetQueueSnapshotQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Cancel every still-queued task (active runs are left alone)
+ */
+export const getClearQueuedTasksUrl = () => {
+  return `/api/tasks/clear`;
+};
+
+export const clearQueuedTasks = async (
+  queueClearRequest: QueueClearRequest,
+  options?: RequestInit,
+): Promise<QueueClearResponse> => {
+  return customFetch<QueueClearResponse>(getClearQueuedTasksUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(queueClearRequest),
+  });
+};
+
+export const getClearQueuedTasksMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof clearQueuedTasks>>,
+    TError,
+    { data: BodyType<QueueClearRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof clearQueuedTasks>>,
+  TError,
+  { data: BodyType<QueueClearRequest> },
+  TContext
+> => {
+  const mutationKey = ["clearQueuedTasks"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof clearQueuedTasks>>,
+    { data: BodyType<QueueClearRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return clearQueuedTasks(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClearQueuedTasksMutationResult = NonNullable<
+  Awaited<ReturnType<typeof clearQueuedTasks>>
+>;
+export type ClearQueuedTasksMutationBody = BodyType<QueueClearRequest>;
+export type ClearQueuedTasksMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Cancel every still-queued task (active runs are left alone)
+ */
+export const useClearQueuedTasks = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof clearQueuedTasks>>,
+    TError,
+    { data: BodyType<QueueClearRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof clearQueuedTasks>>,
+  TError,
+  { data: BodyType<QueueClearRequest> },
+  TContext
+> => {
+  return useMutation(getClearQueuedTasksMutationOptions(options));
+};
+
+/**
+ * @summary Fetch a single task by id
+ */
+export const getGetQueuedTaskUrl = (id: string) => {
+  return `/api/tasks/${id}`;
+};
+
+export const getQueuedTask = async (
+  id: string,
+  options?: RequestInit,
+): Promise<QueuedTaskResponse> => {
+  return customFetch<QueuedTaskResponse>(getGetQueuedTaskUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetQueuedTaskQueryKey = (id: string) => {
+  return [`/api/tasks/${id}`] as const;
+};
+
+export const getGetQueuedTaskQueryOptions = <
+  TData = Awaited<ReturnType<typeof getQueuedTask>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getQueuedTask>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetQueuedTaskQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getQueuedTask>>> = ({
+    signal,
+  }) => getQueuedTask(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getQueuedTask>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetQueuedTaskQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getQueuedTask>>
+>;
+export type GetQueuedTaskQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch a single task by id
+ */
+
+export function useGetQueuedTask<
+  TData = Awaited<ReturnType<typeof getQueuedTask>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getQueuedTask>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetQueuedTaskQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -19421,6 +19836,90 @@ export const useUndoAction = <
 };
 
 /**
+ * @summary Cancel a queued or running task
+ */
+export const getCancelQueuedTaskUrl = (id: string) => {
+  return `/api/tasks/${id}/cancel`;
+};
+
+export const cancelQueuedTask = async (
+  id: string,
+  options?: RequestInit,
+): Promise<QueuedTaskResponse> => {
+  return customFetch<QueuedTaskResponse>(getCancelQueuedTaskUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCancelQueuedTaskMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelQueuedTask>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelQueuedTask>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["cancelQueuedTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelQueuedTask>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return cancelQueuedTask(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CancelQueuedTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof cancelQueuedTask>>
+>;
+
+export type CancelQueuedTaskMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Cancel a queued or running task
+ */
+export const useCancelQueuedTask = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelQueuedTask>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof cancelQueuedTask>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getCancelQueuedTaskMutationOptions(options));
+};
+
+/**
  * @summary Reverse every reversible action belonging to a task
  */
 export const getUndoTaskUrl = (taskId: string) => {
@@ -19505,6 +20004,94 @@ export const useUndoTask = <
   TContext
 > => {
   return useMutation(getUndoTaskMutationOptions(options));
+};
+
+/**
+ * @summary Reorder a queued task by changing its priority
+ */
+export const getSetQueuedTaskPriorityUrl = (id: string) => {
+  return `/api/tasks/${id}/priority`;
+};
+
+export const setQueuedTaskPriority = async (
+  id: string,
+  queueSetPriorityRequest: QueueSetPriorityRequest,
+  options?: RequestInit,
+): Promise<QueuedTaskResponse> => {
+  return customFetch<QueuedTaskResponse>(getSetQueuedTaskPriorityUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(queueSetPriorityRequest),
+  });
+};
+
+export const getSetQueuedTaskPriorityMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setQueuedTaskPriority>>,
+    TError,
+    { id: string; data: BodyType<QueueSetPriorityRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setQueuedTaskPriority>>,
+  TError,
+  { id: string; data: BodyType<QueueSetPriorityRequest> },
+  TContext
+> => {
+  const mutationKey = ["setQueuedTaskPriority"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setQueuedTaskPriority>>,
+    { id: string; data: BodyType<QueueSetPriorityRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return setQueuedTaskPriority(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetQueuedTaskPriorityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setQueuedTaskPriority>>
+>;
+export type SetQueuedTaskPriorityMutationBody =
+  BodyType<QueueSetPriorityRequest>;
+export type SetQueuedTaskPriorityMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Reorder a queued task by changing its priority
+ */
+export const useSetQueuedTaskPriority = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setQueuedTaskPriority>>,
+    TError,
+    { id: string; data: BodyType<QueueSetPriorityRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setQueuedTaskPriority>>,
+  TError,
+  { id: string; data: BodyType<QueueSetPriorityRequest> },
+  TContext
+> => {
+  return useMutation(getSetQueuedTaskPriorityMutationOptions(options));
 };
 
 /**
