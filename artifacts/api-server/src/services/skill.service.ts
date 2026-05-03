@@ -1192,7 +1192,17 @@ export async function getAdoptionStats(
 /**
  * Find an installed skill whose triggers match the given goal text.
  * Used by the Router agent to decide whether a skill should be injected
- * into a run. Returns the highest-installCount match (most popular wins).
+ * into a run.
+ *
+ * Ordering (Task #84 — install-count decay):
+ *   1. `usageCount` — recent verified usage is the strongest signal of
+ *      "this skill actually helps users". This caps `installCount`'s
+ *      runaway bias because the Router would otherwise always pick the
+ *      first-installed skill forever (install_count is monotonic).
+ *   2. `installCount` — tie-breaker that still rewards popularity.
+ *   3. `createdAt` (desc) — final tie-breaker favours newer skills so
+ *      a freshly published alternative gets exposure instead of being
+ *      permanently ranked behind an older equal-usage peer.
  */
 export async function matchSkillForGoal(
   ctx: TenantContext,
@@ -1203,7 +1213,7 @@ export async function matchSkillForGoal(
     .select()
     .from(skills)
     .where(and(tenantScope(ctx, skills), eq(skills.isInstalled, true)))
-    .orderBy(desc(skills.installCount));
+    .orderBy(desc(skills.usageCount), desc(skills.installCount), desc(skills.createdAt));
 
   for (const r of rows) {
     const triggers = parseStringArray(r.triggers, "triggers");
