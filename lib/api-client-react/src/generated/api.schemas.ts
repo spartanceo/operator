@@ -4614,6 +4614,177 @@ export interface ImportTaskTemplateRequest {
   name?: string;
 }
 
+export interface ScheduledTask {
+  id: string;
+  title: string;
+  prompt: string;
+  cronExpression: string;
+  naturalLanguage?: string | null;
+  timezone: string;
+  recurrenceKind: string;
+  paused: boolean;
+  taskContext?: unknown | null;
+  lastRunAt?: string | null;
+  lastRunStatus?: string | null;
+  lastRunSummary?: string | null;
+  nextRunAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ScheduledTaskResponseData = {
+  schedule: ScheduledTask;
+};
+
+export interface ScheduledTaskResponse {
+  success: boolean;
+  data: ScheduledTaskResponseData;
+}
+
+export interface ScheduledTaskListPage {
+  items: ScheduledTask[];
+  nextCursor: string | null;
+}
+
+export interface ScheduledTaskListResponse {
+  success: boolean;
+  data: ScheduledTaskListPage;
+}
+
+export type CreateScheduleRequestRecurrenceKind =
+  (typeof CreateScheduleRequestRecurrenceKind)[keyof typeof CreateScheduleRequestRecurrenceKind];
+
+export const CreateScheduleRequestRecurrenceKind = {
+  minutely: "minutely",
+  hourly: "hourly",
+  daily: "daily",
+  weekly: "weekly",
+  monthly: "monthly",
+  custom: "custom",
+} as const;
+
+export interface CreateScheduleRequest {
+  title: string;
+  prompt: string;
+  cronExpression?: string;
+  naturalLanguage?: string;
+  tzOffsetMinutes?: number;
+  timezone?: string;
+  taskContext?: unknown;
+  recurrenceKind?: CreateScheduleRequestRecurrenceKind;
+}
+
+export type UpdateScheduleRequestRecurrenceKind =
+  (typeof UpdateScheduleRequestRecurrenceKind)[keyof typeof UpdateScheduleRequestRecurrenceKind];
+
+export const UpdateScheduleRequestRecurrenceKind = {
+  minutely: "minutely",
+  hourly: "hourly",
+  daily: "daily",
+  weekly: "weekly",
+  monthly: "monthly",
+  custom: "custom",
+} as const;
+
+export interface UpdateScheduleRequest {
+  title?: string;
+  prompt?: string;
+  cronExpression?: string;
+  naturalLanguage?: string;
+  tzOffsetMinutes?: number;
+  timezone?: string;
+  taskContext?: unknown;
+  paused?: boolean;
+  recurrenceKind?: UpdateScheduleRequestRecurrenceKind;
+}
+
+export interface PauseScheduleRequest {
+  paused: boolean;
+}
+
+export interface PreviewScheduleRequest {
+  cronExpression?: string;
+  naturalLanguage?: string;
+  tzOffsetMinutes?: number;
+}
+
+export interface SchedulePreview {
+  cronExpression: string;
+  recurrenceKind: string;
+  nextRuns: string[];
+}
+
+export type PreviewScheduleResponseData = {
+  preview: SchedulePreview;
+};
+
+export interface PreviewScheduleResponse {
+  success: boolean;
+  data: PreviewScheduleResponseData;
+}
+
+export type DeleteScheduleResponseData = {
+  deleted: boolean;
+  id: string;
+};
+
+export interface DeleteScheduleResponse {
+  success: boolean;
+  data: DeleteScheduleResponseData;
+}
+
+export interface ScheduledTaskRun {
+  id: string;
+  scheduledTaskId: string;
+  scheduledFor: string;
+  startedAt: string;
+  completedAt?: string | null;
+  status: string;
+  summary?: string | null;
+  error?: string | null;
+  agentRunId?: string | null;
+  triggerKind: string;
+  createdAt: string;
+}
+
+export type ScheduledTaskRunResponseData = {
+  run: ScheduledTaskRun;
+};
+
+export interface ScheduledTaskRunResponse {
+  success: boolean;
+  data: ScheduledTaskRunResponseData;
+}
+
+export interface ScheduledTaskRunListPage {
+  items: ScheduledTaskRun[];
+  nextCursor: string | null;
+}
+
+export interface ScheduledTaskRunListResponse {
+  success: boolean;
+  data: ScheduledTaskRunListPage;
+}
+
+export interface ScheduleSettings {
+  globalPaused: boolean;
+  lastTickAt?: string | null;
+  updatedAt: string;
+}
+
+export type ScheduleSettingsResponseData = {
+  settings: ScheduleSettings;
+};
+
+export interface ScheduleSettingsResponse {
+  success: boolean;
+  data: ScheduleSettingsResponseData;
+}
+
+export interface UpdateScheduleSettingsRequest {
+  globalPaused: boolean;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -5375,4 +5546,30 @@ export type ListSkillsParams = {
   category?: string;
   installed?: boolean;
   search?: string;
+};
+
+export type ListSchedulesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListScheduleRunsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
 };

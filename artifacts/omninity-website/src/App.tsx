@@ -44,6 +44,7 @@ const ApprovalsPage = lazy(() => import("@/pages/operator/approvals"));
 const UndoPage = lazy(() => import("@/pages/operator/undo"));
 const SkillsPage = lazy(() => import("@/pages/operator/skills"));
 const QueuePage = lazy(() => import("@/pages/operator/queue"));
+const SchedulesPage = lazy(() => import("@/pages/operator/schedules"));
 const SettingsPage = lazy(() => import("@/pages/operator/settings"));
 import OnboardingPage from "@/pages/operator/onboarding";
 import MobilePage from "@/pages/mobile";
@@ -68,6 +69,7 @@ const OPERATOR_ROUTES = new Set([
   "/communications",
   "/approvals",
   "/undo",
+  "/schedules",
   "/activity",
   "/skills",
   "/queue",
@@ -188,6 +190,7 @@ function OperatorRoutes() {
         <Route path="/communications" component={CommunicationsPage} />
         <Route path="/approvals" component={ApprovalsPage} />
         <Route path="/undo" component={UndoPage} />
+        <Route path="/schedules" component={SchedulesPage} />
         <Route path="/activity" component={ActivityPage} />
         <Route path="/skills" component={SkillsPage} />
         <Route path="/queue" component={QueuePage} />

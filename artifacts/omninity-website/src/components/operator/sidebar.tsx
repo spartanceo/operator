@@ -17,6 +17,7 @@ import {
   Undo2,
   ListTodo,
   LayoutTemplate,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/undo", label: "Undo", icon: Undo2 },
   { href: "/queue", label: "Tasks", icon: ListTodo },
+  { href: "/schedules", label: "Schedules", icon: CalendarClock },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/skills", label: "Skills", icon: Sparkles },
   { href: "/settings", label: "Settings", icon: Settings },

@@ -10557,3 +10557,421 @@ export const ExportSkillByIdPathResponse = zod.object({
     version: zod.number(),
   }),
 });
+
+/**
+ * @summary List scheduled tasks (newest first)
+ */
+export const listSchedulesQueryLimitDefault = 20;
+export const listSchedulesQueryLimitMax = 100;
+
+export const ListSchedulesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listSchedulesQueryLimitMax)
+    .default(listSchedulesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListSchedulesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSchedulesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        title: zod.string(),
+        prompt: zod.string(),
+        cronExpression: zod.string(),
+        naturalLanguage: zod.string().nullish(),
+        timezone: zod.string(),
+        recurrenceKind: zod.string(),
+        paused: zod.boolean(),
+        taskContext: zod.unknown().nullish(),
+        lastRunAt: zod.coerce.date().nullish(),
+        lastRunStatus: zod.string().nullish(),
+        lastRunSummary: zod.string().nullish(),
+        nextRunAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a scheduled task (NL or cron)
+ */
+export const CreateScheduleHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateScheduleBody = zod.object({
+  title: zod.string(),
+  prompt: zod.string(),
+  cronExpression: zod.string().optional(),
+  naturalLanguage: zod.string().optional(),
+  tzOffsetMinutes: zod.number().optional(),
+  timezone: zod.string().optional(),
+  taskContext: zod.unknown().optional(),
+  recurrenceKind: zod
+    .enum(["minutely", "hourly", "daily", "weekly", "monthly", "custom"])
+    .optional(),
+});
+
+export const CreateScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    schedule: zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      prompt: zod.string(),
+      cronExpression: zod.string(),
+      naturalLanguage: zod.string().nullish(),
+      timezone: zod.string(),
+      recurrenceKind: zod.string(),
+      paused: zod.boolean(),
+      taskContext: zod.unknown().nullish(),
+      lastRunAt: zod.coerce.date().nullish(),
+      lastRunStatus: zod.string().nullish(),
+      lastRunSummary: zod.string().nullish(),
+      nextRunAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Parse a NL or cron expression and return the next 3 fires
+ */
+export const PreviewScheduleHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PreviewScheduleBody = zod.object({
+  cronExpression: zod.string().optional(),
+  naturalLanguage: zod.string().optional(),
+  tzOffsetMinutes: zod.number().optional(),
+});
+
+export const PreviewScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    preview: zod.object({
+      cronExpression: zod.string(),
+      recurrenceKind: zod.string(),
+      nextRuns: zod.array(zod.coerce.date()),
+    }),
+  }),
+});
+
+/**
+ * @summary Per-tenant scheduler settings (singleton)
+ */
+export const GetScheduleSettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetScheduleSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    settings: zod.object({
+      globalPaused: zod.boolean(),
+      lastTickAt: zod.coerce.date().nullish(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Update the global pause flag
+ */
+export const UpdateScheduleSettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateScheduleSettingsBody = zod.object({
+  globalPaused: zod.boolean(),
+});
+
+export const UpdateScheduleSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    settings: zod.object({
+      globalPaused: zod.boolean(),
+      lastTickAt: zod.coerce.date().nullish(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Fetch one schedule
+ */
+export const GetScheduleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetScheduleHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    schedule: zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      prompt: zod.string(),
+      cronExpression: zod.string(),
+      naturalLanguage: zod.string().nullish(),
+      timezone: zod.string(),
+      recurrenceKind: zod.string(),
+      paused: zod.boolean(),
+      taskContext: zod.unknown().nullish(),
+      lastRunAt: zod.coerce.date().nullish(),
+      lastRunStatus: zod.string().nullish(),
+      lastRunSummary: zod.string().nullish(),
+      nextRunAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Update a schedule (re-cron, rename, pause, edit prompt)
+ */
+export const UpdateScheduleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateScheduleHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateScheduleBody = zod.object({
+  title: zod.string().optional(),
+  prompt: zod.string().optional(),
+  cronExpression: zod.string().optional(),
+  naturalLanguage: zod.string().optional(),
+  tzOffsetMinutes: zod.number().optional(),
+  timezone: zod.string().optional(),
+  taskContext: zod.unknown().optional(),
+  paused: zod.boolean().optional(),
+  recurrenceKind: zod
+    .enum(["minutely", "hourly", "daily", "weekly", "monthly", "custom"])
+    .optional(),
+});
+
+export const UpdateScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    schedule: zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      prompt: zod.string(),
+      cronExpression: zod.string(),
+      naturalLanguage: zod.string().nullish(),
+      timezone: zod.string(),
+      recurrenceKind: zod.string(),
+      paused: zod.boolean(),
+      taskContext: zod.unknown().nullish(),
+      lastRunAt: zod.coerce.date().nullish(),
+      lastRunStatus: zod.string().nullish(),
+      lastRunSummary: zod.string().nullish(),
+      nextRunAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Delete a schedule and its run history
+ */
+export const DeleteScheduleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteScheduleHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deleted: zod.literal(true),
+    id: zod.string(),
+  }),
+});
+
+/**
+ * @summary Trigger one execution immediately
+ */
+export const RunScheduleNowParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RunScheduleNowHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RunScheduleNowResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    run: zod.object({
+      id: zod.string(),
+      scheduledTaskId: zod.string(),
+      scheduledFor: zod.coerce.date(),
+      startedAt: zod.coerce.date(),
+      completedAt: zod.coerce.date().nullish(),
+      status: zod.string(),
+      summary: zod.string().nullish(),
+      error: zod.string().nullish(),
+      agentRunId: zod.string().nullish(),
+      triggerKind: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Pause or resume one schedule
+ */
+export const PauseScheduleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PauseScheduleHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PauseScheduleBody = zod.object({
+  paused: zod.boolean(),
+});
+
+export const PauseScheduleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    schedule: zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      prompt: zod.string(),
+      cronExpression: zod.string(),
+      naturalLanguage: zod.string().nullish(),
+      timezone: zod.string(),
+      recurrenceKind: zod.string(),
+      paused: zod.boolean(),
+      taskContext: zod.unknown().nullish(),
+      lastRunAt: zod.coerce.date().nullish(),
+      lastRunStatus: zod.string().nullish(),
+      lastRunSummary: zod.string().nullish(),
+      nextRunAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Execution history for one schedule (newest first)
+ */
+export const ListScheduleRunsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listScheduleRunsQueryLimitDefault = 20;
+export const listScheduleRunsQueryLimitMax = 100;
+
+export const ListScheduleRunsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listScheduleRunsQueryLimitMax)
+    .default(listScheduleRunsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListScheduleRunsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListScheduleRunsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        scheduledTaskId: zod.string(),
+        scheduledFor: zod.coerce.date(),
+        startedAt: zod.coerce.date(),
+        completedAt: zod.coerce.date().nullish(),
+        status: zod.string(),
+        summary: zod.string().nullish(),
+        error: zod.string().nullish(),
+        agentRunId: zod.string().nullish(),
+        triggerKind: zod.string(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});

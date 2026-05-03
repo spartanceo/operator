@@ -26,6 +26,7 @@ import modelsRouter from "./models";
 import notificationsRouter from "./notifications";
 import onboardingRouter from "./onboarding";
 import privacyRouter from "./privacy";
+import schedulesRouter from "./schedules";
 import securityRouter from "./security";
 import skillsRouter from "./skills";
 import tasksRouter from "./tasks";
@@ -69,5 +70,6 @@ router.use("/workspaces", workspacesRouter);
 router.use("/skills", skillsRouter);
 router.use("/tasks", tasksRouter);
 router.use("/task-templates", taskTemplatesRouter);
+router.use("/schedules", schedulesRouter);
 
 export default router;

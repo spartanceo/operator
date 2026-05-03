@@ -22,6 +22,7 @@ import {
 import app from "./app";
 import { logger } from "./lib/logger";
 import { bindHost } from "./lib/security";
+import { startScheduler } from "./services/schedules.service";
 
 const rawPort = process.env["PORT"];
 
@@ -70,6 +71,15 @@ app.listen(port, host, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
+  }
+
+  // Boot the scheduled-tasks engine (Task #45). The interval is unref'd
+  // so it never holds the process open during graceful shutdown.
+  if (getSafeMode().active) {
+    logger.warn("Scheduler not started — booting in SAFE MODE");
+  } else {
+    startScheduler();
+    logger.info("Scheduler started");
   }
 
   logger.info({ host, port }, "Server listening");

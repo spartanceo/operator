@@ -65,3 +65,4 @@ export * from "./skills";
 export * from "./task-queue-entries";
 export * from "./task-template-categories";
 export * from "./task-templates";
+export * from "./scheduled-tasks";

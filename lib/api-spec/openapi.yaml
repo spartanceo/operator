@@ -68,6 +68,8 @@ tags:
     description: Multi-task queue, priority controls, and concurrent task management (Task #38)
   - name: task-templates
     description: Reusable task templates — save / browse / run / export parameterised prompts and quick-launch pins (Task #46)
+  - name: schedules
+    description: Scheduled & recurring tasks (Task #45 — cron-driven autonomous task runs, NL parser, schedule history, global pause)
 paths:
   /healthz:
     get:
@@ -5599,6 +5601,273 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SkillExportResponse'
+  /schedules:
+    get:
+      operationId: listSchedules
+      tags:
+        - schedules
+      summary: List scheduled tasks (newest first)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Schedules page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledTaskListResponse"
+    post:
+      operationId: createSchedule
+      tags:
+        - schedules
+      summary: Create a scheduled task (NL or cron)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScheduleRequest"
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledTaskResponse"
+        "400":
+          description: Could not parse the schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /schedules/preview:
+    post:
+      operationId: previewSchedule
+      tags:
+        - schedules
+      summary: Parse a NL or cron expression and return the next 3 fires
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreviewScheduleRequest"
+      responses:
+        "200":
+          description: Parsed preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreviewScheduleResponse"
+        "400":
+          description: Could not parse the schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /schedules/settings:
+    get:
+      operationId: getScheduleSettings
+      tags:
+        - schedules
+      summary: Per-tenant scheduler settings (singleton)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleSettingsResponse"
+    put:
+      operationId: updateScheduleSettings
+      tags:
+        - schedules
+      summary: Update the global pause flag
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScheduleSettingsRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleSettingsResponse"
+  /schedules/{id}:
+    get:
+      operationId: getSchedule
+      tags:
+        - schedules
+      summary: Fetch one schedule
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledTaskResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    patch:
+      operationId: updateSchedule
+      tags:
+        - schedules
+      summary: Update a schedule (re-cron, rename, pause, edit prompt)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScheduleRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledTaskResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: deleteSchedule
+      tags:
+        - schedules
+      summary: Delete a schedule and its run history
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteScheduleResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /schedules/{id}/run-now:
+    post:
+      operationId: runScheduleNow
+      tags:
+        - schedules
+      summary: Trigger one execution immediately
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Run completed (status reported in body)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledTaskRunResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /schedules/{id}/pause:
+    post:
+      operationId: pauseSchedule
+      tags:
+        - schedules
+      summary: Pause or resume one schedule
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PauseScheduleRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledTaskResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /schedules/{id}/runs:
+    get:
+      operationId: listScheduleRuns
+      tags:
+        - schedules
+      summary: Execution history for one schedule (newest first)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Runs page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledTaskRunListResponse"
 components:
   parameters:
     TenantHeader:
@@ -14133,6 +14402,295 @@ components:
       properties:
         template: { $ref: "#/components/schemas/TaskTemplateExport" }
         name: { type: string, minLength: 1, maxLength: 120 }
+    ScheduledTask:
+      type: object
+      required:
+        - id
+        - title
+        - prompt
+        - cronExpression
+        - timezone
+        - recurrenceKind
+        - paused
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        prompt:
+          type: string
+        cronExpression:
+          type: string
+        naturalLanguage:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+        recurrenceKind:
+          type: string
+        paused:
+          type: boolean
+        taskContext:
+          nullable: true
+        lastRunAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastRunStatus:
+          type: string
+          nullable: true
+        lastRunSummary:
+          type: string
+          nullable: true
+        nextRunAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ScheduledTaskResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [schedule]
+          properties:
+            schedule:
+              $ref: "#/components/schemas/ScheduledTask"
+    ScheduledTaskListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduledTask"
+        nextCursor:
+          type: string
+          nullable: true
+    ScheduledTaskListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ScheduledTaskListPage"
+    CreateScheduleRequest:
+      type: object
+      required: [title, prompt]
+      properties:
+        title:
+          type: string
+        prompt:
+          type: string
+        cronExpression:
+          type: string
+        naturalLanguage:
+          type: string
+        tzOffsetMinutes:
+          type: integer
+        timezone:
+          type: string
+        taskContext: {}
+        recurrenceKind:
+          type: string
+          enum: [minutely, hourly, daily, weekly, monthly, custom]
+    UpdateScheduleRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        prompt:
+          type: string
+        cronExpression:
+          type: string
+        naturalLanguage:
+          type: string
+        tzOffsetMinutes:
+          type: integer
+        timezone:
+          type: string
+        taskContext: {}
+        paused:
+          type: boolean
+        recurrenceKind:
+          type: string
+          enum: [minutely, hourly, daily, weekly, monthly, custom]
+    PauseScheduleRequest:
+      type: object
+      required: [paused]
+      properties:
+        paused:
+          type: boolean
+    PreviewScheduleRequest:
+      type: object
+      properties:
+        cronExpression:
+          type: string
+        naturalLanguage:
+          type: string
+        tzOffsetMinutes:
+          type: integer
+    SchedulePreview:
+      type: object
+      required: [cronExpression, recurrenceKind, nextRuns]
+      properties:
+        cronExpression:
+          type: string
+        recurrenceKind:
+          type: string
+        nextRuns:
+          type: array
+          items:
+            type: string
+            format: date-time
+    PreviewScheduleResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [preview]
+          properties:
+            preview:
+              $ref: "#/components/schemas/SchedulePreview"
+    DeleteScheduleResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [deleted, id]
+          properties:
+            deleted:
+              type: boolean
+              enum: [true]
+            id:
+              type: string
+    ScheduledTaskRun:
+      type: object
+      required:
+        - id
+        - scheduledTaskId
+        - scheduledFor
+        - startedAt
+        - status
+        - triggerKind
+        - createdAt
+      properties:
+        id:
+          type: string
+        scheduledTaskId:
+          type: string
+        scheduledFor:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        agentRunId:
+          type: string
+          nullable: true
+        triggerKind:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ScheduledTaskRunResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [run]
+          properties:
+            run:
+              $ref: "#/components/schemas/ScheduledTaskRun"
+    ScheduledTaskRunListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduledTaskRun"
+        nextCursor:
+          type: string
+          nullable: true
+    ScheduledTaskRunListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/ScheduledTaskRunListPage"
+    ScheduleSettings:
+      type: object
+      required: [globalPaused, updatedAt]
+      properties:
+        globalPaused:
+          type: boolean
+        lastTickAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+    ScheduleSettingsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [settings]
+          properties:
+            settings:
+              $ref: "#/components/schemas/ScheduleSettings"
+    UpdateScheduleSettingsRequest:
+      type: object
+      required: [globalPaused]
+      properties:
+        globalPaused:
+          type: boolean
   responses: {}
   requestBodies: {}
   headers: {}

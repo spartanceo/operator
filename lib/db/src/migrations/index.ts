@@ -30,6 +30,7 @@ import { migration as m0016 } from "./0016_workspace_grouping";
 import { migration as m0017 } from "./0017_skills";
 import { migration as m0018 } from "./0018_task_queue";
 import { migration as m0019 } from "./0019_task_templates";
+import { migration as m0020 } from "./0020_scheduled_tasks";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -60,6 +61,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0017,
   m0018,
   m0019,
+  m0020,
 ];
 
 /**
