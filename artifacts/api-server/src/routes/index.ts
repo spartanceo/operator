@@ -29,8 +29,12 @@ import privacyRouter from "./privacy";
 import schedulesRouter from "./schedules";
 import securityRouter from "./security";
 import skillsRouter from "./skills";
+
 import tasksRouter from "./tasks";
 import taskTemplatesRouter from "./task-templates";
+
+import storeRouter from "./store";
+
 import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
 import undoRouter from "./undo";
@@ -68,8 +72,12 @@ router.use("/telemetry", telemetryRouter);
 router.use("/undo", undoRouter);
 router.use("/workspaces", workspacesRouter);
 router.use("/skills", skillsRouter);
+
 router.use("/tasks", tasksRouter);
 router.use("/task-templates", taskTemplatesRouter);
 router.use("/schedules", schedulesRouter);
+
+router.use("/store", storeRouter);
+
 
 export default router;

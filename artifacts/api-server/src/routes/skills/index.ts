@@ -11,6 +11,7 @@ import { err, ok, pageOk } from "../../lib/api-envelope";
 import { requireTenantContext } from "../../lib/tenant-context";
 import { requireTenant } from "../../middlewares/tenant-context";
 import { createAgentRun } from "../../services/agent.service";
+import draftsRouter from "./drafts";
 import {
   applySkillUpdate,
   createSkill,
@@ -34,6 +35,10 @@ import {
 } from "../../services/skill.service";
 
 const router: IRouter = Router();
+
+// Mount the wizard sub-router FIRST so `/drafts/*` matches before
+// `/:id`-style fall-through routes below.
+router.use("/drafts", draftsRouter);
 
 const PageSchema = z.object({
   cursor: z.string().min(1).max(2048).optional(),

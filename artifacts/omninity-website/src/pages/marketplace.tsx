@@ -6,8 +6,18 @@ import {
   Filter as FilterIcon,
   Sparkles,
   Layers,
+  Store as StoreIcon,
+  ArrowUpCircle,
+  Plus,
 } from "lucide-react";
-import { useListSkills, type Skill as ApiSkill } from "@workspace/api-client-react";
+import {
+  useCheckStoreSkillUpdates,
+  useListSkills,
+  useListStoreSkills,
+  type Skill as ApiSkill,
+  type StoreSkill,
+} from "@workspace/api-client-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,11 +62,14 @@ interface DisplaySkill {
   installs: number;
   installedAt: number;
   modelTags: string[];
-  source: "api" | "seed";
+  source: "api" | "seed" | "store";
   seedRef: SeedSkill | null;
   version: string;
   lastUpdated: number;
   unmaintained: boolean;
+  storeKey?: { creatorHandle: string; slug: string };
+  installedVersion?: number;
+  latestVersion?: number;
 }
 
 // 12 months — matches the server-side UNMAINTAINED_THRESHOLD_MS so the badge
@@ -83,6 +96,26 @@ function fromApi(s: ApiSkill): DisplaySkill {
     version: s.latestVersion,
     lastUpdated: publishedAt,
     unmaintained: s.unmaintained,
+  };
+}
+
+function fromStore(s: StoreSkill): DisplaySkill {
+  return {
+    slug: `${s.creatorHandle}-${s.slug}`,
+    name: s.name,
+    creator: s.creatorHandle,
+    creatorSlug: s.creatorHandle,
+    category: s.category,
+    tagline: s.description || "Published in the Omninity Skill Store.",
+    description: s.content.slice(0, 240),
+    rating: 4.7,
+    ratingCount: s.installCount,
+    installs: s.installCount,
+    installedAt: new Date(s.createdAt).getTime(),
+    modelTags: s.modelTags,
+    source: "store",
+    seedRef: null,
+    storeKey: { creatorHandle: s.creatorHandle, slug: s.slug },
   };
 }
 
@@ -134,13 +167,45 @@ export default function MarketplacePage() {
   const apiQuery = useListSkills({ limit: 100 });
   const apiSkills = apiQuery.data?.data.items ?? [];
 
+  // Hosted Skill Store: skills published by other creators. Privacy-gated by
+  // the server — when the user has cloud features off, the call returns 403
+  // and we just hide the store rows.
+  const storeQuery = useListStoreSkills({ limit: 100 });
+  const storeSkills = storeQuery.data?.data.items ?? [];
+
+  // Auto-update detection for skills the user installed from the store.
+  const updatesQuery = useCheckStoreSkillUpdates();
+  const updateMap = useMemo(() => {
+    const map = new Map<string, { installedVersion: number; latestVersion: number }>();
+    for (const u of updatesQuery.data?.data.updates ?? []) {
+      map.set(`${u.creatorHandle}/${u.slug}`, {
+        installedVersion: u.installedVersion,
+        latestVersion: u.latestVersion,
+      });
+    }
+    return map;
+  }, [updatesQuery.data]);
+
   const visible = useMemo(() => {
     const apiDisplay = apiSkills.map(fromApi);
     const apiSlugs = new Set(apiDisplay.map((s) => s.slug));
-    const seedDisplay = SEED_SKILLS.filter((s) => !apiSlugs.has(s.slug)).map(
-      fromSeed,
-    );
-    const merged = [...apiDisplay, ...seedDisplay];
+    const storeDisplay = storeSkills.map(fromStore).map((s) => {
+      const update = s.storeKey
+        ? updateMap.get(`${s.storeKey.creatorHandle}/${s.storeKey.slug}`)
+        : undefined;
+      return update
+        ? {
+            ...s,
+            installedVersion: update.installedVersion,
+            latestVersion: update.latestVersion,
+          }
+        : s;
+    });
+    const storeSlugs = new Set(storeDisplay.map((s) => s.slug));
+    const seedDisplay = SEED_SKILLS.filter(
+      (s) => !apiSlugs.has(s.slug) && !storeSlugs.has(s.slug),
+    ).map(fromSeed);
+    const merged = [...apiDisplay, ...storeDisplay, ...seedDisplay];
 
     const q = query.trim().toLowerCase();
     let filtered = merged.filter((s) => {
@@ -160,7 +225,7 @@ export default function MarketplacePage() {
     if (sort === "top") filtered = [...filtered].sort((a, b) => b.rating - a.rating);
     if (sort === "newest") filtered = [...filtered].sort((a, b) => b.installedAt - a.installedAt);
     return filtered;
-  }, [apiSkills, query, activeCategory, activeModel, sort]);
+  }, [apiSkills, storeSkills, updateMap, query, activeCategory, activeModel, sort]);
 
   return (
     <>
@@ -192,6 +257,12 @@ export default function MarketplacePage() {
                 data-testid="input-marketplace-search"
               />
             </div>
+            <Link href="/marketplace/create">
+              <Button className="h-11" data-testid="button-create-skill">
+                <Plus className="mr-2 h-4 w-4" />
+                Create a skill
+              </Button>
+            </Link>
             <div className="flex items-center gap-2">
               <FilterIcon className="h-4 w-4 text-muted-foreground" />
               <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
@@ -293,6 +364,23 @@ export default function MarketplacePage() {
                             className="rounded-full border-primary/30 px-2 py-0 text-[9px] uppercase tracking-wider text-primary"
                           >
                             <Layers className="mr-1 h-2.5 w-2.5" /> Local
+                          </Badge>
+                        ) : null}
+                        {skill.source === "store" ? (
+                          <Badge
+                            variant="outline"
+                            className="rounded-full border-primary/30 px-2 py-0 text-[9px] uppercase tracking-wider text-primary"
+                          >
+                            <StoreIcon className="mr-1 h-2.5 w-2.5" /> From store
+                          </Badge>
+                        ) : null}
+                        {skill.latestVersion && skill.installedVersion ? (
+                          <Badge
+                            variant="outline"
+                            className="rounded-full border-amber-500/40 px-2 py-0 text-[9px] uppercase tracking-wider text-amber-500"
+                          >
+                            <ArrowUpCircle className="mr-1 h-2.5 w-2.5" />
+                            Update v{skill.installedVersion} → v{skill.latestVersion}
                           </Badge>
                         ) : null}
                         {skill.unmaintained ? (

@@ -11907,3 +11907,840 @@ export const ListScheduleRunsResponse = zod.object({
     nextCursor: zod.string().nullable(),
   }),
 });
+
+/**
+ * @summary List in-progress skill creator drafts
+ */
+export const listSkillDraftsQueryLimitDefault = 20;
+export const listSkillDraftsQueryLimitMax = 100;
+
+export const ListSkillDraftsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listSkillDraftsQueryLimitMax)
+    .default(listSkillDraftsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListSkillDraftsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSkillDraftsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        source: zod.enum(["upload", "paste", "interview"]),
+        status: zod.enum(["draft", "ready", "published"]),
+        rawInput: zod.string(),
+        interviewTranscript: zod.array(
+          zod.object({
+            role: zod.enum(["system", "user", "assistant"]),
+            content: zod.string(),
+          }),
+        ),
+        interviewStep: zod.number(),
+        name: zod.string(),
+        description: zod.string(),
+        content: zod.string(),
+        modelTags: zod.array(zod.string()),
+        triggers: zod.array(zod.string()),
+        examplePrompts: zod.array(zod.string()),
+        category: zod.string(),
+        skillId: zod.string().nullable(),
+        publishedStoreSkillId: zod.string().nullable(),
+        version: zod.number(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a draft from an uploaded file (PDF/EPUB/DOCX/TXT/MD)
+ */
+export const CreateSkillDraftFromUploadHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateSkillDraftFromUploadBody = zod.object({
+  fileName: zod.string(),
+  kind: zod.string(),
+  base64: zod.string().optional(),
+  text: zod.string().optional(),
+});
+
+export const CreateSkillDraftFromUploadResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    source: zod.enum(["upload", "paste", "interview"]),
+    status: zod.enum(["draft", "ready", "published"]),
+    rawInput: zod.string(),
+    interviewTranscript: zod.array(
+      zod.object({
+        role: zod.enum(["system", "user", "assistant"]),
+        content: zod.string(),
+      }),
+    ),
+    interviewStep: zod.number(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    examplePrompts: zod.array(zod.string()),
+    category: zod.string(),
+    skillId: zod.string().nullable(),
+    publishedStoreSkillId: zod.string().nullable(),
+    version: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Create a draft from pasted text
+ */
+export const CreateSkillDraftFromPasteHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateSkillDraftFromPasteBody = zod.object({
+  text: zod.string(),
+});
+
+export const CreateSkillDraftFromPasteResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    source: zod.enum(["upload", "paste", "interview"]),
+    status: zod.enum(["draft", "ready", "published"]),
+    rawInput: zod.string(),
+    interviewTranscript: zod.array(
+      zod.object({
+        role: zod.enum(["system", "user", "assistant"]),
+        content: zod.string(),
+      }),
+    ),
+    interviewStep: zod.number(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    examplePrompts: zod.array(zod.string()),
+    category: zod.string(),
+    skillId: zod.string().nullable(),
+    publishedStoreSkillId: zod.string().nullable(),
+    version: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Start a guided interview that produces a draft
+ */
+export const StartSkillDraftInterviewHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const StartSkillDraftInterviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    source: zod.enum(["upload", "paste", "interview"]),
+    status: zod.enum(["draft", "ready", "published"]),
+    rawInput: zod.string(),
+    interviewTranscript: zod.array(
+      zod.object({
+        role: zod.enum(["system", "user", "assistant"]),
+        content: zod.string(),
+      }),
+    ),
+    interviewStep: zod.number(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    examplePrompts: zod.array(zod.string()),
+    category: zod.string(),
+    skillId: zod.string().nullable(),
+    publishedStoreSkillId: zod.string().nullable(),
+    version: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fixed list of interview questions
+ */
+export const GetSkillDraftInterviewQuestionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSkillDraftInterviewQuestionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    questions: zod.array(zod.string()),
+  }),
+});
+
+/**
+ * @summary Fetch a draft
+ */
+export const GetSkillDraftParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetSkillDraftHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    source: zod.enum(["upload", "paste", "interview"]),
+    status: zod.enum(["draft", "ready", "published"]),
+    rawInput: zod.string(),
+    interviewTranscript: zod.array(
+      zod.object({
+        role: zod.enum(["system", "user", "assistant"]),
+        content: zod.string(),
+      }),
+    ),
+    interviewStep: zod.number(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    examplePrompts: zod.array(zod.string()),
+    category: zod.string(),
+    skillId: zod.string().nullable(),
+    publishedStoreSkillId: zod.string().nullable(),
+    version: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Edit a draft
+ */
+export const UpdateSkillDraftParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateSkillDraftHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateSkillDraftBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  content: zod.string().optional(),
+  modelTags: zod.array(zod.string()).optional(),
+  triggers: zod.array(zod.string()).optional(),
+  examplePrompts: zod.array(zod.string()).optional(),
+  category: zod.string().optional(),
+});
+
+export const UpdateSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    source: zod.enum(["upload", "paste", "interview"]),
+    status: zod.enum(["draft", "ready", "published"]),
+    rawInput: zod.string(),
+    interviewTranscript: zod.array(
+      zod.object({
+        role: zod.enum(["system", "user", "assistant"]),
+        content: zod.string(),
+      }),
+    ),
+    interviewStep: zod.number(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    examplePrompts: zod.array(zod.string()),
+    category: zod.string(),
+    skillId: zod.string().nullable(),
+    publishedStoreSkillId: zod.string().nullable(),
+    version: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Delete a draft
+ */
+export const DeleteSkillDraftParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteSkillDraftHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Submit the next interview answer
+ */
+export const AnswerSkillDraftInterviewParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AnswerSkillDraftInterviewHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const AnswerSkillDraftInterviewBody = zod.object({
+  answer: zod.string(),
+});
+
+export const AnswerSkillDraftInterviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    source: zod.enum(["upload", "paste", "interview"]),
+    status: zod.enum(["draft", "ready", "published"]),
+    rawInput: zod.string(),
+    interviewTranscript: zod.array(
+      zod.object({
+        role: zod.enum(["system", "user", "assistant"]),
+        content: zod.string(),
+      }),
+    ),
+    interviewStep: zod.number(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    examplePrompts: zod.array(zod.string()),
+    category: zod.string(),
+    skillId: zod.string().nullable(),
+    publishedStoreSkillId: zod.string().nullable(),
+    version: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Run the draft against the local LLM with a sample message
+ */
+export const TestSkillDraftParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const TestSkillDraftHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const TestSkillDraftBody = zod.object({
+  message: zod.string(),
+  modelName: zod.string().optional(),
+});
+
+export const TestSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    model: zod.string(),
+    reply: zod.string(),
+  }),
+});
+
+/**
+ * @summary Browse the hosted skill store
+ */
+export const listStoreSkillsQueryLimitDefault = 20;
+export const listStoreSkillsQueryLimitMax = 100;
+
+export const ListStoreSkillsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listStoreSkillsQueryLimitMax)
+    .default(listStoreSkillsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  category: zod.coerce.string().optional(),
+  creatorHandle: zod.coerce.string().optional(),
+  search: zod.coerce.string().optional(),
+});
+
+export const ListStoreSkillsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListStoreSkillsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        creatorId: zod.string(),
+        creatorHandle: zod.string(),
+        slug: zod.string(),
+        name: zod.string(),
+        description: zod.string(),
+        content: zod.string(),
+        modelTags: zod.array(zod.string()),
+        triggers: zod.array(zod.string()),
+        examplePrompts: zod.array(zod.string()),
+        category: zod.string(),
+        skillVersion: zod.number(),
+        isLatest: zod.boolean(),
+        installCount: zod.number(),
+        documentation: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Publish a draft to the store
+ */
+export const PublishSkillDraftHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PublishSkillDraftBody = zod.object({
+  draftId: zod.string(),
+  apiToken: zod.string(),
+  documentation: zod.string().optional(),
+});
+
+export const PublishSkillDraftResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    creatorId: zod.string(),
+    creatorHandle: zod.string(),
+    slug: zod.string(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    examplePrompts: zod.array(zod.string()),
+    category: zod.string(),
+    skillVersion: zod.number(),
+    isLatest: zod.boolean(),
+    installCount: zod.number(),
+    documentation: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List installed store skills with newer versions available
+ */
+export const CheckStoreSkillUpdatesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CheckStoreSkillUpdatesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    updates: zod.array(
+      zod.object({
+        skillId: zod.string(),
+        creatorHandle: zod.string(),
+        slug: zod.string(),
+        installedVersion: zod.number(),
+        latestVersion: zod.number(),
+        storeSkillId: zod.string(),
+        name: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Fetch a published store skill (latest version) plus version history
+ */
+export const GetStoreSkillParams = zod.object({
+  creatorHandle: zod.coerce.string(),
+  slug: zod.coerce.string(),
+});
+
+export const GetStoreSkillHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetStoreSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skill: zod.object({
+      id: zod.string(),
+      creatorId: zod.string(),
+      creatorHandle: zod.string(),
+      slug: zod.string(),
+      name: zod.string(),
+      description: zod.string(),
+      content: zod.string(),
+      modelTags: zod.array(zod.string()),
+      triggers: zod.array(zod.string()),
+      examplePrompts: zod.array(zod.string()),
+      category: zod.string(),
+      skillVersion: zod.number(),
+      isLatest: zod.boolean(),
+      installCount: zod.number(),
+      documentation: zod.string(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    versions: zod.array(
+      zod.object({
+        id: zod.string(),
+        creatorId: zod.string(),
+        creatorHandle: zod.string(),
+        slug: zod.string(),
+        name: zod.string(),
+        description: zod.string(),
+        content: zod.string(),
+        modelTags: zod.array(zod.string()),
+        triggers: zod.array(zod.string()),
+        examplePrompts: zod.array(zod.string()),
+        category: zod.string(),
+        skillVersion: zod.number(),
+        isLatest: zod.boolean(),
+        installCount: zod.number(),
+        documentation: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Install a store skill into the local workspace
+ */
+export const InstallStoreSkillParams = zod.object({
+  creatorHandle: zod.coerce.string(),
+  slug: zod.coerce.string(),
+});
+
+export const InstallStoreSkillHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const InstallStoreSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    skillId: zod.string(),
+    storeSkill: zod.object({
+      id: zod.string(),
+      creatorId: zod.string(),
+      creatorHandle: zod.string(),
+      slug: zod.string(),
+      name: zod.string(),
+      description: zod.string(),
+      content: zod.string(),
+      modelTags: zod.array(zod.string()),
+      triggers: zod.array(zod.string()),
+      examplePrompts: zod.array(zod.string()),
+      category: zod.string(),
+      skillVersion: zod.number(),
+      isLatest: zod.boolean(),
+      installCount: zod.number(),
+      documentation: zod.string(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Browse store creators
+ */
+export const listStoreCreatorsQueryLimitDefault = 20;
+export const listStoreCreatorsQueryLimitMax = 100;
+
+export const ListStoreCreatorsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listStoreCreatorsQueryLimitMax)
+    .default(listStoreCreatorsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListStoreCreatorsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListStoreCreatorsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        handle: zod.string(),
+        displayName: zod.string(),
+        bio: zod.string(),
+        websiteUrl: zod.string().nullable(),
+        externalLinks: zod.array(
+          zod.object({
+            label: zod.string(),
+            url: zod.string(),
+          }),
+        ),
+        publishedSkillCount: zod.number(),
+        totalInstalls: zod.number(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Create a creator account and receive a one-time API token
+ */
+export const SignupStoreCreatorHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SignupStoreCreatorBody = zod.object({
+  handle: zod.string().optional(),
+  displayName: zod.string(),
+  bio: zod.string().optional(),
+  websiteUrl: zod.string().optional(),
+  externalLinks: zod
+    .array(
+      zod.object({
+        label: zod.string(),
+        url: zod.string(),
+      }),
+    )
+    .optional(),
+});
+
+export const SignupStoreCreatorResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    account: zod.object({
+      id: zod.string(),
+      handle: zod.string(),
+      displayName: zod.string(),
+      bio: zod.string(),
+      websiteUrl: zod.string().nullable(),
+      externalLinks: zod.array(
+        zod.object({
+          label: zod.string(),
+          url: zod.string(),
+        }),
+      ),
+      publishedSkillCount: zod.number(),
+      totalInstalls: zod.number(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    apiToken: zod.string(),
+  }),
+});
+
+/**
+ * @summary Authenticated creator portal summary
+ */
+export const GetStoreCreatorDashboardHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetStoreCreatorDashboardBody = zod.object({
+  apiToken: zod.string(),
+});
+
+export const GetStoreCreatorDashboardResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    account: zod.object({
+      id: zod.string(),
+      handle: zod.string(),
+      displayName: zod.string(),
+      bio: zod.string(),
+      websiteUrl: zod.string().nullable(),
+      externalLinks: zod.array(
+        zod.object({
+          label: zod.string(),
+          url: zod.string(),
+        }),
+      ),
+      publishedSkillCount: zod.number(),
+      totalInstalls: zod.number(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    publishedSkills: zod.array(
+      zod.object({
+        id: zod.string(),
+        creatorId: zod.string(),
+        creatorHandle: zod.string(),
+        slug: zod.string(),
+        name: zod.string(),
+        description: zod.string(),
+        content: zod.string(),
+        modelTags: zod.array(zod.string()),
+        triggers: zod.array(zod.string()),
+        examplePrompts: zod.array(zod.string()),
+        category: zod.string(),
+        skillVersion: zod.number(),
+        isLatest: zod.boolean(),
+        installCount: zod.number(),
+        documentation: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    totalInstalls: zod.number(),
+    totalVersions: zod.number(),
+  }),
+});
+
+/**
+ * @summary Public creator profile
+ */
+export const GetStoreCreatorParams = zod.object({
+  handle: zod.coerce.string(),
+});
+
+export const GetStoreCreatorHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetStoreCreatorResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    handle: zod.string(),
+    displayName: zod.string(),
+    bio: zod.string(),
+    websiteUrl: zod.string().nullable(),
+    externalLinks: zod.array(
+      zod.object({
+        label: zod.string(),
+        url: zod.string(),
+      }),
+    ),
+    publishedSkillCount: zod.number(),
+    totalInstalls: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});

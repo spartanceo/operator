@@ -4897,6 +4897,280 @@ export interface UpdateScheduleSettingsRequest {
   globalPaused: boolean;
 }
 
+export type SkillDraftInterviewTurnRole =
+  (typeof SkillDraftInterviewTurnRole)[keyof typeof SkillDraftInterviewTurnRole];
+
+export const SkillDraftInterviewTurnRole = {
+  system: "system",
+  user: "user",
+  assistant: "assistant",
+} as const;
+
+export interface SkillDraftInterviewTurn {
+  role: SkillDraftInterviewTurnRole;
+  content: string;
+}
+
+export type SkillDraftSource =
+  (typeof SkillDraftSource)[keyof typeof SkillDraftSource];
+
+export const SkillDraftSource = {
+  upload: "upload",
+  paste: "paste",
+  interview: "interview",
+} as const;
+
+export type SkillDraftStatus =
+  (typeof SkillDraftStatus)[keyof typeof SkillDraftStatus];
+
+export const SkillDraftStatus = {
+  draft: "draft",
+  ready: "ready",
+  published: "published",
+} as const;
+
+export interface SkillDraft {
+  id: string;
+  source: SkillDraftSource;
+  status: SkillDraftStatus;
+  rawInput: string;
+  interviewTranscript: SkillDraftInterviewTurn[];
+  interviewStep: number;
+  name: string;
+  description: string;
+  content: string;
+  modelTags: string[];
+  triggers: string[];
+  examplePrompts: string[];
+  category: string;
+  skillId: string | null;
+  publishedStoreSkillId: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SkillDraftResponse {
+  success: boolean;
+  data: SkillDraft;
+}
+
+export interface SkillDraftListPage {
+  items: SkillDraft[];
+  nextCursor: string | null;
+}
+
+export interface SkillDraftListResponse {
+  success: boolean;
+  data: SkillDraftListPage;
+}
+
+export interface SkillDraftDeleteReceipt {
+  id: string;
+  deleted: boolean;
+}
+
+export interface SkillDraftDeleteResponse {
+  success: boolean;
+  data: SkillDraftDeleteReceipt;
+}
+
+export interface SkillDraftInterviewQuestionsPayload {
+  questions: string[];
+}
+
+export interface SkillDraftInterviewQuestionsResponse {
+  success: boolean;
+  data: SkillDraftInterviewQuestionsPayload;
+}
+
+export interface SkillDraftInterviewAnswerRequest {
+  answer: string;
+}
+
+export interface CreateDraftFromUploadRequest {
+  fileName: string;
+  kind: string;
+  base64?: string;
+  text?: string;
+}
+
+export interface CreateDraftFromPasteRequest {
+  text: string;
+}
+
+export interface UpdateSkillDraftRequest {
+  name?: string;
+  description?: string;
+  content?: string;
+  modelTags?: string[];
+  triggers?: string[];
+  examplePrompts?: string[];
+  category?: string;
+}
+
+export interface SkillDraftTestRequest {
+  message: string;
+  modelName?: string;
+}
+
+export interface SkillDraftTestPayload {
+  model: string;
+  reply: string;
+}
+
+export interface SkillDraftTestResponse {
+  success: boolean;
+  data: SkillDraftTestPayload;
+}
+
+export interface StoreSkill {
+  id: string;
+  creatorId: string;
+  creatorHandle: string;
+  slug: string;
+  name: string;
+  description: string;
+  content: string;
+  modelTags: string[];
+  triggers: string[];
+  examplePrompts: string[];
+  category: string;
+  skillVersion: number;
+  isLatest: boolean;
+  installCount: number;
+  documentation: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StoreSkillResponse {
+  success: boolean;
+  data: StoreSkill;
+}
+
+export interface StoreSkillListPage {
+  items: StoreSkill[];
+  nextCursor: string | null;
+}
+
+export interface StoreSkillListResponse {
+  success: boolean;
+  data: StoreSkillListPage;
+}
+
+export interface StoreSkillDetailPayload {
+  skill: StoreSkill;
+  versions: StoreSkill[];
+}
+
+export interface StoreSkillDetailResponse {
+  success: boolean;
+  data: StoreSkillDetailPayload;
+}
+
+export interface StoreSkillInstallPayload {
+  skillId: string;
+  storeSkill: StoreSkill;
+}
+
+export interface StoreSkillInstallResponse {
+  success: boolean;
+  data: StoreSkillInstallPayload;
+}
+
+export interface StoreSkillUpdate {
+  skillId: string;
+  creatorHandle: string;
+  slug: string;
+  installedVersion: number;
+  latestVersion: number;
+  storeSkillId: string;
+  name: string;
+}
+
+export interface StoreSkillUpdatesPayload {
+  updates: StoreSkillUpdate[];
+}
+
+export interface StoreSkillUpdatesResponse {
+  success: boolean;
+  data: StoreSkillUpdatesPayload;
+}
+
+export interface PublishStoreSkillRequest {
+  draftId: string;
+  apiToken: string;
+  documentation?: string;
+}
+
+export interface StoreCreatorExternalLink {
+  label: string;
+  url: string;
+}
+
+export interface StoreCreator {
+  id: string;
+  handle: string;
+  displayName: string;
+  bio: string;
+  websiteUrl: string | null;
+  externalLinks: StoreCreatorExternalLink[];
+  publishedSkillCount: number;
+  totalInstalls: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StoreCreatorResponse {
+  success: boolean;
+  data: StoreCreator;
+}
+
+export interface StoreCreatorListPage {
+  items: StoreCreator[];
+  nextCursor: string | null;
+}
+
+export interface StoreCreatorListResponse {
+  success: boolean;
+  data: StoreCreatorListPage;
+}
+
+export interface StoreCreatorSignupRequest {
+  handle?: string;
+  displayName: string;
+  bio?: string;
+  websiteUrl?: string;
+  externalLinks?: StoreCreatorExternalLink[];
+}
+
+export interface StoreCreatorSignupPayload {
+  account: StoreCreator;
+  apiToken: string;
+}
+
+export interface StoreCreatorSignupResponse {
+  success: boolean;
+  data: StoreCreatorSignupPayload;
+}
+
+export interface StoreCreatorDashboardRequest {
+  apiToken: string;
+}
+
+export interface StoreCreatorDashboardPayload {
+  account: StoreCreator;
+  publishedSkills: StoreSkill[];
+  totalInstalls: number;
+  totalVersions: number;
+}
+
+export interface StoreCreatorDashboardResponse {
+  success: boolean;
+  data: StoreCreatorDashboardPayload;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -5674,6 +5948,48 @@ export type ListSchedulesParams = {
 };
 
 export type ListScheduleRunsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListSkillDraftsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListStoreSkillsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  category?: string;
+  creatorHandle?: string;
+  search?: string;
+};
+
+export type ListStoreCreatorsParams = {
   /**
    * Opaque cursor returned by the previous page.
    */

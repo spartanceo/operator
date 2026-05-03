@@ -83,6 +83,8 @@ import type {
   CreateContactRequest,
   CreateConversationRequest,
   CreateDesktopSessionRequest,
+  CreateDraftFromPasteRequest,
+  CreateDraftFromUploadRequest,
   CreateEmailDraftRequest,
   CreateIncidentReportRequest,
   CreateKnowledgeCollectionRequest,
@@ -196,7 +198,10 @@ import type {
   ListQueuedTasksParams,
   ListScheduleRunsParams,
   ListSchedulesParams,
+  ListSkillDraftsParams,
   ListSkillsParams,
+  ListStoreCreatorsParams,
+  ListStoreSkillsParams,
   ListTaskTemplatesParams,
   ListTelemetryEventsParams,
   ListToolsParams,
@@ -272,6 +277,7 @@ import type {
   PrivacyEventListResponse,
   PrivacyEventResponse,
   PublishSkillVersionRequest,
+  PublishStoreSkillRequest,
   QueueClearRequest,
   QueueClearResponse,
   QueueEnqueueRequest,
@@ -305,6 +311,13 @@ import type {
   SkillAdoptionResponse,
   SkillAutoUpdateRequest,
   SkillDeleteResponse,
+  SkillDraftDeleteResponse,
+  SkillDraftInterviewAnswerRequest,
+  SkillDraftInterviewQuestionsResponse,
+  SkillDraftListResponse,
+  SkillDraftResponse,
+  SkillDraftTestRequest,
+  SkillDraftTestResponse,
   SkillExportResponse,
   SkillImportRequest,
   SkillInvokeRequest,
@@ -312,6 +325,17 @@ import type {
   SkillResponse,
   SkillUpdatesResponse,
   SkillVersionListResponse,
+  StoreCreatorDashboardRequest,
+  StoreCreatorDashboardResponse,
+  StoreCreatorListResponse,
+  StoreCreatorResponse,
+  StoreCreatorSignupRequest,
+  StoreCreatorSignupResponse,
+  StoreSkillDetailResponse,
+  StoreSkillInstallResponse,
+  StoreSkillListResponse,
+  StoreSkillResponse,
+  StoreSkillUpdatesResponse,
   SubmitCrashReportRequest,
   TaskTemplateCategoryListResponse,
   TaskTemplateCategoryResponse,
@@ -342,6 +366,7 @@ import type {
   UpdateConversationRequest,
   UpdateScheduleRequest,
   UpdateScheduleSettingsRequest,
+  UpdateSkillDraftRequest,
   UpdateSkillRequest,
   UpdateTaskTemplateRequest,
   UpdateTelemetryConsentRequest,
@@ -24050,6 +24075,1683 @@ export function useListScheduleRuns<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListScheduleRunsQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List in-progress skill creator drafts
+ */
+export const getListSkillDraftsUrl = (params?: ListSkillDraftsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/skills/drafts?${stringifiedParams}`
+    : `/api/skills/drafts`;
+};
+
+export const listSkillDrafts = async (
+  params?: ListSkillDraftsParams,
+  options?: RequestInit,
+): Promise<SkillDraftListResponse> => {
+  return customFetch<SkillDraftListResponse>(getListSkillDraftsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSkillDraftsQueryKey = (params?: ListSkillDraftsParams) => {
+  return [`/api/skills/drafts`, ...(params ? [params] : [])] as const;
+};
+
+export const getListSkillDraftsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSkillDrafts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSkillDraftsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSkillDrafts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSkillDraftsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSkillDrafts>>> = ({
+    signal,
+  }) => listSkillDrafts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillDrafts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSkillDraftsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSkillDrafts>>
+>;
+export type ListSkillDraftsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List in-progress skill creator drafts
+ */
+
+export function useListSkillDrafts<
+  TData = Awaited<ReturnType<typeof listSkillDrafts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSkillDraftsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSkillDrafts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSkillDraftsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a draft from an uploaded file (PDF/EPUB/DOCX/TXT/MD)
+ */
+export const getCreateSkillDraftFromUploadUrl = () => {
+  return `/api/skills/drafts/upload`;
+};
+
+export const createSkillDraftFromUpload = async (
+  createDraftFromUploadRequest: CreateDraftFromUploadRequest,
+  options?: RequestInit,
+): Promise<SkillDraftResponse> => {
+  return customFetch<SkillDraftResponse>(getCreateSkillDraftFromUploadUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createDraftFromUploadRequest),
+  });
+};
+
+export const getCreateSkillDraftFromUploadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSkillDraftFromUpload>>,
+    TError,
+    { data: BodyType<CreateDraftFromUploadRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSkillDraftFromUpload>>,
+  TError,
+  { data: BodyType<CreateDraftFromUploadRequest> },
+  TContext
+> => {
+  const mutationKey = ["createSkillDraftFromUpload"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSkillDraftFromUpload>>,
+    { data: BodyType<CreateDraftFromUploadRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSkillDraftFromUpload(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSkillDraftFromUploadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSkillDraftFromUpload>>
+>;
+export type CreateSkillDraftFromUploadMutationBody =
+  BodyType<CreateDraftFromUploadRequest>;
+export type CreateSkillDraftFromUploadMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a draft from an uploaded file (PDF/EPUB/DOCX/TXT/MD)
+ */
+export const useCreateSkillDraftFromUpload = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSkillDraftFromUpload>>,
+    TError,
+    { data: BodyType<CreateDraftFromUploadRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSkillDraftFromUpload>>,
+  TError,
+  { data: BodyType<CreateDraftFromUploadRequest> },
+  TContext
+> => {
+  return useMutation(getCreateSkillDraftFromUploadMutationOptions(options));
+};
+
+/**
+ * @summary Create a draft from pasted text
+ */
+export const getCreateSkillDraftFromPasteUrl = () => {
+  return `/api/skills/drafts/paste`;
+};
+
+export const createSkillDraftFromPaste = async (
+  createDraftFromPasteRequest: CreateDraftFromPasteRequest,
+  options?: RequestInit,
+): Promise<SkillDraftResponse> => {
+  return customFetch<SkillDraftResponse>(getCreateSkillDraftFromPasteUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createDraftFromPasteRequest),
+  });
+};
+
+export const getCreateSkillDraftFromPasteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSkillDraftFromPaste>>,
+    TError,
+    { data: BodyType<CreateDraftFromPasteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSkillDraftFromPaste>>,
+  TError,
+  { data: BodyType<CreateDraftFromPasteRequest> },
+  TContext
+> => {
+  const mutationKey = ["createSkillDraftFromPaste"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSkillDraftFromPaste>>,
+    { data: BodyType<CreateDraftFromPasteRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSkillDraftFromPaste(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSkillDraftFromPasteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSkillDraftFromPaste>>
+>;
+export type CreateSkillDraftFromPasteMutationBody =
+  BodyType<CreateDraftFromPasteRequest>;
+export type CreateSkillDraftFromPasteMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a draft from pasted text
+ */
+export const useCreateSkillDraftFromPaste = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSkillDraftFromPaste>>,
+    TError,
+    { data: BodyType<CreateDraftFromPasteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSkillDraftFromPaste>>,
+  TError,
+  { data: BodyType<CreateDraftFromPasteRequest> },
+  TContext
+> => {
+  return useMutation(getCreateSkillDraftFromPasteMutationOptions(options));
+};
+
+/**
+ * @summary Start a guided interview that produces a draft
+ */
+export const getStartSkillDraftInterviewUrl = () => {
+  return `/api/skills/drafts/interview/start`;
+};
+
+export const startSkillDraftInterview = async (
+  options?: RequestInit,
+): Promise<SkillDraftResponse> => {
+  return customFetch<SkillDraftResponse>(getStartSkillDraftInterviewUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStartSkillDraftInterviewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startSkillDraftInterview>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startSkillDraftInterview>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["startSkillDraftInterview"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startSkillDraftInterview>>,
+    void
+  > = () => {
+    return startSkillDraftInterview(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartSkillDraftInterviewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startSkillDraftInterview>>
+>;
+
+export type StartSkillDraftInterviewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Start a guided interview that produces a draft
+ */
+export const useStartSkillDraftInterview = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startSkillDraftInterview>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startSkillDraftInterview>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getStartSkillDraftInterviewMutationOptions(options));
+};
+
+/**
+ * @summary Fixed list of interview questions
+ */
+export const getGetSkillDraftInterviewQuestionsUrl = () => {
+  return `/api/skills/drafts/interview/questions`;
+};
+
+export const getSkillDraftInterviewQuestions = async (
+  options?: RequestInit,
+): Promise<SkillDraftInterviewQuestionsResponse> => {
+  return customFetch<SkillDraftInterviewQuestionsResponse>(
+    getGetSkillDraftInterviewQuestionsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSkillDraftInterviewQuestionsQueryKey = () => {
+  return [`/api/skills/drafts/interview/questions`] as const;
+};
+
+export const getGetSkillDraftInterviewQuestionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkillDraftInterviewQuestions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillDraftInterviewQuestions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSkillDraftInterviewQuestionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSkillDraftInterviewQuestions>>
+  > = ({ signal }) =>
+    getSkillDraftInterviewQuestions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillDraftInterviewQuestions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSkillDraftInterviewQuestionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillDraftInterviewQuestions>>
+>;
+export type GetSkillDraftInterviewQuestionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fixed list of interview questions
+ */
+
+export function useGetSkillDraftInterviewQuestions<
+  TData = Awaited<ReturnType<typeof getSkillDraftInterviewQuestions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillDraftInterviewQuestions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillDraftInterviewQuestionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch a draft
+ */
+export const getGetSkillDraftUrl = (id: string) => {
+  return `/api/skills/drafts/${id}`;
+};
+
+export const getSkillDraft = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillDraftResponse> => {
+  return customFetch<SkillDraftResponse>(getGetSkillDraftUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSkillDraftQueryKey = (id: string) => {
+  return [`/api/skills/drafts/${id}`] as const;
+};
+
+export const getGetSkillDraftQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkillDraft>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillDraft>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSkillDraftQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSkillDraft>>> = ({
+    signal,
+  }) => getSkillDraft(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillDraft>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSkillDraftQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillDraft>>
+>;
+export type GetSkillDraftQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch a draft
+ */
+
+export function useGetSkillDraft<
+  TData = Awaited<ReturnType<typeof getSkillDraft>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillDraft>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillDraftQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Edit a draft
+ */
+export const getUpdateSkillDraftUrl = (id: string) => {
+  return `/api/skills/drafts/${id}`;
+};
+
+export const updateSkillDraft = async (
+  id: string,
+  updateSkillDraftRequest: UpdateSkillDraftRequest,
+  options?: RequestInit,
+): Promise<SkillDraftResponse> => {
+  return customFetch<SkillDraftResponse>(getUpdateSkillDraftUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSkillDraftRequest),
+  });
+};
+
+export const getUpdateSkillDraftMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSkillDraft>>,
+    TError,
+    { id: string; data: BodyType<UpdateSkillDraftRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSkillDraft>>,
+  TError,
+  { id: string; data: BodyType<UpdateSkillDraftRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateSkillDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSkillDraft>>,
+    { id: string; data: BodyType<UpdateSkillDraftRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSkillDraft(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSkillDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSkillDraft>>
+>;
+export type UpdateSkillDraftMutationBody = BodyType<UpdateSkillDraftRequest>;
+export type UpdateSkillDraftMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Edit a draft
+ */
+export const useUpdateSkillDraft = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSkillDraft>>,
+    TError,
+    { id: string; data: BodyType<UpdateSkillDraftRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSkillDraft>>,
+  TError,
+  { id: string; data: BodyType<UpdateSkillDraftRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateSkillDraftMutationOptions(options));
+};
+
+/**
+ * @summary Delete a draft
+ */
+export const getDeleteSkillDraftUrl = (id: string) => {
+  return `/api/skills/drafts/${id}`;
+};
+
+export const deleteSkillDraft = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillDraftDeleteResponse> => {
+  return customFetch<SkillDraftDeleteResponse>(getDeleteSkillDraftUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSkillDraftMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSkillDraft>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSkillDraft>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteSkillDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSkillDraft>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSkillDraft(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSkillDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSkillDraft>>
+>;
+
+export type DeleteSkillDraftMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a draft
+ */
+export const useDeleteSkillDraft = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSkillDraft>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSkillDraft>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteSkillDraftMutationOptions(options));
+};
+
+/**
+ * @summary Submit the next interview answer
+ */
+export const getAnswerSkillDraftInterviewUrl = (id: string) => {
+  return `/api/skills/drafts/${id}/interview/answer`;
+};
+
+export const answerSkillDraftInterview = async (
+  id: string,
+  skillDraftInterviewAnswerRequest: SkillDraftInterviewAnswerRequest,
+  options?: RequestInit,
+): Promise<SkillDraftResponse> => {
+  return customFetch<SkillDraftResponse>(getAnswerSkillDraftInterviewUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(skillDraftInterviewAnswerRequest),
+  });
+};
+
+export const getAnswerSkillDraftInterviewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof answerSkillDraftInterview>>,
+    TError,
+    { id: string; data: BodyType<SkillDraftInterviewAnswerRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof answerSkillDraftInterview>>,
+  TError,
+  { id: string; data: BodyType<SkillDraftInterviewAnswerRequest> },
+  TContext
+> => {
+  const mutationKey = ["answerSkillDraftInterview"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof answerSkillDraftInterview>>,
+    { id: string; data: BodyType<SkillDraftInterviewAnswerRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return answerSkillDraftInterview(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnswerSkillDraftInterviewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof answerSkillDraftInterview>>
+>;
+export type AnswerSkillDraftInterviewMutationBody =
+  BodyType<SkillDraftInterviewAnswerRequest>;
+export type AnswerSkillDraftInterviewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit the next interview answer
+ */
+export const useAnswerSkillDraftInterview = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof answerSkillDraftInterview>>,
+    TError,
+    { id: string; data: BodyType<SkillDraftInterviewAnswerRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof answerSkillDraftInterview>>,
+  TError,
+  { id: string; data: BodyType<SkillDraftInterviewAnswerRequest> },
+  TContext
+> => {
+  return useMutation(getAnswerSkillDraftInterviewMutationOptions(options));
+};
+
+/**
+ * @summary Run the draft against the local LLM with a sample message
+ */
+export const getTestSkillDraftUrl = (id: string) => {
+  return `/api/skills/drafts/${id}/test`;
+};
+
+export const testSkillDraft = async (
+  id: string,
+  skillDraftTestRequest: SkillDraftTestRequest,
+  options?: RequestInit,
+): Promise<SkillDraftTestResponse> => {
+  return customFetch<SkillDraftTestResponse>(getTestSkillDraftUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(skillDraftTestRequest),
+  });
+};
+
+export const getTestSkillDraftMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof testSkillDraft>>,
+    TError,
+    { id: string; data: BodyType<SkillDraftTestRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof testSkillDraft>>,
+  TError,
+  { id: string; data: BodyType<SkillDraftTestRequest> },
+  TContext
+> => {
+  const mutationKey = ["testSkillDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof testSkillDraft>>,
+    { id: string; data: BodyType<SkillDraftTestRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return testSkillDraft(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TestSkillDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof testSkillDraft>>
+>;
+export type TestSkillDraftMutationBody = BodyType<SkillDraftTestRequest>;
+export type TestSkillDraftMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Run the draft against the local LLM with a sample message
+ */
+export const useTestSkillDraft = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof testSkillDraft>>,
+    TError,
+    { id: string; data: BodyType<SkillDraftTestRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof testSkillDraft>>,
+  TError,
+  { id: string; data: BodyType<SkillDraftTestRequest> },
+  TContext
+> => {
+  return useMutation(getTestSkillDraftMutationOptions(options));
+};
+
+/**
+ * @summary Browse the hosted skill store
+ */
+export const getListStoreSkillsUrl = (params?: ListStoreSkillsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/store/skills?${stringifiedParams}`
+    : `/api/store/skills`;
+};
+
+export const listStoreSkills = async (
+  params?: ListStoreSkillsParams,
+  options?: RequestInit,
+): Promise<StoreSkillListResponse> => {
+  return customFetch<StoreSkillListResponse>(getListStoreSkillsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListStoreSkillsQueryKey = (params?: ListStoreSkillsParams) => {
+  return [`/api/store/skills`, ...(params ? [params] : [])] as const;
+};
+
+export const getListStoreSkillsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listStoreSkills>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListStoreSkillsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listStoreSkills>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListStoreSkillsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listStoreSkills>>> = ({
+    signal,
+  }) => listStoreSkills(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listStoreSkills>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListStoreSkillsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listStoreSkills>>
+>;
+export type ListStoreSkillsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Browse the hosted skill store
+ */
+
+export function useListStoreSkills<
+  TData = Awaited<ReturnType<typeof listStoreSkills>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListStoreSkillsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listStoreSkills>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListStoreSkillsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Publish a draft to the store
+ */
+export const getPublishSkillDraftUrl = () => {
+  return `/api/store/skills/publish`;
+};
+
+export const publishSkillDraft = async (
+  publishStoreSkillRequest: PublishStoreSkillRequest,
+  options?: RequestInit,
+): Promise<StoreSkillResponse> => {
+  return customFetch<StoreSkillResponse>(getPublishSkillDraftUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(publishStoreSkillRequest),
+  });
+};
+
+export const getPublishSkillDraftMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishSkillDraft>>,
+    TError,
+    { data: BodyType<PublishStoreSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof publishSkillDraft>>,
+  TError,
+  { data: BodyType<PublishStoreSkillRequest> },
+  TContext
+> => {
+  const mutationKey = ["publishSkillDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof publishSkillDraft>>,
+    { data: BodyType<PublishStoreSkillRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return publishSkillDraft(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PublishSkillDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof publishSkillDraft>>
+>;
+export type PublishSkillDraftMutationBody = BodyType<PublishStoreSkillRequest>;
+export type PublishSkillDraftMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Publish a draft to the store
+ */
+export const usePublishSkillDraft = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishSkillDraft>>,
+    TError,
+    { data: BodyType<PublishStoreSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof publishSkillDraft>>,
+  TError,
+  { data: BodyType<PublishStoreSkillRequest> },
+  TContext
+> => {
+  return useMutation(getPublishSkillDraftMutationOptions(options));
+};
+
+/**
+ * @summary List installed store skills with newer versions available
+ */
+export const getCheckStoreSkillUpdatesUrl = () => {
+  return `/api/store/skills/updates`;
+};
+
+export const checkStoreSkillUpdates = async (
+  options?: RequestInit,
+): Promise<StoreSkillUpdatesResponse> => {
+  return customFetch<StoreSkillUpdatesResponse>(
+    getCheckStoreSkillUpdatesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCheckStoreSkillUpdatesQueryKey = () => {
+  return [`/api/store/skills/updates`] as const;
+};
+
+export const getCheckStoreSkillUpdatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof checkStoreSkillUpdates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof checkStoreSkillUpdates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCheckStoreSkillUpdatesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof checkStoreSkillUpdates>>
+  > = ({ signal }) => checkStoreSkillUpdates({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof checkStoreSkillUpdates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CheckStoreSkillUpdatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof checkStoreSkillUpdates>>
+>;
+export type CheckStoreSkillUpdatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List installed store skills with newer versions available
+ */
+
+export function useCheckStoreSkillUpdates<
+  TData = Awaited<ReturnType<typeof checkStoreSkillUpdates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof checkStoreSkillUpdates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCheckStoreSkillUpdatesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch a published store skill (latest version) plus version history
+ */
+export const getGetStoreSkillUrl = (creatorHandle: string, slug: string) => {
+  return `/api/store/skills/${creatorHandle}/${slug}`;
+};
+
+export const getStoreSkill = async (
+  creatorHandle: string,
+  slug: string,
+  options?: RequestInit,
+): Promise<StoreSkillDetailResponse> => {
+  return customFetch<StoreSkillDetailResponse>(
+    getGetStoreSkillUrl(creatorHandle, slug),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetStoreSkillQueryKey = (
+  creatorHandle: string,
+  slug: string,
+) => {
+  return [`/api/store/skills/${creatorHandle}/${slug}`] as const;
+};
+
+export const getGetStoreSkillQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStoreSkill>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  creatorHandle: string,
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStoreSkill>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetStoreSkillQueryKey(creatorHandle, slug);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getStoreSkill>>> = ({
+    signal,
+  }) => getStoreSkill(creatorHandle, slug, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(creatorHandle && slug),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStoreSkill>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStoreSkillQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStoreSkill>>
+>;
+export type GetStoreSkillQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch a published store skill (latest version) plus version history
+ */
+
+export function useGetStoreSkill<
+  TData = Awaited<ReturnType<typeof getStoreSkill>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  creatorHandle: string,
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStoreSkill>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStoreSkillQueryOptions(
+    creatorHandle,
+    slug,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Install a store skill into the local workspace
+ */
+export const getInstallStoreSkillUrl = (
+  creatorHandle: string,
+  slug: string,
+) => {
+  return `/api/store/skills/${creatorHandle}/${slug}/install`;
+};
+
+export const installStoreSkill = async (
+  creatorHandle: string,
+  slug: string,
+  options?: RequestInit,
+): Promise<StoreSkillInstallResponse> => {
+  return customFetch<StoreSkillInstallResponse>(
+    getInstallStoreSkillUrl(creatorHandle, slug),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getInstallStoreSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installStoreSkill>>,
+    TError,
+    { creatorHandle: string; slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof installStoreSkill>>,
+  TError,
+  { creatorHandle: string; slug: string },
+  TContext
+> => {
+  const mutationKey = ["installStoreSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof installStoreSkill>>,
+    { creatorHandle: string; slug: string }
+  > = (props) => {
+    const { creatorHandle, slug } = props ?? {};
+
+    return installStoreSkill(creatorHandle, slug, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InstallStoreSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof installStoreSkill>>
+>;
+
+export type InstallStoreSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Install a store skill into the local workspace
+ */
+export const useInstallStoreSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installStoreSkill>>,
+    TError,
+    { creatorHandle: string; slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof installStoreSkill>>,
+  TError,
+  { creatorHandle: string; slug: string },
+  TContext
+> => {
+  return useMutation(getInstallStoreSkillMutationOptions(options));
+};
+
+/**
+ * @summary Browse store creators
+ */
+export const getListStoreCreatorsUrl = (params?: ListStoreCreatorsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/store/creators?${stringifiedParams}`
+    : `/api/store/creators`;
+};
+
+export const listStoreCreators = async (
+  params?: ListStoreCreatorsParams,
+  options?: RequestInit,
+): Promise<StoreCreatorListResponse> => {
+  return customFetch<StoreCreatorListResponse>(
+    getListStoreCreatorsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListStoreCreatorsQueryKey = (
+  params?: ListStoreCreatorsParams,
+) => {
+  return [`/api/store/creators`, ...(params ? [params] : [])] as const;
+};
+
+export const getListStoreCreatorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listStoreCreators>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListStoreCreatorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listStoreCreators>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListStoreCreatorsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listStoreCreators>>
+  > = ({ signal }) => listStoreCreators(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listStoreCreators>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListStoreCreatorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listStoreCreators>>
+>;
+export type ListStoreCreatorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Browse store creators
+ */
+
+export function useListStoreCreators<
+  TData = Awaited<ReturnType<typeof listStoreCreators>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListStoreCreatorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listStoreCreators>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListStoreCreatorsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a creator account and receive a one-time API token
+ */
+export const getSignupStoreCreatorUrl = () => {
+  return `/api/store/creators/signup`;
+};
+
+export const signupStoreCreator = async (
+  storeCreatorSignupRequest: StoreCreatorSignupRequest,
+  options?: RequestInit,
+): Promise<StoreCreatorSignupResponse> => {
+  return customFetch<StoreCreatorSignupResponse>(getSignupStoreCreatorUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(storeCreatorSignupRequest),
+  });
+};
+
+export const getSignupStoreCreatorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signupStoreCreator>>,
+    TError,
+    { data: BodyType<StoreCreatorSignupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof signupStoreCreator>>,
+  TError,
+  { data: BodyType<StoreCreatorSignupRequest> },
+  TContext
+> => {
+  const mutationKey = ["signupStoreCreator"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof signupStoreCreator>>,
+    { data: BodyType<StoreCreatorSignupRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return signupStoreCreator(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SignupStoreCreatorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof signupStoreCreator>>
+>;
+export type SignupStoreCreatorMutationBody =
+  BodyType<StoreCreatorSignupRequest>;
+export type SignupStoreCreatorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a creator account and receive a one-time API token
+ */
+export const useSignupStoreCreator = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signupStoreCreator>>,
+    TError,
+    { data: BodyType<StoreCreatorSignupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof signupStoreCreator>>,
+  TError,
+  { data: BodyType<StoreCreatorSignupRequest> },
+  TContext
+> => {
+  return useMutation(getSignupStoreCreatorMutationOptions(options));
+};
+
+/**
+ * @summary Authenticated creator portal summary
+ */
+export const getGetStoreCreatorDashboardUrl = () => {
+  return `/api/store/creators/dashboard`;
+};
+
+export const getStoreCreatorDashboard = async (
+  storeCreatorDashboardRequest: StoreCreatorDashboardRequest,
+  options?: RequestInit,
+): Promise<StoreCreatorDashboardResponse> => {
+  return customFetch<StoreCreatorDashboardResponse>(
+    getGetStoreCreatorDashboardUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(storeCreatorDashboardRequest),
+    },
+  );
+};
+
+export const getGetStoreCreatorDashboardMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof getStoreCreatorDashboard>>,
+    TError,
+    { data: BodyType<StoreCreatorDashboardRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof getStoreCreatorDashboard>>,
+  TError,
+  { data: BodyType<StoreCreatorDashboardRequest> },
+  TContext
+> => {
+  const mutationKey = ["getStoreCreatorDashboard"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof getStoreCreatorDashboard>>,
+    { data: BodyType<StoreCreatorDashboardRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return getStoreCreatorDashboard(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GetStoreCreatorDashboardMutationResult = NonNullable<
+  Awaited<ReturnType<typeof getStoreCreatorDashboard>>
+>;
+export type GetStoreCreatorDashboardMutationBody =
+  BodyType<StoreCreatorDashboardRequest>;
+export type GetStoreCreatorDashboardMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Authenticated creator portal summary
+ */
+export const useGetStoreCreatorDashboard = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof getStoreCreatorDashboard>>,
+    TError,
+    { data: BodyType<StoreCreatorDashboardRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof getStoreCreatorDashboard>>,
+  TError,
+  { data: BodyType<StoreCreatorDashboardRequest> },
+  TContext
+> => {
+  return useMutation(getGetStoreCreatorDashboardMutationOptions(options));
+};
+
+/**
+ * @summary Public creator profile
+ */
+export const getGetStoreCreatorUrl = (handle: string) => {
+  return `/api/store/creators/${handle}`;
+};
+
+export const getStoreCreator = async (
+  handle: string,
+  options?: RequestInit,
+): Promise<StoreCreatorResponse> => {
+  return customFetch<StoreCreatorResponse>(getGetStoreCreatorUrl(handle), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStoreCreatorQueryKey = (handle: string) => {
+  return [`/api/store/creators/${handle}`] as const;
+};
+
+export const getGetStoreCreatorQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStoreCreator>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  handle: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStoreCreator>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetStoreCreatorQueryKey(handle);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getStoreCreator>>> = ({
+    signal,
+  }) => getStoreCreator(handle, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!handle,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStoreCreator>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStoreCreatorQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStoreCreator>>
+>;
+export type GetStoreCreatorQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Public creator profile
+ */
+
+export function useGetStoreCreator<
+  TData = Awaited<ReturnType<typeof getStoreCreator>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  handle: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStoreCreator>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStoreCreatorQueryOptions(handle, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

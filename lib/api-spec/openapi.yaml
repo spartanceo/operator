@@ -6047,6 +6047,426 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ScheduledTaskRunListResponse"
+  /skills/drafts:
+    get:
+      operationId: listSkillDrafts
+      tags:
+        - skills
+      summary: List in-progress skill creator drafts
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Drafts page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftListResponse'
+  /skills/drafts/upload:
+    post:
+      operationId: createSkillDraftFromUpload
+      tags:
+        - skills
+      summary: Create a draft from an uploaded file (PDF/EPUB/DOCX/TXT/MD)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDraftFromUploadRequest'
+      responses:
+        '200':
+          description: Draft created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftResponse'
+  /skills/drafts/paste:
+    post:
+      operationId: createSkillDraftFromPaste
+      tags:
+        - skills
+      summary: Create a draft from pasted text
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDraftFromPasteRequest'
+      responses:
+        '200':
+          description: Draft created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftResponse'
+  /skills/drafts/interview/start:
+    post:
+      operationId: startSkillDraftInterview
+      tags:
+        - skills
+      summary: Start a guided interview that produces a draft
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Draft created (interview mode)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftResponse'
+  /skills/drafts/interview/questions:
+    get:
+      operationId: getSkillDraftInterviewQuestions
+      tags:
+        - skills
+      summary: Fixed list of interview questions
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Questions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftInterviewQuestionsResponse'
+  /skills/drafts/{id}:
+    get:
+      operationId: getSkillDraft
+      tags:
+        - skills
+      summary: Fetch a draft
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Draft
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftResponse'
+        '404':
+          description: Unknown draft
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    put:
+      operationId: updateSkillDraft
+      tags:
+        - skills
+      summary: Edit a draft
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSkillDraftRequest'
+      responses:
+        '200':
+          description: Draft updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftResponse'
+    delete:
+      operationId: deleteSkillDraft
+      tags:
+        - skills
+      summary: Delete a draft
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deletion receipt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftDeleteResponse'
+  /skills/drafts/{id}/interview/answer:
+    post:
+      operationId: answerSkillDraftInterview
+      tags:
+        - skills
+      summary: Submit the next interview answer
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillDraftInterviewAnswerRequest'
+      responses:
+        '200':
+          description: Updated draft
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftResponse'
+  /skills/drafts/{id}/test:
+    post:
+      operationId: testSkillDraft
+      tags:
+        - skills
+      summary: Run the draft against the local LLM with a sample message
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillDraftTestRequest'
+      responses:
+        '200':
+          description: Local model reply
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDraftTestResponse'
+  /store/skills:
+    get:
+      operationId: listStoreSkills
+      tags:
+        - store
+      summary: Browse the hosted skill store
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: creatorHandle
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Store skills page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreSkillListResponse'
+  /store/skills/publish:
+    post:
+      operationId: publishSkillDraft
+      tags:
+        - store
+      summary: Publish a draft to the store
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishStoreSkillRequest'
+      responses:
+        '200':
+          description: Published store skill
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreSkillResponse'
+  /store/skills/updates:
+    get:
+      operationId: checkStoreSkillUpdates
+      tags:
+        - store
+      summary: List installed store skills with newer versions available
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Update list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreSkillUpdatesResponse'
+  /store/skills/{creatorHandle}/{slug}:
+    get:
+      operationId: getStoreSkill
+      tags:
+        - store
+      summary: Fetch a published store skill (latest version) plus version history
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: creatorHandle
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Skill detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreSkillDetailResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /store/skills/{creatorHandle}/{slug}/install:
+    post:
+      operationId: installStoreSkill
+      tags:
+        - store
+      summary: Install a store skill into the local workspace
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: creatorHandle
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Install receipt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreSkillInstallResponse'
+  /store/creators:
+    get:
+      operationId: listStoreCreators
+      tags:
+        - store
+      summary: Browse store creators
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Creators page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreCreatorListResponse'
+  /store/creators/signup:
+    post:
+      operationId: signupStoreCreator
+      tags:
+        - store
+      summary: Create a creator account and receive a one-time API token
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreCreatorSignupRequest'
+      responses:
+        '200':
+          description: Signup result with apiToken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreCreatorSignupResponse'
+  /store/creators/dashboard:
+    post:
+      operationId: getStoreCreatorDashboard
+      tags:
+        - store
+      summary: Authenticated creator portal summary
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreCreatorDashboardRequest'
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreCreatorDashboardResponse'
+  /store/creators/{handle}:
+    get:
+      operationId: getStoreCreator
+      tags:
+        - store
+      summary: Public creator profile
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: handle
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Creator profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreCreatorResponse'
+        '404':
+          description: Unknown creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
 components:
   parameters:
     TenantHeader:
@@ -15063,6 +15483,626 @@ components:
       properties:
         globalPaused:
           type: boolean
+    SkillDraftInterviewTurn:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum:
+            - system
+            - user
+            - assistant
+        content:
+          type: string
+    SkillDraft:
+      type: object
+      required:
+        - id
+        - source
+        - status
+        - rawInput
+        - interviewTranscript
+        - interviewStep
+        - name
+        - description
+        - content
+        - modelTags
+        - triggers
+        - examplePrompts
+        - category
+        - skillId
+        - publishedStoreSkillId
+        - version
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+          enum:
+            - upload
+            - paste
+            - interview
+        status:
+          type: string
+          enum:
+            - draft
+            - ready
+            - published
+        rawInput:
+          type: string
+        interviewTranscript:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillDraftInterviewTurn'
+        interviewStep:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        modelTags:
+          type: array
+          items:
+            type: string
+        triggers:
+          type: array
+          items:
+            type: string
+        examplePrompts:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        skillId:
+          type: string
+          nullable: true
+        publishedStoreSkillId:
+          type: string
+          nullable: true
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SkillDraftResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/SkillDraft'
+    SkillDraftListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillDraft'
+        nextCursor:
+          type: string
+          nullable: true
+    SkillDraftListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/SkillDraftListPage'
+    SkillDraftDeleteReceipt:
+      type: object
+      required:
+        - id
+        - deleted
+      properties:
+        id:
+          type: string
+        deleted:
+          type: boolean
+    SkillDraftDeleteResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/SkillDraftDeleteReceipt'
+    SkillDraftInterviewQuestionsPayload:
+      type: object
+      required:
+        - questions
+      properties:
+        questions:
+          type: array
+          items:
+            type: string
+    SkillDraftInterviewQuestionsResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/SkillDraftInterviewQuestionsPayload'
+    SkillDraftInterviewAnswerRequest:
+      type: object
+      required:
+        - answer
+      properties:
+        answer:
+          type: string
+    CreateDraftFromUploadRequest:
+      type: object
+      required:
+        - fileName
+        - kind
+      properties:
+        fileName:
+          type: string
+        kind:
+          type: string
+        base64:
+          type: string
+        text:
+          type: string
+    CreateDraftFromPasteRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+    UpdateSkillDraftRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        modelTags:
+          type: array
+          items:
+            type: string
+        triggers:
+          type: array
+          items:
+            type: string
+        examplePrompts:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+    SkillDraftTestRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+        modelName:
+          type: string
+    SkillDraftTestPayload:
+      type: object
+      required:
+        - model
+        - reply
+      properties:
+        model:
+          type: string
+        reply:
+          type: string
+    SkillDraftTestResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/SkillDraftTestPayload'
+    StoreSkill:
+      type: object
+      required:
+        - id
+        - creatorId
+        - creatorHandle
+        - slug
+        - name
+        - description
+        - content
+        - modelTags
+        - triggers
+        - examplePrompts
+        - category
+        - skillVersion
+        - isLatest
+        - installCount
+        - documentation
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        creatorId:
+          type: string
+        creatorHandle:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        modelTags:
+          type: array
+          items:
+            type: string
+        triggers:
+          type: array
+          items:
+            type: string
+        examplePrompts:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        skillVersion:
+          type: integer
+        isLatest:
+          type: boolean
+        installCount:
+          type: integer
+        documentation:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StoreSkillResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/StoreSkill'
+    StoreSkillListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreSkill'
+        nextCursor:
+          type: string
+          nullable: true
+    StoreSkillListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/StoreSkillListPage'
+    StoreSkillDetailPayload:
+      type: object
+      required:
+        - skill
+        - versions
+      properties:
+        skill:
+          $ref: '#/components/schemas/StoreSkill'
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreSkill'
+    StoreSkillDetailResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/StoreSkillDetailPayload'
+    StoreSkillInstallPayload:
+      type: object
+      required:
+        - skillId
+        - storeSkill
+      properties:
+        skillId:
+          type: string
+        storeSkill:
+          $ref: '#/components/schemas/StoreSkill'
+    StoreSkillInstallResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/StoreSkillInstallPayload'
+    StoreSkillUpdate:
+      type: object
+      required:
+        - skillId
+        - creatorHandle
+        - slug
+        - installedVersion
+        - latestVersion
+        - storeSkillId
+        - name
+      properties:
+        skillId:
+          type: string
+        creatorHandle:
+          type: string
+        slug:
+          type: string
+        installedVersion:
+          type: integer
+        latestVersion:
+          type: integer
+        storeSkillId:
+          type: string
+        name:
+          type: string
+    StoreSkillUpdatesPayload:
+      type: object
+      required:
+        - updates
+      properties:
+        updates:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreSkillUpdate'
+    StoreSkillUpdatesResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/StoreSkillUpdatesPayload'
+    PublishStoreSkillRequest:
+      type: object
+      required:
+        - draftId
+        - apiToken
+      properties:
+        draftId:
+          type: string
+        apiToken:
+          type: string
+        documentation:
+          type: string
+    StoreCreatorExternalLink:
+      type: object
+      required:
+        - label
+        - url
+      properties:
+        label:
+          type: string
+        url:
+          type: string
+    StoreCreator:
+      type: object
+      required:
+        - id
+        - handle
+        - displayName
+        - bio
+        - websiteUrl
+        - externalLinks
+        - publishedSkillCount
+        - totalInstalls
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        handle:
+          type: string
+        displayName:
+          type: string
+        bio:
+          type: string
+        websiteUrl:
+          type: string
+          nullable: true
+        externalLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreCreatorExternalLink'
+        publishedSkillCount:
+          type: integer
+        totalInstalls:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StoreCreatorResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/StoreCreator'
+    StoreCreatorListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreCreator'
+        nextCursor:
+          type: string
+          nullable: true
+    StoreCreatorListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/StoreCreatorListPage'
+    StoreCreatorSignupRequest:
+      type: object
+      required:
+        - displayName
+      properties:
+        handle:
+          type: string
+        displayName:
+          type: string
+        bio:
+          type: string
+        websiteUrl:
+          type: string
+        externalLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreCreatorExternalLink'
+    StoreCreatorSignupPayload:
+      type: object
+      required:
+        - account
+        - apiToken
+      properties:
+        account:
+          $ref: '#/components/schemas/StoreCreator'
+        apiToken:
+          type: string
+    StoreCreatorSignupResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/StoreCreatorSignupPayload'
+    StoreCreatorDashboardRequest:
+      type: object
+      required:
+        - apiToken
+      properties:
+        apiToken:
+          type: string
+    StoreCreatorDashboardPayload:
+      type: object
+      required:
+        - account
+        - publishedSkills
+        - totalInstalls
+        - totalVersions
+      properties:
+        account:
+          $ref: '#/components/schemas/StoreCreator'
+        publishedSkills:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreSkill'
+        totalInstalls:
+          type: integer
+        totalVersions:
+          type: integer
+    StoreCreatorDashboardResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/StoreCreatorDashboardPayload'
   responses: {}
   requestBodies: {}
   headers: {}

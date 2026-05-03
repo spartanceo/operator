@@ -23,8 +23,11 @@ import LandingPage from "@/pages/landing";
 import DownloadPage from "@/pages/download";
 import PricingPage from "@/pages/pricing";
 import MarketplacePage from "@/pages/marketplace";
+import MarketplaceCreatePage from "@/pages/marketplace-create";
 import SkillDetailPage from "@/pages/skill-detail";
 import CreatorsPage from "@/pages/creators";
+import CreatorSignupPage from "@/pages/creator-signup";
+import CreatorDashboardPage from "@/pages/creator-dashboard";
 import CreatorDetailPage from "@/pages/creator-detail";
 import DocsPage from "@/pages/docs";
 import ApiReferencePage from "@/pages/api-reference";
@@ -90,8 +93,11 @@ function MarketingShell() {
         <Route path="/download" component={DownloadPage} />
         <Route path="/pricing" component={PricingPage} />
         <Route path="/marketplace" component={MarketplacePage} />
+        <Route path="/marketplace/create" component={MarketplaceCreatePage} />
         <Route path="/marketplace/:slug" component={SkillDetailPage} />
         <Route path="/creators" component={CreatorsPage} />
+        <Route path="/creators/signup" component={CreatorSignupPage} />
+        <Route path="/creators/dashboard" component={CreatorDashboardPage} />
         <Route path="/creators/:slug" component={CreatorDetailPage} />
         <Route path="/docs/api-reference" component={ApiReferencePage} />
         <Route path="/docs" component={DocsPage} />
