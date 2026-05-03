@@ -52,6 +52,9 @@ const IntegrationsPage = lazy(() => import("@/pages/operator/integrations"));
 const SettingsPage = lazy(() => import("@/pages/operator/settings"));
 const SubscriptionPage = lazy(() => import("@/pages/operator/subscription"));
 const CreatorRevenuePage = lazy(() => import("@/pages/operator/creator"));
+const SupportPage = lazy(() => import("@/pages/operator/support"));
+const FeatureRequestsPage = lazy(() => import("@/pages/feature-requests"));
+const StatusPage = lazy(() => import("@/pages/status"));
 import OnboardingPage from "@/pages/operator/onboarding";
 import MobilePage from "@/pages/mobile";
 import LegalPage from "@/pages/legal";
@@ -85,6 +88,7 @@ const OPERATOR_ROUTES = new Set([
   "/settings",
   "/subscription",
   "/creator",
+  "/support",
 ]);
 
 function isOperatorPath(path: string): boolean {
@@ -107,6 +111,8 @@ function MarketingShell() {
         <Route path="/creators/signup" component={CreatorSignupPage} />
         <Route path="/creators/dashboard" component={CreatorDashboardPage} />
         <Route path="/creators/:slug" component={CreatorDetailPage} />
+        <Route path="/feature-requests" component={FeatureRequestsPage} />
+        <Route path="/status" component={StatusPage} />
         <Route path="/docs/api-reference" component={ApiReferencePage} />
         <Route path="/docs" component={DocsPage} />
         <Route path="/docs/:section" component={DocsPage} />
@@ -212,6 +218,7 @@ function OperatorRoutes() {
         <Route path="/settings" component={SettingsPage} />
         <Route path="/subscription" component={SubscriptionPage} />
         <Route path="/creator" component={CreatorRevenuePage} />
+        <Route path="/support" component={SupportPage} />
       </Switch>
     </Suspense>
   );

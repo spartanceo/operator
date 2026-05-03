@@ -143,3 +143,12 @@ export * from "./sso-sessions";
 export * from "./scim-provisioning-tokens";
 export * from "./scim-groups";
 export * from "./break-glass-accounts";
+
+export * from "./support-tickets";
+export * from "./support-ticket-events";
+export * from "./support-response-templates";
+export * from "./feature-requests";
+export * from "./feature-request-votes";
+export * from "./feature-feedback-events";
+export * from "./service-status-components";
+export * from "./service-status-incidents";

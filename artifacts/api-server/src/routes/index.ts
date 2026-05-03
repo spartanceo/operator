@@ -58,6 +58,9 @@ import referralsRouter from "./referrals";
 import shareRouter from "./share";
 import creatorProfilesRouter from "./creator-profiles";
 import waitlistRouter from "./waitlist";
+import supportRouter from "./support";
+import feedbackRouter from "./feedback";
+import statusPageRouter from "./status-page";
 
 const router: IRouter = Router();
 
@@ -104,6 +107,9 @@ router.use("/share", shareRouter);
 router.use("/creators", creatorProfilesRouter);
 router.use("/creator-legal", creatorLegalRouter);
 router.use("/waitlist", waitlistRouter);
+router.use("/support", supportRouter);
+router.use("/feedback", feedbackRouter);
+router.use("/status-page", statusPageRouter);
 
 router.use("/store", storeRouter);
 router.use("/subscription", subscriptionRouter);
