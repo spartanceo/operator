@@ -24,6 +24,7 @@ import type { TenantContext } from "@workspace/types";
 
 import { resolveSandboxedPath, workspaceRoot } from "../lib/sandbox";
 import { logPrivacyEvent } from "./privacy.service";
+import { recordAction } from "./undo.service";
 
 const MAX_BYTES = 1024 * 1024;
 
@@ -133,12 +134,38 @@ export async function writeFile(
   ctx: TenantContext,
   filePath: string,
   content: string,
+  opts: { taskId?: string | null } = {},
 ): Promise<FileWriteResult> {
   const buf = Buffer.from(content, "utf8");
   if (buf.byteLength > MAX_BYTES) {
     throw new FileTooLargeError(`Content exceeds the ${MAX_BYTES}-byte write limit`);
   }
   const abs = resolveSandboxedPath(ctx, filePath);
+  // Snapshot the previous content (if any) BEFORE the write so the undo
+  // executor can roll the file back. We cap the snapshot at MAX_BYTES so
+  // a runaway file cannot blow the row size budget.
+  let existed = false;
+  let previousContent: string | null = null;
+  try {
+    const stat = await fs.stat(abs);
+    if (stat.isFile() && stat.size <= MAX_BYTES) {
+      existed = true;
+      previousContent = await fs.readFile(abs, "utf8");
+    } else if (stat.isFile()) {
+      existed = true;
+    }
+  } catch {
+    existed = false;
+  }
+  await recordAction(ctx, {
+    actionType: "file.write",
+    description: existed
+      ? `Overwrote ${filePath}`
+      : `Created ${filePath}`,
+    target: filePath,
+    taskId: opts.taskId ?? null,
+    beforeState: { path: filePath, existed, content: previousContent },
+  });
   await fs.mkdir(path.dirname(abs), { recursive: true });
   await fs.writeFile(abs, buf);
   await logPrivacyEvent(ctx, {
@@ -153,8 +180,28 @@ export async function writeFile(
 export async function deleteFile(
   ctx: TenantContext,
   filePath: string,
+  opts: { taskId?: string | null } = {},
 ): Promise<FileDeleteResult> {
   const abs = resolveSandboxedPath(ctx, filePath);
+  // Snapshot the file BEFORE we unlink so the undo executor can write it
+  // back. If the file is missing, there is nothing to undo and we skip
+  // the recorder entirely.
+  let snapshot: string | null = null;
+  try {
+    const stat = await fs.stat(abs);
+    if (stat.isFile() && stat.size <= MAX_BYTES) {
+      snapshot = await fs.readFile(abs, "utf8");
+    }
+  } catch {
+    return { path: filePath, deleted: false };
+  }
+  await recordAction(ctx, {
+    actionType: "file.delete",
+    description: `Deleted ${filePath}`,
+    target: filePath,
+    taskId: opts.taskId ?? null,
+    beforeState: { path: filePath, existed: true, content: snapshot },
+  });
   try {
     await fs.unlink(abs);
   } catch {
@@ -167,4 +214,41 @@ export async function deleteFile(
     severity: "medium",
   });
   return { path: filePath, deleted: true };
+}
+
+export interface FileMoveResult {
+  fromPath: string;
+  toPath: string;
+}
+
+/**
+ * Move (rename) a file inside the sandbox. Records an undo entry so the
+ * action can be reversed via the undo stack.
+ */
+export async function moveFile(
+  ctx: TenantContext,
+  fromPath: string,
+  toPath: string,
+  opts: { taskId?: string | null; rename?: boolean } = {},
+): Promise<FileMoveResult> {
+  const fromAbs = resolveSandboxedPath(ctx, fromPath);
+  const toAbs = resolveSandboxedPath(ctx, toPath);
+  await recordAction(ctx, {
+    actionType: opts.rename ? "file.rename" : "file.move",
+    description: opts.rename
+      ? `Renamed ${fromPath} → ${toPath}`
+      : `Moved ${fromPath} → ${toPath}`,
+    target: toPath,
+    taskId: opts.taskId ?? null,
+    beforeState: { fromPath, toPath },
+  });
+  await fs.mkdir(path.dirname(toAbs), { recursive: true });
+  await fs.rename(fromAbs, toAbs);
+  await logPrivacyEvent(ctx, {
+    eventType: opts.rename ? "file.rename" : "file.move",
+    actor: ctx.userId ?? ctx.tenantId,
+    target: toPath,
+    severity: "low",
+  });
+  return { fromPath, toPath };
 }

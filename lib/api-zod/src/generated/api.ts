@@ -8217,3 +8217,275 @@ export const GetDiagnosticCatalogResponse = zod.object({
     ),
   }),
 });
+
+/**
+ * @summary Paginated undo history for the current tenant
+ */
+export const listUndoActionsQueryLimitDefault = 20;
+export const listUndoActionsQueryLimitMax = 100;
+
+export const ListUndoActionsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listUndoActionsQueryLimitMax)
+    .default(listUndoActionsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  taskId: zod.coerce
+    .string()
+    .optional()
+    .describe("Restrict the listing to actions belonging to one task."),
+});
+
+export const ListUndoActionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListUndoActionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        taskId: zod.string().nullish(),
+        actionType: zod.string(),
+        description: zod.string(),
+        target: zod.string().nullish(),
+        reversible: zod.boolean(),
+        status: zod
+          .string()
+          .describe(
+            "One of `available`, `undone`, `expired`, `failed`, `irreversible`.",
+          ),
+        beforeState: zod.unknown().nullish(),
+        afterState: zod.unknown().nullish(),
+        error: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        undoneAt: zod.coerce.date().nullish(),
+        expiresAt: zod.coerce.date().nullish(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Fetch one undo action
+ */
+export const GetUndoActionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetUndoActionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetUndoActionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    taskId: zod.string().nullish(),
+    actionType: zod.string(),
+    description: zod.string(),
+    target: zod.string().nullish(),
+    reversible: zod.boolean(),
+    status: zod
+      .string()
+      .describe(
+        "One of `available`, `undone`, `expired`, `failed`, `irreversible`.",
+      ),
+    beforeState: zod.unknown().nullish(),
+    afterState: zod.unknown().nullish(),
+    error: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    undoneAt: zod.coerce.date().nullish(),
+    expiresAt: zod.coerce.date().nullish(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Reverse one recorded action
+ */
+export const UndoActionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UndoActionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UndoActionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    taskId: zod.string().nullish(),
+    actionType: zod.string(),
+    description: zod.string(),
+    target: zod.string().nullish(),
+    reversible: zod.boolean(),
+    status: zod
+      .string()
+      .describe(
+        "One of `available`, `undone`, `expired`, `failed`, `irreversible`.",
+      ),
+    beforeState: zod.unknown().nullish(),
+    afterState: zod.unknown().nullish(),
+    error: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    undoneAt: zod.coerce.date().nullish(),
+    expiresAt: zod.coerce.date().nullish(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Reverse every reversible action belonging to a task
+ */
+export const UndoTaskParams = zod.object({
+  taskId: zod.coerce.string(),
+});
+
+export const UndoTaskHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UndoTaskBody = zod.object({
+  confirm: zod
+    .literal(true)
+    .describe(
+      "Must be `true` — task-level undo requires explicit confirmation.",
+    ),
+});
+
+export const UndoTaskResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    taskId: zod.string(),
+    attempted: zod.number(),
+    undone: zod.number(),
+    failed: zod.number(),
+    results: zod.array(
+      zod.object({
+        id: zod.string(),
+        taskId: zod.string().nullish(),
+        actionType: zod.string(),
+        description: zod.string(),
+        target: zod.string().nullish(),
+        reversible: zod.boolean(),
+        status: zod
+          .string()
+          .describe(
+            "One of `available`, `undone`, `expired`, `failed`, `irreversible`.",
+          ),
+        beforeState: zod.unknown().nullish(),
+        afterState: zod.unknown().nullish(),
+        error: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        undoneAt: zod.coerce.date().nullish(),
+        expiresAt: zod.coerce.date().nullish(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary List the undo actions belonging to a task
+ */
+export const ListUndoTaskActionsParams = zod.object({
+  taskId: zod.coerce.string(),
+});
+
+export const listUndoTaskActionsQueryLimitDefault = 20;
+export const listUndoTaskActionsQueryLimitMax = 100;
+
+export const ListUndoTaskActionsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listUndoTaskActionsQueryLimitMax)
+    .default(listUndoTaskActionsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListUndoTaskActionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListUndoTaskActionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        taskId: zod.string().nullish(),
+        actionType: zod.string(),
+        description: zod.string(),
+        target: zod.string().nullish(),
+        reversible: zod.boolean(),
+        status: zod
+          .string()
+          .describe(
+            "One of `available`, `undone`, `expired`, `failed`, `irreversible`.",
+          ),
+        beforeState: zod.unknown().nullish(),
+        afterState: zod.unknown().nullish(),
+        error: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        undoneAt: zod.coerce.date().nullish(),
+        expiresAt: zod.coerce.date().nullish(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Static catalog of reversible / irreversible action types
+ */
+export const ListUndoActionTypesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListUndoActionTypesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    reversible: zod.array(zod.string()),
+    irreversible: zod.array(zod.string()),
+  }),
+});

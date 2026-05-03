@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   Activity,
   ShieldCheck,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -36,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/knowledge", label: "Knowledge", icon: Library },
   { href: "/communications", label: "Communications", icon: Inbox },
   { href: "/approvals", label: "Approvals", icon: ShieldCheck },
+  { href: "/undo", label: "Undo", icon: Undo2 },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

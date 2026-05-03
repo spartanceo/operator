@@ -29,6 +29,7 @@ import privacyRouter from "./privacy";
 import securityRouter from "./security";
 import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
+import undoRouter from "./undo";
 import updatesRouter from "./updates";
 
 const router: IRouter = Router();
@@ -59,5 +60,6 @@ router.use("/notifications", notificationsRouter);
 router.use("/activity", activityRouter);
 router.use("/mobile", mobileRouter);
 router.use("/telemetry", telemetryRouter);
+router.use("/undo", undoRouter);
 
 export default router;

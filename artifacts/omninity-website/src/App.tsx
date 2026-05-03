@@ -39,6 +39,7 @@ import KnowledgePage from "@/pages/operator/knowledge";
 import CommunicationsPage from "@/pages/operator/communications";
 import ActivityPage from "@/pages/operator/activity";
 import ApprovalsPage from "@/pages/operator/approvals";
+import UndoPage from "@/pages/operator/undo";
 import SettingsPage from "@/pages/operator/settings";
 import OnboardingPage from "@/pages/operator/onboarding";
 import MobilePage from "@/pages/mobile";
@@ -61,6 +62,7 @@ const OPERATOR_ROUTES = new Set([
   "/knowledge",
   "/communications",
   "/approvals",
+  "/undo",
   "/activity",
   "/settings",
 ]);
@@ -167,6 +169,7 @@ function OperatorRoutes() {
       <Route path="/knowledge" component={KnowledgePage} />
       <Route path="/communications" component={CommunicationsPage} />
       <Route path="/approvals" component={ApprovalsPage} />
+      <Route path="/undo" component={UndoPage} />
       <Route path="/activity" component={ActivityPage} />
       <Route path="/settings" component={SettingsPage} />
     </Switch>

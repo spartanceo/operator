@@ -185,6 +185,8 @@ import type {
   ListPrivacyEventsParams,
   ListTelemetryEventsParams,
   ListToolsParams,
+  ListUndoActionsParams,
+  ListUndoTaskActionsParams,
   ListVoipCallsParams,
   LoginRequest,
   MasterPasswordSetRequest,
@@ -279,6 +281,11 @@ import type {
   ToolInvokeRequest,
   ToolInvokeResponse,
   ToolListResponse,
+  UndoActionListResponse,
+  UndoActionResponse,
+  UndoActionTypesResponse,
+  UndoTaskRequest,
+  UndoTaskResponse,
   UpdateCalendarEventRequest,
   UpdateCheckResponse,
   UpdateContactRequest,
@@ -18331,6 +18338,553 @@ export function useGetDiagnosticCatalog<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetDiagnosticCatalogQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Paginated undo history for the current tenant
+ */
+export const getListUndoActionsUrl = (params?: ListUndoActionsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/undo/actions?${stringifiedParams}`
+    : `/api/undo/actions`;
+};
+
+export const listUndoActions = async (
+  params?: ListUndoActionsParams,
+  options?: RequestInit,
+): Promise<UndoActionListResponse> => {
+  return customFetch<UndoActionListResponse>(getListUndoActionsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListUndoActionsQueryKey = (params?: ListUndoActionsParams) => {
+  return [`/api/undo/actions`, ...(params ? [params] : [])] as const;
+};
+
+export const getListUndoActionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUndoActions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUndoActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUndoActionsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listUndoActions>>> = ({
+    signal,
+  }) => listUndoActions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUndoActionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUndoActions>>
+>;
+export type ListUndoActionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Paginated undo history for the current tenant
+ */
+
+export function useListUndoActions<
+  TData = Awaited<ReturnType<typeof listUndoActions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUndoActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUndoActionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch one undo action
+ */
+export const getGetUndoActionUrl = (id: string) => {
+  return `/api/undo/actions/${id}`;
+};
+
+export const getUndoAction = async (
+  id: string,
+  options?: RequestInit,
+): Promise<UndoActionResponse> => {
+  return customFetch<UndoActionResponse>(getGetUndoActionUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUndoActionQueryKey = (id: string) => {
+  return [`/api/undo/actions/${id}`] as const;
+};
+
+export const getGetUndoActionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUndoAction>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUndoAction>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUndoActionQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUndoAction>>> = ({
+    signal,
+  }) => getUndoAction(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUndoAction>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUndoActionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUndoAction>>
+>;
+export type GetUndoActionQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one undo action
+ */
+
+export function useGetUndoAction<
+  TData = Awaited<ReturnType<typeof getUndoAction>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUndoAction>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUndoActionQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Reverse one recorded action
+ */
+export const getUndoActionUrl = (id: string) => {
+  return `/api/undo/actions/${id}/undo`;
+};
+
+export const undoAction = async (
+  id: string,
+  options?: RequestInit,
+): Promise<UndoActionResponse> => {
+  return customFetch<UndoActionResponse>(getUndoActionUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getUndoActionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof undoAction>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof undoAction>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["undoAction"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof undoAction>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return undoAction(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UndoActionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof undoAction>>
+>;
+
+export type UndoActionMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Reverse one recorded action
+ */
+export const useUndoAction = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof undoAction>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof undoAction>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getUndoActionMutationOptions(options));
+};
+
+/**
+ * @summary Reverse every reversible action belonging to a task
+ */
+export const getUndoTaskUrl = (taskId: string) => {
+  return `/api/undo/tasks/${taskId}/undo`;
+};
+
+export const undoTask = async (
+  taskId: string,
+  undoTaskRequest: UndoTaskRequest,
+  options?: RequestInit,
+): Promise<UndoTaskResponse> => {
+  return customFetch<UndoTaskResponse>(getUndoTaskUrl(taskId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(undoTaskRequest),
+  });
+};
+
+export const getUndoTaskMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof undoTask>>,
+    TError,
+    { taskId: string; data: BodyType<UndoTaskRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof undoTask>>,
+  TError,
+  { taskId: string; data: BodyType<UndoTaskRequest> },
+  TContext
+> => {
+  const mutationKey = ["undoTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof undoTask>>,
+    { taskId: string; data: BodyType<UndoTaskRequest> }
+  > = (props) => {
+    const { taskId, data } = props ?? {};
+
+    return undoTask(taskId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UndoTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof undoTask>>
+>;
+export type UndoTaskMutationBody = BodyType<UndoTaskRequest>;
+export type UndoTaskMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Reverse every reversible action belonging to a task
+ */
+export const useUndoTask = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof undoTask>>,
+    TError,
+    { taskId: string; data: BodyType<UndoTaskRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof undoTask>>,
+  TError,
+  { taskId: string; data: BodyType<UndoTaskRequest> },
+  TContext
+> => {
+  return useMutation(getUndoTaskMutationOptions(options));
+};
+
+/**
+ * @summary List the undo actions belonging to a task
+ */
+export const getListUndoTaskActionsUrl = (
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/undo/tasks/${taskId}/actions?${stringifiedParams}`
+    : `/api/undo/tasks/${taskId}/actions`;
+};
+
+export const listUndoTaskActions = async (
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+  options?: RequestInit,
+): Promise<UndoActionListResponse> => {
+  return customFetch<UndoActionListResponse>(
+    getListUndoTaskActionsUrl(taskId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListUndoTaskActionsQueryKey = (
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+) => {
+  return [
+    `/api/undo/tasks/${taskId}/actions`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListUndoTaskActionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUndoTaskActions>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoTaskActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListUndoTaskActionsQueryKey(taskId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listUndoTaskActions>>
+  > = ({ signal }) =>
+    listUndoTaskActions(taskId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!taskId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoTaskActions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUndoTaskActionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUndoTaskActions>>
+>;
+export type ListUndoTaskActionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the undo actions belonging to a task
+ */
+
+export function useListUndoTaskActions<
+  TData = Awaited<ReturnType<typeof listUndoTaskActions>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: string,
+  params?: ListUndoTaskActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUndoTaskActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUndoTaskActionsQueryOptions(
+    taskId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Static catalog of reversible / irreversible action types
+ */
+export const getListUndoActionTypesUrl = () => {
+  return `/api/undo/irreversible-types`;
+};
+
+export const listUndoActionTypes = async (
+  options?: RequestInit,
+): Promise<UndoActionTypesResponse> => {
+  return customFetch<UndoActionTypesResponse>(getListUndoActionTypesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListUndoActionTypesQueryKey = () => {
+  return [`/api/undo/irreversible-types`] as const;
+};
+
+export const getListUndoActionTypesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUndoActionTypes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActionTypes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUndoActionTypesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listUndoActionTypes>>
+  > = ({ signal }) => listUndoActionTypes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActionTypes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUndoActionTypesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUndoActionTypes>>
+>;
+export type ListUndoActionTypesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Static catalog of reversible / irreversible action types
+ */
+
+export function useListUndoActionTypes<
+  TData = Awaited<ReturnType<typeof listUndoActionTypes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUndoActionTypes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUndoActionTypesQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

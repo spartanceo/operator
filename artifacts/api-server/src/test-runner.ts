@@ -3308,6 +3308,173 @@ const cases: TestCase[] = [
       assert.equal(aView.body.data.items.length, 0);
     },
   },
+  {
+    name: "undo: file write records snapshot and reverses overwrite",
+    run: async () => {
+      await request(app)
+        .post("/api/files/write")
+        .set("X-Tenant-ID", TENANT)
+        .send({ path: "undo/over.txt", content: "v1" })
+        .expect(200);
+      await request(app)
+        .post("/api/files/write")
+        .set("X-Tenant-ID", TENANT)
+        .send({ path: "undo/over.txt", content: "v2" })
+        .expect(200);
+
+      const list = await request(app)
+        .get("/api/undo/actions")
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      const overwrite = list.body.data.items.find(
+        (a: { description: string }) =>
+          a.description === "Overwrote undo/over.txt",
+      );
+      assert.ok(overwrite, "overwrite undo row missing");
+      assert.equal(overwrite.reversible, true);
+      assert.equal(overwrite.actionType, "file.write");
+
+      const undone = await request(app)
+        .post(`/api/undo/actions/${overwrite.id}/undo`)
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      assert.equal(undone.body.data.status, "undone");
+
+      const read = await request(app)
+        .post("/api/files/read")
+        .set("X-Tenant-ID", TENANT)
+        .send({ path: "undo/over.txt" })
+        .expect(200);
+      assert.equal(read.body.data.content, "v1");
+    },
+  },
+  {
+    name: "undo: file create then undo deletes the file",
+    run: async () => {
+      await request(app)
+        .post("/api/files/write")
+        .set("X-Tenant-ID", TENANT)
+        .send({ path: "undo/new.txt", content: "fresh" })
+        .expect(200);
+      const list = await request(app)
+        .get("/api/undo/actions")
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      const created = list.body.data.items.find(
+        (a: { description: string }) =>
+          a.description === "Created undo/new.txt",
+      );
+      assert.ok(created, "create undo row missing");
+      await request(app)
+        .post(`/api/undo/actions/${created.id}/undo`)
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      const read = await request(app)
+        .post("/api/files/read")
+        .set("X-Tenant-ID", TENANT)
+        .send({ path: "undo/new.txt" });
+      assert.equal(read.status, 404);
+    },
+  },
+  {
+    name: "undo: file delete records snapshot and restores content",
+    run: async () => {
+      await request(app)
+        .post("/api/files/write")
+        .set("X-Tenant-ID", TENANT)
+        .send({ path: "undo/del.txt", content: "keep me" })
+        .expect(200);
+      await request(app)
+        .post("/api/files/delete")
+        .set("X-Tenant-ID", TENANT)
+        .send({ path: "undo/del.txt" })
+        .expect(200);
+      const list = await request(app)
+        .get("/api/undo/actions")
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      const del = list.body.data.items.find(
+        (a: { actionType: string; target: string }) =>
+          a.actionType === "file.delete" && a.target === "undo/del.txt",
+      );
+      assert.ok(del, "delete undo row missing");
+      await request(app)
+        .post(`/api/undo/actions/${del.id}/undo`)
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      const read = await request(app)
+        .post("/api/files/read")
+        .set("X-Tenant-ID", TENANT)
+        .send({ path: "undo/del.txt" })
+        .expect(200);
+      assert.equal(read.body.data.content, "keep me");
+    },
+  },
+  {
+    name: "undo: irreversible-types catalog + tenant isolation",
+    run: async () => {
+      const cat = await request(app)
+        .get("/api/undo/irreversible-types")
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      assert.ok(cat.body.data.irreversible.includes("email.send"));
+      assert.ok(cat.body.data.reversible.includes("file.write"));
+
+      await request(app)
+        .post("/api/files/write")
+        .set("X-Tenant-ID", TENANT)
+        .send({ path: "undo/iso.txt", content: "x" })
+        .expect(200);
+      const otherList = await request(app)
+        .get("/api/undo/actions")
+        .set("X-Tenant-ID", TENANT_2)
+        .expect(200);
+      const leak = otherList.body.data.items.find(
+        (a: { target: string | null }) => a.target === "undo/iso.txt",
+      );
+      assert.ok(!leak, "tenant 2 saw tenant 1 undo row");
+    },
+  },
+  {
+    name: "undo: task-level undo requires confirm + reverses scoped rows",
+    run: async () => {
+      const { writeFile } = await import("./services/files.service");
+      const ctx = {
+        tenantId: TENANT,
+        workspaceId: `default-${TENANT}`,
+        userId: null,
+        roles: [],
+      } as never;
+      await writeFile(ctx, "undo/task-a.txt", "a", { taskId: "task_T44" });
+      await writeFile(ctx, "undo/task-b.txt", "b", { taskId: "task_T44" });
+
+      const noConfirm = await request(app)
+        .post("/api/undo/tasks/task_T44/undo")
+        .set("X-Tenant-ID", TENANT)
+        .send({});
+      assert.equal(noConfirm.status, 409);
+
+      const okRes = await request(app)
+        .post("/api/undo/tasks/task_T44/undo")
+        .set("X-Tenant-ID", TENANT)
+        .send({ confirm: true })
+        .expect(200);
+      assert.equal(okRes.body.data.taskId, "task_T44");
+      assert.ok(okRes.body.data.attempted >= 2);
+      assert.equal(okRes.body.data.failed, 0);
+
+      const taskList = await request(app)
+        .get("/api/undo/tasks/task_T44/actions")
+        .set("X-Tenant-ID", TENANT)
+        .expect(200);
+      assert.ok(
+        taskList.body.data.items.every(
+          (a: { status: string }) => a.status === "undone",
+        ),
+        "every task action should be undone",
+      );
+    },
+  },
 ];
 
 async function main() {

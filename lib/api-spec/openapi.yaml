@@ -60,6 +60,8 @@ tags:
     description: Legal documents, acceptance ledger, model licences, incident reports, age confirmation
   - name: diagnostics
     description: Local error log, disk-health probe, and the user-facing error catalog (Task #31 — Error Handling & Graceful Degradation)
+  - name: undo
+    description: Undo stack for desktop / file actions (Task #44 — record, list, and reverse reversible actions)
 paths:
   /healthz:
     get:
@@ -4562,6 +4564,156 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DiagnosticCatalogResponse"
+  /undo/actions:
+    get:
+      operationId: listUndoActions
+      tags:
+        - undo
+      summary: Paginated undo history for the current tenant
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: taskId
+          in: query
+          required: false
+          description: Restrict the listing to actions belonging to one task.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Undo actions page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoActionListResponse"
+  /undo/actions/{id}:
+    get:
+      operationId: getUndoAction
+      tags:
+        - undo
+      summary: Fetch one undo action
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Undo action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoActionResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /undo/actions/{id}/undo:
+    post:
+      operationId: undoAction
+      tags:
+        - undo
+      summary: Reverse one recorded action
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Action reversed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoActionResponse"
+        "409":
+          description: Action is irreversible or reversal failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "410":
+          description: Undo expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /undo/tasks/{taskId}/undo:
+    post:
+      operationId: undoTask
+      tags:
+        - undo
+      summary: Reverse every reversible action belonging to a task
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UndoTaskRequest"
+      responses:
+        "200":
+          description: Task reversed (full + partial outcomes both 200)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoTaskResponse"
+        "409":
+          description: Confirmation flag missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /undo/tasks/{taskId}/actions:
+    get:
+      operationId: listUndoTaskActions
+      tags:
+        - undo
+      summary: List the undo actions belonging to a task
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Undo actions page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoActionListResponse"
+  /undo/irreversible-types:
+    get:
+      operationId: listUndoActionTypes
+      tags:
+        - undo
+      summary: Static catalog of reversible / irreversible action types
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Action-type catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoActionTypesResponse"
 components:
   parameters:
     TenantHeader:
@@ -11982,4 +12134,154 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/DiagnosticCatalogEntry"
+    UndoAction:
+      type: object
+      required:
+        - id
+        - actionType
+        - description
+        - reversible
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+          nullable: true
+        actionType:
+          type: string
+        description:
+          type: string
+        target:
+          type: string
+          nullable: true
+        reversible:
+          type: boolean
+        status:
+          type: string
+          description: One of `available`, `undone`, `expired`, `failed`, `irreversible`.
+        beforeState:
+          nullable: true
+        afterState:
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        undoneAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+    UndoActionResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/UndoAction"
+    UndoActionListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/UndoAction"
+        nextCursor:
+          type: string
+          nullable: true
+    UndoActionListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/UndoActionListPage"
+    UndoTaskRequest:
+      type: object
+      required:
+        - confirm
+      properties:
+        confirm:
+          type: boolean
+          enum: [true]
+          description: Must be `true` — task-level undo requires explicit confirmation.
+    UndoTaskResult:
+      type: object
+      required:
+        - taskId
+        - attempted
+        - undone
+        - failed
+        - results
+      properties:
+        taskId:
+          type: string
+        attempted:
+          type: integer
+        undone:
+          type: integer
+        failed:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/UndoAction"
+    UndoTaskResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/UndoTaskResult"
+    UndoActionTypes:
+      type: object
+      required:
+        - reversible
+        - irreversible
+      properties:
+        reversible:
+          type: array
+          items:
+            type: string
+        irreversible:
+          type: array
+          items:
+            type: string
+    UndoActionTypesResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/UndoActionTypes"
 

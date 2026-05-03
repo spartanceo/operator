@@ -3988,6 +3988,67 @@ export interface DiagnosticCatalogResponse {
   data: DiagnosticCatalogResponseData;
 }
 
+export interface UndoAction {
+  id: string;
+  taskId?: string | null;
+  actionType: string;
+  description: string;
+  target?: string | null;
+  reversible: boolean;
+  /** One of `available`, `undone`, `expired`, `failed`, `irreversible`. */
+  status: string;
+  beforeState?: unknown | null;
+  afterState?: unknown | null;
+  error?: string | null;
+  createdAt: string;
+  undoneAt?: string | null;
+  expiresAt?: string | null;
+  updatedAt: string;
+}
+
+export interface UndoActionResponse {
+  success: boolean;
+  data: UndoAction;
+}
+
+export interface UndoActionListPage {
+  items: UndoAction[];
+  nextCursor: string | null;
+}
+
+export interface UndoActionListResponse {
+  success: boolean;
+  data: UndoActionListPage;
+}
+
+export interface UndoTaskRequest {
+  /** Must be `true` — task-level undo requires explicit confirmation. */
+  confirm: boolean;
+}
+
+export interface UndoTaskResult {
+  taskId: string;
+  attempted: number;
+  undone: number;
+  failed: number;
+  results: UndoAction[];
+}
+
+export interface UndoTaskResponse {
+  success: boolean;
+  data: UndoTaskResult;
+}
+
+export interface UndoActionTypes {
+  reversible: string[];
+  irreversible: string[];
+}
+
+export interface UndoActionTypesResponse {
+  success: boolean;
+  data: UndoActionTypes;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -4664,4 +4725,34 @@ export type ListDiagnosticErrorsParams = {
    * @maximum 200
    */
   limit?: number;
+};
+
+export type ListUndoActionsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  /**
+   * Restrict the listing to actions belonging to one task.
+   */
+  taskId?: string;
+};
+
+export type ListUndoTaskActionsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
 };
