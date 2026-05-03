@@ -39,7 +39,7 @@ import type { TenantContext } from "@workspace/types";
 import { emitOpEvent } from "../lib/event-bus";
 import { logger } from "../lib/logger";
 import { invokeTool, getToolByName } from "./tools.service";
-import { listMemories } from "./memory.service";
+import { listMemories, retrieveRelevantMemories } from "./memory.service";
 import { logPrivacyEvent } from "./privacy.service";
 import { retrieveContext as retrieveKbContext } from "./kb.service";
 import {
@@ -345,7 +345,23 @@ export async function createAgentRun(
   }
 
   const route = routerAgent(input.goal, activeSkill !== null);
-  const memorySummary = route === "memory" ? await memoryAgent(ctx) : null;
+  let memorySummary = route === "memory" ? await memoryAgent(ctx) : null;
+  // Always inject top relevant long-term memories as soft context, even when
+  // the router did not pick the dedicated memory agent. Best-effort: failures
+  // do not abort the run.
+  try {
+    const relevant = await retrieveRelevantMemories(ctx, input.goal, { limit: 3 });
+    if (relevant.length > 0) {
+      const recallLine = relevant
+        .map((m) => `• [${m.confidence}] ${m.title}: ${m.content}`)
+        .join("\n");
+      memorySummary = memorySummary
+        ? `${memorySummary}\n\nRelevant recall:\n${recallLine}`
+        : `Relevant recall:\n${recallLine}`;
+    }
+  } catch {
+    // best-effort; ignore
+  }
   const researchSummary = route === "research" ? researchAgent(input.goal) : null;
   const desktopNote = route === "desktop" ? desktopRouterNote(input.goal) : null;
   // RAG: pull top-k snippets from the personal knowledge base unless the

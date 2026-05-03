@@ -29,6 +29,7 @@ export * from "./kb-collections";
 export * from "./kb-documents";
 export * from "./kb-chunks";
 export * from "./media-assets";
+export * from "./integrations";
 export * from "./comm-accounts";
 export * from "./email-messages";
 export * from "./email-drafts";

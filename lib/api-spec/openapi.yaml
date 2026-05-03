@@ -1137,6 +1137,23 @@ paths:
         - $ref: '#/components/parameters/TenantHeader'
         - $ref: '#/components/parameters/CursorParam'
         - $ref: '#/components/parameters/LimitParam'
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [fact, preference, pattern, contact, project]
+        - name: confidence
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [confirmed, observed, inferred]
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Memories page
@@ -1164,6 +1181,160 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MemoryResponse'
+    delete:
+      operationId: forgetAllMemories
+      tags:
+        - memory
+      summary: Forget every memory in the active workspace (irreversible)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: confirm
+          in: query
+          required: true
+          description: Must equal "FORGET_EVERYTHING" to proceed.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Forget receipt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryForgetAllResponse'
+        '400':
+          description: Missing confirmation token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /memory/stats:
+    get:
+      operationId: getMemoryStats
+      tags:
+        - memory
+      summary: Aggregate memory statistics for the Memory panel header
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Memory stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryStatsResponse'
+  /memory/settings:
+    get:
+      operationId: getMemorySettings
+      tags:
+        - memory
+      summary: Read memory settings (capacity, auto-extract toggle)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Memory settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemorySettingsResponse'
+    put:
+      operationId: updateMemorySettings
+      tags:
+        - memory
+      summary: Update memory settings
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemorySettingsRequest'
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemorySettingsResponse'
+  /memory/export:
+    get:
+      operationId: exportMemories
+      tags:
+        - memory
+      summary: Export every memory in the workspace as JSON or Markdown
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, markdown]
+      responses:
+        '200':
+          description: Export bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryExportResponse'
+  /memory/retrieve:
+    post:
+      operationId: retrieveMemories
+      tags:
+        - memory
+      summary: Retrieve relevant memories for a query (pre-prompt context)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetrieveMemoriesRequest'
+      responses:
+        '200':
+          description: Ranked memories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryRetrieveResponse'
+  /memory/extract:
+    post:
+      operationId: extractMemories
+      tags:
+        - memory
+      summary: Extract memory candidates from a conversation turn
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtractMemoriesRequest'
+      responses:
+        '200':
+          description: Extraction result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryExtractResponse'
+  /memory/prune:
+    post:
+      operationId: pruneMemories
+      tags:
+        - memory
+      summary: Run the capacity-based pruner now
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Prune result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryPruneResponse'
   /memory/{id}:
     get:
       operationId: getMemory
@@ -1180,6 +1351,37 @@ paths:
       responses:
         '200':
           description: Memory entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryResponse'
+        '404':
+          description: Unknown memory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    patch:
+      operationId: updateMemory
+      tags:
+        - memory
+      summary: Edit a memory entry
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemoryRequest'
+      responses:
+        '200':
+          description: Updated memory
           content:
             application/json:
               schema:
@@ -9087,9 +9289,13 @@ components:
       required:
         - id
         - kind
+        - category
+        - confidence
         - title
         - content
         - importance
+        - accessCount
+        - pinned
         - createdAt
         - updatedAt
       properties:
@@ -9097,6 +9303,12 @@ components:
           type: string
         kind:
           type: string
+        category:
+          type: string
+          enum: [fact, preference, pattern, contact, project]
+        confidence:
+          type: string
+          enum: [confirmed, observed, inferred]
         title:
           type: string
         content:
@@ -9106,6 +9318,17 @@ components:
         source:
           type: string
           nullable: true
+        sourceConversationId:
+          type: string
+          nullable: true
+        lastAccessedAt:
+          type: string
+          format: date-time
+          nullable: true
+        accessCount:
+          type: integer
+        pinned:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -9157,6 +9380,12 @@ components:
       properties:
         kind:
           type: string
+        category:
+          type: string
+          enum: [fact, preference, pattern, contact, project]
+        confidence:
+          type: string
+          enum: [confirmed, observed, inferred]
         title:
           type: string
         content:
@@ -9167,6 +9396,257 @@ components:
           maximum: 100
         source:
           type: string
+        sourceConversationId:
+          type: string
+          nullable: true
+        pinned:
+          type: boolean
+    UpdateMemoryRequest:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [fact, preference, pattern, contact, project]
+        confidence:
+          type: string
+          enum: [confirmed, observed, inferred]
+        title:
+          type: string
+        content:
+          type: string
+        importance:
+          type: integer
+          minimum: 0
+          maximum: 100
+        source:
+          type: string
+          nullable: true
+        pinned:
+          type: boolean
+    MemorySettings:
+      type: object
+      required:
+        - capacityBytes
+        - autoExtract
+        - updatedAt
+      properties:
+        capacityBytes:
+          type: integer
+        autoExtract:
+          type: boolean
+        lastPrunedAt:
+          type: string
+          format: date-time
+          nullable: true
+        forgottenAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+    MemorySettingsResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MemorySettings'
+    UpdateMemorySettingsRequest:
+      type: object
+      properties:
+        capacityBytes:
+          type: integer
+          minimum: 1048576
+          maximum: 1073741824
+        autoExtract:
+          type: boolean
+    MemoryStats:
+      type: object
+      required:
+        - totalCount
+        - totalBytes
+        - capacityBytes
+        - byCategory
+        - byConfidence
+      properties:
+        totalCount:
+          type: integer
+        totalBytes:
+          type: integer
+        capacityBytes:
+          type: integer
+        byCategory:
+          type: object
+          additionalProperties:
+            type: integer
+        byConfidence:
+          type: object
+          additionalProperties:
+            type: integer
+        lastPrunedAt:
+          type: string
+          format: date-time
+          nullable: true
+    MemoryStatsResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MemoryStats'
+    MemoryExportPayload:
+      type: object
+      required:
+        - format
+        - mediaType
+        - body
+        - count
+      properties:
+        format:
+          type: string
+          enum: [json, markdown]
+        mediaType:
+          type: string
+        body:
+          type: string
+        count:
+          type: integer
+    MemoryExportResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MemoryExportPayload'
+    RetrieveMemoriesRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 20
+    RetrievedMemory:
+      allOf:
+        - $ref: '#/components/schemas/Memory'
+        - type: object
+          required:
+            - score
+          properties:
+            score:
+              type: number
+    MemoryRetrievePayload:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RetrievedMemory'
+    MemoryRetrieveResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MemoryRetrievePayload'
+    ExtractMemoriesRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+        conversationId:
+          type: string
+          nullable: true
+    MemoryExtractPayload:
+      type: object
+      required:
+        - created
+        - skipped
+      properties:
+        created:
+          type: array
+          items:
+            $ref: '#/components/schemas/Memory'
+        skipped:
+          type: integer
+    MemoryExtractResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MemoryExtractPayload'
+    MemoryPrunePayload:
+      type: object
+      required:
+        - pruned
+        - bytesAfter
+      properties:
+        pruned:
+          type: integer
+        bytesAfter:
+          type: integer
+    MemoryPruneResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MemoryPrunePayload'
+    MemoryForgetAllPayload:
+      type: object
+      required:
+        - deletedCount
+        - forgottenAt
+      properties:
+        deletedCount:
+          type: integer
+        forgottenAt:
+          type: string
+          format: date-time
+    MemoryForgetAllResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MemoryForgetAllPayload'
     MemoryDeleteReceipt:
       type: object
       required:

@@ -1764,6 +1764,11 @@ export const ListMemoriesQueryParams = zod.object({
     .max(listMemoriesQueryLimitMax)
     .default(listMemoriesQueryLimitDefault)
     .describe("Page size, default 20, max 100."),
+  category: zod
+    .enum(["fact", "preference", "pattern", "contact", "project"])
+    .optional(),
+  confidence: zod.enum(["confirmed", "observed", "inferred"]).optional(),
+  q: zod.coerce.string().optional(),
 });
 
 export const ListMemoriesHeader = zod.object({
@@ -1781,10 +1786,22 @@ export const ListMemoriesResponse = zod.object({
       zod.object({
         id: zod.string(),
         kind: zod.string(),
+        category: zod.enum([
+          "fact",
+          "preference",
+          "pattern",
+          "contact",
+          "project",
+        ]),
+        confidence: zod.enum(["confirmed", "observed", "inferred"]),
         title: zod.string(),
         content: zod.string(),
         importance: zod.number(),
         source: zod.string().nullish(),
+        sourceConversationId: zod.string().nullish(),
+        lastAccessedAt: zod.coerce.date().nullish(),
+        accessCount: zod.number(),
+        pinned: zod.boolean(),
         createdAt: zod.coerce.date(),
         updatedAt: zod.coerce.date(),
       }),
@@ -1809,6 +1826,10 @@ export const createMemoryBodyImportanceMax = 100;
 
 export const CreateMemoryBody = zod.object({
   kind: zod.string().optional(),
+  category: zod
+    .enum(["fact", "preference", "pattern", "contact", "project"])
+    .optional(),
+  confidence: zod.enum(["confirmed", "observed", "inferred"]).optional(),
   title: zod.string(),
   content: zod.string(),
   importance: zod
@@ -1817,6 +1838,8 @@ export const CreateMemoryBody = zod.object({
     .max(createMemoryBodyImportanceMax)
     .optional(),
   source: zod.string().optional(),
+  sourceConversationId: zod.string().nullish(),
+  pinned: zod.boolean().optional(),
 });
 
 export const CreateMemoryResponse = zod.object({
@@ -1824,12 +1847,267 @@ export const CreateMemoryResponse = zod.object({
   data: zod.object({
     id: zod.string(),
     kind: zod.string(),
+    category: zod.enum(["fact", "preference", "pattern", "contact", "project"]),
+    confidence: zod.enum(["confirmed", "observed", "inferred"]),
     title: zod.string(),
     content: zod.string(),
     importance: zod.number(),
     source: zod.string().nullish(),
+    sourceConversationId: zod.string().nullish(),
+    lastAccessedAt: zod.coerce.date().nullish(),
+    accessCount: zod.number(),
+    pinned: zod.boolean(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Forget every memory in the active workspace (irreversible)
+ */
+export const ForgetAllMemoriesQueryParams = zod.object({
+  confirm: zod.coerce
+    .string()
+    .describe('Must equal \"FORGET_EVERYTHING\" to proceed.'),
+});
+
+export const ForgetAllMemoriesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ForgetAllMemoriesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    deletedCount: zod.number(),
+    forgottenAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Aggregate memory statistics for the Memory panel header
+ */
+export const GetMemoryStatsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMemoryStatsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    totalCount: zod.number(),
+    totalBytes: zod.number(),
+    capacityBytes: zod.number(),
+    byCategory: zod.record(zod.string(), zod.number()),
+    byConfidence: zod.record(zod.string(), zod.number()),
+    lastPrunedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Read memory settings (capacity, auto-extract toggle)
+ */
+export const GetMemorySettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMemorySettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    capacityBytes: zod.number(),
+    autoExtract: zod.boolean(),
+    lastPrunedAt: zod.coerce.date().nullish(),
+    forgottenAt: zod.coerce.date().nullish(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Update memory settings
+ */
+export const UpdateMemorySettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const updateMemorySettingsBodyCapacityBytesMin = 1048576;
+export const updateMemorySettingsBodyCapacityBytesMax = 1073741824;
+
+export const UpdateMemorySettingsBody = zod.object({
+  capacityBytes: zod
+    .number()
+    .min(updateMemorySettingsBodyCapacityBytesMin)
+    .max(updateMemorySettingsBodyCapacityBytesMax)
+    .optional(),
+  autoExtract: zod.boolean().optional(),
+});
+
+export const UpdateMemorySettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    capacityBytes: zod.number(),
+    autoExtract: zod.boolean(),
+    lastPrunedAt: zod.coerce.date().nullish(),
+    forgottenAt: zod.coerce.date().nullish(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Export every memory in the workspace as JSON or Markdown
+ */
+export const ExportMemoriesQueryParams = zod.object({
+  format: zod.enum(["json", "markdown"]).optional(),
+});
+
+export const ExportMemoriesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ExportMemoriesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    format: zod.enum(["json", "markdown"]),
+    mediaType: zod.string(),
+    body: zod.string(),
+    count: zod.number(),
+  }),
+});
+
+/**
+ * @summary Retrieve relevant memories for a query (pre-prompt context)
+ */
+export const RetrieveMemoriesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const retrieveMemoriesBodyLimitMax = 20;
+
+export const RetrieveMemoriesBody = zod.object({
+  query: zod.string(),
+  limit: zod.number().min(1).max(retrieveMemoriesBodyLimitMax).optional(),
+});
+
+export const RetrieveMemoriesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod
+        .object({
+          id: zod.string(),
+          kind: zod.string(),
+          category: zod.enum([
+            "fact",
+            "preference",
+            "pattern",
+            "contact",
+            "project",
+          ]),
+          confidence: zod.enum(["confirmed", "observed", "inferred"]),
+          title: zod.string(),
+          content: zod.string(),
+          importance: zod.number(),
+          source: zod.string().nullish(),
+          sourceConversationId: zod.string().nullish(),
+          lastAccessedAt: zod.coerce.date().nullish(),
+          accessCount: zod.number(),
+          pinned: zod.boolean(),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        })
+        .and(
+          zod.object({
+            score: zod.number(),
+          }),
+        ),
+    ),
+  }),
+});
+
+/**
+ * @summary Extract memory candidates from a conversation turn
+ */
+export const ExtractMemoriesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ExtractMemoriesBody = zod.object({
+  text: zod.string(),
+  conversationId: zod.string().nullish(),
+});
+
+export const ExtractMemoriesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    created: zod.array(
+      zod.object({
+        id: zod.string(),
+        kind: zod.string(),
+        category: zod.enum([
+          "fact",
+          "preference",
+          "pattern",
+          "contact",
+          "project",
+        ]),
+        confidence: zod.enum(["confirmed", "observed", "inferred"]),
+        title: zod.string(),
+        content: zod.string(),
+        importance: zod.number(),
+        source: zod.string().nullish(),
+        sourceConversationId: zod.string().nullish(),
+        lastAccessedAt: zod.coerce.date().nullish(),
+        accessCount: zod.number(),
+        pinned: zod.boolean(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    skipped: zod.number(),
+  }),
+});
+
+/**
+ * @summary Run the capacity-based pruner now
+ */
+export const PruneMemoriesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PruneMemoriesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    pruned: zod.number(),
+    bytesAfter: zod.number(),
   }),
 });
 
@@ -1853,10 +2131,70 @@ export const GetMemoryResponse = zod.object({
   data: zod.object({
     id: zod.string(),
     kind: zod.string(),
+    category: zod.enum(["fact", "preference", "pattern", "contact", "project"]),
+    confidence: zod.enum(["confirmed", "observed", "inferred"]),
     title: zod.string(),
     content: zod.string(),
     importance: zod.number(),
     source: zod.string().nullish(),
+    sourceConversationId: zod.string().nullish(),
+    lastAccessedAt: zod.coerce.date().nullish(),
+    accessCount: zod.number(),
+    pinned: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Edit a memory entry
+ */
+export const UpdateMemoryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateMemoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const updateMemoryBodyImportanceMin = 0;
+export const updateMemoryBodyImportanceMax = 100;
+
+export const UpdateMemoryBody = zod.object({
+  category: zod
+    .enum(["fact", "preference", "pattern", "contact", "project"])
+    .optional(),
+  confidence: zod.enum(["confirmed", "observed", "inferred"]).optional(),
+  title: zod.string().optional(),
+  content: zod.string().optional(),
+  importance: zod
+    .number()
+    .min(updateMemoryBodyImportanceMin)
+    .max(updateMemoryBodyImportanceMax)
+    .optional(),
+  source: zod.string().nullish(),
+  pinned: zod.boolean().optional(),
+});
+
+export const UpdateMemoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    kind: zod.string(),
+    category: zod.enum(["fact", "preference", "pattern", "contact", "project"]),
+    confidence: zod.enum(["confirmed", "observed", "inferred"]),
+    title: zod.string(),
+    content: zod.string(),
+    importance: zod.number(),
+    source: zod.string().nullish(),
+    sourceConversationId: zod.string().nullish(),
+    lastAccessedAt: zod.coerce.date().nullish(),
+    accessCount: zod.number(),
+    pinned: zod.boolean(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),

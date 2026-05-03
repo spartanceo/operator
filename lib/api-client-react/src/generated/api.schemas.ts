@@ -557,13 +557,39 @@ export interface CreatePrivacyEventRequest {
   detail?: string;
 }
 
+export type MemoryCategory =
+  (typeof MemoryCategory)[keyof typeof MemoryCategory];
+
+export const MemoryCategory = {
+  fact: "fact",
+  preference: "preference",
+  pattern: "pattern",
+  contact: "contact",
+  project: "project",
+} as const;
+
+export type MemoryConfidence =
+  (typeof MemoryConfidence)[keyof typeof MemoryConfidence];
+
+export const MemoryConfidence = {
+  confirmed: "confirmed",
+  observed: "observed",
+  inferred: "inferred",
+} as const;
+
 export interface Memory {
   id: string;
   kind: string;
+  category: MemoryCategory;
+  confidence: MemoryConfidence;
   title: string;
   content: string;
   importance: number;
   source?: string | null;
+  sourceConversationId?: string | null;
+  lastAccessedAt?: string | null;
+  accessCount: number;
+  pinned: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -583,8 +609,30 @@ export interface MemoryResponse {
   data: Memory;
 }
 
+export type CreateMemoryRequestCategory =
+  (typeof CreateMemoryRequestCategory)[keyof typeof CreateMemoryRequestCategory];
+
+export const CreateMemoryRequestCategory = {
+  fact: "fact",
+  preference: "preference",
+  pattern: "pattern",
+  contact: "contact",
+  project: "project",
+} as const;
+
+export type CreateMemoryRequestConfidence =
+  (typeof CreateMemoryRequestConfidence)[keyof typeof CreateMemoryRequestConfidence];
+
+export const CreateMemoryRequestConfidence = {
+  confirmed: "confirmed",
+  observed: "observed",
+  inferred: "inferred",
+} as const;
+
 export interface CreateMemoryRequest {
   kind?: string;
+  category?: CreateMemoryRequestCategory;
+  confidence?: CreateMemoryRequestConfidence;
   title: string;
   content: string;
   /**
@@ -593,6 +641,159 @@ export interface CreateMemoryRequest {
    */
   importance?: number;
   source?: string;
+  sourceConversationId?: string | null;
+  pinned?: boolean;
+}
+
+export type UpdateMemoryRequestCategory =
+  (typeof UpdateMemoryRequestCategory)[keyof typeof UpdateMemoryRequestCategory];
+
+export const UpdateMemoryRequestCategory = {
+  fact: "fact",
+  preference: "preference",
+  pattern: "pattern",
+  contact: "contact",
+  project: "project",
+} as const;
+
+export type UpdateMemoryRequestConfidence =
+  (typeof UpdateMemoryRequestConfidence)[keyof typeof UpdateMemoryRequestConfidence];
+
+export const UpdateMemoryRequestConfidence = {
+  confirmed: "confirmed",
+  observed: "observed",
+  inferred: "inferred",
+} as const;
+
+export interface UpdateMemoryRequest {
+  category?: UpdateMemoryRequestCategory;
+  confidence?: UpdateMemoryRequestConfidence;
+  title?: string;
+  content?: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  importance?: number;
+  source?: string | null;
+  pinned?: boolean;
+}
+
+export interface MemorySettings {
+  capacityBytes: number;
+  autoExtract: boolean;
+  lastPrunedAt?: string | null;
+  forgottenAt?: string | null;
+  updatedAt: string;
+}
+
+export interface MemorySettingsResponse {
+  success: boolean;
+  data: MemorySettings;
+}
+
+export interface UpdateMemorySettingsRequest {
+  /**
+   * @minimum 1048576
+   * @maximum 1073741824
+   */
+  capacityBytes?: number;
+  autoExtract?: boolean;
+}
+
+export type MemoryStatsByCategory = { [key: string]: number };
+
+export type MemoryStatsByConfidence = { [key: string]: number };
+
+export interface MemoryStats {
+  totalCount: number;
+  totalBytes: number;
+  capacityBytes: number;
+  byCategory: MemoryStatsByCategory;
+  byConfidence: MemoryStatsByConfidence;
+  lastPrunedAt?: string | null;
+}
+
+export interface MemoryStatsResponse {
+  success: boolean;
+  data: MemoryStats;
+}
+
+export type MemoryExportPayloadFormat =
+  (typeof MemoryExportPayloadFormat)[keyof typeof MemoryExportPayloadFormat];
+
+export const MemoryExportPayloadFormat = {
+  json: "json",
+  markdown: "markdown",
+} as const;
+
+export interface MemoryExportPayload {
+  format: MemoryExportPayloadFormat;
+  mediaType: string;
+  body: string;
+  count: number;
+}
+
+export interface MemoryExportResponse {
+  success: boolean;
+  data: MemoryExportPayload;
+}
+
+export interface RetrieveMemoriesRequest {
+  query: string;
+  /**
+   * @minimum 1
+   * @maximum 20
+   */
+  limit?: number;
+}
+
+export type RetrievedMemory = Memory & {
+  score: number;
+};
+
+export interface MemoryRetrievePayload {
+  items: RetrievedMemory[];
+}
+
+export interface MemoryRetrieveResponse {
+  success: boolean;
+  data: MemoryRetrievePayload;
+}
+
+export interface ExtractMemoriesRequest {
+  text: string;
+  conversationId?: string | null;
+}
+
+export interface MemoryExtractPayload {
+  created: Memory[];
+  skipped: number;
+}
+
+export interface MemoryExtractResponse {
+  success: boolean;
+  data: MemoryExtractPayload;
+}
+
+export interface MemoryPrunePayload {
+  pruned: number;
+  bytesAfter: number;
+}
+
+export interface MemoryPruneResponse {
+  success: boolean;
+  data: MemoryPrunePayload;
+}
+
+export interface MemoryForgetAllPayload {
+  deletedCount: number;
+  forgottenAt: string;
+}
+
+export interface MemoryForgetAllResponse {
+  success: boolean;
+  data: MemoryForgetAllPayload;
 }
 
 export interface MemoryDeleteReceipt {
@@ -6746,7 +6947,49 @@ export type ListMemoriesParams = {
    * @maximum 100
    */
   limit?: LimitParamParameter;
+  category?: ListMemoriesCategory;
+  confidence?: ListMemoriesConfidence;
+  q?: string;
 };
+
+export type ListMemoriesCategory =
+  (typeof ListMemoriesCategory)[keyof typeof ListMemoriesCategory];
+
+export const ListMemoriesCategory = {
+  fact: "fact",
+  preference: "preference",
+  pattern: "pattern",
+  contact: "contact",
+  project: "project",
+} as const;
+
+export type ListMemoriesConfidence =
+  (typeof ListMemoriesConfidence)[keyof typeof ListMemoriesConfidence];
+
+export const ListMemoriesConfidence = {
+  confirmed: "confirmed",
+  observed: "observed",
+  inferred: "inferred",
+} as const;
+
+export type ForgetAllMemoriesParams = {
+  /**
+   * Must equal "FORGET_EVERYTHING" to proceed.
+   */
+  confirm: string;
+};
+
+export type ExportMemoriesParams = {
+  format?: ExportMemoriesFormat;
+};
+
+export type ExportMemoriesFormat =
+  (typeof ExportMemoriesFormat)[keyof typeof ExportMemoriesFormat];
+
+export const ExportMemoriesFormat = {
+  json: "json",
+  markdown: "markdown",
+} as const;
 
 export type DeleteWorkspaceParams = {
   confirm?: DeleteWorkspaceConfirm;
