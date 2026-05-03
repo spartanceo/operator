@@ -78,6 +78,8 @@ tags:
     description: Developer SDK — outbound webhook subscriptions for the local event bus (Task #14)
   - name: events
     description: Developer SDK — recent in-process events for polling clients (Task #14)
+  - name: system-integration
+    description: Global hotkey, quick-input overlay, menu bar / system tray, right-click "Ask OP" services, focus-mode awareness, login-item registration (Task #52)
 paths:
   /healthz:
     get:
@@ -8245,6 +8247,156 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+  /system-integration/settings:
+    get:
+      operationId: getSystemIntegrationSettings
+      tags:
+        - system-integration
+      summary: Current system-integration configuration for the tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Settings snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemIntegrationSettingsResponse'
+    put:
+      operationId: updateSystemIntegrationSettings
+      tags:
+        - system-integration
+      summary: Update hotkey / tray / right-click preferences
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSystemIntegrationSettingsRequest'
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemIntegrationSettingsResponse'
+  /system-integration/hotkey/conflict:
+    post:
+      operationId: reportSystemIntegrationHotkeyConflict
+      tags:
+        - system-integration
+      summary: Report an OS-detected hotkey collision
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SystemIntegrationHotkeyConflictRequest'
+      responses:
+        '200':
+          description: Conflict recorded; hotkey disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemIntegrationSettingsResponse'
+  /system-integration/login-item:
+    put:
+      operationId: setSystemIntegrationLoginItem
+      tags:
+        - system-integration
+      summary: Set the login-item consent flag
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SystemIntegrationLoginItemRequest'
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemIntegrationSettingsResponse'
+  /system-integration/focus-mode:
+    put:
+      operationId: setSystemIntegrationFocusMode
+      tags:
+        - system-integration
+      summary: Push current macOS Focus / Windows Focus Assist state
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SystemIntegrationFocusModeRequest'
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemIntegrationSettingsResponse'
+  /system-integration/quick-invocations:
+    get:
+      operationId: listSystemIntegrationQuickInvocations
+      tags:
+        - system-integration
+      summary: Paginated invocation history
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Invocations page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemIntegrationQuickInvocationListResponse'
+    post:
+      operationId: recordSystemIntegrationQuickInvocation
+      tags:
+        - system-integration
+      summary: Record a hotkey / tray / right-click invocation
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SystemIntegrationQuickInvocationRequest'
+      responses:
+        '200':
+          description: Invocation recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemIntegrationQuickInvocationResponse'
+  /system-integration/tray-status:
+    get:
+      operationId: getSystemIntegrationTrayStatus
+      tags:
+        - system-integration
+      summary: Live menu bar / system tray status snapshot
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Tray status snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemIntegrationTrayStatusResponse'
 components:
   parameters:
     TenantHeader:
@@ -20092,6 +20244,260 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/IntegrationActionResult"
+    SystemIntegrationSettings:
+      type: object
+      required:
+        - hotkeyMac
+        - hotkeyWindows
+        - hotkeyEnabled
+        - trayEnabled
+        - trayBadgeMode
+        - loginItemEnabled
+        - focusModeActive
+        - rightClickMacEnabled
+        - rightClickWindowsEnabled
+        - updatedAt
+      properties:
+        hotkeyMac:
+          type: string
+        hotkeyWindows:
+          type: string
+        hotkeyEnabled:
+          type: boolean
+        hotkeyConflict:
+          type: string
+          nullable: true
+        trayEnabled:
+          type: boolean
+        trayBadgeMode:
+          type: string
+          enum: [count, dot, none]
+        loginItemEnabled:
+          type: boolean
+        loginItemConsentAt:
+          type: string
+          format: date-time
+          nullable: true
+        focusModeActive:
+          type: boolean
+        focusModeSource:
+          type: string
+          nullable: true
+          enum: [macos, windows, manual, null]
+        focusModeUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rightClickMacEnabled:
+          type: boolean
+        rightClickWindowsEnabled:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+    SystemIntegrationSettingsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [settings]
+          properties:
+            settings:
+              $ref: '#/components/schemas/SystemIntegrationSettings'
+    UpdateSystemIntegrationSettingsRequest:
+      type: object
+      properties:
+        hotkeyMac:
+          type: string
+        hotkeyWindows:
+          type: string
+        hotkeyEnabled:
+          type: boolean
+        trayEnabled:
+          type: boolean
+        trayBadgeMode:
+          type: string
+          enum: [count, dot, none]
+        rightClickMacEnabled:
+          type: boolean
+        rightClickWindowsEnabled:
+          type: boolean
+    SystemIntegrationHotkeyConflictRequest:
+      type: object
+      required: [binding]
+      properties:
+        binding:
+          type: string
+        detail:
+          type: string
+    SystemIntegrationLoginItemRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+    SystemIntegrationFocusModeRequest:
+      type: object
+      required: [active, source]
+      properties:
+        active:
+          type: boolean
+        source:
+          type: string
+          enum: [macos, windows, manual]
+    SystemIntegrationQuickInvocation:
+      type: object
+      required:
+        - id
+        - source
+        - surface
+        - prompt
+        - contextKind
+        - expanded
+        - createdAt
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        surface:
+          type: string
+        prompt:
+          type: string
+        contextKind:
+          type: string
+        contextText:
+          type: string
+          nullable: true
+        applicationHint:
+          type: string
+          nullable: true
+        relatedTaskId:
+          type: string
+          nullable: true
+        relatedRunId:
+          type: string
+          nullable: true
+        notificationId:
+          type: string
+          nullable: true
+        expanded:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    SystemIntegrationQuickInvocationRequest:
+      type: object
+      required: [prompt, source]
+      properties:
+        prompt:
+          type: string
+        source:
+          type: string
+          enum: [hotkey, tray, menu_bar, context_menu_macos, context_menu_windows]
+        surface:
+          type: string
+          enum: [quick_input, tray_dropdown, service_menu, shell_extension]
+        contextKind:
+          type: string
+          enum: [none, clipboard, selection]
+        contextText:
+          type: string
+        applicationHint:
+          type: string
+        expanded:
+          type: boolean
+        enqueue:
+          type: boolean
+    SystemIntegrationQuickInvocationResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [invocation, relatedTaskId]
+          properties:
+            invocation:
+              $ref: '#/components/schemas/SystemIntegrationQuickInvocation'
+            relatedTaskId:
+              type: string
+              nullable: true
+    SystemIntegrationQuickInvocationPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SystemIntegrationQuickInvocation'
+        nextCursor:
+          type: string
+          nullable: true
+    SystemIntegrationQuickInvocationListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SystemIntegrationQuickInvocationPage'
+    SystemIntegrationTrayBadge:
+      type: object
+      required: [mode, count, iconState]
+      properties:
+        mode:
+          type: string
+          enum: [count, dot, none]
+        count:
+          type: integer
+          nullable: true
+        iconState:
+          type: string
+          enum: [idle, active, error]
+    SystemIntegrationTrayStatus:
+      type: object
+      required:
+        - badge
+        - unreadNotifications
+        - pendingApprovals
+        - activeTasks
+        - recentInvocations
+        - focusModeActive
+        - hotkeyEnabled
+      properties:
+        badge:
+          $ref: '#/components/schemas/SystemIntegrationTrayBadge'
+        unreadNotifications:
+          type: integer
+        pendingApprovals:
+          type: integer
+        activeTasks:
+          type: integer
+        recentInvocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SystemIntegrationQuickInvocation'
+        focusModeActive:
+          type: boolean
+        hotkeyEnabled:
+          type: boolean
+    SystemIntegrationTrayStatusResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SystemIntegrationTrayStatus'
   responses: {}
   requestBodies: {}
   headers: {}

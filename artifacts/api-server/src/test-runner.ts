@@ -5348,6 +5348,229 @@ const cases: TestCase[] = [
   },
 ];
 
+cases.push(
+  {
+    name: "system-integration: settings autocreate + update + tenant isolation",
+    run: async () => {
+      const get1 = await request(app)
+        .get("/api/system-integration/settings")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(get1.status, 200);
+      assert.equal(get1.body.success, true);
+      const s = get1.body.data.settings;
+      assert.equal(s.hotkeyMac, "Command+Space+Space");
+      assert.equal(s.hotkeyWindows, "Control+Shift+Space");
+      assert.equal(s.hotkeyEnabled, true);
+      assert.equal(s.trayEnabled, true);
+      assert.equal(s.trayBadgeMode, "count");
+      assert.equal(s.loginItemEnabled, false);
+      assert.equal(s.focusModeActive, false);
+
+      const put = await request(app)
+        .put("/api/system-integration/settings")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          hotkeyMac: "Command+Option+O",
+          trayBadgeMode: "dot",
+          rightClickWindowsEnabled: false,
+        });
+      assert.equal(put.status, 200);
+      assert.equal(put.body.data.settings.hotkeyMac, "Command+Option+O");
+      assert.equal(put.body.data.settings.trayBadgeMode, "dot");
+      assert.equal(put.body.data.settings.rightClickWindowsEnabled, false);
+
+      const otherTenant = await request(app)
+        .get("/api/system-integration/settings")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(
+        otherTenant.body.data.settings.hotkeyMac,
+        "Command+Space+Space",
+        "tenant isolation: TENANT_2 should still see defaults",
+      );
+    },
+  },
+  {
+    name: "system-integration: hotkey conflict disables binding",
+    run: async () => {
+      const conflict = await request(app)
+        .post("/api/system-integration/hotkey/conflict")
+        .set("X-Tenant-ID", TENANT)
+        .send({ binding: "Command+Space", detail: "Spotlight" });
+      assert.equal(conflict.status, 200);
+      assert.equal(conflict.body.data.settings.hotkeyEnabled, false);
+      assert.match(conflict.body.data.settings.hotkeyConflict, /Spotlight/);
+
+      // Re-enable clears the conflict.
+      const reenable = await request(app)
+        .put("/api/system-integration/settings")
+        .set("X-Tenant-ID", TENANT)
+        .send({ hotkeyEnabled: true });
+      assert.equal(reenable.body.data.settings.hotkeyEnabled, true);
+      assert.equal(reenable.body.data.settings.hotkeyConflict, null);
+    },
+  },
+  {
+    name: "system-integration: quick invocation enqueues task + records context",
+    run: async () => {
+      const before = await request(app)
+        .get("/api/system-integration/quick-invocations")
+        .set("X-Tenant-ID", TENANT);
+      const beforeCount = before.body.data.items.length;
+
+      const post = await request(app)
+        .post("/api/system-integration/quick-invocations")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          prompt: "Summarise this article for me",
+          source: "context_menu_macos",
+          contextKind: "selection",
+          contextText: "The quick brown fox jumps over the lazy dog.",
+          applicationHint: "Safari",
+        });
+      assert.equal(post.status, 200);
+      assert.equal(post.body.success, true);
+      const inv = post.body.data.invocation;
+      assert.equal(inv.source, "context_menu_macos");
+      assert.equal(inv.surface, "service_menu");
+      assert.equal(inv.contextKind, "selection");
+      assert.match(inv.contextText, /quick brown fox/);
+      assert.equal(inv.applicationHint, "Safari");
+      assert.ok(post.body.data.relatedTaskId, "expected an enqueued task id");
+      assert.equal(inv.relatedTaskId, post.body.data.relatedTaskId);
+
+      const after = await request(app)
+        .get("/api/system-integration/quick-invocations")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(after.body.data.items.length, beforeCount + 1);
+    },
+  },
+  {
+    name: "system-integration: enqueue=false records invocation without task",
+    run: async () => {
+      const post = await request(app)
+        .post("/api/system-integration/quick-invocations")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          prompt: "Save this for later",
+          source: "hotkey",
+          enqueue: false,
+        });
+      assert.equal(post.body.data.relatedTaskId, null);
+      assert.equal(post.body.data.invocation.relatedTaskId, null);
+      assert.equal(post.body.data.invocation.surface, "quick_input");
+    },
+  },
+  {
+    name: "system-integration: focus mode suppresses non-critical OS dispatch but bypasses approvals",
+    run: async () => {
+      const { createNotification, claimUndispatchedNotifications } = await import(
+        "./services/notifications.service"
+      );
+      const ctx = {
+        tenantId: TENANT,
+        workspaceId: `default-${TENANT}`,
+        requestId: "test",
+      };
+
+      // Drain any pre-existing undispatched rows so the assertion below
+      // sees only the rows produced inside this test.
+      await claimUndispatchedNotifications(ctx);
+
+      // Engage focus mode.
+      const fm = await request(app)
+        .put("/api/system-integration/focus-mode")
+        .set("X-Tenant-ID", TENANT)
+        .send({ active: true, source: "macos" });
+      assert.equal(fm.body.data.settings.focusModeActive, true);
+
+      const lowPriority = await createNotification(ctx, {
+        category: "task",
+        title: "Background work done",
+        body: "Long task finished",
+      });
+      assert.ok(lowPriority);
+      assert.equal(
+        lowPriority?.dispatchedToOs,
+        true,
+        "focus-mode: low-priority OS dispatch should be pre-suppressed",
+      );
+
+      const critical = await createNotification(ctx, {
+        category: "approval",
+        title: "Approval needed",
+        body: "OP wants to send an email",
+      });
+      assert.ok(critical);
+      assert.equal(
+        critical?.dispatchedToOs,
+        false,
+        "focus-mode: approvals must bypass DND and remain queued for OS dispatch",
+      );
+
+      // Disable focus mode for downstream tests.
+      await request(app)
+        .put("/api/system-integration/focus-mode")
+        .set("X-Tenant-ID", TENANT)
+        .send({ active: false, source: "manual" });
+    },
+  },
+  {
+    name: "system-integration: login-item consent is timestamped and reversible",
+    run: async () => {
+      const on = await request(app)
+        .put("/api/system-integration/login-item")
+        .set("X-Tenant-ID", TENANT)
+        .send({ enabled: true });
+      assert.equal(on.body.data.settings.loginItemEnabled, true);
+      assert.ok(on.body.data.settings.loginItemConsentAt);
+
+      const off = await request(app)
+        .put("/api/system-integration/login-item")
+        .set("X-Tenant-ID", TENANT)
+        .send({ enabled: false });
+      assert.equal(off.body.data.settings.loginItemEnabled, false);
+      assert.equal(off.body.data.settings.loginItemConsentAt, null);
+    },
+  },
+  {
+    name: "system-integration: tray status reflects badge mode and pending counts",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/system-integration/tray-status")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      const data = res.body.data;
+      assert.ok(data.badge);
+      assert.ok(["count", "dot", "none"].includes(data.badge.mode));
+      assert.ok(["idle", "active", "error"].includes(data.badge.iconState));
+      assert.equal(typeof data.unreadNotifications, "number");
+      assert.equal(typeof data.pendingApprovals, "number");
+      assert.equal(typeof data.activeTasks, "number");
+      assert.ok(Array.isArray(data.recentInvocations));
+      assert.equal(typeof data.focusModeActive, "boolean");
+      assert.equal(typeof data.hotkeyEnabled, "boolean");
+    },
+  },
+  {
+    name: "system-integration: invalid payloads return VALIDATION envelope",
+    run: async () => {
+      const a = await request(app)
+        .post("/api/system-integration/quick-invocations")
+        .set("X-Tenant-ID", TENANT)
+        .send({ source: "hotkey" }); // missing prompt
+      assert.equal(a.status, 400);
+      assert.equal(a.body.error.code, "VALIDATION");
+
+      const b = await request(app)
+        .put("/api/system-integration/focus-mode")
+        .set("X-Tenant-ID", TENANT)
+        .send({ active: true, source: "linux" }); // unsupported source
+      assert.equal(b.status, 400);
+      assert.equal(b.body.error.code, "VALIDATION");
+    },
+  },
+);
+
 async function main() {
   out("\n  api-server test-runner\n  ─────────────────────");
   runMigrations(getRawSqlite());

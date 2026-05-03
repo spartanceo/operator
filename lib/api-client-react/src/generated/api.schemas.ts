@@ -6861,6 +6861,208 @@ export interface IntegrationActionResponse {
   data: IntegrationActionResult;
 }
 
+export type SystemIntegrationSettingsTrayBadgeMode =
+  (typeof SystemIntegrationSettingsTrayBadgeMode)[keyof typeof SystemIntegrationSettingsTrayBadgeMode];
+
+export const SystemIntegrationSettingsTrayBadgeMode = {
+  count: "count",
+  dot: "dot",
+  none: "none",
+} as const;
+
+export type SystemIntegrationSettingsFocusModeSource =
+  | (typeof SystemIntegrationSettingsFocusModeSource)[keyof typeof SystemIntegrationSettingsFocusModeSource]
+  | null;
+
+export const SystemIntegrationSettingsFocusModeSource = {
+  macos: "macos",
+  windows: "windows",
+  manual: "manual",
+} as const;
+
+export interface SystemIntegrationSettings {
+  hotkeyMac: string;
+  hotkeyWindows: string;
+  hotkeyEnabled: boolean;
+  hotkeyConflict?: string | null;
+  trayEnabled: boolean;
+  trayBadgeMode: SystemIntegrationSettingsTrayBadgeMode;
+  loginItemEnabled: boolean;
+  loginItemConsentAt?: string | null;
+  focusModeActive: boolean;
+  focusModeSource?: SystemIntegrationSettingsFocusModeSource;
+  focusModeUpdatedAt?: string | null;
+  rightClickMacEnabled: boolean;
+  rightClickWindowsEnabled: boolean;
+  updatedAt: string;
+}
+
+export type SystemIntegrationSettingsResponseData = {
+  settings: SystemIntegrationSettings;
+};
+
+export interface SystemIntegrationSettingsResponse {
+  success: boolean;
+  data: SystemIntegrationSettingsResponseData;
+}
+
+export type UpdateSystemIntegrationSettingsRequestTrayBadgeMode =
+  (typeof UpdateSystemIntegrationSettingsRequestTrayBadgeMode)[keyof typeof UpdateSystemIntegrationSettingsRequestTrayBadgeMode];
+
+export const UpdateSystemIntegrationSettingsRequestTrayBadgeMode = {
+  count: "count",
+  dot: "dot",
+  none: "none",
+} as const;
+
+export interface UpdateSystemIntegrationSettingsRequest {
+  hotkeyMac?: string;
+  hotkeyWindows?: string;
+  hotkeyEnabled?: boolean;
+  trayEnabled?: boolean;
+  trayBadgeMode?: UpdateSystemIntegrationSettingsRequestTrayBadgeMode;
+  rightClickMacEnabled?: boolean;
+  rightClickWindowsEnabled?: boolean;
+}
+
+export interface SystemIntegrationHotkeyConflictRequest {
+  binding: string;
+  detail?: string;
+}
+
+export interface SystemIntegrationLoginItemRequest {
+  enabled: boolean;
+}
+
+export type SystemIntegrationFocusModeRequestSource =
+  (typeof SystemIntegrationFocusModeRequestSource)[keyof typeof SystemIntegrationFocusModeRequestSource];
+
+export const SystemIntegrationFocusModeRequestSource = {
+  macos: "macos",
+  windows: "windows",
+  manual: "manual",
+} as const;
+
+export interface SystemIntegrationFocusModeRequest {
+  active: boolean;
+  source: SystemIntegrationFocusModeRequestSource;
+}
+
+export interface SystemIntegrationQuickInvocation {
+  id: string;
+  source: string;
+  surface: string;
+  prompt: string;
+  contextKind: string;
+  contextText?: string | null;
+  applicationHint?: string | null;
+  relatedTaskId?: string | null;
+  relatedRunId?: string | null;
+  notificationId?: string | null;
+  expanded: boolean;
+  createdAt: string;
+}
+
+export type SystemIntegrationQuickInvocationRequestSource =
+  (typeof SystemIntegrationQuickInvocationRequestSource)[keyof typeof SystemIntegrationQuickInvocationRequestSource];
+
+export const SystemIntegrationQuickInvocationRequestSource = {
+  hotkey: "hotkey",
+  tray: "tray",
+  menu_bar: "menu_bar",
+  context_menu_macos: "context_menu_macos",
+  context_menu_windows: "context_menu_windows",
+} as const;
+
+export type SystemIntegrationQuickInvocationRequestSurface =
+  (typeof SystemIntegrationQuickInvocationRequestSurface)[keyof typeof SystemIntegrationQuickInvocationRequestSurface];
+
+export const SystemIntegrationQuickInvocationRequestSurface = {
+  quick_input: "quick_input",
+  tray_dropdown: "tray_dropdown",
+  service_menu: "service_menu",
+  shell_extension: "shell_extension",
+} as const;
+
+export type SystemIntegrationQuickInvocationRequestContextKind =
+  (typeof SystemIntegrationQuickInvocationRequestContextKind)[keyof typeof SystemIntegrationQuickInvocationRequestContextKind];
+
+export const SystemIntegrationQuickInvocationRequestContextKind = {
+  none: "none",
+  clipboard: "clipboard",
+  selection: "selection",
+} as const;
+
+export interface SystemIntegrationQuickInvocationRequest {
+  prompt: string;
+  source: SystemIntegrationQuickInvocationRequestSource;
+  surface?: SystemIntegrationQuickInvocationRequestSurface;
+  contextKind?: SystemIntegrationQuickInvocationRequestContextKind;
+  contextText?: string;
+  applicationHint?: string;
+  expanded?: boolean;
+  enqueue?: boolean;
+}
+
+export type SystemIntegrationQuickInvocationResponseData = {
+  invocation: SystemIntegrationQuickInvocation;
+  relatedTaskId: string | null;
+};
+
+export interface SystemIntegrationQuickInvocationResponse {
+  success: boolean;
+  data: SystemIntegrationQuickInvocationResponseData;
+}
+
+export interface SystemIntegrationQuickInvocationPage {
+  items: SystemIntegrationQuickInvocation[];
+  nextCursor: string | null;
+}
+
+export interface SystemIntegrationQuickInvocationListResponse {
+  success: boolean;
+  data: SystemIntegrationQuickInvocationPage;
+}
+
+export type SystemIntegrationTrayBadgeMode =
+  (typeof SystemIntegrationTrayBadgeMode)[keyof typeof SystemIntegrationTrayBadgeMode];
+
+export const SystemIntegrationTrayBadgeMode = {
+  count: "count",
+  dot: "dot",
+  none: "none",
+} as const;
+
+export type SystemIntegrationTrayBadgeIconState =
+  (typeof SystemIntegrationTrayBadgeIconState)[keyof typeof SystemIntegrationTrayBadgeIconState];
+
+export const SystemIntegrationTrayBadgeIconState = {
+  idle: "idle",
+  active: "active",
+  error: "error",
+} as const;
+
+export interface SystemIntegrationTrayBadge {
+  mode: SystemIntegrationTrayBadgeMode;
+  count: number | null;
+  iconState: SystemIntegrationTrayBadgeIconState;
+}
+
+export interface SystemIntegrationTrayStatus {
+  badge: SystemIntegrationTrayBadge;
+  unreadNotifications: number;
+  pendingApprovals: number;
+  activeTasks: number;
+  recentInvocations: SystemIntegrationQuickInvocation[];
+  focusModeActive: boolean;
+  hotkeyEnabled: boolean;
+}
+
+export interface SystemIntegrationTrayStatusResponse {
+  success: boolean;
+  data: SystemIntegrationTrayStatus;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -7880,6 +8082,19 @@ export type ListRecentEventsParams = {
 };
 
 export type ListIntegrationsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListSystemIntegrationQuickInvocationsParams = {
   /**
    * Opaque cursor returned by the previous page.
    */

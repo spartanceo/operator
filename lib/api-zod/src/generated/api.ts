@@ -16320,3 +16320,371 @@ export const InvokeIntegrationActionResponse = zod.object({
     output: zod.record(zod.string(), zod.unknown()),
   }),
 });
+
+/**
+ * @summary Current system-integration configuration for the tenant
+ */
+export const GetSystemIntegrationSettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSystemIntegrationSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    settings: zod.object({
+      hotkeyMac: zod.string(),
+      hotkeyWindows: zod.string(),
+      hotkeyEnabled: zod.boolean(),
+      hotkeyConflict: zod.string().nullish(),
+      trayEnabled: zod.boolean(),
+      trayBadgeMode: zod.enum(["count", "dot", "none"]),
+      loginItemEnabled: zod.boolean(),
+      loginItemConsentAt: zod.coerce.date().nullish(),
+      focusModeActive: zod.boolean(),
+      focusModeSource: zod
+        .union([
+          zod.literal("macos"),
+          zod.literal("windows"),
+          zod.literal("manual"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      focusModeUpdatedAt: zod.coerce.date().nullish(),
+      rightClickMacEnabled: zod.boolean(),
+      rightClickWindowsEnabled: zod.boolean(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Update hotkey / tray / right-click preferences
+ */
+export const UpdateSystemIntegrationSettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateSystemIntegrationSettingsBody = zod.object({
+  hotkeyMac: zod.string().optional(),
+  hotkeyWindows: zod.string().optional(),
+  hotkeyEnabled: zod.boolean().optional(),
+  trayEnabled: zod.boolean().optional(),
+  trayBadgeMode: zod.enum(["count", "dot", "none"]).optional(),
+  rightClickMacEnabled: zod.boolean().optional(),
+  rightClickWindowsEnabled: zod.boolean().optional(),
+});
+
+export const UpdateSystemIntegrationSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    settings: zod.object({
+      hotkeyMac: zod.string(),
+      hotkeyWindows: zod.string(),
+      hotkeyEnabled: zod.boolean(),
+      hotkeyConflict: zod.string().nullish(),
+      trayEnabled: zod.boolean(),
+      trayBadgeMode: zod.enum(["count", "dot", "none"]),
+      loginItemEnabled: zod.boolean(),
+      loginItemConsentAt: zod.coerce.date().nullish(),
+      focusModeActive: zod.boolean(),
+      focusModeSource: zod
+        .union([
+          zod.literal("macos"),
+          zod.literal("windows"),
+          zod.literal("manual"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      focusModeUpdatedAt: zod.coerce.date().nullish(),
+      rightClickMacEnabled: zod.boolean(),
+      rightClickWindowsEnabled: zod.boolean(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Report an OS-detected hotkey collision
+ */
+export const ReportSystemIntegrationHotkeyConflictHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ReportSystemIntegrationHotkeyConflictBody = zod.object({
+  binding: zod.string(),
+  detail: zod.string().optional(),
+});
+
+export const ReportSystemIntegrationHotkeyConflictResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    settings: zod.object({
+      hotkeyMac: zod.string(),
+      hotkeyWindows: zod.string(),
+      hotkeyEnabled: zod.boolean(),
+      hotkeyConflict: zod.string().nullish(),
+      trayEnabled: zod.boolean(),
+      trayBadgeMode: zod.enum(["count", "dot", "none"]),
+      loginItemEnabled: zod.boolean(),
+      loginItemConsentAt: zod.coerce.date().nullish(),
+      focusModeActive: zod.boolean(),
+      focusModeSource: zod
+        .union([
+          zod.literal("macos"),
+          zod.literal("windows"),
+          zod.literal("manual"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      focusModeUpdatedAt: zod.coerce.date().nullish(),
+      rightClickMacEnabled: zod.boolean(),
+      rightClickWindowsEnabled: zod.boolean(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Set the login-item consent flag
+ */
+export const SetSystemIntegrationLoginItemHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetSystemIntegrationLoginItemBody = zod.object({
+  enabled: zod.boolean(),
+});
+
+export const SetSystemIntegrationLoginItemResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    settings: zod.object({
+      hotkeyMac: zod.string(),
+      hotkeyWindows: zod.string(),
+      hotkeyEnabled: zod.boolean(),
+      hotkeyConflict: zod.string().nullish(),
+      trayEnabled: zod.boolean(),
+      trayBadgeMode: zod.enum(["count", "dot", "none"]),
+      loginItemEnabled: zod.boolean(),
+      loginItemConsentAt: zod.coerce.date().nullish(),
+      focusModeActive: zod.boolean(),
+      focusModeSource: zod
+        .union([
+          zod.literal("macos"),
+          zod.literal("windows"),
+          zod.literal("manual"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      focusModeUpdatedAt: zod.coerce.date().nullish(),
+      rightClickMacEnabled: zod.boolean(),
+      rightClickWindowsEnabled: zod.boolean(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Push current macOS Focus / Windows Focus Assist state
+ */
+export const SetSystemIntegrationFocusModeHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetSystemIntegrationFocusModeBody = zod.object({
+  active: zod.boolean(),
+  source: zod.enum(["macos", "windows", "manual"]),
+});
+
+export const SetSystemIntegrationFocusModeResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    settings: zod.object({
+      hotkeyMac: zod.string(),
+      hotkeyWindows: zod.string(),
+      hotkeyEnabled: zod.boolean(),
+      hotkeyConflict: zod.string().nullish(),
+      trayEnabled: zod.boolean(),
+      trayBadgeMode: zod.enum(["count", "dot", "none"]),
+      loginItemEnabled: zod.boolean(),
+      loginItemConsentAt: zod.coerce.date().nullish(),
+      focusModeActive: zod.boolean(),
+      focusModeSource: zod
+        .union([
+          zod.literal("macos"),
+          zod.literal("windows"),
+          zod.literal("manual"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      focusModeUpdatedAt: zod.coerce.date().nullish(),
+      rightClickMacEnabled: zod.boolean(),
+      rightClickWindowsEnabled: zod.boolean(),
+      updatedAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Paginated invocation history
+ */
+export const listSystemIntegrationQuickInvocationsQueryLimitDefault = 20;
+export const listSystemIntegrationQuickInvocationsQueryLimitMax = 100;
+
+export const ListSystemIntegrationQuickInvocationsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listSystemIntegrationQuickInvocationsQueryLimitMax)
+    .default(listSystemIntegrationQuickInvocationsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListSystemIntegrationQuickInvocationsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSystemIntegrationQuickInvocationsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        source: zod.string(),
+        surface: zod.string(),
+        prompt: zod.string(),
+        contextKind: zod.string(),
+        contextText: zod.string().nullish(),
+        applicationHint: zod.string().nullish(),
+        relatedTaskId: zod.string().nullish(),
+        relatedRunId: zod.string().nullish(),
+        notificationId: zod.string().nullish(),
+        expanded: zod.boolean(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Record a hotkey / tray / right-click invocation
+ */
+export const RecordSystemIntegrationQuickInvocationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RecordSystemIntegrationQuickInvocationBody = zod.object({
+  prompt: zod.string(),
+  source: zod.enum([
+    "hotkey",
+    "tray",
+    "menu_bar",
+    "context_menu_macos",
+    "context_menu_windows",
+  ]),
+  surface: zod
+    .enum(["quick_input", "tray_dropdown", "service_menu", "shell_extension"])
+    .optional(),
+  contextKind: zod.enum(["none", "clipboard", "selection"]).optional(),
+  contextText: zod.string().optional(),
+  applicationHint: zod.string().optional(),
+  expanded: zod.boolean().optional(),
+  enqueue: zod.boolean().optional(),
+});
+
+export const RecordSystemIntegrationQuickInvocationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    invocation: zod.object({
+      id: zod.string(),
+      source: zod.string(),
+      surface: zod.string(),
+      prompt: zod.string(),
+      contextKind: zod.string(),
+      contextText: zod.string().nullish(),
+      applicationHint: zod.string().nullish(),
+      relatedTaskId: zod.string().nullish(),
+      relatedRunId: zod.string().nullish(),
+      notificationId: zod.string().nullish(),
+      expanded: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    }),
+    relatedTaskId: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Live menu bar / system tray status snapshot
+ */
+export const GetSystemIntegrationTrayStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSystemIntegrationTrayStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    badge: zod.object({
+      mode: zod.enum(["count", "dot", "none"]),
+      count: zod.number().nullable(),
+      iconState: zod.enum(["idle", "active", "error"]),
+    }),
+    unreadNotifications: zod.number(),
+    pendingApprovals: zod.number(),
+    activeTasks: zod.number(),
+    recentInvocations: zod.array(
+      zod.object({
+        id: zod.string(),
+        source: zod.string(),
+        surface: zod.string(),
+        prompt: zod.string(),
+        contextKind: zod.string(),
+        contextText: zod.string().nullish(),
+        applicationHint: zod.string().nullish(),
+        relatedTaskId: zod.string().nullish(),
+        relatedRunId: zod.string().nullish(),
+        notificationId: zod.string().nullish(),
+        expanded: zod.boolean(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    focusModeActive: zod.boolean(),
+    hotkeyEnabled: zod.boolean(),
+  }),
+});

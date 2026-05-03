@@ -34,6 +34,10 @@ import {
 import type { TenantContext } from "@workspace/types";
 
 import { logger } from "../lib/logger";
+import {
+  focusModeBypasses,
+  isFocusModeActive,
+} from "./system-integration.service";
 
 export type NotificationCategory =
   | "task"
@@ -199,8 +203,21 @@ export async function createNotification(
     logger.debug({ category: input.category }, "Notification suppressed by preferences");
     return null;
   }
+  // Focus-mode / Do-Not-Disturb suppression (Task #52). Approvals and
+  // errors always bypass — silently dropping them would deadlock the
+  // agent loop or hide real failures from the user.
+  let osDispatchAllowed = pref.os;
+  if (osDispatchAllowed && !focusModeBypasses(input.category)) {
+    if (await isFocusModeActive(ctx)) {
+      osDispatchAllowed = false;
+      logger.debug(
+        { category: input.category },
+        "OS dispatch suppressed by focus mode",
+      );
+    }
+  }
   const id = `ntf_${nanoid()}`;
-  const dispatchedToOs = pref.os ? 0 : 1; // 1 means "skip OS dispatch" — already accounted for
+  const dispatchedToOs = osDispatchAllowed ? 0 : 1; // 1 means "skip OS dispatch" — already accounted for
   await db.insert(notifications).values(
     withTenantValues(ctx, {
       id,

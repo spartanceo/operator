@@ -242,6 +242,7 @@ import type {
   ListSkillsParams,
   ListStoreCreatorsParams,
   ListStoreSkillsParams,
+  ListSystemIntegrationQuickInvocationsParams,
   ListTaskTemplatesParams,
   ListTelemetryEventsParams,
   ListToolsParams,
@@ -435,6 +436,14 @@ import type {
   SubscriptionUsageResponse,
   SubscriptionWebhookRequest,
   SubscriptionWebhookResponse,
+  SystemIntegrationFocusModeRequest,
+  SystemIntegrationHotkeyConflictRequest,
+  SystemIntegrationLoginItemRequest,
+  SystemIntegrationQuickInvocationListResponse,
+  SystemIntegrationQuickInvocationRequest,
+  SystemIntegrationQuickInvocationResponse,
+  SystemIntegrationSettingsResponse,
+  SystemIntegrationTrayStatusResponse,
   TaskSatisfactionListResponse,
   TaskSatisfactionResponse,
   TaskShareCardResponse,
@@ -473,6 +482,7 @@ import type {
   UpdateScheduleSettingsRequest,
   UpdateSkillDraftRequest,
   UpdateSkillRequest,
+  UpdateSystemIntegrationSettingsRequest,
   UpdateTaskTemplateRequest,
   UpdateTelemetryConsentRequest,
   UpdateVoipCallStatusRequest,
@@ -33199,3 +33209,735 @@ export const useInvokeIntegrationAction = <
 > => {
   return useMutation(getInvokeIntegrationActionMutationOptions(options));
 };
+
+/**
+ * @summary Current system-integration configuration for the tenant
+ */
+export const getGetSystemIntegrationSettingsUrl = () => {
+  return `/api/system-integration/settings`;
+};
+
+export const getSystemIntegrationSettings = async (
+  options?: RequestInit,
+): Promise<SystemIntegrationSettingsResponse> => {
+  return customFetch<SystemIntegrationSettingsResponse>(
+    getGetSystemIntegrationSettingsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSystemIntegrationSettingsQueryKey = () => {
+  return [`/api/system-integration/settings`] as const;
+};
+
+export const getGetSystemIntegrationSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSystemIntegrationSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSystemIntegrationSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSystemIntegrationSettingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSystemIntegrationSettings>>
+  > = ({ signal }) =>
+    getSystemIntegrationSettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSystemIntegrationSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSystemIntegrationSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSystemIntegrationSettings>>
+>;
+export type GetSystemIntegrationSettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Current system-integration configuration for the tenant
+ */
+
+export function useGetSystemIntegrationSettings<
+  TData = Awaited<ReturnType<typeof getSystemIntegrationSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSystemIntegrationSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSystemIntegrationSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update hotkey / tray / right-click preferences
+ */
+export const getUpdateSystemIntegrationSettingsUrl = () => {
+  return `/api/system-integration/settings`;
+};
+
+export const updateSystemIntegrationSettings = async (
+  updateSystemIntegrationSettingsRequest: UpdateSystemIntegrationSettingsRequest,
+  options?: RequestInit,
+): Promise<SystemIntegrationSettingsResponse> => {
+  return customFetch<SystemIntegrationSettingsResponse>(
+    getUpdateSystemIntegrationSettingsUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateSystemIntegrationSettingsRequest),
+    },
+  );
+};
+
+export const getUpdateSystemIntegrationSettingsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSystemIntegrationSettings>>,
+    TError,
+    { data: BodyType<UpdateSystemIntegrationSettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSystemIntegrationSettings>>,
+  TError,
+  { data: BodyType<UpdateSystemIntegrationSettingsRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateSystemIntegrationSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSystemIntegrationSettings>>,
+    { data: BodyType<UpdateSystemIntegrationSettingsRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateSystemIntegrationSettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSystemIntegrationSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSystemIntegrationSettings>>
+>;
+export type UpdateSystemIntegrationSettingsMutationBody =
+  BodyType<UpdateSystemIntegrationSettingsRequest>;
+export type UpdateSystemIntegrationSettingsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update hotkey / tray / right-click preferences
+ */
+export const useUpdateSystemIntegrationSettings = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSystemIntegrationSettings>>,
+    TError,
+    { data: BodyType<UpdateSystemIntegrationSettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSystemIntegrationSettings>>,
+  TError,
+  { data: BodyType<UpdateSystemIntegrationSettingsRequest> },
+  TContext
+> => {
+  return useMutation(
+    getUpdateSystemIntegrationSettingsMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Report an OS-detected hotkey collision
+ */
+export const getReportSystemIntegrationHotkeyConflictUrl = () => {
+  return `/api/system-integration/hotkey/conflict`;
+};
+
+export const reportSystemIntegrationHotkeyConflict = async (
+  systemIntegrationHotkeyConflictRequest: SystemIntegrationHotkeyConflictRequest,
+  options?: RequestInit,
+): Promise<SystemIntegrationSettingsResponse> => {
+  return customFetch<SystemIntegrationSettingsResponse>(
+    getReportSystemIntegrationHotkeyConflictUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(systemIntegrationHotkeyConflictRequest),
+    },
+  );
+};
+
+export const getReportSystemIntegrationHotkeyConflictMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportSystemIntegrationHotkeyConflict>>,
+    TError,
+    { data: BodyType<SystemIntegrationHotkeyConflictRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reportSystemIntegrationHotkeyConflict>>,
+  TError,
+  { data: BodyType<SystemIntegrationHotkeyConflictRequest> },
+  TContext
+> => {
+  const mutationKey = ["reportSystemIntegrationHotkeyConflict"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reportSystemIntegrationHotkeyConflict>>,
+    { data: BodyType<SystemIntegrationHotkeyConflictRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return reportSystemIntegrationHotkeyConflict(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReportSystemIntegrationHotkeyConflictMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reportSystemIntegrationHotkeyConflict>>
+>;
+export type ReportSystemIntegrationHotkeyConflictMutationBody =
+  BodyType<SystemIntegrationHotkeyConflictRequest>;
+export type ReportSystemIntegrationHotkeyConflictMutationError =
+  ErrorType<unknown>;
+
+/**
+ * @summary Report an OS-detected hotkey collision
+ */
+export const useReportSystemIntegrationHotkeyConflict = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportSystemIntegrationHotkeyConflict>>,
+    TError,
+    { data: BodyType<SystemIntegrationHotkeyConflictRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reportSystemIntegrationHotkeyConflict>>,
+  TError,
+  { data: BodyType<SystemIntegrationHotkeyConflictRequest> },
+  TContext
+> => {
+  return useMutation(
+    getReportSystemIntegrationHotkeyConflictMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Set the login-item consent flag
+ */
+export const getSetSystemIntegrationLoginItemUrl = () => {
+  return `/api/system-integration/login-item`;
+};
+
+export const setSystemIntegrationLoginItem = async (
+  systemIntegrationLoginItemRequest: SystemIntegrationLoginItemRequest,
+  options?: RequestInit,
+): Promise<SystemIntegrationSettingsResponse> => {
+  return customFetch<SystemIntegrationSettingsResponse>(
+    getSetSystemIntegrationLoginItemUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(systemIntegrationLoginItemRequest),
+    },
+  );
+};
+
+export const getSetSystemIntegrationLoginItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSystemIntegrationLoginItem>>,
+    TError,
+    { data: BodyType<SystemIntegrationLoginItemRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setSystemIntegrationLoginItem>>,
+  TError,
+  { data: BodyType<SystemIntegrationLoginItemRequest> },
+  TContext
+> => {
+  const mutationKey = ["setSystemIntegrationLoginItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setSystemIntegrationLoginItem>>,
+    { data: BodyType<SystemIntegrationLoginItemRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setSystemIntegrationLoginItem(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetSystemIntegrationLoginItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setSystemIntegrationLoginItem>>
+>;
+export type SetSystemIntegrationLoginItemMutationBody =
+  BodyType<SystemIntegrationLoginItemRequest>;
+export type SetSystemIntegrationLoginItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set the login-item consent flag
+ */
+export const useSetSystemIntegrationLoginItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSystemIntegrationLoginItem>>,
+    TError,
+    { data: BodyType<SystemIntegrationLoginItemRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setSystemIntegrationLoginItem>>,
+  TError,
+  { data: BodyType<SystemIntegrationLoginItemRequest> },
+  TContext
+> => {
+  return useMutation(getSetSystemIntegrationLoginItemMutationOptions(options));
+};
+
+/**
+ * @summary Push current macOS Focus / Windows Focus Assist state
+ */
+export const getSetSystemIntegrationFocusModeUrl = () => {
+  return `/api/system-integration/focus-mode`;
+};
+
+export const setSystemIntegrationFocusMode = async (
+  systemIntegrationFocusModeRequest: SystemIntegrationFocusModeRequest,
+  options?: RequestInit,
+): Promise<SystemIntegrationSettingsResponse> => {
+  return customFetch<SystemIntegrationSettingsResponse>(
+    getSetSystemIntegrationFocusModeUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(systemIntegrationFocusModeRequest),
+    },
+  );
+};
+
+export const getSetSystemIntegrationFocusModeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSystemIntegrationFocusMode>>,
+    TError,
+    { data: BodyType<SystemIntegrationFocusModeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setSystemIntegrationFocusMode>>,
+  TError,
+  { data: BodyType<SystemIntegrationFocusModeRequest> },
+  TContext
+> => {
+  const mutationKey = ["setSystemIntegrationFocusMode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setSystemIntegrationFocusMode>>,
+    { data: BodyType<SystemIntegrationFocusModeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setSystemIntegrationFocusMode(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetSystemIntegrationFocusModeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setSystemIntegrationFocusMode>>
+>;
+export type SetSystemIntegrationFocusModeMutationBody =
+  BodyType<SystemIntegrationFocusModeRequest>;
+export type SetSystemIntegrationFocusModeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Push current macOS Focus / Windows Focus Assist state
+ */
+export const useSetSystemIntegrationFocusMode = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSystemIntegrationFocusMode>>,
+    TError,
+    { data: BodyType<SystemIntegrationFocusModeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setSystemIntegrationFocusMode>>,
+  TError,
+  { data: BodyType<SystemIntegrationFocusModeRequest> },
+  TContext
+> => {
+  return useMutation(getSetSystemIntegrationFocusModeMutationOptions(options));
+};
+
+/**
+ * @summary Paginated invocation history
+ */
+export const getListSystemIntegrationQuickInvocationsUrl = (
+  params?: ListSystemIntegrationQuickInvocationsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/system-integration/quick-invocations?${stringifiedParams}`
+    : `/api/system-integration/quick-invocations`;
+};
+
+export const listSystemIntegrationQuickInvocations = async (
+  params?: ListSystemIntegrationQuickInvocationsParams,
+  options?: RequestInit,
+): Promise<SystemIntegrationQuickInvocationListResponse> => {
+  return customFetch<SystemIntegrationQuickInvocationListResponse>(
+    getListSystemIntegrationQuickInvocationsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListSystemIntegrationQuickInvocationsQueryKey = (
+  params?: ListSystemIntegrationQuickInvocationsParams,
+) => {
+  return [
+    `/api/system-integration/quick-invocations`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListSystemIntegrationQuickInvocationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSystemIntegrationQuickInvocations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSystemIntegrationQuickInvocationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSystemIntegrationQuickInvocations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getListSystemIntegrationQuickInvocationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSystemIntegrationQuickInvocations>>
+  > = ({ signal }) =>
+    listSystemIntegrationQuickInvocations(params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSystemIntegrationQuickInvocations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSystemIntegrationQuickInvocationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSystemIntegrationQuickInvocations>>
+>;
+export type ListSystemIntegrationQuickInvocationsQueryError =
+  ErrorType<unknown>;
+
+/**
+ * @summary Paginated invocation history
+ */
+
+export function useListSystemIntegrationQuickInvocations<
+  TData = Awaited<ReturnType<typeof listSystemIntegrationQuickInvocations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSystemIntegrationQuickInvocationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSystemIntegrationQuickInvocations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSystemIntegrationQuickInvocationsQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Record a hotkey / tray / right-click invocation
+ */
+export const getRecordSystemIntegrationQuickInvocationUrl = () => {
+  return `/api/system-integration/quick-invocations`;
+};
+
+export const recordSystemIntegrationQuickInvocation = async (
+  systemIntegrationQuickInvocationRequest: SystemIntegrationQuickInvocationRequest,
+  options?: RequestInit,
+): Promise<SystemIntegrationQuickInvocationResponse> => {
+  return customFetch<SystemIntegrationQuickInvocationResponse>(
+    getRecordSystemIntegrationQuickInvocationUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(systemIntegrationQuickInvocationRequest),
+    },
+  );
+};
+
+export const getRecordSystemIntegrationQuickInvocationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordSystemIntegrationQuickInvocation>>,
+    TError,
+    { data: BodyType<SystemIntegrationQuickInvocationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordSystemIntegrationQuickInvocation>>,
+  TError,
+  { data: BodyType<SystemIntegrationQuickInvocationRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordSystemIntegrationQuickInvocation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordSystemIntegrationQuickInvocation>>,
+    { data: BodyType<SystemIntegrationQuickInvocationRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordSystemIntegrationQuickInvocation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordSystemIntegrationQuickInvocationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordSystemIntegrationQuickInvocation>>
+>;
+export type RecordSystemIntegrationQuickInvocationMutationBody =
+  BodyType<SystemIntegrationQuickInvocationRequest>;
+export type RecordSystemIntegrationQuickInvocationMutationError =
+  ErrorType<unknown>;
+
+/**
+ * @summary Record a hotkey / tray / right-click invocation
+ */
+export const useRecordSystemIntegrationQuickInvocation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordSystemIntegrationQuickInvocation>>,
+    TError,
+    { data: BodyType<SystemIntegrationQuickInvocationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordSystemIntegrationQuickInvocation>>,
+  TError,
+  { data: BodyType<SystemIntegrationQuickInvocationRequest> },
+  TContext
+> => {
+  return useMutation(
+    getRecordSystemIntegrationQuickInvocationMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Live menu bar / system tray status snapshot
+ */
+export const getGetSystemIntegrationTrayStatusUrl = () => {
+  return `/api/system-integration/tray-status`;
+};
+
+export const getSystemIntegrationTrayStatus = async (
+  options?: RequestInit,
+): Promise<SystemIntegrationTrayStatusResponse> => {
+  return customFetch<SystemIntegrationTrayStatusResponse>(
+    getGetSystemIntegrationTrayStatusUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSystemIntegrationTrayStatusQueryKey = () => {
+  return [`/api/system-integration/tray-status`] as const;
+};
+
+export const getGetSystemIntegrationTrayStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSystemIntegrationTrayStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSystemIntegrationTrayStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSystemIntegrationTrayStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSystemIntegrationTrayStatus>>
+  > = ({ signal }) =>
+    getSystemIntegrationTrayStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSystemIntegrationTrayStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSystemIntegrationTrayStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSystemIntegrationTrayStatus>>
+>;
+export type GetSystemIntegrationTrayStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Live menu bar / system tray status snapshot
+ */
+
+export function useGetSystemIntegrationTrayStatus<
+  TData = Awaited<ReturnType<typeof getSystemIntegrationTrayStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSystemIntegrationTrayStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSystemIntegrationTrayStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

@@ -40,6 +40,7 @@ import taskTemplatesRouter from "./task-templates";
 import storeRouter from "./store";
 import subscriptionRouter from "./subscription";
 import creatorRevenueRouter from "./creator-revenue";
+import systemIntegrationRouter from "./system-integration";
 
 import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
@@ -97,6 +98,7 @@ router.use("/waitlist", waitlistRouter);
 router.use("/store", storeRouter);
 router.use("/subscription", subscriptionRouter);
 router.use("/creator", creatorRevenueRouter);
+router.use("/system-integration", systemIntegrationRouter);
 
 router.use("/plugins", pluginsRouter);
 router.use("/webhooks", webhooksRouter);
