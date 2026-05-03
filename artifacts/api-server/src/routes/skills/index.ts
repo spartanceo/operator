@@ -13,6 +13,7 @@ import { requireTenant } from "../../middlewares/tenant-context";
 import { createAgentRun } from "../../services/agent.service";
 import configRouter from "./config";
 import draftsRouter from "./drafts";
+import privateRouter from "./private";
 import { SkillNotConfiguredError } from "../../services/skill-config.service";
 import executeRouter from "./execute";
 import {
@@ -60,6 +61,9 @@ const router: IRouter = Router();
 // Mount the wizard sub-router FIRST so `/drafts/*` matches before
 // `/:id`-style fall-through routes below.
 router.use("/drafts", draftsRouter);
+// Private (per-org) skill registry — mount before `/:id` catch-alls so
+// `/private/*` paths take precedence over slug routes.
+router.use("/", privateRouter);
 // Configuration sub-router — handles GET/PUT/DELETE /:id/config and the
 // /config/import bulk endpoint. Mounted before the `/:id` catch-alls so
 // the config paths take precedence.

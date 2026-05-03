@@ -118,6 +118,7 @@ export * from "./creator-payout-settings";
 export * from "./creator-payout-screenings";
 
 export * from "./privacy-settings";
+export * from "./private-skill-registry";
 export * from "./network-calls";
 export * from "./skill-permissions";
 export * from "./erasure-requests";

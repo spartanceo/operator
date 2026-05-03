@@ -10722,6 +10722,220 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErasureRequestResponse'
+
+  /admin/enterprise/private-registry/settings:
+    get:
+      operationId: getPrivateRegistrySettings
+      tags: [private-registry]
+      summary: Read the org-private skill registry settings
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateRegistrySettingsResponse' }
+    patch:
+      operationId: updatePrivateRegistrySettings
+      tags: [private-registry]
+      summary: Update registry mode, remote URL, signing key, signature enforcement
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePrivateRegistrySettingsRequest' }
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateRegistrySettingsResponse' }
+  /admin/enterprise/private-registry/sync:
+    post:
+      operationId: syncPrivateRegistryFromRemote
+      tags: [private-registry]
+      summary: Pull the manifest from the configured remote registry
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateRegistrySyncResponse' }
+  /admin/enterprise/private-registry/packages:
+    get:
+      operationId: listPrivateSkillPackages
+      tags: [private-registry]
+      summary: List packages in the org-private registry
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected, superseded, all]
+        - name: latestOnly
+          in: query
+          required: false
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Page of packages
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateSkillPackagePageResponse' }
+    post:
+      operationId: submitPrivateSkillPackage
+      tags: [private-registry]
+      summary: Submit a new private skill package version for review
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitPrivateSkillPackageRequest' }
+      responses:
+        '201':
+          description: Package created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateSkillPackageResponse' }
+  /admin/enterprise/private-registry/packages/{id}/approve:
+    post:
+      operationId: approvePrivateSkillPackage
+      tags: [private-registry]
+      summary: Approve a pending package
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes: { type: string }
+      responses:
+        '200':
+          description: Approved package
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateSkillPackageResponse' }
+  /admin/enterprise/private-registry/packages/{id}/reject:
+    post:
+      operationId: rejectPrivateSkillPackage
+      tags: [private-registry]
+      summary: Reject a pending package
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Rejected package
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateSkillPackageResponse' }
+  /admin/enterprise/private-registry/packages/{id}/push:
+    post:
+      operationId: pushPrivateSkillPackage
+      tags: [private-registry]
+      summary: Push an approved package to every active seat
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Push result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateSkillPushResponse' }
+  /skills/private:
+    get:
+      operationId: listVisiblePrivateSkills
+      tags: [private-registry]
+      summary: List private skills visible to the calling member
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Visible packages
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateSkillPackageListResponse' }
+  /skills/private/installed:
+    get:
+      operationId: listInstalledPrivateSkills
+      tags: [private-registry]
+      summary: List private-skill installations for the caller's tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Installations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateSkillInstallationListResponse' }
+  /skills/private/{id}/install:
+    post:
+      operationId: installPrivateSkill
+      tags: [private-registry]
+      summary: Install a private skill package for the caller's tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Installation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateSkillInstallationResponse' }
+  /skills/private/{slug}:
+    delete:
+      operationId: uninstallPrivateSkill
+      tags: [private-registry]
+      summary: Uninstall a private skill (blocked when mandatory)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Removal result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateSkillRemovalResponse' }
 components:
   parameters:
     TenantHeader:
@@ -24324,19 +24538,6 @@ components:
         previousHash: { type: string, nullable: true }
         entryHash: { type: string }
         createdAt: { type: string }
-    AuditVerifyResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [intact, checkedRows, verifiedAt]
-          properties:
-            intact: { type: boolean }
-            checkedRows: { type: integer }
-            firstBrokenSequence: { type: integer, nullable: true }
-            verifiedAt: { type: string }
     AuditRetentionResponse:
       type: object
       required: [success, data]
@@ -24961,6 +25162,224 @@ components:
         allowMarketplaceUsageStats: { type: boolean }
         allowIntegrationDataReads: { type: boolean }
         allowSkillNetworkCalls: { type: boolean }
+
+    PrivateRegistrySettings:
+      type: object
+      required: [mode, requireSignature, updatedAt]
+      properties:
+        mode: { type: string, enum: [local, remote] }
+        remoteRegistryUrl: { type: string, nullable: true }
+        signingPublicKeyPem: { type: string, nullable: true }
+        requireSignature: { type: boolean }
+        lastSyncedAt: { type: string, nullable: true }
+        lastSyncError: { type: string, nullable: true }
+        updatedAt: { type: string }
+    PrivateRegistrySettingsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/PrivateRegistrySettings' }
+    UpdatePrivateRegistrySettingsRequest:
+      type: object
+      properties:
+        mode: { type: string, enum: [local, remote] }
+        remoteRegistryUrl: { type: string, nullable: true }
+        signingPublicKeyPem: { type: string, nullable: true }
+        requireSignature: { type: boolean }
+    PrivateRegistrySyncResult:
+      type: object
+      required: [imported, skipped]
+      properties:
+        imported: { type: integer }
+        skipped: { type: integer }
+    PrivateRegistrySyncResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/PrivateRegistrySyncResult' }
+
+    PrivateSkillPackage:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+        - description
+        - content
+        - modelTags
+        - triggers
+        - category
+        - documentation
+        - skillVersion
+        - isLatest
+        - visibility
+        - visibilityTargets
+        - mandatory
+        - status
+        - submittedBy
+        - submittedAt
+        - reviewedBy
+        - reviewNotes
+        - rejectionReason
+        - signature
+        - signatureAlgo
+        - installCount
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string }
+        content: { type: string }
+        modelTags:
+          type: array
+          items: { type: string }
+        triggers:
+          type: array
+          items: { type: string }
+        category: { type: string }
+        documentation: { type: string }
+        skillVersion: { type: integer }
+        isLatest: { type: boolean }
+        visibility: { type: string, enum: [all, roles, workspaces] }
+        visibilityTargets:
+          type: array
+          items: { type: string }
+        mandatory: { type: boolean }
+        status: { type: string, enum: [pending, approved, rejected, superseded] }
+        submittedBy: { type: string }
+        submittedAt: { type: string }
+        reviewedBy: { type: string }
+        reviewedAt: { type: string, nullable: true }
+        reviewNotes: { type: string }
+        rejectionReason: { type: string }
+        signature: { type: string }
+        signatureAlgo: { type: string }
+        installCount: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    PrivateSkillPackageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/PrivateSkillPackage' }
+    PrivateSkillPackagePageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/PrivateSkillPackage' }
+            nextCursor: { type: string, nullable: true }
+    PrivateSkillPackageListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/PrivateSkillPackage' }
+    SubmitPrivateSkillPackageRequest:
+      type: object
+      required: [slug, name, content]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string }
+        content: { type: string }
+        modelTags:
+          type: array
+          items: { type: string }
+        triggers:
+          type: array
+          items: { type: string }
+        category: { type: string }
+        documentation: { type: string }
+        visibility: { type: string, enum: [all, roles, workspaces] }
+        visibilityTargets:
+          type: array
+          items: { type: string }
+        mandatory: { type: boolean }
+        signature: { type: string }
+        signatureAlgo: { type: string }
+
+    PrivateSkillInstallation:
+      type: object
+      required:
+        - id
+        - packageId
+        - slug
+        - skillId
+        - installedVersion
+        - mandatory
+        - source
+        - installedBy
+        - createdAt
+      properties:
+        id: { type: string }
+        packageId: { type: string }
+        slug: { type: string }
+        skillId: { type: string }
+        installedVersion: { type: integer }
+        mandatory: { type: boolean }
+        source: { type: string, enum: [user, admin_push] }
+        installedBy: { type: string }
+        createdAt: { type: string }
+    PrivateSkillInstallationResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/PrivateSkillInstallation' }
+    PrivateSkillInstallationListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/PrivateSkillInstallation' }
+    PrivateSkillRemovalResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [removed]
+          properties:
+            removed: { type: boolean }
+    PrivateSkillPushResult:
+      type: object
+      required: [packageId, installedSeats, skippedSeats]
+      properties:
+        packageId: { type: string }
+        installedSeats: { type: integer }
+        skippedSeats: { type: integer }
+    PrivateSkillPushResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/PrivateSkillPushResult' }
+
   responses: {}
   requestBodies: {}
   headers: {}

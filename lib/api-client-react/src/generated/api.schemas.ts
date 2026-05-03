@@ -8321,9 +8321,102 @@ export interface EnterpriseAuditEntry {
   resourceType: string;
   resourceId?: string | null;
   summary: string;
+  actionType?: string | null;
+  agentId?: string | null;
+  skillId?: string | null;
+  toolId?: string | null;
+  userId?: string | null;
+  sessionId?: string | null;
+  inputHash?: string | null;
+  outputSummary?: string | null;
+  approvalStatus?: string | null;
   previousHash?: string | null;
   entryHash?: string;
   createdAt: string;
+}
+
+export type AuditRetentionResponseData = {
+  id: string;
+  retentionDays: number;
+  lastPurgeAt?: string | null;
+  lastPurgeCount: number;
+  updatedAt: string;
+};
+
+export interface AuditRetentionResponse {
+  success: boolean;
+  data: AuditRetentionResponseData;
+}
+
+export type AuditSchedulerTickResponseData = {
+  tenantsScanned: number;
+  tenantsPurged: number;
+  totalPurgedCount: number;
+  errors: number;
+  tickedAt: string;
+};
+
+export interface AuditSchedulerTickResponse {
+  success: boolean;
+  data: AuditSchedulerTickResponseData;
+}
+
+export type AuditPurgeResponseData = {
+  purgedCount: number;
+  retentionDays: number;
+  purgedAt: string;
+};
+
+export interface AuditPurgeResponse {
+  success: boolean;
+  data: AuditPurgeResponseData;
+}
+
+export interface AuditAlertRule {
+  id: string;
+  name: string;
+  actionType?: string | null;
+  actor?: string | null;
+  thresholdCount: number;
+  windowSeconds: number;
+  enabled: boolean;
+  lastTriggeredAt?: string | null;
+  createdAt: string;
+}
+
+export interface AuditAlertRuleResponse {
+  success: boolean;
+  data: AuditAlertRule;
+}
+
+export type AuditAlertRuleListResponseData = {
+  items: AuditAlertRule[];
+};
+
+export interface AuditAlertRuleListResponse {
+  success: boolean;
+  data: AuditAlertRuleListResponseData;
+}
+
+export interface AuditAlert {
+  id: string;
+  ruleId: string;
+  ruleName: string;
+  triggeredCount: number;
+  thresholdCount: number;
+  windowSeconds: number;
+  summary: string;
+  createdAt: string;
+}
+
+export type AuditAlertPageResponseData = {
+  items: AuditAlert[];
+  nextCursor: string | null;
+};
+
+export interface AuditAlertPageResponse {
+  success: boolean;
+  data: AuditAlertPageResponseData;
 }
 
 export type EnterpriseAuditPageResponseData = {
@@ -8804,6 +8897,205 @@ export interface UpdatePrivacySettingsRequest {
   allowSkillNetworkCalls?: boolean;
 }
 
+export type PrivateRegistrySettingsMode =
+  (typeof PrivateRegistrySettingsMode)[keyof typeof PrivateRegistrySettingsMode];
+
+export const PrivateRegistrySettingsMode = {
+  local: "local",
+  remote: "remote",
+} as const;
+
+export interface PrivateRegistrySettings {
+  mode: PrivateRegistrySettingsMode;
+  remoteRegistryUrl?: string | null;
+  signingPublicKeyPem?: string | null;
+  requireSignature: boolean;
+  lastSyncedAt?: string | null;
+  lastSyncError?: string | null;
+  updatedAt: string;
+}
+
+export interface PrivateRegistrySettingsResponse {
+  success: boolean;
+  data: PrivateRegistrySettings;
+}
+
+export type UpdatePrivateRegistrySettingsRequestMode =
+  (typeof UpdatePrivateRegistrySettingsRequestMode)[keyof typeof UpdatePrivateRegistrySettingsRequestMode];
+
+export const UpdatePrivateRegistrySettingsRequestMode = {
+  local: "local",
+  remote: "remote",
+} as const;
+
+export interface UpdatePrivateRegistrySettingsRequest {
+  mode?: UpdatePrivateRegistrySettingsRequestMode;
+  remoteRegistryUrl?: string | null;
+  signingPublicKeyPem?: string | null;
+  requireSignature?: boolean;
+}
+
+export interface PrivateRegistrySyncResult {
+  imported: number;
+  skipped: number;
+}
+
+export interface PrivateRegistrySyncResponse {
+  success: boolean;
+  data: PrivateRegistrySyncResult;
+}
+
+export type PrivateSkillPackageVisibility =
+  (typeof PrivateSkillPackageVisibility)[keyof typeof PrivateSkillPackageVisibility];
+
+export const PrivateSkillPackageVisibility = {
+  all: "all",
+  roles: "roles",
+  workspaces: "workspaces",
+} as const;
+
+export type PrivateSkillPackageStatus =
+  (typeof PrivateSkillPackageStatus)[keyof typeof PrivateSkillPackageStatus];
+
+export const PrivateSkillPackageStatus = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+  superseded: "superseded",
+} as const;
+
+export interface PrivateSkillPackage {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  content: string;
+  modelTags: string[];
+  triggers: string[];
+  category: string;
+  documentation: string;
+  skillVersion: number;
+  isLatest: boolean;
+  visibility: PrivateSkillPackageVisibility;
+  visibilityTargets: string[];
+  mandatory: boolean;
+  status: PrivateSkillPackageStatus;
+  submittedBy: string;
+  submittedAt: string;
+  reviewedBy: string;
+  reviewedAt?: string | null;
+  reviewNotes: string;
+  rejectionReason: string;
+  signature: string;
+  signatureAlgo: string;
+  installCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PrivateSkillPackageResponse {
+  success: boolean;
+  data: PrivateSkillPackage;
+}
+
+export type PrivateSkillPackagePageResponseData = {
+  items: PrivateSkillPackage[];
+  nextCursor: string | null;
+};
+
+export interface PrivateSkillPackagePageResponse {
+  success: boolean;
+  data: PrivateSkillPackagePageResponseData;
+}
+
+export type PrivateSkillPackageListResponseData = {
+  items: PrivateSkillPackage[];
+};
+
+export interface PrivateSkillPackageListResponse {
+  success: boolean;
+  data: PrivateSkillPackageListResponseData;
+}
+
+export type SubmitPrivateSkillPackageRequestVisibility =
+  (typeof SubmitPrivateSkillPackageRequestVisibility)[keyof typeof SubmitPrivateSkillPackageRequestVisibility];
+
+export const SubmitPrivateSkillPackageRequestVisibility = {
+  all: "all",
+  roles: "roles",
+  workspaces: "workspaces",
+} as const;
+
+export interface SubmitPrivateSkillPackageRequest {
+  slug: string;
+  name: string;
+  description?: string;
+  content: string;
+  modelTags?: string[];
+  triggers?: string[];
+  category?: string;
+  documentation?: string;
+  visibility?: SubmitPrivateSkillPackageRequestVisibility;
+  visibilityTargets?: string[];
+  mandatory?: boolean;
+  signature?: string;
+  signatureAlgo?: string;
+}
+
+export type PrivateSkillInstallationSource =
+  (typeof PrivateSkillInstallationSource)[keyof typeof PrivateSkillInstallationSource];
+
+export const PrivateSkillInstallationSource = {
+  user: "user",
+  admin_push: "admin_push",
+} as const;
+
+export interface PrivateSkillInstallation {
+  id: string;
+  packageId: string;
+  slug: string;
+  skillId: string;
+  installedVersion: number;
+  mandatory: boolean;
+  source: PrivateSkillInstallationSource;
+  installedBy: string;
+  createdAt: string;
+}
+
+export interface PrivateSkillInstallationResponse {
+  success: boolean;
+  data: PrivateSkillInstallation;
+}
+
+export type PrivateSkillInstallationListResponseData = {
+  items: PrivateSkillInstallation[];
+};
+
+export interface PrivateSkillInstallationListResponse {
+  success: boolean;
+  data: PrivateSkillInstallationListResponseData;
+}
+
+export type PrivateSkillRemovalResponseData = {
+  removed: boolean;
+};
+
+export interface PrivateSkillRemovalResponse {
+  success: boolean;
+  data: PrivateSkillRemovalResponseData;
+}
+
+export interface PrivateSkillPushResult {
+  packageId: string;
+  installedSeats: number;
+  skippedSeats: number;
+}
+
+export interface PrivateSkillPushResponse {
+  success: boolean;
+  data: PrivateSkillPushResult;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -8982,6 +9274,96 @@ export type SetEnterpriseWhitelistEntryBody = {
 };
 
 export type ListEnterpriseAuditParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListEnterpriseAuditV2Params = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  actionType?: string;
+  action?: string;
+  actor?: string;
+  agentId?: string;
+  userId?: string;
+  since?: number;
+  until?: number;
+  q?: string;
+};
+
+export type ExportEnterpriseAuditSignedJsonBody = {
+  /** @minLength 16 */
+  secret?: string;
+  actionType?: string | null;
+  since?: number;
+  until?: number;
+  max?: number;
+};
+
+export type ExportEnterpriseAuditSignedJson200 = { [key: string]: unknown };
+
+export type SetEnterpriseAuditRetentionBody = {
+  /**
+   * @minimum 7
+   * @maximum 3650
+   */
+  retentionDays: number;
+};
+
+export type PurgeEnterpriseAuditLogBodyConfirm =
+  (typeof PurgeEnterpriseAuditLogBodyConfirm)[keyof typeof PurgeEnterpriseAuditLogBodyConfirm];
+
+export const PurgeEnterpriseAuditLogBodyConfirm = {
+  PURGE: "PURGE",
+} as const;
+
+export type PurgeEnterpriseAuditLogBody = {
+  confirm: PurgeEnterpriseAuditLogBodyConfirm;
+};
+
+export type CreateEnterpriseAuditAlertRuleBody = {
+  name: string;
+  actionType?: string | null;
+  actor?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 100000
+   */
+  thresholdCount: number;
+  /**
+   * @minimum 1
+   * @maximum 86400
+   */
+  windowSeconds: number;
+  enabled?: boolean;
+};
+
+export type UpdateEnterpriseAuditAlertRuleBody = {
+  name?: string;
+  actionType?: string | null;
+  actor?: string | null;
+  thresholdCount?: number;
+  windowSeconds?: number;
+  enabled?: boolean;
+};
+
+export type ListEnterpriseAuditAlertsParams = {
   /**
    * Opaque cursor returned by the previous page.
    */
@@ -10219,4 +10601,38 @@ export type ListErasureRequestsParams = {
    * @maximum 100
    */
   limit?: LimitParamParameter;
+};
+
+export type ListPrivateSkillPackagesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  status?: ListPrivateSkillPackagesStatus;
+  latestOnly?: boolean;
+};
+
+export type ListPrivateSkillPackagesStatus =
+  (typeof ListPrivateSkillPackagesStatus)[keyof typeof ListPrivateSkillPackagesStatus];
+
+export const ListPrivateSkillPackagesStatus = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+  superseded: "superseded",
+  all: "all",
+} as const;
+
+export type ApprovePrivateSkillPackageBody = {
+  notes?: string;
+};
+
+export type RejectPrivateSkillPackageBody = {
+  reason: string;
 };

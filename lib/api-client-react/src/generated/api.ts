@@ -53,8 +53,15 @@ import type {
   ApprovalListResponse,
   ApprovalResponse,
   ApproveModerationItemBody,
+  ApprovePrivateSkillPackageBody,
   AttributeReferralRequest,
+  AuditAlertPageResponse,
+  AuditAlertRuleListResponse,
+  AuditAlertRuleResponse,
   AuditListResponse,
+  AuditPurgeResponse,
+  AuditRetentionResponse,
+  AuditSchedulerTickResponse,
   AuditVerifyResponse,
   AuthLogoutResponse,
   AuthSessionResponse,
@@ -105,6 +112,7 @@ import type {
   CreateDraftFromPasteRequest,
   CreateDraftFromUploadRequest,
   CreateEmailDraftRequest,
+  CreateEnterpriseAuditAlertRuleBody,
   CreateEnterpriseTrialInviteRequest,
   CreateErasureRequestRequest,
   CreateIncidentReportRequest,
@@ -175,6 +183,8 @@ import type {
   ExportConversationParams,
   ExportConversationsParams,
   ExportConversationsResponse,
+  ExportEnterpriseAuditSignedJson200,
+  ExportEnterpriseAuditSignedJsonBody,
   ExportEnterpriseUsageCsvParams,
   ExportMemoriesParams,
   ExtractMemoriesRequest,
@@ -272,7 +282,9 @@ import type {
   ListDmcaTakedownsParams,
   ListEmailDraftsParams,
   ListEmailMessagesParams,
+  ListEnterpriseAuditAlertsParams,
   ListEnterpriseAuditParams,
+  ListEnterpriseAuditV2Params,
   ListEnterpriseSeatsParams,
   ListErasureRequestsParams,
   ListFilesParams,
@@ -295,6 +307,7 @@ import type {
   ListOutreachEnrolmentsParams,
   ListOutreachSequencesParams,
   ListPrivacyEventsParams,
+  ListPrivateSkillPackagesParams,
   ListQueuedTasksParams,
   ListRecentEventsParams,
   ListSatisfactionRatingsParams,
@@ -419,11 +432,21 @@ import type {
   PrivacyExportResponse,
   PrivacyMeterResponse,
   PrivacySettingsResponse,
+  PrivateRegistrySettingsResponse,
+  PrivateRegistrySyncResponse,
+  PrivateSkillInstallationListResponse,
+  PrivateSkillInstallationResponse,
+  PrivateSkillPackageListResponse,
+  PrivateSkillPackagePageResponse,
+  PrivateSkillPackageResponse,
+  PrivateSkillPushResponse,
+  PrivateSkillRemovalResponse,
   PruneBackupsResponse,
   PublicCreatorProfileResponse,
   PublishAppVersionBody,
   PublishSkillVersionRequest,
   PublishStoreSkillRequest,
+  PurgeEnterpriseAuditLogBody,
   QueueClearRequest,
   QueueClearResponse,
   QueueEnqueueRequest,
@@ -456,6 +479,7 @@ import type {
   RegisterPluginToolRequest,
   RegisterRequest,
   RejectModerationItemBody,
+  RejectPrivateSkillPackageBody,
   RemoveStoreSkillBody,
   ResolveAbuseReportBody,
   RestoreBackupRequest,
@@ -486,6 +510,7 @@ import type {
   SecurityWebhookSecretsListParams,
   SelectModelRequest,
   SetAcquisitionChannelRequest,
+  SetEnterpriseAuditRetentionBody,
   SetEnterpriseWhitelistEntryBody,
   SetFeatureFlagBody,
   SetSkillPermissionRequest,
@@ -541,6 +566,7 @@ import type {
   StoreSkillUpdatesResponse,
   SubmitCrashReportRequest,
   SubmitCreatorTaxFormRequest,
+  SubmitPrivateSkillPackageRequest,
   SubmitSkillRatingRequest,
   SubscriptionCheckoutRequest,
   SubscriptionCheckoutResponse,
@@ -599,6 +625,7 @@ import type {
   UpdateContactRequest,
   UpdateConversationRequest,
   UpdateCreatorPayoutSettingsRequest,
+  UpdateEnterpriseAuditAlertRuleBody,
   UpdateEnterpriseOrgBody,
   UpdateEnterpriseSeatBody,
   UpdateInstallAttemptListResponse,
@@ -612,6 +639,7 @@ import type {
   UpdatePinningResponse,
   UpdatePluginToolRequest,
   UpdatePrivacySettingsRequest,
+  UpdatePrivateRegistrySettingsRequest,
   UpdatePublishReleaseRequest,
   UpdateReleaseListResponse,
   UpdateReleaseManifestResponse,
@@ -3317,6 +3345,1080 @@ export function useExportEnterpriseAuditCsv<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getExportEnterpriseAuditCsvQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Compliance-grade filterable audit log (Task
+ */
+export const getListEnterpriseAuditV2Url = (
+  params?: ListEnterpriseAuditV2Params,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/enterprise/audit/v2?${stringifiedParams}`
+    : `/api/admin/enterprise/audit/v2`;
+};
+
+export const listEnterpriseAuditV2 = async (
+  params?: ListEnterpriseAuditV2Params,
+  options?: RequestInit,
+): Promise<EnterpriseAuditPageResponse> => {
+  return customFetch<EnterpriseAuditPageResponse>(
+    getListEnterpriseAuditV2Url(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListEnterpriseAuditV2QueryKey = (
+  params?: ListEnterpriseAuditV2Params,
+) => {
+  return [
+    `/api/admin/enterprise/audit/v2`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListEnterpriseAuditV2QueryOptions = <
+  TData = Awaited<ReturnType<typeof listEnterpriseAuditV2>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseAuditV2Params,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseAuditV2>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListEnterpriseAuditV2QueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listEnterpriseAuditV2>>
+  > = ({ signal }) =>
+    listEnterpriseAuditV2(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseAuditV2>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListEnterpriseAuditV2QueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEnterpriseAuditV2>>
+>;
+export type ListEnterpriseAuditV2QueryError = ErrorType<unknown>;
+
+/**
+ * @summary Compliance-grade filterable audit log (Task
+ */
+
+export function useListEnterpriseAuditV2<
+  TData = Awaited<ReturnType<typeof listEnterpriseAuditV2>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseAuditV2Params,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseAuditV2>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEnterpriseAuditV2QueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Walk the audit hash chain end-to-end and report integrity
+ */
+export const getVerifyEnterpriseAuditChainUrl = () => {
+  return `/api/admin/enterprise/audit/verify`;
+};
+
+export const verifyEnterpriseAuditChain = async (
+  options?: RequestInit,
+): Promise<AuditVerifyResponse> => {
+  return customFetch<AuditVerifyResponse>(getVerifyEnterpriseAuditChainUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getVerifyEnterpriseAuditChainQueryKey = () => {
+  return [`/api/admin/enterprise/audit/verify`] as const;
+};
+
+export const getVerifyEnterpriseAuditChainQueryOptions = <
+  TData = Awaited<ReturnType<typeof verifyEnterpriseAuditChain>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof verifyEnterpriseAuditChain>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getVerifyEnterpriseAuditChainQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof verifyEnterpriseAuditChain>>
+  > = ({ signal }) => verifyEnterpriseAuditChain({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof verifyEnterpriseAuditChain>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type VerifyEnterpriseAuditChainQueryResult = NonNullable<
+  Awaited<ReturnType<typeof verifyEnterpriseAuditChain>>
+>;
+export type VerifyEnterpriseAuditChainQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Walk the audit hash chain end-to-end and report integrity
+ */
+
+export function useVerifyEnterpriseAuditChain<
+  TData = Awaited<ReturnType<typeof verifyEnterpriseAuditChain>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof verifyEnterpriseAuditChain>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getVerifyEnterpriseAuditChainQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download the filtered audit log as a signed JSON bundle (POST keeps the secret out of the URL)
+ */
+export const getExportEnterpriseAuditSignedJsonUrl = () => {
+  return `/api/admin/enterprise/audit/export.json`;
+};
+
+export const exportEnterpriseAuditSignedJson = async (
+  exportEnterpriseAuditSignedJsonBody: ExportEnterpriseAuditSignedJsonBody,
+  options?: RequestInit,
+): Promise<ExportEnterpriseAuditSignedJson200> => {
+  return customFetch<ExportEnterpriseAuditSignedJson200>(
+    getExportEnterpriseAuditSignedJsonUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(exportEnterpriseAuditSignedJsonBody),
+    },
+  );
+};
+
+export const getExportEnterpriseAuditSignedJsonMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof exportEnterpriseAuditSignedJson>>,
+    TError,
+    { data: BodyType<ExportEnterpriseAuditSignedJsonBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof exportEnterpriseAuditSignedJson>>,
+  TError,
+  { data: BodyType<ExportEnterpriseAuditSignedJsonBody> },
+  TContext
+> => {
+  const mutationKey = ["exportEnterpriseAuditSignedJson"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof exportEnterpriseAuditSignedJson>>,
+    { data: BodyType<ExportEnterpriseAuditSignedJsonBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return exportEnterpriseAuditSignedJson(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ExportEnterpriseAuditSignedJsonMutationResult = NonNullable<
+  Awaited<ReturnType<typeof exportEnterpriseAuditSignedJson>>
+>;
+export type ExportEnterpriseAuditSignedJsonMutationBody =
+  BodyType<ExportEnterpriseAuditSignedJsonBody>;
+export type ExportEnterpriseAuditSignedJsonMutationError =
+  ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Download the filtered audit log as a signed JSON bundle (POST keeps the secret out of the URL)
+ */
+export const useExportEnterpriseAuditSignedJson = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof exportEnterpriseAuditSignedJson>>,
+    TError,
+    { data: BodyType<ExportEnterpriseAuditSignedJsonBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof exportEnterpriseAuditSignedJson>>,
+  TError,
+  { data: BodyType<ExportEnterpriseAuditSignedJsonBody> },
+  TContext
+> => {
+  return useMutation(
+    getExportEnterpriseAuditSignedJsonMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Run the daily retention purge across every tenant
+ */
+export const getTickEnterpriseAuditSchedulerUrl = () => {
+  return `/api/admin/enterprise/audit/scheduler/tick`;
+};
+
+export const tickEnterpriseAuditScheduler = async (
+  options?: RequestInit,
+): Promise<AuditSchedulerTickResponse> => {
+  return customFetch<AuditSchedulerTickResponse>(
+    getTickEnterpriseAuditSchedulerUrl(),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getTickEnterpriseAuditSchedulerMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof tickEnterpriseAuditScheduler>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof tickEnterpriseAuditScheduler>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["tickEnterpriseAuditScheduler"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof tickEnterpriseAuditScheduler>>,
+    void
+  > = () => {
+    return tickEnterpriseAuditScheduler(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TickEnterpriseAuditSchedulerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof tickEnterpriseAuditScheduler>>
+>;
+
+export type TickEnterpriseAuditSchedulerMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Run the daily retention purge across every tenant
+ */
+export const useTickEnterpriseAuditScheduler = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof tickEnterpriseAuditScheduler>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof tickEnterpriseAuditScheduler>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getTickEnterpriseAuditSchedulerMutationOptions(options));
+};
+
+/**
+ * @summary Read the audit-log retention policy
+ */
+export const getGetEnterpriseAuditRetentionUrl = () => {
+  return `/api/admin/enterprise/audit/retention`;
+};
+
+export const getEnterpriseAuditRetention = async (
+  options?: RequestInit,
+): Promise<AuditRetentionResponse> => {
+  return customFetch<AuditRetentionResponse>(
+    getGetEnterpriseAuditRetentionUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetEnterpriseAuditRetentionQueryKey = () => {
+  return [`/api/admin/enterprise/audit/retention`] as const;
+};
+
+export const getGetEnterpriseAuditRetentionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEnterpriseAuditRetention>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseAuditRetention>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetEnterpriseAuditRetentionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getEnterpriseAuditRetention>>
+  > = ({ signal }) =>
+    getEnterpriseAuditRetention({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseAuditRetention>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetEnterpriseAuditRetentionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEnterpriseAuditRetention>>
+>;
+export type GetEnterpriseAuditRetentionQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Read the audit-log retention policy
+ */
+
+export function useGetEnterpriseAuditRetention<
+  TData = Awaited<ReturnType<typeof getEnterpriseAuditRetention>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getEnterpriseAuditRetention>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetEnterpriseAuditRetentionQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update the audit-log retention window (in days)
+ */
+export const getSetEnterpriseAuditRetentionUrl = () => {
+  return `/api/admin/enterprise/audit/retention`;
+};
+
+export const setEnterpriseAuditRetention = async (
+  setEnterpriseAuditRetentionBody: SetEnterpriseAuditRetentionBody,
+  options?: RequestInit,
+): Promise<AuditRetentionResponse> => {
+  return customFetch<AuditRetentionResponse>(
+    getSetEnterpriseAuditRetentionUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(setEnterpriseAuditRetentionBody),
+    },
+  );
+};
+
+export const getSetEnterpriseAuditRetentionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setEnterpriseAuditRetention>>,
+    TError,
+    { data: BodyType<SetEnterpriseAuditRetentionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setEnterpriseAuditRetention>>,
+  TError,
+  { data: BodyType<SetEnterpriseAuditRetentionBody> },
+  TContext
+> => {
+  const mutationKey = ["setEnterpriseAuditRetention"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setEnterpriseAuditRetention>>,
+    { data: BodyType<SetEnterpriseAuditRetentionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setEnterpriseAuditRetention(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetEnterpriseAuditRetentionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setEnterpriseAuditRetention>>
+>;
+export type SetEnterpriseAuditRetentionMutationBody =
+  BodyType<SetEnterpriseAuditRetentionBody>;
+export type SetEnterpriseAuditRetentionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update the audit-log retention window (in days)
+ */
+export const useSetEnterpriseAuditRetention = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setEnterpriseAuditRetention>>,
+    TError,
+    { data: BodyType<SetEnterpriseAuditRetentionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setEnterpriseAuditRetention>>,
+  TError,
+  { data: BodyType<SetEnterpriseAuditRetentionBody> },
+  TContext
+> => {
+  return useMutation(getSetEnterpriseAuditRetentionMutationOptions(options));
+};
+
+/**
+ * @summary Manually purge audit entries older than the retention window
+ */
+export const getPurgeEnterpriseAuditLogUrl = () => {
+  return `/api/admin/enterprise/audit/purge`;
+};
+
+export const purgeEnterpriseAuditLog = async (
+  purgeEnterpriseAuditLogBody: PurgeEnterpriseAuditLogBody,
+  options?: RequestInit,
+): Promise<AuditPurgeResponse> => {
+  return customFetch<AuditPurgeResponse>(getPurgeEnterpriseAuditLogUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(purgeEnterpriseAuditLogBody),
+  });
+};
+
+export const getPurgeEnterpriseAuditLogMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof purgeEnterpriseAuditLog>>,
+    TError,
+    { data: BodyType<PurgeEnterpriseAuditLogBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof purgeEnterpriseAuditLog>>,
+  TError,
+  { data: BodyType<PurgeEnterpriseAuditLogBody> },
+  TContext
+> => {
+  const mutationKey = ["purgeEnterpriseAuditLog"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof purgeEnterpriseAuditLog>>,
+    { data: BodyType<PurgeEnterpriseAuditLogBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return purgeEnterpriseAuditLog(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PurgeEnterpriseAuditLogMutationResult = NonNullable<
+  Awaited<ReturnType<typeof purgeEnterpriseAuditLog>>
+>;
+export type PurgeEnterpriseAuditLogMutationBody =
+  BodyType<PurgeEnterpriseAuditLogBody>;
+export type PurgeEnterpriseAuditLogMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Manually purge audit entries older than the retention window
+ */
+export const usePurgeEnterpriseAuditLog = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof purgeEnterpriseAuditLog>>,
+    TError,
+    { data: BodyType<PurgeEnterpriseAuditLogBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof purgeEnterpriseAuditLog>>,
+  TError,
+  { data: BodyType<PurgeEnterpriseAuditLogBody> },
+  TContext
+> => {
+  return useMutation(getPurgeEnterpriseAuditLogMutationOptions(options));
+};
+
+/**
+ * @summary List audit alert rules
+ */
+export const getListEnterpriseAuditAlertRulesUrl = () => {
+  return `/api/admin/enterprise/audit/alert-rules`;
+};
+
+export const listEnterpriseAuditAlertRules = async (
+  options?: RequestInit,
+): Promise<AuditAlertRuleListResponse> => {
+  return customFetch<AuditAlertRuleListResponse>(
+    getListEnterpriseAuditAlertRulesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListEnterpriseAuditAlertRulesQueryKey = () => {
+  return [`/api/admin/enterprise/audit/alert-rules`] as const;
+};
+
+export const getListEnterpriseAuditAlertRulesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEnterpriseAuditAlertRules>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseAuditAlertRules>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListEnterpriseAuditAlertRulesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listEnterpriseAuditAlertRules>>
+  > = ({ signal }) =>
+    listEnterpriseAuditAlertRules({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseAuditAlertRules>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListEnterpriseAuditAlertRulesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEnterpriseAuditAlertRules>>
+>;
+export type ListEnterpriseAuditAlertRulesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List audit alert rules
+ */
+
+export function useListEnterpriseAuditAlertRules<
+  TData = Awaited<ReturnType<typeof listEnterpriseAuditAlertRules>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseAuditAlertRules>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEnterpriseAuditAlertRulesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create an audit alert rule
+ */
+export const getCreateEnterpriseAuditAlertRuleUrl = () => {
+  return `/api/admin/enterprise/audit/alert-rules`;
+};
+
+export const createEnterpriseAuditAlertRule = async (
+  createEnterpriseAuditAlertRuleBody: CreateEnterpriseAuditAlertRuleBody,
+  options?: RequestInit,
+): Promise<AuditAlertRuleResponse> => {
+  return customFetch<AuditAlertRuleResponse>(
+    getCreateEnterpriseAuditAlertRuleUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createEnterpriseAuditAlertRuleBody),
+    },
+  );
+};
+
+export const getCreateEnterpriseAuditAlertRuleMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEnterpriseAuditAlertRule>>,
+    TError,
+    { data: BodyType<CreateEnterpriseAuditAlertRuleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createEnterpriseAuditAlertRule>>,
+  TError,
+  { data: BodyType<CreateEnterpriseAuditAlertRuleBody> },
+  TContext
+> => {
+  const mutationKey = ["createEnterpriseAuditAlertRule"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createEnterpriseAuditAlertRule>>,
+    { data: BodyType<CreateEnterpriseAuditAlertRuleBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createEnterpriseAuditAlertRule(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateEnterpriseAuditAlertRuleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createEnterpriseAuditAlertRule>>
+>;
+export type CreateEnterpriseAuditAlertRuleMutationBody =
+  BodyType<CreateEnterpriseAuditAlertRuleBody>;
+export type CreateEnterpriseAuditAlertRuleMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create an audit alert rule
+ */
+export const useCreateEnterpriseAuditAlertRule = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEnterpriseAuditAlertRule>>,
+    TError,
+    { data: BodyType<CreateEnterpriseAuditAlertRuleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createEnterpriseAuditAlertRule>>,
+  TError,
+  { data: BodyType<CreateEnterpriseAuditAlertRuleBody> },
+  TContext
+> => {
+  return useMutation(getCreateEnterpriseAuditAlertRuleMutationOptions(options));
+};
+
+/**
+ * @summary Update an audit alert rule
+ */
+export const getUpdateEnterpriseAuditAlertRuleUrl = (id: string) => {
+  return `/api/admin/enterprise/audit/alert-rules/${id}`;
+};
+
+export const updateEnterpriseAuditAlertRule = async (
+  id: string,
+  updateEnterpriseAuditAlertRuleBody: UpdateEnterpriseAuditAlertRuleBody,
+  options?: RequestInit,
+): Promise<AuditAlertRuleResponse> => {
+  return customFetch<AuditAlertRuleResponse>(
+    getUpdateEnterpriseAuditAlertRuleUrl(id),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateEnterpriseAuditAlertRuleBody),
+    },
+  );
+};
+
+export const getUpdateEnterpriseAuditAlertRuleMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEnterpriseAuditAlertRule>>,
+    TError,
+    { id: string; data: BodyType<UpdateEnterpriseAuditAlertRuleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEnterpriseAuditAlertRule>>,
+  TError,
+  { id: string; data: BodyType<UpdateEnterpriseAuditAlertRuleBody> },
+  TContext
+> => {
+  const mutationKey = ["updateEnterpriseAuditAlertRule"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEnterpriseAuditAlertRule>>,
+    { id: string; data: BodyType<UpdateEnterpriseAuditAlertRuleBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateEnterpriseAuditAlertRule(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateEnterpriseAuditAlertRuleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEnterpriseAuditAlertRule>>
+>;
+export type UpdateEnterpriseAuditAlertRuleMutationBody =
+  BodyType<UpdateEnterpriseAuditAlertRuleBody>;
+export type UpdateEnterpriseAuditAlertRuleMutationError =
+  ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Update an audit alert rule
+ */
+export const useUpdateEnterpriseAuditAlertRule = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEnterpriseAuditAlertRule>>,
+    TError,
+    { id: string; data: BodyType<UpdateEnterpriseAuditAlertRuleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateEnterpriseAuditAlertRule>>,
+  TError,
+  { id: string; data: BodyType<UpdateEnterpriseAuditAlertRuleBody> },
+  TContext
+> => {
+  return useMutation(getUpdateEnterpriseAuditAlertRuleMutationOptions(options));
+};
+
+/**
+ * @summary Delete an audit alert rule
+ */
+export const getDeleteEnterpriseAuditAlertRuleUrl = (id: string) => {
+  return `/api/admin/enterprise/audit/alert-rules/${id}`;
+};
+
+export const deleteEnterpriseAuditAlertRule = async (
+  id: string,
+  options?: RequestInit,
+): Promise<AdminBoolResponse> => {
+  return customFetch<AdminBoolResponse>(
+    getDeleteEnterpriseAuditAlertRuleUrl(id),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteEnterpriseAuditAlertRuleMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEnterpriseAuditAlertRule>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteEnterpriseAuditAlertRule>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteEnterpriseAuditAlertRule"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteEnterpriseAuditAlertRule>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteEnterpriseAuditAlertRule(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteEnterpriseAuditAlertRuleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteEnterpriseAuditAlertRule>>
+>;
+
+export type DeleteEnterpriseAuditAlertRuleMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete an audit alert rule
+ */
+export const useDeleteEnterpriseAuditAlertRule = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEnterpriseAuditAlertRule>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteEnterpriseAuditAlertRule>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteEnterpriseAuditAlertRuleMutationOptions(options));
+};
+
+/**
+ * @summary Triggered audit alerts
+ */
+export const getListEnterpriseAuditAlertsUrl = (
+  params?: ListEnterpriseAuditAlertsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/enterprise/audit/alerts?${stringifiedParams}`
+    : `/api/admin/enterprise/audit/alerts`;
+};
+
+export const listEnterpriseAuditAlerts = async (
+  params?: ListEnterpriseAuditAlertsParams,
+  options?: RequestInit,
+): Promise<AuditAlertPageResponse> => {
+  return customFetch<AuditAlertPageResponse>(
+    getListEnterpriseAuditAlertsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListEnterpriseAuditAlertsQueryKey = (
+  params?: ListEnterpriseAuditAlertsParams,
+) => {
+  return [
+    `/api/admin/enterprise/audit/alerts`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListEnterpriseAuditAlertsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEnterpriseAuditAlerts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseAuditAlertsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseAuditAlerts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListEnterpriseAuditAlertsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listEnterpriseAuditAlerts>>
+  > = ({ signal }) =>
+    listEnterpriseAuditAlerts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEnterpriseAuditAlerts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListEnterpriseAuditAlertsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEnterpriseAuditAlerts>>
+>;
+export type ListEnterpriseAuditAlertsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Triggered audit alerts
+ */
+
+export function useListEnterpriseAuditAlerts<
+  TData = Awaited<ReturnType<typeof listEnterpriseAuditAlerts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListEnterpriseAuditAlertsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEnterpriseAuditAlerts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEnterpriseAuditAlertsQueryOptions(
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -43483,4 +44585,1054 @@ export const useCancelErasureRequest = <
   TContext
 > => {
   return useMutation(getCancelErasureRequestMutationOptions(options));
+};
+
+/**
+ * @summary Read the org-private skill registry settings
+ */
+export const getGetPrivateRegistrySettingsUrl = () => {
+  return `/api/admin/enterprise/private-registry/settings`;
+};
+
+export const getPrivateRegistrySettings = async (
+  options?: RequestInit,
+): Promise<PrivateRegistrySettingsResponse> => {
+  return customFetch<PrivateRegistrySettingsResponse>(
+    getGetPrivateRegistrySettingsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetPrivateRegistrySettingsQueryKey = () => {
+  return [`/api/admin/enterprise/private-registry/settings`] as const;
+};
+
+export const getGetPrivateRegistrySettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPrivateRegistrySettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPrivateRegistrySettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPrivateRegistrySettingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPrivateRegistrySettings>>
+  > = ({ signal }) => getPrivateRegistrySettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPrivateRegistrySettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPrivateRegistrySettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPrivateRegistrySettings>>
+>;
+export type GetPrivateRegistrySettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Read the org-private skill registry settings
+ */
+
+export function useGetPrivateRegistrySettings<
+  TData = Awaited<ReturnType<typeof getPrivateRegistrySettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPrivateRegistrySettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPrivateRegistrySettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update registry mode, remote URL, signing key, signature enforcement
+ */
+export const getUpdatePrivateRegistrySettingsUrl = () => {
+  return `/api/admin/enterprise/private-registry/settings`;
+};
+
+export const updatePrivateRegistrySettings = async (
+  updatePrivateRegistrySettingsRequest: UpdatePrivateRegistrySettingsRequest,
+  options?: RequestInit,
+): Promise<PrivateRegistrySettingsResponse> => {
+  return customFetch<PrivateRegistrySettingsResponse>(
+    getUpdatePrivateRegistrySettingsUrl(),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updatePrivateRegistrySettingsRequest),
+    },
+  );
+};
+
+export const getUpdatePrivateRegistrySettingsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePrivateRegistrySettings>>,
+    TError,
+    { data: BodyType<UpdatePrivateRegistrySettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePrivateRegistrySettings>>,
+  TError,
+  { data: BodyType<UpdatePrivateRegistrySettingsRequest> },
+  TContext
+> => {
+  const mutationKey = ["updatePrivateRegistrySettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePrivateRegistrySettings>>,
+    { data: BodyType<UpdatePrivateRegistrySettingsRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updatePrivateRegistrySettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePrivateRegistrySettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePrivateRegistrySettings>>
+>;
+export type UpdatePrivateRegistrySettingsMutationBody =
+  BodyType<UpdatePrivateRegistrySettingsRequest>;
+export type UpdatePrivateRegistrySettingsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update registry mode, remote URL, signing key, signature enforcement
+ */
+export const useUpdatePrivateRegistrySettings = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePrivateRegistrySettings>>,
+    TError,
+    { data: BodyType<UpdatePrivateRegistrySettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePrivateRegistrySettings>>,
+  TError,
+  { data: BodyType<UpdatePrivateRegistrySettingsRequest> },
+  TContext
+> => {
+  return useMutation(getUpdatePrivateRegistrySettingsMutationOptions(options));
+};
+
+/**
+ * @summary Pull the manifest from the configured remote registry
+ */
+export const getSyncPrivateRegistryFromRemoteUrl = () => {
+  return `/api/admin/enterprise/private-registry/sync`;
+};
+
+export const syncPrivateRegistryFromRemote = async (
+  options?: RequestInit,
+): Promise<PrivateRegistrySyncResponse> => {
+  return customFetch<PrivateRegistrySyncResponse>(
+    getSyncPrivateRegistryFromRemoteUrl(),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getSyncPrivateRegistryFromRemoteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof syncPrivateRegistryFromRemote>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof syncPrivateRegistryFromRemote>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["syncPrivateRegistryFromRemote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof syncPrivateRegistryFromRemote>>,
+    void
+  > = () => {
+    return syncPrivateRegistryFromRemote(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SyncPrivateRegistryFromRemoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof syncPrivateRegistryFromRemote>>
+>;
+
+export type SyncPrivateRegistryFromRemoteMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Pull the manifest from the configured remote registry
+ */
+export const useSyncPrivateRegistryFromRemote = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof syncPrivateRegistryFromRemote>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof syncPrivateRegistryFromRemote>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSyncPrivateRegistryFromRemoteMutationOptions(options));
+};
+
+/**
+ * @summary List packages in the org-private registry
+ */
+export const getListPrivateSkillPackagesUrl = (
+  params?: ListPrivateSkillPackagesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/enterprise/private-registry/packages?${stringifiedParams}`
+    : `/api/admin/enterprise/private-registry/packages`;
+};
+
+export const listPrivateSkillPackages = async (
+  params?: ListPrivateSkillPackagesParams,
+  options?: RequestInit,
+): Promise<PrivateSkillPackagePageResponse> => {
+  return customFetch<PrivateSkillPackagePageResponse>(
+    getListPrivateSkillPackagesUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListPrivateSkillPackagesQueryKey = (
+  params?: ListPrivateSkillPackagesParams,
+) => {
+  return [
+    `/api/admin/enterprise/private-registry/packages`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListPrivateSkillPackagesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPrivateSkillPackages>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListPrivateSkillPackagesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPrivateSkillPackages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPrivateSkillPackagesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPrivateSkillPackages>>
+  > = ({ signal }) =>
+    listPrivateSkillPackages(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPrivateSkillPackages>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPrivateSkillPackagesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPrivateSkillPackages>>
+>;
+export type ListPrivateSkillPackagesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List packages in the org-private registry
+ */
+
+export function useListPrivateSkillPackages<
+  TData = Awaited<ReturnType<typeof listPrivateSkillPackages>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListPrivateSkillPackagesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPrivateSkillPackages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPrivateSkillPackagesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit a new private skill package version for review
+ */
+export const getSubmitPrivateSkillPackageUrl = () => {
+  return `/api/admin/enterprise/private-registry/packages`;
+};
+
+export const submitPrivateSkillPackage = async (
+  submitPrivateSkillPackageRequest: SubmitPrivateSkillPackageRequest,
+  options?: RequestInit,
+): Promise<PrivateSkillPackageResponse> => {
+  return customFetch<PrivateSkillPackageResponse>(
+    getSubmitPrivateSkillPackageUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(submitPrivateSkillPackageRequest),
+    },
+  );
+};
+
+export const getSubmitPrivateSkillPackageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitPrivateSkillPackage>>,
+    TError,
+    { data: BodyType<SubmitPrivateSkillPackageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitPrivateSkillPackage>>,
+  TError,
+  { data: BodyType<SubmitPrivateSkillPackageRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitPrivateSkillPackage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitPrivateSkillPackage>>,
+    { data: BodyType<SubmitPrivateSkillPackageRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitPrivateSkillPackage(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitPrivateSkillPackageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitPrivateSkillPackage>>
+>;
+export type SubmitPrivateSkillPackageMutationBody =
+  BodyType<SubmitPrivateSkillPackageRequest>;
+export type SubmitPrivateSkillPackageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit a new private skill package version for review
+ */
+export const useSubmitPrivateSkillPackage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitPrivateSkillPackage>>,
+    TError,
+    { data: BodyType<SubmitPrivateSkillPackageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitPrivateSkillPackage>>,
+  TError,
+  { data: BodyType<SubmitPrivateSkillPackageRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitPrivateSkillPackageMutationOptions(options));
+};
+
+/**
+ * @summary Approve a pending package
+ */
+export const getApprovePrivateSkillPackageUrl = (id: string) => {
+  return `/api/admin/enterprise/private-registry/packages/${id}/approve`;
+};
+
+export const approvePrivateSkillPackage = async (
+  id: string,
+  approvePrivateSkillPackageBody?: ApprovePrivateSkillPackageBody,
+  options?: RequestInit,
+): Promise<PrivateSkillPackageResponse> => {
+  return customFetch<PrivateSkillPackageResponse>(
+    getApprovePrivateSkillPackageUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(approvePrivateSkillPackageBody),
+    },
+  );
+};
+
+export const getApprovePrivateSkillPackageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approvePrivateSkillPackage>>,
+    TError,
+    { id: string; data: BodyType<ApprovePrivateSkillPackageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approvePrivateSkillPackage>>,
+  TError,
+  { id: string; data: BodyType<ApprovePrivateSkillPackageBody> },
+  TContext
+> => {
+  const mutationKey = ["approvePrivateSkillPackage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approvePrivateSkillPackage>>,
+    { id: string; data: BodyType<ApprovePrivateSkillPackageBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return approvePrivateSkillPackage(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApprovePrivateSkillPackageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approvePrivateSkillPackage>>
+>;
+export type ApprovePrivateSkillPackageMutationBody =
+  BodyType<ApprovePrivateSkillPackageBody>;
+export type ApprovePrivateSkillPackageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Approve a pending package
+ */
+export const useApprovePrivateSkillPackage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approvePrivateSkillPackage>>,
+    TError,
+    { id: string; data: BodyType<ApprovePrivateSkillPackageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approvePrivateSkillPackage>>,
+  TError,
+  { id: string; data: BodyType<ApprovePrivateSkillPackageBody> },
+  TContext
+> => {
+  return useMutation(getApprovePrivateSkillPackageMutationOptions(options));
+};
+
+/**
+ * @summary Reject a pending package
+ */
+export const getRejectPrivateSkillPackageUrl = (id: string) => {
+  return `/api/admin/enterprise/private-registry/packages/${id}/reject`;
+};
+
+export const rejectPrivateSkillPackage = async (
+  id: string,
+  rejectPrivateSkillPackageBody: RejectPrivateSkillPackageBody,
+  options?: RequestInit,
+): Promise<PrivateSkillPackageResponse> => {
+  return customFetch<PrivateSkillPackageResponse>(
+    getRejectPrivateSkillPackageUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(rejectPrivateSkillPackageBody),
+    },
+  );
+};
+
+export const getRejectPrivateSkillPackageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectPrivateSkillPackage>>,
+    TError,
+    { id: string; data: BodyType<RejectPrivateSkillPackageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rejectPrivateSkillPackage>>,
+  TError,
+  { id: string; data: BodyType<RejectPrivateSkillPackageBody> },
+  TContext
+> => {
+  const mutationKey = ["rejectPrivateSkillPackage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rejectPrivateSkillPackage>>,
+    { id: string; data: BodyType<RejectPrivateSkillPackageBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return rejectPrivateSkillPackage(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RejectPrivateSkillPackageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rejectPrivateSkillPackage>>
+>;
+export type RejectPrivateSkillPackageMutationBody =
+  BodyType<RejectPrivateSkillPackageBody>;
+export type RejectPrivateSkillPackageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reject a pending package
+ */
+export const useRejectPrivateSkillPackage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectPrivateSkillPackage>>,
+    TError,
+    { id: string; data: BodyType<RejectPrivateSkillPackageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rejectPrivateSkillPackage>>,
+  TError,
+  { id: string; data: BodyType<RejectPrivateSkillPackageBody> },
+  TContext
+> => {
+  return useMutation(getRejectPrivateSkillPackageMutationOptions(options));
+};
+
+/**
+ * @summary Push an approved package to every active seat
+ */
+export const getPushPrivateSkillPackageUrl = (id: string) => {
+  return `/api/admin/enterprise/private-registry/packages/${id}/push`;
+};
+
+export const pushPrivateSkillPackage = async (
+  id: string,
+  options?: RequestInit,
+): Promise<PrivateSkillPushResponse> => {
+  return customFetch<PrivateSkillPushResponse>(
+    getPushPrivateSkillPackageUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getPushPrivateSkillPackageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pushPrivateSkillPackage>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pushPrivateSkillPackage>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["pushPrivateSkillPackage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pushPrivateSkillPackage>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return pushPrivateSkillPackage(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PushPrivateSkillPackageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pushPrivateSkillPackage>>
+>;
+
+export type PushPrivateSkillPackageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Push an approved package to every active seat
+ */
+export const usePushPrivateSkillPackage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pushPrivateSkillPackage>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pushPrivateSkillPackage>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getPushPrivateSkillPackageMutationOptions(options));
+};
+
+/**
+ * @summary List private skills visible to the calling member
+ */
+export const getListVisiblePrivateSkillsUrl = () => {
+  return `/api/skills/private`;
+};
+
+export const listVisiblePrivateSkills = async (
+  options?: RequestInit,
+): Promise<PrivateSkillPackageListResponse> => {
+  return customFetch<PrivateSkillPackageListResponse>(
+    getListVisiblePrivateSkillsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListVisiblePrivateSkillsQueryKey = () => {
+  return [`/api/skills/private`] as const;
+};
+
+export const getListVisiblePrivateSkillsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listVisiblePrivateSkills>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listVisiblePrivateSkills>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListVisiblePrivateSkillsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listVisiblePrivateSkills>>
+  > = ({ signal }) => listVisiblePrivateSkills({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listVisiblePrivateSkills>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListVisiblePrivateSkillsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listVisiblePrivateSkills>>
+>;
+export type ListVisiblePrivateSkillsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List private skills visible to the calling member
+ */
+
+export function useListVisiblePrivateSkills<
+  TData = Awaited<ReturnType<typeof listVisiblePrivateSkills>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listVisiblePrivateSkills>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListVisiblePrivateSkillsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List private-skill installations for the caller's tenant
+ */
+export const getListInstalledPrivateSkillsUrl = () => {
+  return `/api/skills/private/installed`;
+};
+
+export const listInstalledPrivateSkills = async (
+  options?: RequestInit,
+): Promise<PrivateSkillInstallationListResponse> => {
+  return customFetch<PrivateSkillInstallationListResponse>(
+    getListInstalledPrivateSkillsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListInstalledPrivateSkillsQueryKey = () => {
+  return [`/api/skills/private/installed`] as const;
+};
+
+export const getListInstalledPrivateSkillsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInstalledPrivateSkills>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInstalledPrivateSkills>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListInstalledPrivateSkillsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listInstalledPrivateSkills>>
+  > = ({ signal }) => listInstalledPrivateSkills({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInstalledPrivateSkills>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListInstalledPrivateSkillsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listInstalledPrivateSkills>>
+>;
+export type ListInstalledPrivateSkillsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List private-skill installations for the caller's tenant
+ */
+
+export function useListInstalledPrivateSkills<
+  TData = Awaited<ReturnType<typeof listInstalledPrivateSkills>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInstalledPrivateSkills>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListInstalledPrivateSkillsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Install a private skill package for the caller's tenant
+ */
+export const getInstallPrivateSkillUrl = (id: string) => {
+  return `/api/skills/private/${id}/install`;
+};
+
+export const installPrivateSkill = async (
+  id: string,
+  options?: RequestInit,
+): Promise<PrivateSkillInstallationResponse> => {
+  return customFetch<PrivateSkillInstallationResponse>(
+    getInstallPrivateSkillUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getInstallPrivateSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installPrivateSkill>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof installPrivateSkill>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["installPrivateSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof installPrivateSkill>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return installPrivateSkill(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InstallPrivateSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof installPrivateSkill>>
+>;
+
+export type InstallPrivateSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Install a private skill package for the caller's tenant
+ */
+export const useInstallPrivateSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installPrivateSkill>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof installPrivateSkill>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getInstallPrivateSkillMutationOptions(options));
+};
+
+/**
+ * @summary Uninstall a private skill (blocked when mandatory)
+ */
+export const getUninstallPrivateSkillUrl = (slug: string) => {
+  return `/api/skills/private/${slug}`;
+};
+
+export const uninstallPrivateSkill = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<PrivateSkillRemovalResponse> => {
+  return customFetch<PrivateSkillRemovalResponse>(
+    getUninstallPrivateSkillUrl(slug),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getUninstallPrivateSkillMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uninstallPrivateSkill>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uninstallPrivateSkill>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  const mutationKey = ["uninstallPrivateSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uninstallPrivateSkill>>,
+    { slug: string }
+  > = (props) => {
+    const { slug } = props ?? {};
+
+    return uninstallPrivateSkill(slug, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UninstallPrivateSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uninstallPrivateSkill>>
+>;
+
+export type UninstallPrivateSkillMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Uninstall a private skill (blocked when mandatory)
+ */
+export const useUninstallPrivateSkill = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uninstallPrivateSkill>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof uninstallPrivateSkill>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  return useMutation(getUninstallPrivateSkillMutationOptions(options));
 };
