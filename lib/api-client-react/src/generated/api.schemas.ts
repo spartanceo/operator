@@ -14,6 +14,262 @@ cookies replace it on `/api/auth/login`.
 
  * OpenAPI spec version: 0.1.0
  */
+export type MdmConfigFieldKind =
+  (typeof MdmConfigFieldKind)[keyof typeof MdmConfigFieldKind];
+
+export const MdmConfigFieldKind = {
+  boolean: "boolean",
+  string: "string",
+  url: "url",
+  enum: "enum",
+  "string-list": "string-list",
+} as const;
+
+export interface MdmConfigField {
+  key: string;
+  kind: MdmConfigFieldKind;
+  label: string;
+  description?: string;
+  defaultValue?: unknown | null;
+  lockable: boolean;
+  options?: string[];
+  plistKey?: string;
+  registryName?: string;
+}
+
+export type MdmSchemaResponseData = {
+  fields: MdmConfigField[];
+};
+
+export interface MdmSchemaResponse {
+  success: boolean;
+  data: MdmSchemaResponseData;
+}
+
+export type MdmProfileViewSource =
+  (typeof MdmProfileViewSource)[keyof typeof MdmProfileViewSource];
+
+export const MdmProfileViewSource = {
+  manual: "manual",
+  jamf: "jamf",
+  intune: "intune",
+  gpo: "gpo",
+  sccm: "sccm",
+} as const;
+
+export type MdmProfileViewValues = { [key: string]: unknown };
+
+export interface MdmProfileView {
+  id: string;
+  source: MdmProfileViewSource;
+  organisationName: string;
+  profileVersion: number;
+  values: MdmProfileViewValues;
+  lockedKeys: string[];
+  lastAppliedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MdmProfileResponseData = {
+  profile: MdmProfileView | null;
+};
+
+export interface MdmProfileResponse {
+  success: boolean;
+  data: MdmProfileResponseData;
+}
+
+export type MdmUpsertProfileRequestSource =
+  (typeof MdmUpsertProfileRequestSource)[keyof typeof MdmUpsertProfileRequestSource];
+
+export const MdmUpsertProfileRequestSource = {
+  manual: "manual",
+  jamf: "jamf",
+  intune: "intune",
+  gpo: "gpo",
+  sccm: "sccm",
+} as const;
+
+export type MdmUpsertProfileRequestValues = { [key: string]: unknown };
+
+export interface MdmUpsertProfileRequest {
+  source?: MdmUpsertProfileRequestSource;
+  /**
+   * @minLength 1
+   * @maxLength 256
+   */
+  organisationName: string;
+  /** @minimum 1 */
+  profileVersion?: number;
+  values?: MdmUpsertProfileRequestValues;
+  lockedKeys?: string[];
+}
+
+export type MdmProfileRemovedResponseData = {
+  removed: boolean;
+};
+
+export interface MdmProfileRemovedResponse {
+  success: boolean;
+  data: MdmProfileRemovedResponseData;
+}
+
+export type MdmEffectiveSettingSource =
+  (typeof MdmEffectiveSettingSource)[keyof typeof MdmEffectiveSettingSource];
+
+export const MdmEffectiveSettingSource = {
+  default: "default",
+  mdm: "mdm",
+} as const;
+
+export interface MdmEffectiveSetting {
+  key: string;
+  value: unknown | null;
+  source: MdmEffectiveSettingSource;
+  locked: boolean;
+}
+
+export type MdmEffectiveSettingsResponseData = {
+  managed: boolean;
+  organisationName?: string | null;
+  profileVersion?: number | null;
+  settings: MdmEffectiveSetting[];
+};
+
+export interface MdmEffectiveSettingsResponse {
+  success: boolean;
+  data: MdmEffectiveSettingsResponseData;
+}
+
+export type MdmInstallerArtifactPlatform =
+  (typeof MdmInstallerArtifactPlatform)[keyof typeof MdmInstallerArtifactPlatform];
+
+export const MdmInstallerArtifactPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+} as const;
+
+export interface MdmInstallerArtifact {
+  id: string;
+  platform: MdmInstallerArtifactPlatform;
+  kind: string;
+  filename: string;
+  version?: string;
+  sha256?: string | null;
+  downloadUrl?: string | null;
+  sizeBytes?: number | null;
+  silentInstallCommand?: string;
+  notes?: string;
+}
+
+export type MdmInstallerListResponseData = {
+  installers: MdmInstallerArtifact[];
+};
+
+export interface MdmInstallerListResponse {
+  success: boolean;
+  data: MdmInstallerListResponseData;
+}
+
+export type MdmFleetBeaconRequestPlatform =
+  (typeof MdmFleetBeaconRequestPlatform)[keyof typeof MdmFleetBeaconRequestPlatform];
+
+export const MdmFleetBeaconRequestPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+  unknown: "unknown",
+} as const;
+
+export type MdmFleetBeaconRequestChannel =
+  (typeof MdmFleetBeaconRequestChannel)[keyof typeof MdmFleetBeaconRequestChannel];
+
+export const MdmFleetBeaconRequestChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export interface MdmFleetBeaconRequest {
+  machineId: string;
+  hostname?: string | null;
+  platform: MdmFleetBeaconRequestPlatform;
+  osVersion?: string | null;
+  appVersion: string;
+  channel?: MdmFleetBeaconRequestChannel;
+  /** @minimum 0 */
+  profileVersion?: number;
+}
+
+export interface MdmFleetDevice {
+  id: string;
+  machineId: string;
+  hostname?: string | null;
+  platform: string;
+  osVersion?: string | null;
+  appVersion: string;
+  channel: string;
+  profileVersion?: number;
+  enrolledAt: string;
+  lastSeenAt: string;
+}
+
+export type MdmFleetDeviceResponseData = {
+  device: MdmFleetDevice;
+};
+
+export interface MdmFleetDeviceResponse {
+  success: boolean;
+  data: MdmFleetDeviceResponseData;
+}
+
+export interface MdmFleetListPage {
+  items: MdmFleetDevice[];
+  nextCursor: string | null;
+}
+
+export interface MdmFleetListResponse {
+  success: boolean;
+  data: MdmFleetListPage;
+}
+
+export type MdmFleetSummaryResponseDataByPlatform = { [key: string]: number };
+
+export type MdmFleetSummaryResponseDataByVersion = { [key: string]: number };
+
+export type MdmFleetSummaryResponseData = {
+  totalDevices: number;
+  byPlatform: MdmFleetSummaryResponseDataByPlatform;
+  byVersion: MdmFleetSummaryResponseDataByVersion;
+  activeWithin24h: number;
+  staleOver7d: number;
+};
+
+export interface MdmFleetSummaryResponse {
+  success: boolean;
+  data: MdmFleetSummaryResponseData;
+}
+
+export type MdmDeploymentGuideResponseDataFormat =
+  (typeof MdmDeploymentGuideResponseDataFormat)[keyof typeof MdmDeploymentGuideResponseDataFormat];
+
+export const MdmDeploymentGuideResponseDataFormat = {
+  markdown: "markdown",
+} as const;
+
+export type MdmDeploymentGuideResponseData = {
+  format: MdmDeploymentGuideResponseDataFormat;
+  content: string;
+};
+
+export interface MdmDeploymentGuideResponse {
+  success: boolean;
+  data: MdmDeploymentGuideResponseData;
+}
+
 export type HealthStatusStatus =
   (typeof HealthStatusStatus)[keyof typeof HealthStatusStatus];
 
@@ -8724,6 +8980,19 @@ export const ListDistributionPermissionsPlatform = {
   linux: "linux",
   unknown: "unknown",
 } as const;
+
+export type ListMdmFleetParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
 
 export type ListDiagnosticErrorsParams = {
   /**

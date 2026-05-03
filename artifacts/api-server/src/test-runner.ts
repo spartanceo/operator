@@ -3014,6 +3014,451 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "mdm: schema enumerates the supported configuration keys",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/mdm/schema")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      const keys = res.body.data.fields.map((f: { key: string }) => f.key);
+      for (const required of [
+        "organisationName",
+        "enterpriseAdminUrl",
+        "ssoProvider",
+        "approvedSkillIds",
+        "airGapMode",
+        "disabledFeatures",
+        "allowAutoUpdate",
+        "telemetryOptOut",
+      ]) {
+        assert.ok(
+          keys.includes(required),
+          `schema missing required key ${required}`,
+        );
+      }
+    },
+  },
+  {
+    name: "mdm: profile defaults to null until upserted",
+    run: async () => {
+      const tenantId = `tenant_mdm_default_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      const res = await request(app)
+        .get("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.profile, null);
+    },
+  },
+  {
+    name: "mdm: PUT /profile validates against the schema",
+    run: async () => {
+      const tenantId = `tenant_mdm_validate_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      // Empty organisationName fails outer Zod
+      const r1 = await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({ organisationName: "", values: {} });
+      assert.equal(r1.status, 400);
+      assert.equal(r1.body.error.code, "VALIDATION");
+      // Unknown key fails service validation
+      const r2 = await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          organisationName: "Acme",
+          values: { unknownKey: "x" },
+        });
+      assert.equal(r2.status, 400);
+      assert.match(r2.body.error.message, /unknown configuration key/i);
+      // Bad URL fails service validation
+      const r3 = await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          organisationName: "Acme",
+          values: { enterpriseAdminUrl: "not-a-url" },
+        });
+      assert.equal(r3.status, 400);
+      assert.match(r3.body.error.message, /absolute URL/i);
+      // Bad enum
+      const r4 = await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          organisationName: "Acme",
+          values: { ssoProvider: "facebook" },
+        });
+      assert.equal(r4.status, 400);
+      assert.match(r4.body.error.message, /not in/i);
+    },
+  },
+  {
+    name: "mdm: upsert persists profile and bumps profileVersion on update",
+    run: async () => {
+      const tenantId = `tenant_mdm_upsert_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      const r1 = await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          source: "jamf",
+          organisationName: "Acme Corp",
+          values: {
+            enterpriseAdminUrl: "https://admin.acme.example.com",
+            ssoProvider: "okta",
+            airGapMode: true,
+            approvedSkillIds: ["sk_email", "sk_calendar"],
+          },
+          lockedKeys: ["airGapMode", "ssoProvider"],
+        });
+      assert.equal(r1.status, 200);
+      assert.equal(r1.body.data.profile.organisationName, "Acme Corp");
+      assert.equal(r1.body.data.profile.source, "jamf");
+      assert.equal(r1.body.data.profile.profileVersion, 1);
+      assert.equal(r1.body.data.profile.values.airGapMode, true);
+      assert.deepEqual(
+        r1.body.data.profile.lockedKeys.sort(),
+        ["airGapMode", "ssoProvider"],
+      );
+      // Update — profileVersion auto-bumps
+      const r2 = await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          source: "jamf",
+          organisationName: "Acme Corp",
+          values: {
+            enterpriseAdminUrl: "https://admin.acme.example.com",
+            airGapMode: false,
+          },
+          lockedKeys: ["airGapMode"],
+        });
+      assert.equal(r2.status, 200);
+      assert.equal(r2.body.data.profile.profileVersion, 2);
+      assert.equal(r2.body.data.profile.values.airGapMode, false);
+    },
+  },
+  {
+    name: "mdm: rejects locking a non-lockable / unknown key",
+    run: async () => {
+      const tenantId = `tenant_mdm_lock_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      const res = await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          organisationName: "Acme",
+          values: {},
+          lockedKeys: ["nonExistentKey"],
+        });
+      assert.equal(res.status, 400);
+      assert.match(res.body.error.message, /unknown key/i);
+    },
+  },
+  {
+    name: "mdm: settings overlay marks MDM-supplied keys with source=mdm and locked",
+    run: async () => {
+      const tenantId = `tenant_mdm_overlay_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          organisationName: "Globex",
+          values: { airGapMode: true, allowAutoUpdate: false },
+          lockedKeys: ["airGapMode"],
+        });
+      const res = await request(app)
+        .get("/api/mdm/settings")
+        .set("X-Tenant-ID", tenantId);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.managed, true);
+      assert.equal(res.body.data.organisationName, "Globex");
+      const map = new Map<string, { source: string; locked: boolean; value: unknown }>(
+        res.body.data.settings.map(
+          (s: { key: string; source: string; locked: boolean; value: unknown }) => [
+            s.key,
+            { source: s.source, locked: s.locked, value: s.value },
+          ],
+        ),
+      );
+      assert.equal(map.get("airGapMode")?.source, "mdm");
+      assert.equal(map.get("airGapMode")?.locked, true);
+      assert.equal(map.get("airGapMode")?.value, true);
+      assert.equal(map.get("allowAutoUpdate")?.source, "mdm");
+      assert.equal(map.get("allowAutoUpdate")?.locked, false);
+      assert.equal(map.get("allowAutoUpdate")?.value, false);
+      // Untouched key falls back to default
+      assert.equal(map.get("telemetryOptOut")?.source, "default");
+      assert.equal(map.get("telemetryOptOut")?.value, false);
+    },
+  },
+  {
+    name: "mdm: profile is tenant-isolated",
+    run: async () => {
+      const t1 = `tenant_mdm_iso_a_${Date.now()}`;
+      const t2 = `tenant_mdm_iso_b_${Date.now()}`;
+      await bootstrapTenant(t1);
+      await bootstrapTenant(t2);
+      await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", t1)
+        .send({ organisationName: "Tenant One", values: {} });
+      const other = await request(app)
+        .get("/api/mdm/profile")
+        .set("X-Tenant-ID", t2);
+      assert.equal(other.body.data.profile, null);
+    },
+  },
+  {
+    name: "mdm: mobileconfig download produces a signed Apple plist",
+    run: async () => {
+      const tenantId = `tenant_mdm_mc_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      const noProfile = await request(app)
+        .get("/api/mdm/profile/mobileconfig")
+        .set("X-Tenant-ID", tenantId);
+      assert.equal(noProfile.status, 404);
+      assert.equal(noProfile.body.error.code, "MDM_NO_PROFILE");
+      await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          organisationName: "Initech",
+          values: { airGapMode: true, ssoProvider: "microsoft" },
+        });
+      const dl = await request(app)
+        .get("/api/mdm/profile/mobileconfig")
+        .set("X-Tenant-ID", tenantId);
+      assert.equal(dl.status, 200);
+      assert.match(dl.headers["content-type"], /apple-aspen-config/);
+      assert.match(dl.text, /<\?xml version="1\.0"/);
+      assert.match(dl.text, /com\.omninity\.operator\.policy/);
+      assert.match(dl.text, /<key>PayloadOrganization<\/key>\s*<string>Initech<\/string>/);
+      assert.match(dl.text, /<key>AirGapMode<\/key>\s*<true\/>/);
+      assert.match(dl.text, /<key>SSOProvider<\/key>\s*<string>microsoft<\/string>/);
+    },
+  },
+  {
+    name: "mdm: registry export emits the correct hive + value types",
+    run: async () => {
+      const tenantId = `tenant_mdm_reg_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      await request(app)
+        .put("/api/mdm/profile")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          organisationName: "Stark",
+          values: {
+            airGapMode: false,
+            allowAutoUpdate: true,
+            approvedSkillIds: ["sk_a", "sk_b"],
+          },
+        });
+      const dl = await request(app)
+        .get("/api/mdm/profile/registry")
+        .set("X-Tenant-ID", tenantId);
+      assert.equal(dl.status, 200);
+      assert.match(
+        dl.text,
+        /\[HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Omninity\\Operator\]/,
+      );
+      assert.match(dl.text, /"OrganisationName"="Stark"/);
+      assert.match(dl.text, /"AirGapMode"=dword:00000000/);
+      assert.match(dl.text, /"AllowAutoUpdate"=dword:00000001/);
+      assert.match(dl.text, /"ApprovedSkillIds"="sk_a,sk_b"/);
+    },
+  },
+  {
+    name: "mdm: ADMX template lists every config key",
+    run: async () => {
+      const dl = await request(app)
+        .get("/api/mdm/profile/admx")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(dl.status, 200);
+      assert.match(dl.text, /<policyDefinitions/);
+      for (const key of [
+        "organisationName",
+        "enterpriseAdminUrl",
+        "ssoProvider",
+        "approvedSkillIds",
+        "airGapMode",
+        "disabledFeatures",
+        "allowAutoUpdate",
+        "telemetryOptOut",
+      ]) {
+        assert.ok(
+          dl.text.includes(`name="${key}"`),
+          `ADMX missing policy for ${key}`,
+        );
+      }
+    },
+  },
+  {
+    name: "mdm: installer catalog covers pkg, msi, mst, and intunewin",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/mdm/installers")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      const ids = res.body.data.installers.map((i: { id: string }) => i.id);
+      assert.ok(ids.includes("macos-pkg"));
+      assert.ok(ids.includes("windows-msi"));
+      assert.ok(ids.includes("windows-mst"));
+      assert.ok(ids.includes("windows-intunewin"));
+      const msi = res.body.data.installers.find(
+        (i: { id: string }) => i.id === "windows-msi",
+      );
+      assert.match(msi.silentInstallCommand, /msiexec \/i .* \/quiet \/norestart/);
+    },
+  },
+  {
+    name: "mdm: intune detection script is valid PowerShell",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/mdm/installers/intune-detection")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.match(res.text, /HKLM:\\SOFTWARE\\Omninity\\Operator/);
+      assert.match(res.text, /exit 0/);
+    },
+  },
+  {
+    name: "mdm: fleet beacon enrolls and updates a device idempotently",
+    run: async () => {
+      const tenantId = `tenant_mdm_fleet_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      const r1 = await request(app)
+        .post("/api/mdm/fleet/beacon")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          machineId: "MACHINE-A",
+          hostname: "ny-laptop-001",
+          platform: "darwin",
+          osVersion: "14.4.1",
+          appVersion: "1.0.0",
+          channel: "stable",
+          profileVersion: 1,
+        });
+      assert.equal(r1.status, 200);
+      assert.equal(r1.body.data.device.appVersion, "1.0.0");
+      const idAfterEnroll = r1.body.data.device.id;
+      // Re-beacon with new version — same row, lastSeenAt advances
+      const r2 = await request(app)
+        .post("/api/mdm/fleet/beacon")
+        .set("X-Tenant-ID", tenantId)
+        .send({
+          machineId: "MACHINE-A",
+          platform: "darwin",
+          appVersion: "1.0.1",
+          profileVersion: 2,
+        });
+      assert.equal(r2.status, 200);
+      assert.equal(r2.body.data.device.id, idAfterEnroll);
+      assert.equal(r2.body.data.device.appVersion, "1.0.1");
+      assert.equal(r2.body.data.device.profileVersion, 2);
+      // Bad payload
+      const bad = await request(app)
+        .post("/api/mdm/fleet/beacon")
+        .set("X-Tenant-ID", tenantId)
+        .send({ machineId: "", platform: "darwin", appVersion: "1" });
+      assert.equal(bad.status, 400);
+    },
+  },
+  {
+    name: "mdm: fleet listing is paginated and tenant-isolated",
+    run: async () => {
+      const t1 = `tenant_mdm_fleetlist_${Date.now()}_a`;
+      const t2 = `tenant_mdm_fleetlist_${Date.now()}_b`;
+      await bootstrapTenant(t1);
+      await bootstrapTenant(t2);
+      for (let i = 0; i < 3; i++) {
+        await request(app)
+          .post("/api/mdm/fleet/beacon")
+          .set("X-Tenant-ID", t1)
+          .send({
+            machineId: `T1-${i}`,
+            platform: "win32",
+            appVersion: "1.0.0",
+          });
+      }
+      await request(app)
+        .post("/api/mdm/fleet/beacon")
+        .set("X-Tenant-ID", t2)
+        .send({
+          machineId: "T2-0",
+          platform: "darwin",
+          appVersion: "1.0.0",
+        });
+      const list1 = await request(app)
+        .get("/api/mdm/fleet?limit=10")
+        .set("X-Tenant-ID", t1);
+      assert.equal(list1.status, 200);
+      assert.equal(list1.body.data.items.length, 3);
+      const list2 = await request(app)
+        .get("/api/mdm/fleet?limit=10")
+        .set("X-Tenant-ID", t2);
+      assert.equal(list2.body.data.items.length, 1);
+      assert.equal(list2.body.data.items[0].machineId, "T2-0");
+    },
+  },
+  {
+    name: "mdm: fleet summary aggregates by platform + version",
+    run: async () => {
+      const tenantId = `tenant_mdm_summary_${Date.now()}`;
+      await bootstrapTenant(tenantId);
+      await request(app)
+        .post("/api/mdm/fleet/beacon")
+        .set("X-Tenant-ID", tenantId)
+        .send({ machineId: "M1", platform: "darwin", appVersion: "1.0.0" });
+      await request(app)
+        .post("/api/mdm/fleet/beacon")
+        .set("X-Tenant-ID", tenantId)
+        .send({ machineId: "M2", platform: "darwin", appVersion: "1.0.1" });
+      await request(app)
+        .post("/api/mdm/fleet/beacon")
+        .set("X-Tenant-ID", tenantId)
+        .send({ machineId: "M3", platform: "win32", appVersion: "1.0.1" });
+      const res = await request(app)
+        .get("/api/mdm/fleet/summary")
+        .set("X-Tenant-ID", tenantId);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.totalDevices, 3);
+      assert.equal(res.body.data.byPlatform.darwin, 2);
+      assert.equal(res.body.data.byPlatform.win32, 1);
+      assert.equal(res.body.data.byVersion["1.0.1"], 2);
+      assert.equal(res.body.data.activeWithin24h, 3);
+      assert.equal(res.body.data.staleOver7d, 0);
+    },
+  },
+  {
+    name: "mdm: deployment guides are served as markdown",
+    run: async () => {
+      const jamf = await request(app)
+        .get("/api/mdm/docs/jamf")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(jamf.status, 200);
+      assert.equal(jamf.body.data.format, "markdown");
+      assert.match(jamf.body.data.content, /Jamf Pro/);
+      const intune = await request(app)
+        .get("/api/mdm/docs/intune")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(intune.status, 200);
+      assert.match(intune.body.data.content, /Microsoft Intune/);
+    },
+  },
+  {
+    name: "mdm: requires X-Tenant-ID header",
+    run: async () => {
+      const res = await request(app).get("/api/mdm/profile");
+      assert.equal(res.status, 401);
+      assert.equal(res.body.error.code, "UNAUTHENTICATED");
+    },
+  },
+  {
     name: "30-day security report aggregates events",
     run: async () => {
       const reportTenant = `tenant_report_${Date.now()}`;

@@ -230,6 +230,7 @@ import type {
   ListIntegrationsParams,
   ListKnowledgeCollectionsParams,
   ListKnowledgeDocumentsParams,
+  ListMdmFleetParams,
   ListMediaAssetsParams,
   ListMemoriesParams,
   ListMobileActivityParams,
@@ -269,6 +270,17 @@ import type {
   MasterPasswordStatusResponse,
   MasterPasswordVerifyRequest,
   MasterPasswordVerifyResponse,
+  MdmDeploymentGuideResponse,
+  MdmEffectiveSettingsResponse,
+  MdmFleetBeaconRequest,
+  MdmFleetDeviceResponse,
+  MdmFleetListResponse,
+  MdmFleetSummaryResponse,
+  MdmInstallerListResponse,
+  MdmProfileRemovedResponse,
+  MdmProfileResponse,
+  MdmSchemaResponse,
+  MdmUpsertProfileRequest,
   MediaAssetDeleteResponse,
   MediaAssetListResponse,
   MediaAssetResponse,
@@ -22174,6 +22186,1184 @@ export const useReportDistributionPermission = <
 > => {
   return useMutation(getReportDistributionPermissionMutationOptions(options));
 };
+
+/**
+ * @summary Configuration field schema for the MDM profile
+ */
+export const getGetMdmSchemaUrl = () => {
+  return `/api/mdm/schema`;
+};
+
+export const getMdmSchema = async (
+  options?: RequestInit,
+): Promise<MdmSchemaResponse> => {
+  return customFetch<MdmSchemaResponse>(getGetMdmSchemaUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMdmSchemaQueryKey = () => {
+  return [`/api/mdm/schema`] as const;
+};
+
+export const getGetMdmSchemaQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMdmSchema>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmSchema>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMdmSchemaQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMdmSchema>>> = ({
+    signal,
+  }) => getMdmSchema({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmSchema>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMdmSchemaQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMdmSchema>>
+>;
+export type GetMdmSchemaQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Configuration field schema for the MDM profile
+ */
+
+export function useGetMdmSchema<
+  TData = Awaited<ReturnType<typeof getMdmSchema>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmSchema>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMdmSchemaQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Active MDM profile for the calling tenant
+ */
+export const getGetMdmProfileUrl = () => {
+  return `/api/mdm/profile`;
+};
+
+export const getMdmProfile = async (
+  options?: RequestInit,
+): Promise<MdmProfileResponse> => {
+  return customFetch<MdmProfileResponse>(getGetMdmProfileUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMdmProfileQueryKey = () => {
+  return [`/api/mdm/profile`] as const;
+};
+
+export const getGetMdmProfileQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMdmProfile>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmProfile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMdmProfileQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMdmProfile>>> = ({
+    signal,
+  }) => getMdmProfile({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmProfile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMdmProfileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMdmProfile>>
+>;
+export type GetMdmProfileQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Active MDM profile for the calling tenant
+ */
+
+export function useGetMdmProfile<
+  TData = Awaited<ReturnType<typeof getMdmProfile>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmProfile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMdmProfileQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Install or update the per-tenant MDM profile
+ */
+export const getUpsertMdmProfileUrl = () => {
+  return `/api/mdm/profile`;
+};
+
+export const upsertMdmProfile = async (
+  mdmUpsertProfileRequest: MdmUpsertProfileRequest,
+  options?: RequestInit,
+): Promise<MdmProfileResponse> => {
+  return customFetch<MdmProfileResponse>(getUpsertMdmProfileUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(mdmUpsertProfileRequest),
+  });
+};
+
+export const getUpsertMdmProfileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertMdmProfile>>,
+    TError,
+    { data: BodyType<MdmUpsertProfileRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertMdmProfile>>,
+  TError,
+  { data: BodyType<MdmUpsertProfileRequest> },
+  TContext
+> => {
+  const mutationKey = ["upsertMdmProfile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertMdmProfile>>,
+    { data: BodyType<MdmUpsertProfileRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return upsertMdmProfile(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertMdmProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertMdmProfile>>
+>;
+export type UpsertMdmProfileMutationBody = BodyType<MdmUpsertProfileRequest>;
+export type UpsertMdmProfileMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Install or update the per-tenant MDM profile
+ */
+export const useUpsertMdmProfile = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertMdmProfile>>,
+    TError,
+    { data: BodyType<MdmUpsertProfileRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertMdmProfile>>,
+  TError,
+  { data: BodyType<MdmUpsertProfileRequest> },
+  TContext
+> => {
+  return useMutation(getUpsertMdmProfileMutationOptions(options));
+};
+
+/**
+ * @summary Remove the MDM profile (un-managed mode)
+ */
+export const getDeleteMdmProfileUrl = () => {
+  return `/api/mdm/profile`;
+};
+
+export const deleteMdmProfile = async (
+  options?: RequestInit,
+): Promise<MdmProfileRemovedResponse> => {
+  return customFetch<MdmProfileRemovedResponse>(getDeleteMdmProfileUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMdmProfileMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMdmProfile>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMdmProfile>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["deleteMdmProfile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMdmProfile>>,
+    void
+  > = () => {
+    return deleteMdmProfile(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMdmProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMdmProfile>>
+>;
+
+export type DeleteMdmProfileMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove the MDM profile (un-managed mode)
+ */
+export const useDeleteMdmProfile = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMdmProfile>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMdmProfile>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteMdmProfileMutationOptions(options));
+};
+
+/**
+ * @summary Effective settings overlay (default vs MDM-supplied, locked flags)
+ */
+export const getGetMdmEffectiveSettingsUrl = () => {
+  return `/api/mdm/settings`;
+};
+
+export const getMdmEffectiveSettings = async (
+  options?: RequestInit,
+): Promise<MdmEffectiveSettingsResponse> => {
+  return customFetch<MdmEffectiveSettingsResponse>(
+    getGetMdmEffectiveSettingsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetMdmEffectiveSettingsQueryKey = () => {
+  return [`/api/mdm/settings`] as const;
+};
+
+export const getGetMdmEffectiveSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMdmEffectiveSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmEffectiveSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMdmEffectiveSettingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMdmEffectiveSettings>>
+  > = ({ signal }) => getMdmEffectiveSettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmEffectiveSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMdmEffectiveSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMdmEffectiveSettings>>
+>;
+export type GetMdmEffectiveSettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Effective settings overlay (default vs MDM-supplied, locked flags)
+ */
+
+export function useGetMdmEffectiveSettings<
+  TData = Awaited<ReturnType<typeof getMdmEffectiveSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmEffectiveSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMdmEffectiveSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download the Apple .mobileconfig profile (for Jamf / Profile Manager)
+ */
+export const getDownloadMdmMobileconfigUrl = () => {
+  return `/api/mdm/profile/mobileconfig`;
+};
+
+export const downloadMdmMobileconfig = async (
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getDownloadMdmMobileconfigUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadMdmMobileconfigQueryKey = () => {
+  return [`/api/mdm/profile/mobileconfig`] as const;
+};
+
+export const getDownloadMdmMobileconfigQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadMdmMobileconfig>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmMobileconfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadMdmMobileconfigQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadMdmMobileconfig>>
+  > = ({ signal }) => downloadMdmMobileconfig({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmMobileconfig>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadMdmMobileconfigQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadMdmMobileconfig>>
+>;
+export type DownloadMdmMobileconfigQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Download the Apple .mobileconfig profile (for Jamf / Profile Manager)
+ */
+
+export function useDownloadMdmMobileconfig<
+  TData = Awaited<ReturnType<typeof downloadMdmMobileconfig>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmMobileconfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadMdmMobileconfigQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download the Windows .reg file (HKLM\SOFTWARE\Policies\Omninity\Operator)
+ */
+export const getDownloadMdmRegistryUrl = () => {
+  return `/api/mdm/profile/registry`;
+};
+
+export const downloadMdmRegistry = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadMdmRegistryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadMdmRegistryQueryKey = () => {
+  return [`/api/mdm/profile/registry`] as const;
+};
+
+export const getDownloadMdmRegistryQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadMdmRegistry>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmRegistry>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadMdmRegistryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadMdmRegistry>>
+  > = ({ signal }) => downloadMdmRegistry({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmRegistry>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadMdmRegistryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadMdmRegistry>>
+>;
+export type DownloadMdmRegistryQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Download the Windows .reg file (HKLM\SOFTWARE\Policies\Omninity\Operator)
+ */
+
+export function useDownloadMdmRegistry<
+  TData = Awaited<ReturnType<typeof downloadMdmRegistry>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmRegistry>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadMdmRegistryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download the Group Policy ADMX template (one policy per config field)
+ */
+export const getDownloadMdmAdmxUrl = () => {
+  return `/api/mdm/profile/admx`;
+};
+
+export const downloadMdmAdmx = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadMdmAdmxUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadMdmAdmxQueryKey = () => {
+  return [`/api/mdm/profile/admx`] as const;
+};
+
+export const getDownloadMdmAdmxQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadMdmAdmx>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmAdmx>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadMdmAdmxQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadMdmAdmx>>> = ({
+    signal,
+  }) => downloadMdmAdmx({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmAdmx>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadMdmAdmxQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadMdmAdmx>>
+>;
+export type DownloadMdmAdmxQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download the Group Policy ADMX template (one policy per config field)
+ */
+
+export function useDownloadMdmAdmx<
+  TData = Awaited<ReturnType<typeof downloadMdmAdmx>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmAdmx>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadMdmAdmxQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Catalog of silent-deployable installer artifacts
+ */
+export const getListMdmInstallersUrl = () => {
+  return `/api/mdm/installers`;
+};
+
+export const listMdmInstallers = async (
+  options?: RequestInit,
+): Promise<MdmInstallerListResponse> => {
+  return customFetch<MdmInstallerListResponse>(getListMdmInstallersUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMdmInstallersQueryKey = () => {
+  return [`/api/mdm/installers`] as const;
+};
+
+export const getListMdmInstallersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMdmInstallers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMdmInstallers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMdmInstallersQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMdmInstallers>>
+  > = ({ signal }) => listMdmInstallers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMdmInstallers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMdmInstallersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMdmInstallers>>
+>;
+export type ListMdmInstallersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Catalog of silent-deployable installer artifacts
+ */
+
+export function useListMdmInstallers<
+  TData = Awaited<ReturnType<typeof listMdmInstallers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMdmInstallers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMdmInstallersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary PowerShell detection script for Microsoft Intune Win32 apps
+ */
+export const getDownloadMdmIntuneDetectionUrl = () => {
+  return `/api/mdm/installers/intune-detection`;
+};
+
+export const downloadMdmIntuneDetection = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadMdmIntuneDetectionUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadMdmIntuneDetectionQueryKey = () => {
+  return [`/api/mdm/installers/intune-detection`] as const;
+};
+
+export const getDownloadMdmIntuneDetectionQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadMdmIntuneDetection>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmIntuneDetection>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadMdmIntuneDetectionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadMdmIntuneDetection>>
+  > = ({ signal }) => downloadMdmIntuneDetection({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmIntuneDetection>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadMdmIntuneDetectionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadMdmIntuneDetection>>
+>;
+export type DownloadMdmIntuneDetectionQueryError = ErrorType<unknown>;
+
+/**
+ * @summary PowerShell detection script for Microsoft Intune Win32 apps
+ */
+
+export function useDownloadMdmIntuneDetection<
+  TData = Awaited<ReturnType<typeof downloadMdmIntuneDetection>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadMdmIntuneDetection>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadMdmIntuneDetectionQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Desktop shell beacons in (enroll on first call, idempotent updates after)
+ */
+export const getRecordMdmFleetBeaconUrl = () => {
+  return `/api/mdm/fleet/beacon`;
+};
+
+export const recordMdmFleetBeacon = async (
+  mdmFleetBeaconRequest: MdmFleetBeaconRequest,
+  options?: RequestInit,
+): Promise<MdmFleetDeviceResponse> => {
+  return customFetch<MdmFleetDeviceResponse>(getRecordMdmFleetBeaconUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(mdmFleetBeaconRequest),
+  });
+};
+
+export const getRecordMdmFleetBeaconMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordMdmFleetBeacon>>,
+    TError,
+    { data: BodyType<MdmFleetBeaconRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordMdmFleetBeacon>>,
+  TError,
+  { data: BodyType<MdmFleetBeaconRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordMdmFleetBeacon"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordMdmFleetBeacon>>,
+    { data: BodyType<MdmFleetBeaconRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordMdmFleetBeacon(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordMdmFleetBeaconMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordMdmFleetBeacon>>
+>;
+export type RecordMdmFleetBeaconMutationBody = BodyType<MdmFleetBeaconRequest>;
+export type RecordMdmFleetBeaconMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Desktop shell beacons in (enroll on first call, idempotent updates after)
+ */
+export const useRecordMdmFleetBeacon = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordMdmFleetBeacon>>,
+    TError,
+    { data: BodyType<MdmFleetBeaconRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordMdmFleetBeacon>>,
+  TError,
+  { data: BodyType<MdmFleetBeaconRequest> },
+  TContext
+> => {
+  return useMutation(getRecordMdmFleetBeaconMutationOptions(options));
+};
+
+/**
+ * @summary Paginated fleet roster (newest beacons first)
+ */
+export const getListMdmFleetUrl = (params?: ListMdmFleetParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/mdm/fleet?${stringifiedParams}`
+    : `/api/mdm/fleet`;
+};
+
+export const listMdmFleet = async (
+  params?: ListMdmFleetParams,
+  options?: RequestInit,
+): Promise<MdmFleetListResponse> => {
+  return customFetch<MdmFleetListResponse>(getListMdmFleetUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMdmFleetQueryKey = (params?: ListMdmFleetParams) => {
+  return [`/api/mdm/fleet`, ...(params ? [params] : [])] as const;
+};
+
+export const getListMdmFleetQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMdmFleet>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMdmFleetParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMdmFleet>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMdmFleetQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMdmFleet>>> = ({
+    signal,
+  }) => listMdmFleet(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMdmFleet>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMdmFleetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMdmFleet>>
+>;
+export type ListMdmFleetQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Paginated fleet roster (newest beacons first)
+ */
+
+export function useListMdmFleet<
+  TData = Awaited<ReturnType<typeof listMdmFleet>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMdmFleetParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMdmFleet>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMdmFleetQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Aggregate fleet status (per-platform, per-version, freshness buckets)
+ */
+export const getGetMdmFleetSummaryUrl = () => {
+  return `/api/mdm/fleet/summary`;
+};
+
+export const getMdmFleetSummary = async (
+  options?: RequestInit,
+): Promise<MdmFleetSummaryResponse> => {
+  return customFetch<MdmFleetSummaryResponse>(getGetMdmFleetSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMdmFleetSummaryQueryKey = () => {
+  return [`/api/mdm/fleet/summary`] as const;
+};
+
+export const getGetMdmFleetSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMdmFleetSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmFleetSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMdmFleetSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMdmFleetSummary>>
+  > = ({ signal }) => getMdmFleetSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmFleetSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMdmFleetSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMdmFleetSummary>>
+>;
+export type GetMdmFleetSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Aggregate fleet status (per-platform, per-version, freshness buckets)
+ */
+
+export function useGetMdmFleetSummary<
+  TData = Awaited<ReturnType<typeof getMdmFleetSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmFleetSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMdmFleetSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Jamf Pro deployment guide (markdown)
+ */
+export const getGetMdmJamfGuideUrl = () => {
+  return `/api/mdm/docs/jamf`;
+};
+
+export const getMdmJamfGuide = async (
+  options?: RequestInit,
+): Promise<MdmDeploymentGuideResponse> => {
+  return customFetch<MdmDeploymentGuideResponse>(getGetMdmJamfGuideUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMdmJamfGuideQueryKey = () => {
+  return [`/api/mdm/docs/jamf`] as const;
+};
+
+export const getGetMdmJamfGuideQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMdmJamfGuide>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmJamfGuide>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMdmJamfGuideQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMdmJamfGuide>>> = ({
+    signal,
+  }) => getMdmJamfGuide({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmJamfGuide>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMdmJamfGuideQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMdmJamfGuide>>
+>;
+export type GetMdmJamfGuideQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Jamf Pro deployment guide (markdown)
+ */
+
+export function useGetMdmJamfGuide<
+  TData = Awaited<ReturnType<typeof getMdmJamfGuide>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmJamfGuide>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMdmJamfGuideQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Microsoft Intune deployment guide (markdown)
+ */
+export const getGetMdmIntuneGuideUrl = () => {
+  return `/api/mdm/docs/intune`;
+};
+
+export const getMdmIntuneGuide = async (
+  options?: RequestInit,
+): Promise<MdmDeploymentGuideResponse> => {
+  return customFetch<MdmDeploymentGuideResponse>(getGetMdmIntuneGuideUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMdmIntuneGuideQueryKey = () => {
+  return [`/api/mdm/docs/intune`] as const;
+};
+
+export const getGetMdmIntuneGuideQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMdmIntuneGuide>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmIntuneGuide>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMdmIntuneGuideQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMdmIntuneGuide>>
+  > = ({ signal }) => getMdmIntuneGuide({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmIntuneGuide>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMdmIntuneGuideQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMdmIntuneGuide>>
+>;
+export type GetMdmIntuneGuideQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Microsoft Intune deployment guide (markdown)
+ */
+
+export function useGetMdmIntuneGuide<
+  TData = Awaited<ReturnType<typeof getMdmIntuneGuide>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMdmIntuneGuide>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMdmIntuneGuideQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Returns the most recent failures captured by the API error handler

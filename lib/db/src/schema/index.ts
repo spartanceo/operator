@@ -76,6 +76,8 @@ export * from "./store-skills";
 export * from "./subscriptions";
 export * from "./skill-preview-counters";
 export * from "./skill-configurations";
+export * from "./mdm-profiles";
+export * from "./mdm-fleet-devices";
 
 export * from "./referral-codes";
 export * from "./referrals";

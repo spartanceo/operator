@@ -58,6 +58,11 @@ tags:
     description: Opt-in analytics, performance metrics, crash reports, and the per-tenant dashboard
   - name: distribution
     description: Platform distribution — code-signing attestation and OS permission flows
+  - name: mdm
+    description: |
+      Enterprise Mobile Device Management — per-tenant configuration profiles
+      (.mobileconfig / Registry / ADMX), Jamf + Intune installer catalog,
+      and fleet status beacons surfaced on the Enterprise Admin portal.
   - name: legal
     description: Legal documents, acceptance ledger, model licences, incident reports, age confirmation
   - name: diagnostics
@@ -5488,6 +5493,267 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /mdm/schema:
+    get:
+      operationId: getMdmSchema
+      tags:
+        - mdm
+      summary: Configuration field schema for the MDM profile
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: MDM config schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmSchemaResponse'
+  /mdm/profile:
+    get:
+      operationId: getMdmProfile
+      tags:
+        - mdm
+      summary: Active MDM profile for the calling tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: MDM profile (or null if none)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmProfileResponse'
+    put:
+      operationId: upsertMdmProfile
+      tags:
+        - mdm
+      summary: Install or update the per-tenant MDM profile
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MdmUpsertProfileRequest'
+      responses:
+        '200':
+          description: Updated MDM profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmProfileResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    delete:
+      operationId: deleteMdmProfile
+      tags:
+        - mdm
+      summary: Remove the MDM profile (un-managed mode)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Removal result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmProfileRemovedResponse'
+  /mdm/settings:
+    get:
+      operationId: getMdmEffectiveSettings
+      tags:
+        - mdm
+      summary: Effective settings overlay (default vs MDM-supplied, locked flags)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Effective settings view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmEffectiveSettingsResponse'
+  /mdm/profile/mobileconfig:
+    get:
+      operationId: downloadMdmMobileconfig
+      tags:
+        - mdm
+      summary: Download the Apple .mobileconfig profile (for Jamf / Profile Manager)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Apple plist
+          content:
+            application/x-apple-aspen-config:
+              schema:
+                type: string
+        '404':
+          description: No profile configured for this tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /mdm/profile/registry:
+    get:
+      operationId: downloadMdmRegistry
+      tags:
+        - mdm
+      summary: Download the Windows .reg file (HKLM\SOFTWARE\Policies\Omninity\Operator)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Windows registry import file
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: No profile configured for this tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /mdm/profile/admx:
+    get:
+      operationId: downloadMdmAdmx
+      tags:
+        - mdm
+      summary: Download the Group Policy ADMX template (one policy per config field)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: ADMX policy XML
+          content:
+            application/xml:
+              schema:
+                type: string
+  /mdm/installers:
+    get:
+      operationId: listMdmInstallers
+      tags:
+        - mdm
+      summary: Catalog of silent-deployable installer artifacts
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Installer catalog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmInstallerListResponse'
+  /mdm/installers/intune-detection:
+    get:
+      operationId: downloadMdmIntuneDetection
+      tags:
+        - mdm
+      summary: PowerShell detection script for Microsoft Intune Win32 apps
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: PowerShell .ps1 detection script
+          content:
+            text/plain:
+              schema:
+                type: string
+  /mdm/fleet/beacon:
+    post:
+      operationId: recordMdmFleetBeacon
+      tags:
+        - mdm
+      summary: Desktop shell beacons in (enroll on first call, idempotent updates after)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MdmFleetBeaconRequest'
+      responses:
+        '200':
+          description: Updated fleet device row
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmFleetDeviceResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /mdm/fleet:
+    get:
+      operationId: listMdmFleet
+      tags:
+        - mdm
+      summary: Paginated fleet roster (newest beacons first)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Fleet device page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmFleetListResponse'
+  /mdm/fleet/summary:
+    get:
+      operationId: getMdmFleetSummary
+      tags:
+        - mdm
+      summary: Aggregate fleet status (per-platform, per-version, freshness buckets)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Fleet summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmFleetSummaryResponse'
+  /mdm/docs/jamf:
+    get:
+      operationId: getMdmJamfGuide
+      tags:
+        - mdm
+      summary: Jamf Pro deployment guide (markdown)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Markdown deployment guide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmDeploymentGuideResponse'
+  /mdm/docs/intune:
+    get:
+      operationId: getMdmIntuneGuide
+      tags:
+        - mdm
+      summary: Microsoft Intune deployment guide (markdown)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Markdown deployment guide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdmDeploymentGuideResponse'
   /diagnostics/errors:
     get:
       operationId: listDiagnosticErrors
@@ -8974,6 +9240,432 @@ components:
         maximum: 100
         default: 20
   schemas:
+    MdmConfigField:
+      type: object
+      required:
+        - key
+        - kind
+        - label
+        - lockable
+      properties:
+        key:
+          type: string
+        kind:
+          type: string
+          enum:
+            - boolean
+            - string
+            - url
+            - enum
+            - string-list
+        label:
+          type: string
+        description:
+          type: string
+        defaultValue:
+          nullable: true
+        lockable:
+          type: boolean
+        options:
+          type: array
+          items:
+            type: string
+        plistKey:
+          type: string
+        registryName:
+          type: string
+    MdmSchemaResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - fields
+          properties:
+            fields:
+              type: array
+              items:
+                $ref: '#/components/schemas/MdmConfigField'
+    MdmProfileView:
+      type: object
+      required:
+        - id
+        - source
+        - organisationName
+        - profileVersion
+        - values
+        - lockedKeys
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+          enum:
+            - manual
+            - jamf
+            - intune
+            - gpo
+            - sccm
+        organisationName:
+          type: string
+        profileVersion:
+          type: integer
+        values:
+          type: object
+          additionalProperties: true
+        lockedKeys:
+          type: array
+          items:
+            type: string
+        lastAppliedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    MdmProfileResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - profile
+          properties:
+            profile:
+              nullable: true
+              allOf:
+                - $ref: '#/components/schemas/MdmProfileView'
+    MdmUpsertProfileRequest:
+      type: object
+      required:
+        - organisationName
+      properties:
+        source:
+          type: string
+          enum:
+            - manual
+            - jamf
+            - intune
+            - gpo
+            - sccm
+        organisationName:
+          type: string
+          minLength: 1
+          maxLength: 256
+        profileVersion:
+          type: integer
+          minimum: 1
+        values:
+          type: object
+          additionalProperties: true
+        lockedKeys:
+          type: array
+          items:
+            type: string
+    MdmProfileRemovedResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - removed
+          properties:
+            removed:
+              type: boolean
+    MdmEffectiveSetting:
+      type: object
+      required:
+        - key
+        - value
+        - source
+        - locked
+      properties:
+        key:
+          type: string
+        value:
+          nullable: true
+        source:
+          type: string
+          enum:
+            - default
+            - mdm
+        locked:
+          type: boolean
+    MdmEffectiveSettingsResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - managed
+            - settings
+          properties:
+            managed:
+              type: boolean
+            organisationName:
+              type: string
+              nullable: true
+            profileVersion:
+              type: integer
+              nullable: true
+            settings:
+              type: array
+              items:
+                $ref: '#/components/schemas/MdmEffectiveSetting'
+    MdmInstallerArtifact:
+      type: object
+      required:
+        - id
+        - platform
+        - kind
+        - filename
+      properties:
+        id:
+          type: string
+        platform:
+          type: string
+          enum:
+            - darwin
+            - win32
+            - linux
+        kind:
+          type: string
+        filename:
+          type: string
+        version:
+          type: string
+        sha256:
+          type: string
+          nullable: true
+        downloadUrl:
+          type: string
+          nullable: true
+        sizeBytes:
+          type: integer
+          nullable: true
+        silentInstallCommand:
+          type: string
+        notes:
+          type: string
+    MdmInstallerListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - installers
+          properties:
+            installers:
+              type: array
+              items:
+                $ref: '#/components/schemas/MdmInstallerArtifact'
+    MdmFleetBeaconRequest:
+      type: object
+      required:
+        - machineId
+        - platform
+        - appVersion
+      properties:
+        machineId:
+          type: string
+        hostname:
+          type: string
+          nullable: true
+        platform:
+          type: string
+          enum:
+            - darwin
+            - win32
+            - linux
+            - unknown
+        osVersion:
+          type: string
+          nullable: true
+        appVersion:
+          type: string
+        channel:
+          type: string
+          enum:
+            - stable
+            - beta
+            - canary
+            - dev
+        profileVersion:
+          type: integer
+          minimum: 0
+    MdmFleetDevice:
+      type: object
+      required:
+        - id
+        - machineId
+        - platform
+        - appVersion
+        - channel
+        - enrolledAt
+        - lastSeenAt
+      properties:
+        id:
+          type: string
+        machineId:
+          type: string
+        hostname:
+          type: string
+          nullable: true
+        platform:
+          type: string
+        osVersion:
+          type: string
+          nullable: true
+        appVersion:
+          type: string
+        channel:
+          type: string
+        profileVersion:
+          type: integer
+        enrolledAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+    MdmFleetDeviceResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - device
+          properties:
+            device:
+              $ref: '#/components/schemas/MdmFleetDevice'
+    MdmFleetListPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MdmFleetDevice'
+        nextCursor:
+          type: string
+          nullable: true
+    MdmFleetListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/MdmFleetListPage'
+    MdmFleetSummaryResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - totalDevices
+            - byPlatform
+            - byVersion
+            - activeWithin24h
+            - staleOver7d
+          properties:
+            totalDevices:
+              type: integer
+            byPlatform:
+              type: object
+              additionalProperties:
+                type: integer
+            byVersion:
+              type: object
+              additionalProperties:
+                type: integer
+            activeWithin24h:
+              type: integer
+            staleOver7d:
+              type: integer
+    MdmDeploymentGuideResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          required:
+            - format
+            - content
+          properties:
+            format:
+              type: string
+              enum:
+                - markdown
+            content:
+              type: string
     HealthStatus:
       type: object
       required:

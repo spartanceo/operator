@@ -10386,6 +10386,382 @@ export const ReportDistributionPermissionResponse = zod.object({
 });
 
 /**
+ * @summary Configuration field schema for the MDM profile
+ */
+export const GetMdmSchemaHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMdmSchemaResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    fields: zod.array(
+      zod.object({
+        key: zod.string(),
+        kind: zod.enum(["boolean", "string", "url", "enum", "string-list"]),
+        label: zod.string(),
+        description: zod.string().optional(),
+        defaultValue: zod.unknown().nullish(),
+        lockable: zod.boolean(),
+        options: zod.array(zod.string()).optional(),
+        plistKey: zod.string().optional(),
+        registryName: zod.string().optional(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Active MDM profile for the calling tenant
+ */
+export const GetMdmProfileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMdmProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    profile: zod
+      .object({
+        id: zod.string(),
+        source: zod.enum(["manual", "jamf", "intune", "gpo", "sccm"]),
+        organisationName: zod.string(),
+        profileVersion: zod.number(),
+        values: zod.record(zod.string(), zod.unknown()),
+        lockedKeys: zod.array(zod.string()),
+        lastAppliedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Install or update the per-tenant MDM profile
+ */
+export const UpsertMdmProfileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const upsertMdmProfileBodyOrganisationNameMax = 256;
+
+export const UpsertMdmProfileBody = zod.object({
+  source: zod.enum(["manual", "jamf", "intune", "gpo", "sccm"]).optional(),
+  organisationName: zod
+    .string()
+    .min(1)
+    .max(upsertMdmProfileBodyOrganisationNameMax),
+  profileVersion: zod.number().min(1).optional(),
+  values: zod.record(zod.string(), zod.unknown()).optional(),
+  lockedKeys: zod.array(zod.string()).optional(),
+});
+
+export const UpsertMdmProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    profile: zod
+      .object({
+        id: zod.string(),
+        source: zod.enum(["manual", "jamf", "intune", "gpo", "sccm"]),
+        organisationName: zod.string(),
+        profileVersion: zod.number(),
+        values: zod.record(zod.string(), zod.unknown()),
+        lockedKeys: zod.array(zod.string()),
+        lastAppliedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .nullable(),
+  }),
+});
+
+/**
+ * @summary Remove the MDM profile (un-managed mode)
+ */
+export const DeleteMdmProfileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteMdmProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    removed: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Effective settings overlay (default vs MDM-supplied, locked flags)
+ */
+export const GetMdmEffectiveSettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMdmEffectiveSettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    managed: zod.boolean(),
+    organisationName: zod.string().nullish(),
+    profileVersion: zod.number().nullish(),
+    settings: zod.array(
+      zod.object({
+        key: zod.string(),
+        value: zod.unknown().nullable(),
+        source: zod.enum(["default", "mdm"]),
+        locked: zod.boolean(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Download the Apple .mobileconfig profile (for Jamf / Profile Manager)
+ */
+export const DownloadMdmMobileconfigHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+/**
+ * @summary Download the Windows .reg file (HKLM\SOFTWARE\Policies\Omninity\Operator)
+ */
+export const DownloadMdmRegistryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+/**
+ * @summary Download the Group Policy ADMX template (one policy per config field)
+ */
+export const DownloadMdmAdmxHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+/**
+ * @summary Catalog of silent-deployable installer artifacts
+ */
+export const ListMdmInstallersHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListMdmInstallersResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    installers: zod.array(
+      zod.object({
+        id: zod.string(),
+        platform: zod.enum(["darwin", "win32", "linux"]),
+        kind: zod.string(),
+        filename: zod.string(),
+        version: zod.string().optional(),
+        sha256: zod.string().nullish(),
+        downloadUrl: zod.string().nullish(),
+        sizeBytes: zod.number().nullish(),
+        silentInstallCommand: zod.string().optional(),
+        notes: zod.string().optional(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary PowerShell detection script for Microsoft Intune Win32 apps
+ */
+export const DownloadMdmIntuneDetectionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+/**
+ * @summary Desktop shell beacons in (enroll on first call, idempotent updates after)
+ */
+export const RecordMdmFleetBeaconHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const recordMdmFleetBeaconBodyProfileVersionMin = 0;
+
+export const RecordMdmFleetBeaconBody = zod.object({
+  machineId: zod.string(),
+  hostname: zod.string().nullish(),
+  platform: zod.enum(["darwin", "win32", "linux", "unknown"]),
+  osVersion: zod.string().nullish(),
+  appVersion: zod.string(),
+  channel: zod.enum(["stable", "beta", "canary", "dev"]).optional(),
+  profileVersion: zod
+    .number()
+    .min(recordMdmFleetBeaconBodyProfileVersionMin)
+    .optional(),
+});
+
+export const RecordMdmFleetBeaconResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    device: zod.object({
+      id: zod.string(),
+      machineId: zod.string(),
+      hostname: zod.string().nullish(),
+      platform: zod.string(),
+      osVersion: zod.string().nullish(),
+      appVersion: zod.string(),
+      channel: zod.string(),
+      profileVersion: zod.number().optional(),
+      enrolledAt: zod.coerce.date(),
+      lastSeenAt: zod.coerce.date(),
+    }),
+  }),
+});
+
+/**
+ * @summary Paginated fleet roster (newest beacons first)
+ */
+export const listMdmFleetQueryLimitDefault = 20;
+export const listMdmFleetQueryLimitMax = 100;
+
+export const ListMdmFleetQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listMdmFleetQueryLimitMax)
+    .default(listMdmFleetQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListMdmFleetHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListMdmFleetResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        machineId: zod.string(),
+        hostname: zod.string().nullish(),
+        platform: zod.string(),
+        osVersion: zod.string().nullish(),
+        appVersion: zod.string(),
+        channel: zod.string(),
+        profileVersion: zod.number().optional(),
+        enrolledAt: zod.coerce.date(),
+        lastSeenAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Aggregate fleet status (per-platform, per-version, freshness buckets)
+ */
+export const GetMdmFleetSummaryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMdmFleetSummaryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    totalDevices: zod.number(),
+    byPlatform: zod.record(zod.string(), zod.number()),
+    byVersion: zod.record(zod.string(), zod.number()),
+    activeWithin24h: zod.number(),
+    staleOver7d: zod.number(),
+  }),
+});
+
+/**
+ * @summary Jamf Pro deployment guide (markdown)
+ */
+export const GetMdmJamfGuideHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMdmJamfGuideResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    format: zod.enum(["markdown"]),
+    content: zod.string(),
+  }),
+});
+
+/**
+ * @summary Microsoft Intune deployment guide (markdown)
+ */
+export const GetMdmIntuneGuideHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetMdmIntuneGuideResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    format: zod.enum(["markdown"]),
+    content: zod.string(),
+  }),
+});
+
+/**
  * Returns the most recent failures captured by the API error handler
 (Task #31 — Error Handling & Graceful Degradation). Newest first.
 The list is bounded; consumers should poll, not subscribe.
