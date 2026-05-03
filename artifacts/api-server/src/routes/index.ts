@@ -31,6 +31,7 @@ import telemetryRouter from "./telemetry";
 import toolsRouter from "./tools";
 import undoRouter from "./undo";
 import updatesRouter from "./updates";
+import workspacesRouter from "./workspaces";
 
 const router: IRouter = Router();
 
@@ -61,5 +62,6 @@ router.use("/activity", activityRouter);
 router.use("/mobile", mobileRouter);
 router.use("/telemetry", telemetryRouter);
 router.use("/undo", undoRouter);
+router.use("/workspaces", workspacesRouter);
 
 export default router;

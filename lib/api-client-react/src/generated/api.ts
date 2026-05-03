@@ -89,7 +89,9 @@ import type {
   CreateNotificationRequest,
   CreateOutreachSequenceRequest,
   CreatePrivacyEventRequest,
+  CreateWorkspaceRequest,
   DeleteConversationResponse,
+  DeleteWorkspaceParams,
   DesktopFeatureResponse,
   DesktopScreenResponse,
   DesktopSessionListResponse,
@@ -121,6 +123,7 @@ import type {
   GenerateVideoRequest,
   HardwareCapabilitiesResponse,
   HealthCheckResponse,
+  ImportWorkspaceRequest,
   IncidentReportListResponse,
   IncidentReportResponse,
   IngestEmailMessageRequest,
@@ -185,8 +188,6 @@ import type {
   ListPrivacyEventsParams,
   ListTelemetryEventsParams,
   ListToolsParams,
-  ListUndoActionsParams,
-  ListUndoTaskActionsParams,
   ListVoipCallsParams,
   LoginRequest,
   MasterPasswordSetRequest,
@@ -281,17 +282,13 @@ import type {
   ToolInvokeRequest,
   ToolInvokeResponse,
   ToolListResponse,
-  UndoActionListResponse,
-  UndoActionResponse,
-  UndoActionTypesResponse,
-  UndoTaskRequest,
-  UndoTaskResponse,
   UpdateCalendarEventRequest,
   UpdateCheckResponse,
   UpdateContactRequest,
   UpdateConversationRequest,
   UpdateTelemetryConsentRequest,
   UpdateVoipCallStatusRequest,
+  UpdateWorkspaceRequest,
   UpscaleImageRequest,
   UpsertAgeConfirmationRequest,
   UpsertOnboardingProfileRequest,
@@ -303,6 +300,11 @@ import type {
   WebhookSecretCreatedResponse,
   WebhookSecretListResponse,
   WebhookSecretRevokeResponse,
+  WorkspaceDeleteResponse,
+  WorkspaceListResponse,
+  WorkspaceOverviewResponse,
+  WorkspaceResponse,
+  WorkspaceTemplateResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -4920,6 +4922,797 @@ export const useDeleteMemory = <
 > => {
   return useMutation(getDeleteMemoryMutationOptions(options));
 };
+
+/**
+ * @summary List workspaces in the current tenant
+ */
+export const getListWorkspacesUrl = () => {
+  return `/api/workspaces`;
+};
+
+export const listWorkspaces = async (
+  options?: RequestInit,
+): Promise<WorkspaceListResponse> => {
+  return customFetch<WorkspaceListResponse>(getListWorkspacesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListWorkspacesQueryKey = () => {
+  return [`/api/workspaces`] as const;
+};
+
+export const getListWorkspacesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWorkspaces>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkspaces>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListWorkspacesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listWorkspaces>>> = ({
+    signal,
+  }) => listWorkspaces({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkspaces>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListWorkspacesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWorkspaces>>
+>;
+export type ListWorkspacesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List workspaces in the current tenant
+ */
+
+export function useListWorkspaces<
+  TData = Awaited<ReturnType<typeof listWorkspaces>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkspaces>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListWorkspacesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a workspace
+ */
+export const getCreateWorkspaceUrl = () => {
+  return `/api/workspaces`;
+};
+
+export const createWorkspace = async (
+  createWorkspaceRequest: CreateWorkspaceRequest,
+  options?: RequestInit,
+): Promise<WorkspaceResponse> => {
+  return customFetch<WorkspaceResponse>(getCreateWorkspaceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createWorkspaceRequest),
+  });
+};
+
+export const getCreateWorkspaceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWorkspace>>,
+    TError,
+    { data: BodyType<CreateWorkspaceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createWorkspace>>,
+  TError,
+  { data: BodyType<CreateWorkspaceRequest> },
+  TContext
+> => {
+  const mutationKey = ["createWorkspace"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createWorkspace>>,
+    { data: BodyType<CreateWorkspaceRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createWorkspace(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateWorkspaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createWorkspace>>
+>;
+export type CreateWorkspaceMutationBody = BodyType<CreateWorkspaceRequest>;
+export type CreateWorkspaceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a workspace
+ */
+export const useCreateWorkspace = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWorkspace>>,
+    TError,
+    { data: BodyType<CreateWorkspaceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createWorkspace>>,
+  TError,
+  { data: BodyType<CreateWorkspaceRequest> },
+  TContext
+> => {
+  return useMutation(getCreateWorkspaceMutationOptions(options));
+};
+
+/**
+ * @summary Import a workspace template
+ */
+export const getImportWorkspaceUrl = () => {
+  return `/api/workspaces/import`;
+};
+
+export const importWorkspace = async (
+  importWorkspaceRequest: ImportWorkspaceRequest,
+  options?: RequestInit,
+): Promise<WorkspaceResponse> => {
+  return customFetch<WorkspaceResponse>(getImportWorkspaceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importWorkspaceRequest),
+  });
+};
+
+export const getImportWorkspaceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importWorkspace>>,
+    TError,
+    { data: BodyType<ImportWorkspaceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importWorkspace>>,
+  TError,
+  { data: BodyType<ImportWorkspaceRequest> },
+  TContext
+> => {
+  const mutationKey = ["importWorkspace"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importWorkspace>>,
+    { data: BodyType<ImportWorkspaceRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importWorkspace(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportWorkspaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importWorkspace>>
+>;
+export type ImportWorkspaceMutationBody = BodyType<ImportWorkspaceRequest>;
+export type ImportWorkspaceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Import a workspace template
+ */
+export const useImportWorkspace = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importWorkspace>>,
+    TError,
+    { data: BodyType<ImportWorkspaceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importWorkspace>>,
+  TError,
+  { data: BodyType<ImportWorkspaceRequest> },
+  TContext
+> => {
+  return useMutation(getImportWorkspaceMutationOptions(options));
+};
+
+/**
+ * @summary Fetch one workspace
+ */
+export const getGetWorkspaceUrl = (id: string) => {
+  return `/api/workspaces/${id}`;
+};
+
+export const getWorkspace = async (
+  id: string,
+  options?: RequestInit,
+): Promise<WorkspaceResponse> => {
+  return customFetch<WorkspaceResponse>(getGetWorkspaceUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWorkspaceQueryKey = (id: string) => {
+  return [`/api/workspaces/${id}`] as const;
+};
+
+export const getGetWorkspaceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWorkspace>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkspace>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetWorkspaceQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkspace>>> = ({
+    signal,
+  }) => getWorkspace(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkspace>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWorkspaceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWorkspace>>
+>;
+export type GetWorkspaceQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one workspace
+ */
+
+export function useGetWorkspace<
+  TData = Awaited<ReturnType<typeof getWorkspace>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkspace>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWorkspaceQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Rename / re-style / re-default a workspace
+ */
+export const getUpdateWorkspaceUrl = (id: string) => {
+  return `/api/workspaces/${id}`;
+};
+
+export const updateWorkspace = async (
+  id: string,
+  updateWorkspaceRequest: UpdateWorkspaceRequest,
+  options?: RequestInit,
+): Promise<WorkspaceResponse> => {
+  return customFetch<WorkspaceResponse>(getUpdateWorkspaceUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateWorkspaceRequest),
+  });
+};
+
+export const getUpdateWorkspaceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateWorkspace>>,
+    TError,
+    { id: string; data: BodyType<UpdateWorkspaceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateWorkspace>>,
+  TError,
+  { id: string; data: BodyType<UpdateWorkspaceRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateWorkspace"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateWorkspace>>,
+    { id: string; data: BodyType<UpdateWorkspaceRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateWorkspace(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateWorkspaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateWorkspace>>
+>;
+export type UpdateWorkspaceMutationBody = BodyType<UpdateWorkspaceRequest>;
+export type UpdateWorkspaceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Rename / re-style / re-default a workspace
+ */
+export const useUpdateWorkspace = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateWorkspace>>,
+    TError,
+    { id: string; data: BodyType<UpdateWorkspaceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateWorkspace>>,
+  TError,
+  { id: string; data: BodyType<UpdateWorkspaceRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateWorkspaceMutationOptions(options));
+};
+
+/**
+ * @summary Delete a workspace (requires ?confirm=true)
+ */
+export const getDeleteWorkspaceUrl = (
+  id: string,
+  params?: DeleteWorkspaceParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/workspaces/${id}?${stringifiedParams}`
+    : `/api/workspaces/${id}`;
+};
+
+export const deleteWorkspace = async (
+  id: string,
+  params?: DeleteWorkspaceParams,
+  options?: RequestInit,
+): Promise<WorkspaceDeleteResponse> => {
+  return customFetch<WorkspaceDeleteResponse>(
+    getDeleteWorkspaceUrl(id, params),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteWorkspaceMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteWorkspace>>,
+    TError,
+    { id: string; params?: DeleteWorkspaceParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteWorkspace>>,
+  TError,
+  { id: string; params?: DeleteWorkspaceParams },
+  TContext
+> => {
+  const mutationKey = ["deleteWorkspace"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteWorkspace>>,
+    { id: string; params?: DeleteWorkspaceParams }
+  > = (props) => {
+    const { id, params } = props ?? {};
+
+    return deleteWorkspace(id, params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteWorkspaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteWorkspace>>
+>;
+
+export type DeleteWorkspaceMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Delete a workspace (requires ?confirm=true)
+ */
+export const useDeleteWorkspace = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteWorkspace>>,
+    TError,
+    { id: string; params?: DeleteWorkspaceParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteWorkspace>>,
+  TError,
+  { id: string; params?: DeleteWorkspaceParams },
+  TContext
+> => {
+  return useMutation(getDeleteWorkspaceMutationOptions(options));
+};
+
+/**
+ * @summary Touch lastActiveAt when the user switches into a workspace
+ */
+export const getActivateWorkspaceUrl = (id: string) => {
+  return `/api/workspaces/${id}/activate`;
+};
+
+export const activateWorkspace = async (
+  id: string,
+  options?: RequestInit,
+): Promise<WorkspaceResponse> => {
+  return customFetch<WorkspaceResponse>(getActivateWorkspaceUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getActivateWorkspaceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof activateWorkspace>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof activateWorkspace>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["activateWorkspace"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof activateWorkspace>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return activateWorkspace(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ActivateWorkspaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof activateWorkspace>>
+>;
+
+export type ActivateWorkspaceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Touch lastActiveAt when the user switches into a workspace
+ */
+export const useActivateWorkspace = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof activateWorkspace>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof activateWorkspace>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getActivateWorkspaceMutationOptions(options));
+};
+
+/**
+ * @summary Stats and metadata for a workspace
+ */
+export const getGetWorkspaceOverviewUrl = (id: string) => {
+  return `/api/workspaces/${id}/overview`;
+};
+
+export const getWorkspaceOverview = async (
+  id: string,
+  options?: RequestInit,
+): Promise<WorkspaceOverviewResponse> => {
+  return customFetch<WorkspaceOverviewResponse>(
+    getGetWorkspaceOverviewUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetWorkspaceOverviewQueryKey = (id: string) => {
+  return [`/api/workspaces/${id}/overview`] as const;
+};
+
+export const getGetWorkspaceOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWorkspaceOverview>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkspaceOverview>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetWorkspaceOverviewQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWorkspaceOverview>>
+  > = ({ signal }) => getWorkspaceOverview(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkspaceOverview>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWorkspaceOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWorkspaceOverview>>
+>;
+export type GetWorkspaceOverviewQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Stats and metadata for a workspace
+ */
+
+export function useGetWorkspaceOverview<
+  TData = Awaited<ReturnType<typeof getWorkspaceOverview>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkspaceOverview>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWorkspaceOverviewQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Export workspace configuration (no personal data)
+ */
+export const getExportWorkspaceTemplateUrl = (id: string) => {
+  return `/api/workspaces/${id}/export`;
+};
+
+export const exportWorkspaceTemplate = async (
+  id: string,
+  options?: RequestInit,
+): Promise<WorkspaceTemplateResponse> => {
+  return customFetch<WorkspaceTemplateResponse>(
+    getExportWorkspaceTemplateUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getExportWorkspaceTemplateQueryKey = (id: string) => {
+  return [`/api/workspaces/${id}/export`] as const;
+};
+
+export const getExportWorkspaceTemplateQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportWorkspaceTemplate>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportWorkspaceTemplate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getExportWorkspaceTemplateQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportWorkspaceTemplate>>
+  > = ({ signal }) =>
+    exportWorkspaceTemplate(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportWorkspaceTemplate>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportWorkspaceTemplateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportWorkspaceTemplate>>
+>;
+export type ExportWorkspaceTemplateQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Export workspace configuration (no personal data)
+ */
+
+export function useExportWorkspaceTemplate<
+  TData = Awaited<ReturnType<typeof exportWorkspaceTemplate>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportWorkspaceTemplate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportWorkspaceTemplateQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List entries inside the workspace sandbox
@@ -18338,553 +19131,6 @@ export function useGetDiagnosticCatalog<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetDiagnosticCatalogQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Paginated undo history for the current tenant
- */
-export const getListUndoActionsUrl = (params?: ListUndoActionsParams) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/api/undo/actions?${stringifiedParams}`
-    : `/api/undo/actions`;
-};
-
-export const listUndoActions = async (
-  params?: ListUndoActionsParams,
-  options?: RequestInit,
-): Promise<UndoActionListResponse> => {
-  return customFetch<UndoActionListResponse>(getListUndoActionsUrl(params), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getListUndoActionsQueryKey = (params?: ListUndoActionsParams) => {
-  return [`/api/undo/actions`, ...(params ? [params] : [])] as const;
-};
-
-export const getListUndoActionsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listUndoActions>>,
-  TError = ErrorType<unknown>,
->(
-  params?: ListUndoActionsParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listUndoActions>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getListUndoActionsQueryKey(params);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listUndoActions>>> = ({
-    signal,
-  }) => listUndoActions(params, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listUndoActions>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type ListUndoActionsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listUndoActions>>
->;
-export type ListUndoActionsQueryError = ErrorType<unknown>;
-
-/**
- * @summary Paginated undo history for the current tenant
- */
-
-export function useListUndoActions<
-  TData = Awaited<ReturnType<typeof listUndoActions>>,
-  TError = ErrorType<unknown>,
->(
-  params?: ListUndoActionsParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listUndoActions>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListUndoActionsQueryOptions(params, options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Fetch one undo action
- */
-export const getGetUndoActionUrl = (id: string) => {
-  return `/api/undo/actions/${id}`;
-};
-
-export const getUndoAction = async (
-  id: string,
-  options?: RequestInit,
-): Promise<UndoActionResponse> => {
-  return customFetch<UndoActionResponse>(getGetUndoActionUrl(id), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getGetUndoActionQueryKey = (id: string) => {
-  return [`/api/undo/actions/${id}`] as const;
-};
-
-export const getGetUndoActionQueryOptions = <
-  TData = Awaited<ReturnType<typeof getUndoAction>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  id: string,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getUndoAction>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetUndoActionQueryKey(id);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUndoAction>>> = ({
-    signal,
-  }) => getUndoAction(id, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!id,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getUndoAction>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetUndoActionQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getUndoAction>>
->;
-export type GetUndoActionQueryError = ErrorType<ApiErrorResponse>;
-
-/**
- * @summary Fetch one undo action
- */
-
-export function useGetUndoAction<
-  TData = Awaited<ReturnType<typeof getUndoAction>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  id: string,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getUndoAction>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetUndoActionQueryOptions(id, options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Reverse one recorded action
- */
-export const getUndoActionUrl = (id: string) => {
-  return `/api/undo/actions/${id}/undo`;
-};
-
-export const undoAction = async (
-  id: string,
-  options?: RequestInit,
-): Promise<UndoActionResponse> => {
-  return customFetch<UndoActionResponse>(getUndoActionUrl(id), {
-    ...options,
-    method: "POST",
-  });
-};
-
-export const getUndoActionMutationOptions = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof undoAction>>,
-    TError,
-    { id: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof undoAction>>,
-  TError,
-  { id: string },
-  TContext
-> => {
-  const mutationKey = ["undoAction"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof undoAction>>,
-    { id: string }
-  > = (props) => {
-    const { id } = props ?? {};
-
-    return undoAction(id, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UndoActionMutationResult = NonNullable<
-  Awaited<ReturnType<typeof undoAction>>
->;
-
-export type UndoActionMutationError = ErrorType<ApiErrorResponse>;
-
-/**
- * @summary Reverse one recorded action
- */
-export const useUndoAction = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof undoAction>>,
-    TError,
-    { id: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof undoAction>>,
-  TError,
-  { id: string },
-  TContext
-> => {
-  return useMutation(getUndoActionMutationOptions(options));
-};
-
-/**
- * @summary Reverse every reversible action belonging to a task
- */
-export const getUndoTaskUrl = (taskId: string) => {
-  return `/api/undo/tasks/${taskId}/undo`;
-};
-
-export const undoTask = async (
-  taskId: string,
-  undoTaskRequest: UndoTaskRequest,
-  options?: RequestInit,
-): Promise<UndoTaskResponse> => {
-  return customFetch<UndoTaskResponse>(getUndoTaskUrl(taskId), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(undoTaskRequest),
-  });
-};
-
-export const getUndoTaskMutationOptions = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof undoTask>>,
-    TError,
-    { taskId: string; data: BodyType<UndoTaskRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof undoTask>>,
-  TError,
-  { taskId: string; data: BodyType<UndoTaskRequest> },
-  TContext
-> => {
-  const mutationKey = ["undoTask"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof undoTask>>,
-    { taskId: string; data: BodyType<UndoTaskRequest> }
-  > = (props) => {
-    const { taskId, data } = props ?? {};
-
-    return undoTask(taskId, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UndoTaskMutationResult = NonNullable<
-  Awaited<ReturnType<typeof undoTask>>
->;
-export type UndoTaskMutationBody = BodyType<UndoTaskRequest>;
-export type UndoTaskMutationError = ErrorType<ApiErrorResponse>;
-
-/**
- * @summary Reverse every reversible action belonging to a task
- */
-export const useUndoTask = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof undoTask>>,
-    TError,
-    { taskId: string; data: BodyType<UndoTaskRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof undoTask>>,
-  TError,
-  { taskId: string; data: BodyType<UndoTaskRequest> },
-  TContext
-> => {
-  return useMutation(getUndoTaskMutationOptions(options));
-};
-
-/**
- * @summary List the undo actions belonging to a task
- */
-export const getListUndoTaskActionsUrl = (
-  taskId: string,
-  params?: ListUndoTaskActionsParams,
-) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/api/undo/tasks/${taskId}/actions?${stringifiedParams}`
-    : `/api/undo/tasks/${taskId}/actions`;
-};
-
-export const listUndoTaskActions = async (
-  taskId: string,
-  params?: ListUndoTaskActionsParams,
-  options?: RequestInit,
-): Promise<UndoActionListResponse> => {
-  return customFetch<UndoActionListResponse>(
-    getListUndoTaskActionsUrl(taskId, params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
-
-export const getListUndoTaskActionsQueryKey = (
-  taskId: string,
-  params?: ListUndoTaskActionsParams,
-) => {
-  return [
-    `/api/undo/tasks/${taskId}/actions`,
-    ...(params ? [params] : []),
-  ] as const;
-};
-
-export const getListUndoTaskActionsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listUndoTaskActions>>,
-  TError = ErrorType<unknown>,
->(
-  taskId: string,
-  params?: ListUndoTaskActionsParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listUndoTaskActions>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getListUndoTaskActionsQueryKey(taskId, params);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof listUndoTaskActions>>
-  > = ({ signal }) =>
-    listUndoTaskActions(taskId, params, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!taskId,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof listUndoTaskActions>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type ListUndoTaskActionsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listUndoTaskActions>>
->;
-export type ListUndoTaskActionsQueryError = ErrorType<unknown>;
-
-/**
- * @summary List the undo actions belonging to a task
- */
-
-export function useListUndoTaskActions<
-  TData = Awaited<ReturnType<typeof listUndoTaskActions>>,
-  TError = ErrorType<unknown>,
->(
-  taskId: string,
-  params?: ListUndoTaskActionsParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listUndoTaskActions>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListUndoTaskActionsQueryOptions(
-    taskId,
-    params,
-    options,
-  );
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Static catalog of reversible / irreversible action types
- */
-export const getListUndoActionTypesUrl = () => {
-  return `/api/undo/irreversible-types`;
-};
-
-export const listUndoActionTypes = async (
-  options?: RequestInit,
-): Promise<UndoActionTypesResponse> => {
-  return customFetch<UndoActionTypesResponse>(getListUndoActionTypesUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getListUndoActionTypesQueryKey = () => {
-  return [`/api/undo/irreversible-types`] as const;
-};
-
-export const getListUndoActionTypesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listUndoActionTypes>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listUndoActionTypes>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getListUndoActionTypesQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof listUndoActionTypes>>
-  > = ({ signal }) => listUndoActionTypes({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listUndoActionTypes>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type ListUndoActionTypesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listUndoActionTypes>>
->;
-export type ListUndoActionTypesQueryError = ErrorType<unknown>;
-
-/**
- * @summary Static catalog of reversible / irreversible action types
- */
-
-export function useListUndoActionTypes<
-  TData = Awaited<ReturnType<typeof listUndoActionTypes>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listUndoActionTypes>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListUndoActionTypesQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

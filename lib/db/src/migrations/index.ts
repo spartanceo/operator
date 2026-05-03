@@ -26,6 +26,7 @@ import { migration as m0012 } from "./0012_telemetry";
 import { migration as m0013 } from "./0013_legal_compliance";
 import { migration as m0014 } from "./0014_conversations";
 import { migration as m0015 } from "./0015_undo_actions";
+import { migration as m0016 } from "./0016_workspace_grouping";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -52,6 +53,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0013,
   m0014,
   m0015,
+  m0016,
 ];
 
 /**

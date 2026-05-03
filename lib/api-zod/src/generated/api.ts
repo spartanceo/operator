@@ -1874,6 +1874,335 @@ export const DeleteMemoryResponse = zod.object({
 });
 
 /**
+ * @summary List workspaces in the current tenant
+ */
+export const ListWorkspacesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListWorkspacesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        color: zod.string().nullish(),
+        icon: zod.string().nullish(),
+        isDefault: zod.boolean(),
+        lastActiveAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Create a workspace
+ */
+export const CreateWorkspaceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const createWorkspaceBodyNameMax = 80;
+
+export const createWorkspaceBodyDescriptionMax = 500;
+
+export const createWorkspaceBodyColorMax = 40;
+
+export const createWorkspaceBodyIconMax = 40;
+
+export const CreateWorkspaceBody = zod.object({
+  name: zod.string().min(1).max(createWorkspaceBodyNameMax),
+  description: zod.string().max(createWorkspaceBodyDescriptionMax).optional(),
+  color: zod.string().max(createWorkspaceBodyColorMax).optional(),
+  icon: zod.string().max(createWorkspaceBodyIconMax).optional(),
+  isDefault: zod.boolean().optional(),
+});
+
+export const CreateWorkspaceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    color: zod.string().nullish(),
+    icon: zod.string().nullish(),
+    isDefault: zod.boolean(),
+    lastActiveAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Import a workspace template
+ */
+export const ImportWorkspaceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const importWorkspaceBodyNameMax = 80;
+
+export const ImportWorkspaceBody = zod.object({
+  template: zod.object({
+    schemaVersion: zod.literal(1),
+    exportedAt: zod.coerce.date(),
+    workspace: zod.object({
+      name: zod.string(),
+      description: zod.string().nullish(),
+      color: zod.string().nullish(),
+      icon: zod.string().nullish(),
+    }),
+    collections: zod.array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string().nullish(),
+        color: zod.string().nullish(),
+      }),
+    ),
+  }),
+  name: zod.string().min(1).max(importWorkspaceBodyNameMax).optional(),
+});
+
+export const ImportWorkspaceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    color: zod.string().nullish(),
+    icon: zod.string().nullish(),
+    isDefault: zod.boolean(),
+    lastActiveAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one workspace
+ */
+export const GetWorkspaceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetWorkspaceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetWorkspaceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    color: zod.string().nullish(),
+    icon: zod.string().nullish(),
+    isDefault: zod.boolean(),
+    lastActiveAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Rename / re-style / re-default a workspace
+ */
+export const UpdateWorkspaceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateWorkspaceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const updateWorkspaceBodyNameMax = 80;
+
+export const updateWorkspaceBodyDescriptionMax = 500;
+
+export const updateWorkspaceBodyColorMax = 40;
+
+export const updateWorkspaceBodyIconMax = 40;
+
+export const UpdateWorkspaceBody = zod.object({
+  name: zod.string().min(1).max(updateWorkspaceBodyNameMax).optional(),
+  description: zod.string().max(updateWorkspaceBodyDescriptionMax).nullish(),
+  color: zod.string().max(updateWorkspaceBodyColorMax).nullish(),
+  icon: zod.string().max(updateWorkspaceBodyIconMax).nullish(),
+  isDefault: zod.boolean().optional(),
+});
+
+export const UpdateWorkspaceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    color: zod.string().nullish(),
+    icon: zod.string().nullish(),
+    isDefault: zod.boolean(),
+    lastActiveAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Delete a workspace (requires ?confirm=true)
+ */
+export const DeleteWorkspaceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteWorkspaceQueryParams = zod.object({
+  confirm: zod.enum(["true", "1"]).optional(),
+});
+
+export const DeleteWorkspaceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteWorkspaceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Touch lastActiveAt when the user switches into a workspace
+ */
+export const ActivateWorkspaceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ActivateWorkspaceHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ActivateWorkspaceResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    color: zod.string().nullish(),
+    icon: zod.string().nullish(),
+    isDefault: zod.boolean(),
+    lastActiveAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Stats and metadata for a workspace
+ */
+export const GetWorkspaceOverviewParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetWorkspaceOverviewHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetWorkspaceOverviewResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    workspace: zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      color: zod.string().nullish(),
+      icon: zod.string().nullish(),
+      isDefault: zod.boolean(),
+      lastActiveAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    stats: zod.object({
+      agentRunCount: zod.number(),
+      kbCollectionCount: zod.number(),
+      kbDocumentCount: zod.number(),
+      memoryCount: zod.number(),
+      lastActiveAt: zod.coerce.date().nullish(),
+    }),
+  }),
+});
+
+/**
+ * @summary Export workspace configuration (no personal data)
+ */
+export const ExportWorkspaceTemplateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ExportWorkspaceTemplateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ExportWorkspaceTemplateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    schemaVersion: zod.literal(1),
+    exportedAt: zod.coerce.date(),
+    workspace: zod.object({
+      name: zod.string(),
+      description: zod.string().nullish(),
+      color: zod.string().nullish(),
+      icon: zod.string().nullish(),
+    }),
+    collections: zod.array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string().nullish(),
+        color: zod.string().nullish(),
+      }),
+    ),
+  }),
+});
+
+/**
  * @summary List entries inside the workspace sandbox
  */
 export const listFilesQueryLimitDefault = 20;

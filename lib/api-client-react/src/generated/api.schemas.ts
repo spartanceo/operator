@@ -3988,65 +3988,129 @@ export interface DiagnosticCatalogResponse {
   data: DiagnosticCatalogResponseData;
 }
 
-export interface UndoAction {
+export interface Workspace {
   id: string;
-  taskId?: string | null;
-  actionType: string;
-  description: string;
-  target?: string | null;
-  reversible: boolean;
-  /** One of `available`, `undone`, `expired`, `failed`, `irreversible`. */
-  status: string;
-  beforeState?: unknown | null;
-  afterState?: unknown | null;
-  error?: string | null;
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  icon?: string | null;
+  isDefault: boolean;
+  lastActiveAt?: string | null;
   createdAt: string;
-  undoneAt?: string | null;
-  expiresAt?: string | null;
   updatedAt: string;
 }
 
-export interface UndoActionResponse {
+export interface WorkspaceList {
+  items: Workspace[];
+}
+
+export interface WorkspaceListResponse {
   success: boolean;
-  data: UndoAction;
+  data: WorkspaceList;
 }
 
-export interface UndoActionListPage {
-  items: UndoAction[];
-  nextCursor: string | null;
-}
-
-export interface UndoActionListResponse {
+export interface WorkspaceResponse {
   success: boolean;
-  data: UndoActionListPage;
+  data: Workspace;
 }
 
-export interface UndoTaskRequest {
-  /** Must be `true` — task-level undo requires explicit confirmation. */
-  confirm: boolean;
+export interface CreateWorkspaceRequest {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+  /** @maxLength 500 */
+  description?: string;
+  /** @maxLength 40 */
+  color?: string;
+  /** @maxLength 40 */
+  icon?: string;
+  isDefault?: boolean;
 }
 
-export interface UndoTaskResult {
-  taskId: string;
-  attempted: number;
-  undone: number;
-  failed: number;
-  results: UndoAction[];
+export interface UpdateWorkspaceRequest {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name?: string;
+  /** @maxLength 500 */
+  description?: string | null;
+  /** @maxLength 40 */
+  color?: string | null;
+  /** @maxLength 40 */
+  icon?: string | null;
+  isDefault?: boolean;
 }
 
-export interface UndoTaskResponse {
+export interface WorkspaceDeleteReceipt {
+  id: string;
+  deleted: boolean;
+}
+
+export interface WorkspaceDeleteResponse {
   success: boolean;
-  data: UndoTaskResult;
+  data: WorkspaceDeleteReceipt;
 }
 
-export interface UndoActionTypes {
-  reversible: string[];
-  irreversible: string[];
+export type WorkspaceOverviewStats = {
+  agentRunCount: number;
+  kbCollectionCount: number;
+  kbDocumentCount: number;
+  memoryCount: number;
+  lastActiveAt?: string | null;
+};
+
+export interface WorkspaceOverview {
+  workspace: Workspace;
+  stats: WorkspaceOverviewStats;
 }
 
-export interface UndoActionTypesResponse {
+export interface WorkspaceOverviewResponse {
   success: boolean;
-  data: UndoActionTypes;
+  data: WorkspaceOverview;
+}
+
+export type WorkspaceTemplateSchemaVersion =
+  (typeof WorkspaceTemplateSchemaVersion)[keyof typeof WorkspaceTemplateSchemaVersion];
+
+export const WorkspaceTemplateSchemaVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type WorkspaceTemplateWorkspace = {
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  icon?: string | null;
+};
+
+export type WorkspaceTemplateCollectionsItem = {
+  name: string;
+  description?: string | null;
+  color?: string | null;
+};
+
+export interface WorkspaceTemplate {
+  schemaVersion: WorkspaceTemplateSchemaVersion;
+  exportedAt: string;
+  workspace: WorkspaceTemplateWorkspace;
+  collections: WorkspaceTemplateCollectionsItem[];
+}
+
+export interface WorkspaceTemplateResponse {
+  success: boolean;
+  data: WorkspaceTemplate;
+}
+
+export interface ImportWorkspaceRequest {
+  template: WorkspaceTemplate;
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name?: string;
 }
 
 /**
@@ -4287,6 +4351,18 @@ export type ListMemoriesParams = {
    */
   limit?: LimitParamParameter;
 };
+
+export type DeleteWorkspaceParams = {
+  confirm?: DeleteWorkspaceConfirm;
+};
+
+export type DeleteWorkspaceConfirm =
+  (typeof DeleteWorkspaceConfirm)[keyof typeof DeleteWorkspaceConfirm];
+
+export const DeleteWorkspaceConfirm = {
+  true: "true",
+  NUMBER_1: "1",
+} as const;
 
 export type ListFilesParams = {
   /**
@@ -4725,34 +4801,4 @@ export type ListDiagnosticErrorsParams = {
    * @maximum 200
    */
   limit?: number;
-};
-
-export type ListUndoActionsParams = {
-  /**
-   * Opaque cursor returned by the previous page.
-   */
-  cursor?: CursorParamParameter;
-  /**
-   * Page size, default 20, max 100.
-   * @minimum 1
-   * @maximum 100
-   */
-  limit?: LimitParamParameter;
-  /**
-   * Restrict the listing to actions belonging to one task.
-   */
-  taskId?: string;
-};
-
-export type ListUndoTaskActionsParams = {
-  /**
-   * Opaque cursor returned by the previous page.
-   */
-  cursor?: CursorParamParameter;
-  /**
-   * Page size, default 20, max 100.
-   * @minimum 1
-   * @maximum 100
-   */
-  limit?: LimitParamParameter;
 };

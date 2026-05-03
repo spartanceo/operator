@@ -3475,6 +3475,150 @@ const cases: TestCase[] = [
       );
     },
   },
+  {
+    name: "workspaces: list seeds the default workspace for the tenant",
+    run: async () => {
+      const tenant = `tenant_ws_list_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const res = await request(app)
+        .get("/api/workspaces")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(res.body.success, true);
+      assert.ok(Array.isArray(res.body.data.items));
+      assert.ok(res.body.data.items.length >= 1);
+    },
+  },
+  {
+    name: "workspaces: create + rename + customise round-trip",
+    run: async () => {
+      const tenant = `tenant_ws_crud_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const created = await request(app)
+        .post("/api/workspaces")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Client A", color: "blue", icon: "briefcase" })
+        .expect(200);
+      assert.equal(created.body.data.name, "Client A");
+      assert.equal(created.body.data.color, "blue");
+      assert.equal(created.body.data.icon, "briefcase");
+      assert.equal(created.body.data.isDefault, false);
+      const id = created.body.data.id;
+      const patched = await request(app)
+        .patch(`/api/workspaces/${id}`)
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Client A — Q1", description: "Quarterly engagement" })
+        .expect(200);
+      assert.equal(patched.body.data.name, "Client A — Q1");
+      assert.equal(patched.body.data.description, "Quarterly engagement");
+      // Activate touches lastActiveAt.
+      const activated = await request(app)
+        .post(`/api/workspaces/${id}/activate`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.ok(activated.body.data.lastActiveAt);
+    },
+  },
+  {
+    name: "workspaces: delete refuses without ?confirm=true and protects defaults",
+    run: async () => {
+      const tenant = `tenant_ws_del_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const created = await request(app)
+        .post("/api/workspaces")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Throwaway" })
+        .expect(200);
+      const id = created.body.data.id;
+      const noConfirm = await request(app)
+        .delete(`/api/workspaces/${id}`)
+        .set("X-Tenant-ID", tenant)
+        .expect(400);
+      assert.equal(noConfirm.body.error.code, "CONFIRMATION_REQUIRED");
+      const deleted = await request(app)
+        .delete(`/api/workspaces/${id}?confirm=true`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(deleted.body.data.deleted, true);
+      // Listing again no longer surfaces the erased workspace.
+      const after = await request(app)
+        .get("/api/workspaces")
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.ok(
+        !after.body.data.items.some((w: { id: string }) => w.id === id),
+        "deleted workspace still appears in list",
+      );
+    },
+  },
+  {
+    name: "workspaces: tenant isolation — peer tenants never see each other",
+    run: async () => {
+      const a = `tenant_ws_iso_a_${Date.now()}`;
+      const b = `tenant_ws_iso_b_${Date.now()}`;
+      await bootstrapTenant(a);
+      await bootstrapTenant(b);
+      const made = await request(app)
+        .post("/api/workspaces")
+        .set("X-Tenant-ID", a)
+        .send({ name: "Secret Project" })
+        .expect(200);
+      const bView = await request(app)
+        .get("/api/workspaces")
+        .set("X-Tenant-ID", b)
+        .expect(200);
+      assert.ok(
+        !bView.body.data.items.some(
+          (w: { id: string }) => w.id === made.body.data.id,
+        ),
+        "tenant b sees tenant a's workspace",
+      );
+      // Direct lookup must also 404 across tenants.
+      await request(app)
+        .get(`/api/workspaces/${made.body.data.id}`)
+        .set("X-Tenant-ID", b)
+        .expect(404);
+    },
+  },
+  {
+    name: "workspaces: overview returns counts; export+import round-trips collections",
+    run: async () => {
+      const tenant = `tenant_ws_tpl_${Date.now()}`;
+      await bootstrapTenant(tenant);
+      const created = await request(app)
+        .post("/api/workspaces")
+        .set("X-Tenant-ID", tenant)
+        .send({ name: "Engineering", color: "emerald", icon: "code" })
+        .expect(200);
+      const id = created.body.data.id;
+      const overview = await request(app)
+        .get(`/api/workspaces/${id}/overview`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(overview.body.data.workspace.id, id);
+      assert.equal(overview.body.data.stats.agentRunCount, 0);
+      const exported = await request(app)
+        .get(`/api/workspaces/${id}/export`)
+        .set("X-Tenant-ID", tenant)
+        .expect(200);
+      assert.equal(exported.body.data.schemaVersion, 1);
+      assert.equal(exported.body.data.workspace.name, "Engineering");
+      const imported = await request(app)
+        .post(`/api/workspaces/import`)
+        .set("X-Tenant-ID", tenant)
+        .send({ template: exported.body.data, name: "Engineering Copy" })
+        .expect(200);
+      assert.equal(imported.body.data.name, "Engineering Copy");
+      assert.equal(imported.body.data.color, "emerald");
+      // Bad templates are rejected with INVALID_TEMPLATE.
+      const bad = await request(app)
+        .post(`/api/workspaces/import`)
+        .set("X-Tenant-ID", tenant)
+        .send({ template: { not: "valid" } })
+        .expect(400);
+      assert.equal(bad.body.error.code, "INVALID_TEMPLATE");
+    },
+  },
 ];
 
 async function main() {
