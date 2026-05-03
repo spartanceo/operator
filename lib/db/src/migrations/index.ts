@@ -37,6 +37,7 @@ import { migration as m0023 } from "./0023_skill_reviews_trust";
 import { migration as m0024 } from "./0024_p2p_distribution";
 import { migration as m0025 } from "./0025_referral_growth";
 import { migration as m0026 } from "./0026_developer_sdk";
+import { migration as m0027 } from "./0027_integrations";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -74,6 +75,7 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0024,
   m0025,
   m0026,
+  m0027,
 ];
 
 /**

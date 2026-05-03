@@ -7,6 +7,7 @@ import {
   Brain,
   Library,
   Inbox,
+  Plug,
   Settings,
   Sparkles,
   ArrowLeft,
@@ -47,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/schedules", label: "Schedules", icon: CalendarClock },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/skills", label: "Skills", icon: Sparkles },
+  { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

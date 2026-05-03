@@ -87,3 +87,4 @@ export * from "./beta-access-grants";
 
 export * from "./plugin-tools";
 export * from "./webhook-subscriptions";
+export * from "./integrations";

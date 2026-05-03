@@ -31,6 +31,8 @@ import { createDraft, sendDraft } from "./comm/email.service";
 import { placeCall as placeVoipCall } from "./comm/voip.service";
 import * as desktopInputService from "./desktop-input.service";
 import * as filesService from "./files.service";
+import { listProviders } from "./integration-registry";
+import { executeIntegrationAction } from "./integrations.service";
 import * as mediaService from "./media.service";
 import * as memoryService from "./memory.service";
 import { chat as ollamaChat } from "./ollama.service";
@@ -533,8 +535,46 @@ const TOOLS: ToolEntry[] = [
   },
 ];
 
+/**
+ * Build the integration-action tools at lookup time. Doing this lazily
+ * means a future hot-reload of the registry doesn't require a server
+ * restart, and the catalogue tier-review check still sees a stable list.
+ */
+function integrationToolEntries(): ToolEntry[] {
+  const entries: ToolEntry[] = [];
+  for (const provider of listProviders()) {
+    for (const action of provider.actions) {
+      const toolName = `${provider.id}.${action.name}`;
+      entries.push({
+        name: toolName,
+        description: `${provider.label} — ${action.description}`,
+        riskLevel:
+          action.riskLevel === "high"
+            ? "high"
+            : action.riskLevel === "medium"
+              ? "medium"
+              : "low",
+        handler: async (ctx, input) => {
+          const r = await executeIntegrationAction(
+            ctx,
+            provider.id,
+            action.name,
+            input,
+          );
+          return { ...r };
+        },
+      });
+    }
+  }
+  return entries;
+}
+
+function allTools(): ToolEntry[] {
+  return [...TOOLS, ...integrationToolEntries()];
+}
+
 export function getToolDescriptors(): ToolDescriptor[] {
-  return TOOLS.map((t) => ({
+  return allTools().map((t) => ({
     name: t.name,
     description: t.description,
     riskLevel: t.riskLevel,
@@ -542,7 +582,7 @@ export function getToolDescriptors(): ToolDescriptor[] {
 }
 
 export function getToolByName(name: string): ToolEntry | null {
-  return TOOLS.find((t) => t.name === name) ?? null;
+  return allTools().find((t) => t.name === name) ?? null;
 }
 
 export async function listTools(opts: {

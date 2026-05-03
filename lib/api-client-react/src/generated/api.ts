@@ -71,6 +71,7 @@ import type {
   CommAccountListResponse,
   CommAccountResponse,
   ConnectCommAccountRequest,
+  ConnectIntegrationRequest,
   ContactDeleteResponse,
   ContactListResponse,
   ContactResponse,
@@ -156,6 +157,15 @@ import type {
   IngestKnowledgeDocumentRequest,
   IngestKnowledgeDocumentResponse,
   InstallModelsRequest,
+  IntegrationActionRequest,
+  IntegrationActionResponse,
+  IntegrationDisconnectResponse,
+  IntegrationListResponse,
+  IntegrationOAuthCallbackRequest,
+  IntegrationOAuthStartRequest,
+  IntegrationOAuthStartResponse,
+  IntegrationProviderListResponse,
+  IntegrationResponse,
   InteractionListResponse,
   JwtIssueRequest,
   JwtPairResponse,
@@ -201,6 +211,7 @@ import type {
   ListFilesParams,
   ListFlaggedReviewsParams,
   ListIncidentReportsParams,
+  ListIntegrationsParams,
   ListKnowledgeCollectionsParams,
   ListKnowledgeDocumentsParams,
   ListMediaAssetsParams,
@@ -30464,3 +30475,823 @@ export function useListRecentEvents<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List available integration providers (catalogue)
+ */
+export const getListIntegrationProvidersUrl = () => {
+  return `/api/integrations/providers`;
+};
+
+export const listIntegrationProviders = async (
+  options?: RequestInit,
+): Promise<IntegrationProviderListResponse> => {
+  return customFetch<IntegrationProviderListResponse>(
+    getListIntegrationProvidersUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListIntegrationProvidersQueryKey = () => {
+  return [`/api/integrations/providers`] as const;
+};
+
+export const getListIntegrationProvidersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listIntegrationProviders>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listIntegrationProviders>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListIntegrationProvidersQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listIntegrationProviders>>
+  > = ({ signal }) => listIntegrationProviders({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listIntegrationProviders>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListIntegrationProvidersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listIntegrationProviders>>
+>;
+export type ListIntegrationProvidersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List available integration providers (catalogue)
+ */
+
+export function useListIntegrationProviders<
+  TData = Awaited<ReturnType<typeof listIntegrationProviders>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listIntegrationProviders>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListIntegrationProvidersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List integrations connected by the tenant
+ */
+export const getListIntegrationsUrl = (params?: ListIntegrationsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/integrations?${stringifiedParams}`
+    : `/api/integrations`;
+};
+
+export const listIntegrations = async (
+  params?: ListIntegrationsParams,
+  options?: RequestInit,
+): Promise<IntegrationListResponse> => {
+  return customFetch<IntegrationListResponse>(getListIntegrationsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListIntegrationsQueryKey = (
+  params?: ListIntegrationsParams,
+) => {
+  return [`/api/integrations`, ...(params ? [params] : [])] as const;
+};
+
+export const getListIntegrationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listIntegrations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListIntegrationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIntegrations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListIntegrationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listIntegrations>>
+  > = ({ signal }) => listIntegrations(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listIntegrations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListIntegrationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listIntegrations>>
+>;
+export type ListIntegrationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List integrations connected by the tenant
+ */
+
+export function useListIntegrations<
+  TData = Awaited<ReturnType<typeof listIntegrations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListIntegrationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIntegrations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListIntegrationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch one integration (or a disconnected stub) for a provider
+ */
+export const getGetIntegrationUrl = (provider: string) => {
+  return `/api/integrations/${provider}`;
+};
+
+export const getIntegration = async (
+  provider: string,
+  options?: RequestInit,
+): Promise<IntegrationResponse> => {
+  return customFetch<IntegrationResponse>(getGetIntegrationUrl(provider), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIntegrationQueryKey = (provider: string) => {
+  return [`/api/integrations/${provider}`] as const;
+};
+
+export const getGetIntegrationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIntegration>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  provider: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIntegration>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetIntegrationQueryKey(provider);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIntegration>>> = ({
+    signal,
+  }) => getIntegration(provider, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!provider,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIntegration>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIntegrationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIntegration>>
+>;
+export type GetIntegrationQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one integration (or a disconnected stub) for a provider
+ */
+
+export function useGetIntegration<
+  TData = Awaited<ReturnType<typeof getIntegration>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  provider: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIntegration>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIntegrationQueryOptions(provider, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Connect or rotate credentials for a provider
+ */
+export const getConnectIntegrationUrl = (provider: string) => {
+  return `/api/integrations/${provider}`;
+};
+
+export const connectIntegration = async (
+  provider: string,
+  connectIntegrationRequest: ConnectIntegrationRequest,
+  options?: RequestInit,
+): Promise<IntegrationResponse> => {
+  return customFetch<IntegrationResponse>(getConnectIntegrationUrl(provider), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(connectIntegrationRequest),
+  });
+};
+
+export const getConnectIntegrationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof connectIntegration>>,
+    TError,
+    { provider: string; data: BodyType<ConnectIntegrationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof connectIntegration>>,
+  TError,
+  { provider: string; data: BodyType<ConnectIntegrationRequest> },
+  TContext
+> => {
+  const mutationKey = ["connectIntegration"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof connectIntegration>>,
+    { provider: string; data: BodyType<ConnectIntegrationRequest> }
+  > = (props) => {
+    const { provider, data } = props ?? {};
+
+    return connectIntegration(provider, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConnectIntegrationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof connectIntegration>>
+>;
+export type ConnectIntegrationMutationBody =
+  BodyType<ConnectIntegrationRequest>;
+export type ConnectIntegrationMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Connect or rotate credentials for a provider
+ */
+export const useConnectIntegration = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof connectIntegration>>,
+    TError,
+    { provider: string; data: BodyType<ConnectIntegrationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof connectIntegration>>,
+  TError,
+  { provider: string; data: BodyType<ConnectIntegrationRequest> },
+  TContext
+> => {
+  return useMutation(getConnectIntegrationMutationOptions(options));
+};
+
+/**
+ * @summary Disconnect and erase credentials for a provider
+ */
+export const getDisconnectIntegrationUrl = (provider: string) => {
+  return `/api/integrations/${provider}`;
+};
+
+export const disconnectIntegration = async (
+  provider: string,
+  options?: RequestInit,
+): Promise<IntegrationDisconnectResponse> => {
+  return customFetch<IntegrationDisconnectResponse>(
+    getDisconnectIntegrationUrl(provider),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDisconnectIntegrationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof disconnectIntegration>>,
+    TError,
+    { provider: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof disconnectIntegration>>,
+  TError,
+  { provider: string },
+  TContext
+> => {
+  const mutationKey = ["disconnectIntegration"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof disconnectIntegration>>,
+    { provider: string }
+  > = (props) => {
+    const { provider } = props ?? {};
+
+    return disconnectIntegration(provider, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DisconnectIntegrationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof disconnectIntegration>>
+>;
+
+export type DisconnectIntegrationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Disconnect and erase credentials for a provider
+ */
+export const useDisconnectIntegration = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof disconnectIntegration>>,
+    TError,
+    { provider: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof disconnectIntegration>>,
+  TError,
+  { provider: string },
+  TContext
+> => {
+  return useMutation(getDisconnectIntegrationMutationOptions(options));
+};
+
+/**
+ * @summary Verify the stored credentials are still valid
+ */
+export const getTestIntegrationUrl = (provider: string) => {
+  return `/api/integrations/${provider}/test`;
+};
+
+export const testIntegration = async (
+  provider: string,
+  options?: RequestInit,
+): Promise<IntegrationResponse> => {
+  return customFetch<IntegrationResponse>(getTestIntegrationUrl(provider), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getTestIntegrationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof testIntegration>>,
+    TError,
+    { provider: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof testIntegration>>,
+  TError,
+  { provider: string },
+  TContext
+> => {
+  const mutationKey = ["testIntegration"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof testIntegration>>,
+    { provider: string }
+  > = (props) => {
+    const { provider } = props ?? {};
+
+    return testIntegration(provider, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TestIntegrationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof testIntegration>>
+>;
+
+export type TestIntegrationMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Verify the stored credentials are still valid
+ */
+export const useTestIntegration = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof testIntegration>>,
+    TError,
+    { provider: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof testIntegration>>,
+  TError,
+  { provider: string },
+  TContext
+> => {
+  return useMutation(getTestIntegrationMutationOptions(options));
+};
+
+/**
+ * @summary Build the OAuth authorise URL for a provider
+ */
+export const getStartIntegrationOAuthUrl = (provider: string) => {
+  return `/api/integrations/${provider}/oauth/start`;
+};
+
+export const startIntegrationOAuth = async (
+  provider: string,
+  integrationOAuthStartRequest?: IntegrationOAuthStartRequest,
+  options?: RequestInit,
+): Promise<IntegrationOAuthStartResponse> => {
+  return customFetch<IntegrationOAuthStartResponse>(
+    getStartIntegrationOAuthUrl(provider),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(integrationOAuthStartRequest),
+    },
+  );
+};
+
+export const getStartIntegrationOAuthMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startIntegrationOAuth>>,
+    TError,
+    { provider: string; data: BodyType<IntegrationOAuthStartRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startIntegrationOAuth>>,
+  TError,
+  { provider: string; data: BodyType<IntegrationOAuthStartRequest> },
+  TContext
+> => {
+  const mutationKey = ["startIntegrationOAuth"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startIntegrationOAuth>>,
+    { provider: string; data: BodyType<IntegrationOAuthStartRequest> }
+  > = (props) => {
+    const { provider, data } = props ?? {};
+
+    return startIntegrationOAuth(provider, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartIntegrationOAuthMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startIntegrationOAuth>>
+>;
+export type StartIntegrationOAuthMutationBody =
+  BodyType<IntegrationOAuthStartRequest>;
+export type StartIntegrationOAuthMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Build the OAuth authorise URL for a provider
+ */
+export const useStartIntegrationOAuth = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startIntegrationOAuth>>,
+    TError,
+    { provider: string; data: BodyType<IntegrationOAuthStartRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startIntegrationOAuth>>,
+  TError,
+  { provider: string; data: BodyType<IntegrationOAuthStartRequest> },
+  TContext
+> => {
+  return useMutation(getStartIntegrationOAuthMutationOptions(options));
+};
+
+/**
+ * @summary Complete the OAuth handshake by exchanging the code
+ */
+export const getCompleteIntegrationOAuthUrl = (provider: string) => {
+  return `/api/integrations/${provider}/oauth/callback`;
+};
+
+export const completeIntegrationOAuth = async (
+  provider: string,
+  integrationOAuthCallbackRequest: IntegrationOAuthCallbackRequest,
+  options?: RequestInit,
+): Promise<IntegrationResponse> => {
+  return customFetch<IntegrationResponse>(
+    getCompleteIntegrationOAuthUrl(provider),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(integrationOAuthCallbackRequest),
+    },
+  );
+};
+
+export const getCompleteIntegrationOAuthMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeIntegrationOAuth>>,
+    TError,
+    { provider: string; data: BodyType<IntegrationOAuthCallbackRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof completeIntegrationOAuth>>,
+  TError,
+  { provider: string; data: BodyType<IntegrationOAuthCallbackRequest> },
+  TContext
+> => {
+  const mutationKey = ["completeIntegrationOAuth"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof completeIntegrationOAuth>>,
+    { provider: string; data: BodyType<IntegrationOAuthCallbackRequest> }
+  > = (props) => {
+    const { provider, data } = props ?? {};
+
+    return completeIntegrationOAuth(provider, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CompleteIntegrationOAuthMutationResult = NonNullable<
+  Awaited<ReturnType<typeof completeIntegrationOAuth>>
+>;
+export type CompleteIntegrationOAuthMutationBody =
+  BodyType<IntegrationOAuthCallbackRequest>;
+export type CompleteIntegrationOAuthMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Complete the OAuth handshake by exchanging the code
+ */
+export const useCompleteIntegrationOAuth = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeIntegrationOAuth>>,
+    TError,
+    { provider: string; data: BodyType<IntegrationOAuthCallbackRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof completeIntegrationOAuth>>,
+  TError,
+  { provider: string; data: BodyType<IntegrationOAuthCallbackRequest> },
+  TContext
+> => {
+  return useMutation(getCompleteIntegrationOAuthMutationOptions(options));
+};
+
+/**
+ * @summary Execute one action exposed by a connected integration
+ */
+export const getInvokeIntegrationActionUrl = (
+  provider: string,
+  action: string,
+) => {
+  return `/api/integrations/${provider}/actions/${action}`;
+};
+
+export const invokeIntegrationAction = async (
+  provider: string,
+  action: string,
+  integrationActionRequest?: IntegrationActionRequest,
+  options?: RequestInit,
+): Promise<IntegrationActionResponse> => {
+  return customFetch<IntegrationActionResponse>(
+    getInvokeIntegrationActionUrl(provider, action),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(integrationActionRequest),
+    },
+  );
+};
+
+export const getInvokeIntegrationActionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof invokeIntegrationAction>>,
+    TError,
+    {
+      provider: string;
+      action: string;
+      data: BodyType<IntegrationActionRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof invokeIntegrationAction>>,
+  TError,
+  {
+    provider: string;
+    action: string;
+    data: BodyType<IntegrationActionRequest>;
+  },
+  TContext
+> => {
+  const mutationKey = ["invokeIntegrationAction"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof invokeIntegrationAction>>,
+    {
+      provider: string;
+      action: string;
+      data: BodyType<IntegrationActionRequest>;
+    }
+  > = (props) => {
+    const { provider, action, data } = props ?? {};
+
+    return invokeIntegrationAction(provider, action, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InvokeIntegrationActionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof invokeIntegrationAction>>
+>;
+export type InvokeIntegrationActionMutationBody =
+  BodyType<IntegrationActionRequest>;
+export type InvokeIntegrationActionMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Execute one action exposed by a connected integration
+ */
+export const useInvokeIntegrationAction = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof invokeIntegrationAction>>,
+    TError,
+    {
+      provider: string;
+      action: string;
+      data: BodyType<IntegrationActionRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof invokeIntegrationAction>>,
+  TError,
+  {
+    provider: string;
+    action: string;
+    data: BodyType<IntegrationActionRequest>;
+  },
+  TContext
+> => {
+  return useMutation(getInvokeIntegrationActionMutationOptions(options));
+};

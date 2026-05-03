@@ -6177,6 +6177,195 @@ export interface OpEventListResponse {
   data: OpEventList;
 }
 
+export interface IntegrationProviderField {
+  name: string;
+  label: string;
+  placeholder?: string;
+  secret?: boolean;
+  required?: boolean;
+}
+
+export type IntegrationProviderActionRiskLevel =
+  (typeof IntegrationProviderActionRiskLevel)[keyof typeof IntegrationProviderActionRiskLevel];
+
+export const IntegrationProviderActionRiskLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+export interface IntegrationProviderAction {
+  name: string;
+  description: string;
+  riskLevel: IntegrationProviderActionRiskLevel;
+}
+
+export type IntegrationProviderCategory =
+  (typeof IntegrationProviderCategory)[keyof typeof IntegrationProviderCategory];
+
+export const IntegrationProviderCategory = {
+  productivity: "productivity",
+  communication: "communication",
+  files: "files",
+  code: "code",
+  tickets: "tickets",
+  crm: "crm",
+  commerce: "commerce",
+  data: "data",
+} as const;
+
+export type IntegrationProviderAuthType =
+  (typeof IntegrationProviderAuthType)[keyof typeof IntegrationProviderAuthType];
+
+export const IntegrationProviderAuthType = {
+  oauth: "oauth",
+  api_key: "api_key",
+} as const;
+
+export interface IntegrationProvider {
+  id: string;
+  label: string;
+  category: IntegrationProviderCategory;
+  authType: IntegrationProviderAuthType;
+  description: string;
+  oauthScopes: string[];
+  fields: IntegrationProviderField[];
+  actions: IntegrationProviderAction[];
+}
+
+export type IntegrationProviderListResponseData = {
+  providers: IntegrationProvider[];
+};
+
+export interface IntegrationProviderListResponse {
+  success: boolean;
+  data: IntegrationProviderListResponseData;
+}
+
+export type IntegrationAuthType =
+  (typeof IntegrationAuthType)[keyof typeof IntegrationAuthType];
+
+export const IntegrationAuthType = {
+  oauth: "oauth",
+  api_key: "api_key",
+} as const;
+
+export type IntegrationConnectionStatus =
+  (typeof IntegrationConnectionStatus)[keyof typeof IntegrationConnectionStatus];
+
+export const IntegrationConnectionStatus = {
+  disconnected: "disconnected",
+  connected: "connected",
+  error: "error",
+} as const;
+
+export type IntegrationCredentials = { [key: string]: unknown };
+
+export interface Integration {
+  id: string;
+  provider: string;
+  displayName: string;
+  authType: IntegrationAuthType;
+  connectionStatus: IntegrationConnectionStatus;
+  accountLabel?: string | null;
+  credentials: IntegrationCredentials;
+  lastTestedAt?: string | null;
+  lastError?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IntegrationListPage {
+  items: Integration[];
+  nextCursor: string | null;
+}
+
+export interface IntegrationListResponse {
+  success: boolean;
+  data: IntegrationListPage;
+}
+
+export interface IntegrationResponse {
+  success: boolean;
+  data: Integration;
+}
+
+export type ConnectIntegrationRequestCredentials = { [key: string]: unknown };
+
+export interface ConnectIntegrationRequest {
+  credentials: ConnectIntegrationRequestCredentials;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  accountLabel?: string;
+}
+
+export interface IntegrationDisconnectReceipt {
+  provider: string;
+  deleted: boolean;
+}
+
+export interface IntegrationDisconnectResponse {
+  success: boolean;
+  data: IntegrationDisconnectReceipt;
+}
+
+export interface IntegrationOAuthStartRequest {
+  /**
+   * @minLength 1
+   * @maxLength 2048
+   */
+  redirectUri?: string;
+}
+
+export interface IntegrationOAuthStart {
+  provider: string;
+  authorizeUrl: string;
+  state: string;
+  scopes: string[];
+}
+
+export interface IntegrationOAuthStartResponse {
+  success: boolean;
+  data: IntegrationOAuthStart;
+}
+
+export interface IntegrationOAuthCallbackRequest {
+  /** @minLength 1 */
+  code: string;
+  state?: string;
+  refreshToken?: string;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  accountLabel?: string;
+}
+
+export type IntegrationActionRequestInput = { [key: string]: unknown };
+
+export interface IntegrationActionRequest {
+  input?: IntegrationActionRequestInput;
+}
+
+export type IntegrationActionResultInput = { [key: string]: unknown };
+
+export type IntegrationActionResultOutput = { [key: string]: unknown };
+
+export interface IntegrationActionResult {
+  provider: string;
+  action: string;
+  simulated: boolean;
+  input: IntegrationActionResultInput;
+  output: IntegrationActionResultOutput;
+}
+
+export interface IntegrationActionResponse {
+  success: boolean;
+  data: IntegrationActionResult;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -7151,4 +7340,17 @@ export type ListRecentEventsParams = {
   limit?: number;
   afterId?: string;
   type?: string;
+};
+
+export type ListIntegrationsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
 };

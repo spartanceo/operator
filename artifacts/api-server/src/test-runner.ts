@@ -619,6 +619,177 @@ const cases: TestCase[] = [
   },
 
   {
+    name: "integrations: provider catalogue lists 18 providers",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/integrations/providers")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      const providers = res.body.data.providers;
+      assert.equal(providers.length, 18);
+      const ids = new Set(providers.map((p: { id: string }) => p.id));
+      assert.ok(ids.has("notion"));
+      assert.ok(ids.has("slack"));
+      assert.ok(ids.has("github"));
+      assert.ok(ids.has("s3"));
+    },
+  },
+
+  {
+    name: "integrations: connect → test → action → disconnect round-trip",
+    run: async () => {
+      const disc = await request(app)
+        .get("/api/integrations/github")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(disc.status, 200);
+      assert.equal(disc.body.data.connectionStatus, "disconnected");
+
+      const conn = await request(app)
+        .put("/api/integrations/github")
+        .set("X-Tenant-ID", TENANT)
+        .send({
+          credentials: { accessToken: "ghp_secrettoken_xyz" },
+          accountLabel: "octocat",
+        });
+      assert.equal(conn.status, 200, JSON.stringify(conn.body));
+      assert.equal(conn.body.data.connectionStatus, "connected");
+      assert.equal(conn.body.data.accountLabel, "octocat");
+      assert.equal(
+        conn.body.data.credentials.accessToken,
+        "set",
+        "secret fields must be redacted",
+      );
+      assert.ok(
+        !JSON.stringify(conn.body).includes("ghp_secrettoken_xyz"),
+        "raw secret must never appear in responses",
+      );
+
+      const test = await request(app)
+        .post("/api/integrations/github/test")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(test.status, 200);
+      assert.equal(test.body.data.connectionStatus, "connected");
+      assert.ok(test.body.data.lastTestedAt);
+
+      const action = await request(app)
+        .post("/api/integrations/github/actions/listRepos")
+        .set("X-Tenant-ID", TENANT)
+        .send({ input: { org: "omninity" } });
+      assert.equal(action.status, 200);
+      assert.equal(action.body.data.simulated, true);
+      assert.equal(action.body.data.provider, "github");
+      assert.equal(action.body.data.action, "listRepos");
+
+      const del = await request(app)
+        .delete("/api/integrations/github")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(del.status, 200);
+      assert.equal(del.body.data.deleted, true);
+
+      const after = await request(app)
+        .get("/api/integrations/github")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(after.body.data.connectionStatus, "disconnected");
+    },
+  },
+
+  {
+    name: "integrations: action on disconnected provider returns 409",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/integrations/notion/actions/search")
+        .set("X-Tenant-ID", TENANT)
+        .send({ input: {} });
+      assert.equal(res.status, 409);
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.error.code, "NOT_CONNECTED");
+    },
+  },
+
+  {
+    name: "integrations: unknown provider returns 404",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/integrations/not-a-provider")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 404);
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.error.code, "NOT_FOUND");
+    },
+  },
+
+  {
+    name: "integrations: OAuth start returns authorize URL with scopes + state",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/integrations/slack/oauth/start")
+        .set("X-Tenant-ID", TENANT)
+        .send({});
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.provider, "slack");
+      assert.ok(res.body.data.authorizeUrl.startsWith("omninity://oauth/slack/authorize"));
+      assert.ok(res.body.data.state.startsWith("oauth_"));
+      assert.ok(res.body.data.scopes.length > 0);
+    },
+  },
+
+  {
+    name: "integrations: missing required field is rejected (400)",
+    run: async () => {
+      const res = await request(app)
+        .put("/api/integrations/airtable")
+        .set("X-Tenant-ID", TENANT)
+        .send({ credentials: {} });
+      assert.equal(res.status, 400);
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.error.code, "VALIDATION");
+    },
+  },
+
+  {
+    name: "integrations: credential encryption round-trips and never leaks plaintext",
+    run: async () => {
+      const secret = "sk_supersecret_token_zzz_777";
+      const conn = await request(app)
+        .put("/api/integrations/linear")
+        .set("X-Tenant-ID", TENANT)
+        .send({ credentials: { accessToken: secret } });
+      assert.equal(conn.status, 200);
+
+      const raw = getRawSqlite()
+        .prepare("SELECT credentials_encrypted FROM integrations WHERE provider = ?")
+        .get("linear") as { credentials_encrypted: string } | undefined;
+      assert.ok(raw, "row should exist");
+      assert.ok(raw.credentials_encrypted.length > 20);
+      assert.ok(
+        !raw.credentials_encrypted.includes(secret),
+        "stored credentials must be encrypted, not plaintext",
+      );
+
+      const list = await request(app)
+        .get("/api/integrations")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(list.status, 200);
+      assert.ok(
+        !JSON.stringify(list.body).includes(secret),
+        "list response must not leak plaintext secret",
+      );
+    },
+  },
+
+  {
+    name: "integrations: are tenant-isolated",
+    run: async () => {
+      const cross = await request(app)
+        .get("/api/integrations/linear")
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(cross.status, 200);
+      assert.equal(cross.body.data.connectionStatus, "disconnected");
+    },
+  },
+
+  {
     name: "onboarding profile is tenant-isolated",
     run: async () => {
       const cross = await request(app)

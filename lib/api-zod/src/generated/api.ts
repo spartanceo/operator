@@ -14784,3 +14784,345 @@ export const ListRecentEventsResponse = zod.object({
     ),
   }),
 });
+
+/**
+ * @summary List available integration providers (catalogue)
+ */
+export const ListIntegrationProvidersHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListIntegrationProvidersResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    providers: zod.array(
+      zod.object({
+        id: zod.string(),
+        label: zod.string(),
+        category: zod.enum([
+          "productivity",
+          "communication",
+          "files",
+          "code",
+          "tickets",
+          "crm",
+          "commerce",
+          "data",
+        ]),
+        authType: zod.enum(["oauth", "api_key"]),
+        description: zod.string(),
+        oauthScopes: zod.array(zod.string()),
+        fields: zod.array(
+          zod.object({
+            name: zod.string(),
+            label: zod.string(),
+            placeholder: zod.string().optional(),
+            secret: zod.boolean().optional(),
+            required: zod.boolean().optional(),
+          }),
+        ),
+        actions: zod.array(
+          zod.object({
+            name: zod.string(),
+            description: zod.string(),
+            riskLevel: zod.enum(["low", "medium", "high"]),
+          }),
+        ),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary List integrations connected by the tenant
+ */
+export const listIntegrationsQueryLimitDefault = 20;
+export const listIntegrationsQueryLimitMax = 100;
+
+export const ListIntegrationsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listIntegrationsQueryLimitMax)
+    .default(listIntegrationsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListIntegrationsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListIntegrationsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        provider: zod.string(),
+        displayName: zod.string(),
+        authType: zod.enum(["oauth", "api_key"]),
+        connectionStatus: zod.enum(["disconnected", "connected", "error"]),
+        accountLabel: zod.string().nullish(),
+        credentials: zod.record(zod.string(), zod.unknown()),
+        lastTestedAt: zod.coerce.date().nullish(),
+        lastError: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Fetch one integration (or a disconnected stub) for a provider
+ */
+export const GetIntegrationParams = zod.object({
+  provider: zod.coerce.string(),
+});
+
+export const GetIntegrationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetIntegrationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    provider: zod.string(),
+    displayName: zod.string(),
+    authType: zod.enum(["oauth", "api_key"]),
+    connectionStatus: zod.enum(["disconnected", "connected", "error"]),
+    accountLabel: zod.string().nullish(),
+    credentials: zod.record(zod.string(), zod.unknown()),
+    lastTestedAt: zod.coerce.date().nullish(),
+    lastError: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Connect or rotate credentials for a provider
+ */
+export const ConnectIntegrationParams = zod.object({
+  provider: zod.coerce.string(),
+});
+
+export const ConnectIntegrationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const connectIntegrationBodyAccountLabelMax = 120;
+
+export const ConnectIntegrationBody = zod.object({
+  credentials: zod.record(zod.string(), zod.unknown()),
+  accountLabel: zod
+    .string()
+    .min(1)
+    .max(connectIntegrationBodyAccountLabelMax)
+    .optional(),
+});
+
+export const ConnectIntegrationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    provider: zod.string(),
+    displayName: zod.string(),
+    authType: zod.enum(["oauth", "api_key"]),
+    connectionStatus: zod.enum(["disconnected", "connected", "error"]),
+    accountLabel: zod.string().nullish(),
+    credentials: zod.record(zod.string(), zod.unknown()),
+    lastTestedAt: zod.coerce.date().nullish(),
+    lastError: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Disconnect and erase credentials for a provider
+ */
+export const DisconnectIntegrationParams = zod.object({
+  provider: zod.coerce.string(),
+});
+
+export const DisconnectIntegrationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DisconnectIntegrationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    provider: zod.string(),
+    deleted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Verify the stored credentials are still valid
+ */
+export const TestIntegrationParams = zod.object({
+  provider: zod.coerce.string(),
+});
+
+export const TestIntegrationHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const TestIntegrationResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    provider: zod.string(),
+    displayName: zod.string(),
+    authType: zod.enum(["oauth", "api_key"]),
+    connectionStatus: zod.enum(["disconnected", "connected", "error"]),
+    accountLabel: zod.string().nullish(),
+    credentials: zod.record(zod.string(), zod.unknown()),
+    lastTestedAt: zod.coerce.date().nullish(),
+    lastError: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Build the OAuth authorise URL for a provider
+ */
+export const StartIntegrationOAuthParams = zod.object({
+  provider: zod.coerce.string(),
+});
+
+export const StartIntegrationOAuthHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const startIntegrationOAuthBodyRedirectUriMax = 2048;
+
+export const StartIntegrationOAuthBody = zod.object({
+  redirectUri: zod
+    .string()
+    .min(1)
+    .max(startIntegrationOAuthBodyRedirectUriMax)
+    .optional(),
+});
+
+export const StartIntegrationOAuthResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    provider: zod.string(),
+    authorizeUrl: zod.string(),
+    state: zod.string(),
+    scopes: zod.array(zod.string()),
+  }),
+});
+
+/**
+ * @summary Complete the OAuth handshake by exchanging the code
+ */
+export const CompleteIntegrationOAuthParams = zod.object({
+  provider: zod.coerce.string(),
+});
+
+export const CompleteIntegrationOAuthHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const completeIntegrationOAuthBodyAccountLabelMax = 120;
+
+export const CompleteIntegrationOAuthBody = zod.object({
+  code: zod.string().min(1),
+  state: zod.string().optional(),
+  refreshToken: zod.string().optional(),
+  accountLabel: zod
+    .string()
+    .min(1)
+    .max(completeIntegrationOAuthBodyAccountLabelMax)
+    .optional(),
+});
+
+export const CompleteIntegrationOAuthResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    provider: zod.string(),
+    displayName: zod.string(),
+    authType: zod.enum(["oauth", "api_key"]),
+    connectionStatus: zod.enum(["disconnected", "connected", "error"]),
+    accountLabel: zod.string().nullish(),
+    credentials: zod.record(zod.string(), zod.unknown()),
+    lastTestedAt: zod.coerce.date().nullish(),
+    lastError: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Execute one action exposed by a connected integration
+ */
+export const InvokeIntegrationActionParams = zod.object({
+  provider: zod.coerce.string(),
+  action: zod.coerce.string(),
+});
+
+export const InvokeIntegrationActionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const InvokeIntegrationActionBody = zod.object({
+  input: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+export const InvokeIntegrationActionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    provider: zod.string(),
+    action: zod.string(),
+    simulated: zod.literal(true),
+    input: zod.record(zod.string(), zod.unknown()),
+    output: zod.record(zod.string(), zod.unknown()),
+  }),
+});

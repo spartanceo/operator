@@ -40,6 +40,8 @@ tags:
     description: Local browser automation (Tier 1 stubs)
   - name: onboarding
     description: First-run setup wizard, hardware probe, and starter-task suggestions
+  - name: integrations
+    description: Third-party platform integrations (Notion, Slack, GitHub, etc.)
   - name: updates
     description: Desktop application update channel
   - name: desktop
@@ -7536,6 +7538,238 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OpEventListResponse'
+  /integrations/providers:
+    get:
+      operationId: listIntegrationProviders
+      tags: [integrations]
+      summary: List available integration providers (catalogue)
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Provider catalogue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationProviderListResponse"
+
+  /integrations:
+    get:
+      operationId: listIntegrations
+      tags: [integrations]
+      summary: List integrations connected by the tenant
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Integrations page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationListResponse"
+
+  /integrations/{provider}:
+    get:
+      operationId: getIntegration
+      tags: [integrations]
+      summary: Fetch one integration (or a disconnected stub) for a provider
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Integration row
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationResponse"
+        "404":
+          description: Unknown provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    put:
+      operationId: connectIntegration
+      tags: [integrations]
+      summary: Connect or rotate credentials for a provider
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectIntegrationRequest"
+      responses:
+        "200":
+          description: Integration connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Unknown provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: disconnectIntegration
+      tags: [integrations]
+      summary: Disconnect and erase credentials for a provider
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Disconnect receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationDisconnectResponse"
+
+  /integrations/{provider}/test:
+    post:
+      operationId: testIntegration
+      tags: [integrations]
+      summary: Verify the stored credentials are still valid
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Test result (refreshed integration row)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationResponse"
+        "409":
+          description: Provider not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /integrations/{provider}/oauth/start:
+    post:
+      operationId: startIntegrationOAuth
+      tags: [integrations]
+      summary: Build the OAuth authorise URL for a provider
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegrationOAuthStartRequest"
+      responses:
+        "200":
+          description: Authorise URL + state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationOAuthStartResponse"
+
+  /integrations/{provider}/oauth/callback:
+    post:
+      operationId: completeIntegrationOAuth
+      tags: [integrations]
+      summary: Complete the OAuth handshake by exchanging the code
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegrationOAuthCallbackRequest"
+      responses:
+        "200":
+          description: Integration connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationResponse"
+
+  /integrations/{provider}/actions/{action}:
+    post:
+      operationId: invokeIntegrationAction
+      tags: [integrations]
+      summary: Execute one action exposed by a connected integration
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: action
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegrationActionRequest"
+      responses:
+        "200":
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationActionResponse"
+        "404":
+          description: Unknown provider or action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "409":
+          description: Provider not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
 components:
   parameters:
     TenantHeader:
@@ -18381,6 +18615,268 @@ components:
       properties:
         success: { type: boolean, enum: [true] }
         data: { $ref: '#/components/schemas/OpEventList' }
+    IntegrationProviderField:
+      type: object
+      required: [name, label]
+      properties:
+        name:
+          type: string
+        label:
+          type: string
+        placeholder:
+          type: string
+        secret:
+          type: boolean
+        required:
+          type: boolean
+
+    IntegrationProviderAction:
+      type: object
+      required: [name, description, riskLevel]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+
+    IntegrationProvider:
+      type: object
+      required: [id, label, category, authType, description, oauthScopes, fields, actions]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        category:
+          type: string
+          enum: [productivity, communication, files, code, tickets, crm, commerce, data]
+        authType:
+          type: string
+          enum: [oauth, api_key]
+        description:
+          type: string
+        oauthScopes:
+          type: array
+          items:
+            type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/IntegrationProviderField"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/IntegrationProviderAction"
+
+    IntegrationProviderListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [providers]
+          properties:
+            providers:
+              type: array
+              items:
+                $ref: "#/components/schemas/IntegrationProvider"
+
+    Integration:
+      type: object
+      required:
+        - id
+        - provider
+        - displayName
+        - authType
+        - connectionStatus
+        - credentials
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        displayName:
+          type: string
+        authType:
+          type: string
+          enum: [oauth, api_key]
+        connectionStatus:
+          type: string
+          enum: [disconnected, connected, error]
+        accountLabel:
+          type: string
+          nullable: true
+        credentials:
+          type: object
+          additionalProperties: true
+        lastTestedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastError:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    IntegrationListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Integration"
+        nextCursor:
+          type: string
+          nullable: true
+
+    IntegrationListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/IntegrationListPage"
+
+    IntegrationResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/Integration"
+
+    ConnectIntegrationRequest:
+      type: object
+      required: [credentials]
+      properties:
+        credentials:
+          type: object
+          additionalProperties: true
+        accountLabel:
+          type: string
+          minLength: 1
+          maxLength: 120
+
+    IntegrationDisconnectReceipt:
+      type: object
+      required: [provider, deleted]
+      properties:
+        provider:
+          type: string
+        deleted:
+          type: boolean
+
+    IntegrationDisconnectResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/IntegrationDisconnectReceipt"
+
+    IntegrationOAuthStartRequest:
+      type: object
+      properties:
+        redirectUri:
+          type: string
+          minLength: 1
+          maxLength: 2048
+
+    IntegrationOAuthStart:
+      type: object
+      required: [provider, authorizeUrl, state, scopes]
+      properties:
+        provider:
+          type: string
+        authorizeUrl:
+          type: string
+        state:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+
+    IntegrationOAuthStartResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/IntegrationOAuthStart"
+
+    IntegrationOAuthCallbackRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+        state:
+          type: string
+        refreshToken:
+          type: string
+        accountLabel:
+          type: string
+          minLength: 1
+          maxLength: 120
+
+    IntegrationActionRequest:
+      type: object
+      properties:
+        input:
+          type: object
+          additionalProperties: true
+
+    IntegrationActionResult:
+      type: object
+      required: [provider, action, simulated, input, output]
+      properties:
+        provider:
+          type: string
+        action:
+          type: string
+        simulated:
+          type: boolean
+          enum: [true]
+        input:
+          type: object
+          additionalProperties: true
+        output:
+          type: object
+          additionalProperties: true
+
+    IntegrationActionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/IntegrationActionResult"
   responses: {}
   requestBodies: {}
   headers: {}
