@@ -3764,6 +3764,260 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /apps/feature:
+    get:
+      operationId: getAppCapabilityFeature
+      tags:
+        - apps
+      summary: Feature flag + cache stats for the App Capability Indexer
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Feature status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppFeatureResponse'
+  /apps:
+    get:
+      operationId: listAppProfiles
+      tags:
+        - apps
+      summary: Paginated list of per-app capability profiles
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: App profiles page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppProfileListResponse'
+  /apps/scan:
+    post:
+      operationId: scanInstalledApps
+      tags:
+        - apps
+      summary: Re-scan host for installed apps and refresh stale profiles
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Scan complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppScanResponse'
+  /apps/by-app-id/{appId}:
+    get:
+      operationId: getAppProfileByAppId
+      tags:
+        - apps
+      summary: Fetch one app capability profile by stable app id
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: App profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppProfileResponse'
+        '404':
+          description: Unknown app id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /apps/{id}:
+    get:
+      operationId: getAppProfile
+      tags:
+        - apps
+      summary: Fetch one app capability profile
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: App profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppProfileResponse'
+        '404':
+          description: Unknown app profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /apps/{id}/commands:
+    get:
+      operationId: listAppCommands
+      tags:
+        - apps
+      summary: Paginated capability commands for one app profile
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - command
+              - menu
+              - shortcut
+              - mcp_tool
+              - skill_action
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Commands page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppCommandListResponse'
+  /apps/{id}/deep-learn:
+    post:
+      operationId: startAppDeepLearn
+      tags:
+        - apps
+      summary: Queue documentation ingestion for an app
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppDeepLearnRequest'
+      responses:
+        '200':
+          description: Deep-Learn job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppDocIngestionResponse'
+        '404':
+          description: Unknown app profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /apps/{id}/mcp/connect:
+    post:
+      operationId: connectAppMcp
+      tags:
+        - apps
+      summary: Connect the app's MCP server (one-click)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppMcpConnectRequest'
+      responses:
+        '200':
+          description: MCP connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppMcpConnectionResponse'
+        '404':
+          description: Unknown app profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /apps/{id}/mcp/disconnect:
+    post:
+      operationId: disconnectAppMcp
+      tags:
+        - apps
+      summary: Disconnect the app's MCP server
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: MCP disconnected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppMcpConnectionResponse'
+        '404':
+          description: No active MCP connection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /apps/{id}/install-skill:
+    post:
+      operationId: installAppSkill
+      tags:
+        - apps
+      summary: Bind a community App Skill to this app profile
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppInstallSkillRequest'
+      responses:
+        '200':
+          description: Skill bound to app profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppProfileResponse'
+        '404':
+          description: Unknown app profile or skill
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
   /knowledge/collections:
     get:
       operationId: listKnowledgeCollections
@@ -15581,6 +15835,242 @@ components:
             - true
         data:
           $ref: '#/components/schemas/DesktopScreenFrame'
+    AppProfileSources:
+      type: object
+      required:
+        - osNative
+        - mcp
+        - docs
+        - skill
+      properties:
+        osNative: { type: boolean }
+        mcp: { type: boolean }
+        docs: { type: boolean }
+        skill: { type: boolean }
+    AppProfile:
+      type: object
+      required:
+        - id
+        - appId
+        - appName
+        - appVersion
+        - platform
+        - sources
+        - commandCount
+        - menuCount
+        - shortcutCount
+        - docIndexStatus
+        - mcpStatus
+        - profileTtlMs
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string }
+        appId: { type: string }
+        appName: { type: string }
+        appVersion: { type: string }
+        platform: { type: string }
+        sources: { $ref: '#/components/schemas/AppProfileSources' }
+        commandCount: { type: integer }
+        menuCount: { type: integer }
+        shortcutCount: { type: integer }
+        docIndexStatus: { type: string }
+        mcpStatus: { type: string }
+        installedSkillId:
+          type: string
+          nullable: true
+        lastRefreshedAt:
+          type: string
+          nullable: true
+          format: date-time
+        profileTtlMs: { type: integer }
+        discoveredPath:
+          type: string
+          nullable: true
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AppProfileResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/AppProfile' }
+    AppProfileListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AppProfile' }
+        nextCursor:
+          type: string
+          nullable: true
+    AppProfileListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/AppProfileListPage' }
+    AppCommand:
+      type: object
+      required:
+        - id
+        - appProfileId
+        - kind
+        - source
+        - name
+        - description
+        - createdAt
+      properties:
+        id: { type: string }
+        appProfileId: { type: string }
+        kind: { type: string }
+        source: { type: string }
+        name: { type: string }
+        description: { type: string }
+        shortcut:
+          type: string
+          nullable: true
+        payload:
+          nullable: true
+        createdAt: { type: string, format: date-time }
+    AppCommandListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AppCommand' }
+        nextCursor:
+          type: string
+          nullable: true
+    AppCommandListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/AppCommandListPage' }
+    AppFeatureStatus:
+      type: object
+      required: [enabled, reason, platform, cachedProfiles]
+      properties:
+        enabled: { type: boolean }
+        reason: { type: string }
+        platform: { type: string }
+        cachedProfiles: { type: integer }
+    AppFeatureResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/AppFeatureStatus' }
+    AppScanResult:
+      type: object
+      required: [profiles, scanned]
+      properties:
+        scanned: { type: integer }
+        profiles:
+          type: array
+          items: { $ref: '#/components/schemas/AppProfile' }
+    AppScanResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/AppScanResult' }
+    AppDeepLearnRequest:
+      type: object
+      properties:
+        rootUrl:
+          type: string
+          format: uri
+    AppDocIngestion:
+      type: object
+      required:
+        - id
+        - appProfileId
+        - status
+        - rootUrl
+        - pagesFetched
+        - pagesPlanned
+        - chunksEmbedded
+        - createdAt
+      properties:
+        id: { type: string }
+        appProfileId: { type: string }
+        status: { type: string }
+        rootUrl: { type: string }
+        pagesFetched: { type: integer }
+        pagesPlanned: { type: integer }
+        chunksEmbedded: { type: integer }
+        error:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          nullable: true
+          format: date-time
+        completedAt:
+          type: string
+          nullable: true
+          format: date-time
+        createdAt: { type: string, format: date-time }
+    AppDocIngestionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/AppDocIngestion' }
+    AppMcpConnectRequest:
+      type: object
+      properties:
+        endpoint:
+          type: string
+          format: uri
+    AppMcpTool:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
+    AppMcpConnection:
+      type: object
+      required:
+        - id
+        - appProfileId
+        - endpoint
+        - status
+        - tools
+      properties:
+        id: { type: string }
+        appProfileId: { type: string }
+        endpoint: { type: string }
+        status: { type: string }
+        tools:
+          type: array
+          items: { $ref: '#/components/schemas/AppMcpTool' }
+        error:
+          type: string
+          nullable: true
+        connectedAt:
+          type: string
+          nullable: true
+          format: date-time
+        disconnectedAt:
+          type: string
+          nullable: true
+          format: date-time
+    AppMcpConnectionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/AppMcpConnection' }
+    AppInstallSkillRequest:
+      type: object
+      required: [skillId]
+      properties:
+        skillId: { type: string }
     KnowledgeCollection:
       type: object
       required:

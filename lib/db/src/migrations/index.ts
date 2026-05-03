@@ -60,6 +60,8 @@ import { migration as m0046 } from "./0046_runtime";
 import { migration as m0047 } from "./0047_context_management";
 import { migration as m0048 } from "./0048_fine_tuned_models";
 import { migration as m0049 } from "./0049_orchestration";
+import { migration as m0050 } from "./0050_app_capability_indexer";
+import { migration as m0051 } from "./0051_agent_orch_conversation_index";
 
 import type { BackgroundMigration, SchemaMigration } from "./types";
 
@@ -120,6 +122,8 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
   m0047,
   m0048,
   m0049,
+  m0050,
+  m0051,
 ];
 
 /**

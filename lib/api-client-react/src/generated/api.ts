@@ -46,6 +46,16 @@ import type {
   AgentRunListResponse,
   AgentRunResponse,
   ApiErrorResponse,
+  AppCommandListResponse,
+  AppDeepLearnRequest,
+  AppDocIngestionResponse,
+  AppFeatureResponse,
+  AppInstallSkillRequest,
+  AppMcpConnectRequest,
+  AppMcpConnectionResponse,
+  AppProfileListResponse,
+  AppProfileResponse,
+  AppScanResponse,
   AppVersionResponse,
   AppVersionsListResponse,
   AppendConversationMessageRequest,
@@ -291,6 +301,8 @@ import type {
   ListAgentRunMessagesParams,
   ListAgentRunToolCallsParams,
   ListAgentRunsParams,
+  ListAppCommandsParams,
+  ListAppProfilesParams,
   ListCalendarEventsParams,
   ListCommAccountsParams,
   ListContactInteractionsParams,
@@ -15652,6 +15664,890 @@ export const useExecuteDesktopStep = <
   TContext
 > => {
   return useMutation(getExecuteDesktopStepMutationOptions(options));
+};
+
+/**
+ * @summary Feature flag + cache stats for the App Capability Indexer
+ */
+export const getGetAppCapabilityFeatureUrl = () => {
+  return `/api/apps/feature`;
+};
+
+export const getAppCapabilityFeature = async (
+  options?: RequestInit,
+): Promise<AppFeatureResponse> => {
+  return customFetch<AppFeatureResponse>(getGetAppCapabilityFeatureUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAppCapabilityFeatureQueryKey = () => {
+  return [`/api/apps/feature`] as const;
+};
+
+export const getGetAppCapabilityFeatureQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAppCapabilityFeature>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAppCapabilityFeature>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAppCapabilityFeatureQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAppCapabilityFeature>>
+  > = ({ signal }) => getAppCapabilityFeature({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAppCapabilityFeature>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAppCapabilityFeatureQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAppCapabilityFeature>>
+>;
+export type GetAppCapabilityFeatureQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Feature flag + cache stats for the App Capability Indexer
+ */
+
+export function useGetAppCapabilityFeature<
+  TData = Awaited<ReturnType<typeof getAppCapabilityFeature>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAppCapabilityFeature>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAppCapabilityFeatureQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Paginated list of per-app capability profiles
+ */
+export const getListAppProfilesUrl = (params?: ListAppProfilesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/apps?${stringifiedParams}`
+    : `/api/apps`;
+};
+
+export const listAppProfiles = async (
+  params?: ListAppProfilesParams,
+  options?: RequestInit,
+): Promise<AppProfileListResponse> => {
+  return customFetch<AppProfileListResponse>(getListAppProfilesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAppProfilesQueryKey = (params?: ListAppProfilesParams) => {
+  return [`/api/apps`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAppProfilesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAppProfiles>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAppProfilesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAppProfiles>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAppProfilesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAppProfiles>>> = ({
+    signal,
+  }) => listAppProfiles(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAppProfiles>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAppProfilesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAppProfiles>>
+>;
+export type ListAppProfilesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Paginated list of per-app capability profiles
+ */
+
+export function useListAppProfiles<
+  TData = Awaited<ReturnType<typeof listAppProfiles>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAppProfilesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAppProfiles>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAppProfilesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Re-scan host for installed apps and refresh stale profiles
+ */
+export const getScanInstalledAppsUrl = () => {
+  return `/api/apps/scan`;
+};
+
+export const scanInstalledApps = async (
+  options?: RequestInit,
+): Promise<AppScanResponse> => {
+  return customFetch<AppScanResponse>(getScanInstalledAppsUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getScanInstalledAppsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scanInstalledApps>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof scanInstalledApps>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["scanInstalledApps"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof scanInstalledApps>>,
+    void
+  > = () => {
+    return scanInstalledApps(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ScanInstalledAppsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof scanInstalledApps>>
+>;
+
+export type ScanInstalledAppsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Re-scan host for installed apps and refresh stale profiles
+ */
+export const useScanInstalledApps = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scanInstalledApps>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof scanInstalledApps>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getScanInstalledAppsMutationOptions(options));
+};
+
+/**
+ * @summary Fetch one app capability profile by stable app id
+ */
+export const getGetAppProfileByAppIdUrl = (appId: string) => {
+  return `/api/apps/by-app-id/${appId}`;
+};
+
+export const getAppProfileByAppId = async (
+  appId: string,
+  options?: RequestInit,
+): Promise<AppProfileResponse> => {
+  return customFetch<AppProfileResponse>(getGetAppProfileByAppIdUrl(appId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAppProfileByAppIdQueryKey = (appId: string) => {
+  return [`/api/apps/by-app-id/${appId}`] as const;
+};
+
+export const getGetAppProfileByAppIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAppProfileByAppId>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  appId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAppProfileByAppId>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAppProfileByAppIdQueryKey(appId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAppProfileByAppId>>
+  > = ({ signal }) =>
+    getAppProfileByAppId(appId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!appId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAppProfileByAppId>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAppProfileByAppIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAppProfileByAppId>>
+>;
+export type GetAppProfileByAppIdQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one app capability profile by stable app id
+ */
+
+export function useGetAppProfileByAppId<
+  TData = Awaited<ReturnType<typeof getAppProfileByAppId>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  appId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAppProfileByAppId>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAppProfileByAppIdQueryOptions(appId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch one app capability profile
+ */
+export const getGetAppProfileUrl = (id: string) => {
+  return `/api/apps/${id}`;
+};
+
+export const getAppProfile = async (
+  id: string,
+  options?: RequestInit,
+): Promise<AppProfileResponse> => {
+  return customFetch<AppProfileResponse>(getGetAppProfileUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAppProfileQueryKey = (id: string) => {
+  return [`/api/apps/${id}`] as const;
+};
+
+export const getGetAppProfileQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAppProfile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAppProfile>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAppProfileQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAppProfile>>> = ({
+    signal,
+  }) => getAppProfile(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAppProfile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAppProfileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAppProfile>>
+>;
+export type GetAppProfileQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Fetch one app capability profile
+ */
+
+export function useGetAppProfile<
+  TData = Awaited<ReturnType<typeof getAppProfile>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAppProfile>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAppProfileQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Paginated capability commands for one app profile
+ */
+export const getListAppCommandsUrl = (
+  id: string,
+  params?: ListAppCommandsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/apps/${id}/commands?${stringifiedParams}`
+    : `/api/apps/${id}/commands`;
+};
+
+export const listAppCommands = async (
+  id: string,
+  params?: ListAppCommandsParams,
+  options?: RequestInit,
+): Promise<AppCommandListResponse> => {
+  return customFetch<AppCommandListResponse>(
+    getListAppCommandsUrl(id, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAppCommandsQueryKey = (
+  id: string,
+  params?: ListAppCommandsParams,
+) => {
+  return [`/api/apps/${id}/commands`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAppCommandsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAppCommands>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  params?: ListAppCommandsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAppCommands>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAppCommandsQueryKey(id, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAppCommands>>> = ({
+    signal,
+  }) => listAppCommands(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAppCommands>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAppCommandsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAppCommands>>
+>;
+export type ListAppCommandsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Paginated capability commands for one app profile
+ */
+
+export function useListAppCommands<
+  TData = Awaited<ReturnType<typeof listAppCommands>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  params?: ListAppCommandsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAppCommands>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAppCommandsQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Queue documentation ingestion for an app
+ */
+export const getStartAppDeepLearnUrl = (id: string) => {
+  return `/api/apps/${id}/deep-learn`;
+};
+
+export const startAppDeepLearn = async (
+  id: string,
+  appDeepLearnRequest?: AppDeepLearnRequest,
+  options?: RequestInit,
+): Promise<AppDocIngestionResponse> => {
+  return customFetch<AppDocIngestionResponse>(getStartAppDeepLearnUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(appDeepLearnRequest),
+  });
+};
+
+export const getStartAppDeepLearnMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startAppDeepLearn>>,
+    TError,
+    { id: string; data: BodyType<AppDeepLearnRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startAppDeepLearn>>,
+  TError,
+  { id: string; data: BodyType<AppDeepLearnRequest> },
+  TContext
+> => {
+  const mutationKey = ["startAppDeepLearn"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startAppDeepLearn>>,
+    { id: string; data: BodyType<AppDeepLearnRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return startAppDeepLearn(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartAppDeepLearnMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startAppDeepLearn>>
+>;
+export type StartAppDeepLearnMutationBody = BodyType<AppDeepLearnRequest>;
+export type StartAppDeepLearnMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Queue documentation ingestion for an app
+ */
+export const useStartAppDeepLearn = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startAppDeepLearn>>,
+    TError,
+    { id: string; data: BodyType<AppDeepLearnRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startAppDeepLearn>>,
+  TError,
+  { id: string; data: BodyType<AppDeepLearnRequest> },
+  TContext
+> => {
+  return useMutation(getStartAppDeepLearnMutationOptions(options));
+};
+
+/**
+ * @summary Connect the app's MCP server (one-click)
+ */
+export const getConnectAppMcpUrl = (id: string) => {
+  return `/api/apps/${id}/mcp/connect`;
+};
+
+export const connectAppMcp = async (
+  id: string,
+  appMcpConnectRequest?: AppMcpConnectRequest,
+  options?: RequestInit,
+): Promise<AppMcpConnectionResponse> => {
+  return customFetch<AppMcpConnectionResponse>(getConnectAppMcpUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(appMcpConnectRequest),
+  });
+};
+
+export const getConnectAppMcpMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof connectAppMcp>>,
+    TError,
+    { id: string; data: BodyType<AppMcpConnectRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof connectAppMcp>>,
+  TError,
+  { id: string; data: BodyType<AppMcpConnectRequest> },
+  TContext
+> => {
+  const mutationKey = ["connectAppMcp"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof connectAppMcp>>,
+    { id: string; data: BodyType<AppMcpConnectRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return connectAppMcp(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConnectAppMcpMutationResult = NonNullable<
+  Awaited<ReturnType<typeof connectAppMcp>>
+>;
+export type ConnectAppMcpMutationBody = BodyType<AppMcpConnectRequest>;
+export type ConnectAppMcpMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Connect the app's MCP server (one-click)
+ */
+export const useConnectAppMcp = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof connectAppMcp>>,
+    TError,
+    { id: string; data: BodyType<AppMcpConnectRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof connectAppMcp>>,
+  TError,
+  { id: string; data: BodyType<AppMcpConnectRequest> },
+  TContext
+> => {
+  return useMutation(getConnectAppMcpMutationOptions(options));
+};
+
+/**
+ * @summary Disconnect the app's MCP server
+ */
+export const getDisconnectAppMcpUrl = (id: string) => {
+  return `/api/apps/${id}/mcp/disconnect`;
+};
+
+export const disconnectAppMcp = async (
+  id: string,
+  options?: RequestInit,
+): Promise<AppMcpConnectionResponse> => {
+  return customFetch<AppMcpConnectionResponse>(getDisconnectAppMcpUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDisconnectAppMcpMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof disconnectAppMcp>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof disconnectAppMcp>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["disconnectAppMcp"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof disconnectAppMcp>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return disconnectAppMcp(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DisconnectAppMcpMutationResult = NonNullable<
+  Awaited<ReturnType<typeof disconnectAppMcp>>
+>;
+
+export type DisconnectAppMcpMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Disconnect the app's MCP server
+ */
+export const useDisconnectAppMcp = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof disconnectAppMcp>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof disconnectAppMcp>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDisconnectAppMcpMutationOptions(options));
+};
+
+/**
+ * @summary Bind a community App Skill to this app profile
+ */
+export const getInstallAppSkillUrl = (id: string) => {
+  return `/api/apps/${id}/install-skill`;
+};
+
+export const installAppSkill = async (
+  id: string,
+  appInstallSkillRequest: AppInstallSkillRequest,
+  options?: RequestInit,
+): Promise<AppProfileResponse> => {
+  return customFetch<AppProfileResponse>(getInstallAppSkillUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(appInstallSkillRequest),
+  });
+};
+
+export const getInstallAppSkillMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installAppSkill>>,
+    TError,
+    { id: string; data: BodyType<AppInstallSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof installAppSkill>>,
+  TError,
+  { id: string; data: BodyType<AppInstallSkillRequest> },
+  TContext
+> => {
+  const mutationKey = ["installAppSkill"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof installAppSkill>>,
+    { id: string; data: BodyType<AppInstallSkillRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return installAppSkill(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InstallAppSkillMutationResult = NonNullable<
+  Awaited<ReturnType<typeof installAppSkill>>
+>;
+export type InstallAppSkillMutationBody = BodyType<AppInstallSkillRequest>;
+export type InstallAppSkillMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Bind a community App Skill to this app profile
+ */
+export const useInstallAppSkill = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof installAppSkill>>,
+    TError,
+    { id: string; data: BodyType<AppInstallSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof installAppSkill>>,
+  TError,
+  { id: string; data: BodyType<AppInstallSkillRequest> },
+  TContext
+> => {
+  return useMutation(getInstallAppSkillMutationOptions(options));
 };
 
 /**

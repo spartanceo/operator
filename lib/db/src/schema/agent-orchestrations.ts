@@ -42,6 +42,7 @@ export const agentOrchestrations = sqliteTable(
     workspaceIdx: index("idx_agent_orch_workspace").on(t.workspaceId),
     statusIdx: index("idx_agent_orch_status").on(t.tenantId, t.status),
     parentIdx: index("idx_agent_orch_parent").on(t.parentOrchestrationId),
+    conversationIdx: index("idx_agent_orch_conversation").on(t.conversationId),
     createdIdx: index("idx_agent_orch_created").on(t.tenantId, t.createdAt),
   }),
 );

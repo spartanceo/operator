@@ -6055,6 +6055,426 @@ export const ExecuteDesktopStepResponse = zod.object({
 });
 
 /**
+ * @summary Feature flag + cache stats for the App Capability Indexer
+ */
+export const GetAppCapabilityFeatureHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetAppCapabilityFeatureResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    enabled: zod.boolean(),
+    reason: zod.string(),
+    platform: zod.string(),
+    cachedProfiles: zod.number(),
+  }),
+});
+
+/**
+ * @summary Paginated list of per-app capability profiles
+ */
+export const listAppProfilesQueryLimitDefault = 20;
+export const listAppProfilesQueryLimitMax = 100;
+
+export const ListAppProfilesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listAppProfilesQueryLimitMax)
+    .default(listAppProfilesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListAppProfilesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListAppProfilesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        appId: zod.string(),
+        appName: zod.string(),
+        appVersion: zod.string(),
+        platform: zod.string(),
+        sources: zod.object({
+          osNative: zod.boolean(),
+          mcp: zod.boolean(),
+          docs: zod.boolean(),
+          skill: zod.boolean(),
+        }),
+        commandCount: zod.number(),
+        menuCount: zod.number(),
+        shortcutCount: zod.number(),
+        docIndexStatus: zod.string(),
+        mcpStatus: zod.string(),
+        installedSkillId: zod.string().nullish(),
+        lastRefreshedAt: zod.coerce.date().nullish(),
+        profileTtlMs: zod.number(),
+        discoveredPath: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Re-scan host for installed apps and refresh stale profiles
+ */
+export const ScanInstalledAppsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ScanInstalledAppsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    scanned: zod.number(),
+    profiles: zod.array(
+      zod.object({
+        id: zod.string(),
+        appId: zod.string(),
+        appName: zod.string(),
+        appVersion: zod.string(),
+        platform: zod.string(),
+        sources: zod.object({
+          osNative: zod.boolean(),
+          mcp: zod.boolean(),
+          docs: zod.boolean(),
+          skill: zod.boolean(),
+        }),
+        commandCount: zod.number(),
+        menuCount: zod.number(),
+        shortcutCount: zod.number(),
+        docIndexStatus: zod.string(),
+        mcpStatus: zod.string(),
+        installedSkillId: zod.string().nullish(),
+        lastRefreshedAt: zod.coerce.date().nullish(),
+        profileTtlMs: zod.number(),
+        discoveredPath: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Fetch one app capability profile by stable app id
+ */
+export const GetAppProfileByAppIdParams = zod.object({
+  appId: zod.coerce.string(),
+});
+
+export const GetAppProfileByAppIdHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetAppProfileByAppIdResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    appId: zod.string(),
+    appName: zod.string(),
+    appVersion: zod.string(),
+    platform: zod.string(),
+    sources: zod.object({
+      osNative: zod.boolean(),
+      mcp: zod.boolean(),
+      docs: zod.boolean(),
+      skill: zod.boolean(),
+    }),
+    commandCount: zod.number(),
+    menuCount: zod.number(),
+    shortcutCount: zod.number(),
+    docIndexStatus: zod.string(),
+    mcpStatus: zod.string(),
+    installedSkillId: zod.string().nullish(),
+    lastRefreshedAt: zod.coerce.date().nullish(),
+    profileTtlMs: zod.number(),
+    discoveredPath: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Fetch one app capability profile
+ */
+export const GetAppProfileParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetAppProfileHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetAppProfileResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    appId: zod.string(),
+    appName: zod.string(),
+    appVersion: zod.string(),
+    platform: zod.string(),
+    sources: zod.object({
+      osNative: zod.boolean(),
+      mcp: zod.boolean(),
+      docs: zod.boolean(),
+      skill: zod.boolean(),
+    }),
+    commandCount: zod.number(),
+    menuCount: zod.number(),
+    shortcutCount: zod.number(),
+    docIndexStatus: zod.string(),
+    mcpStatus: zod.string(),
+    installedSkillId: zod.string().nullish(),
+    lastRefreshedAt: zod.coerce.date().nullish(),
+    profileTtlMs: zod.number(),
+    discoveredPath: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Paginated capability commands for one app profile
+ */
+export const ListAppCommandsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listAppCommandsQueryLimitDefault = 20;
+export const listAppCommandsQueryLimitMax = 100;
+
+export const ListAppCommandsQueryParams = zod.object({
+  kind: zod
+    .enum(["command", "menu", "shortcut", "mcp_tool", "skill_action"])
+    .optional(),
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listAppCommandsQueryLimitMax)
+    .default(listAppCommandsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListAppCommandsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListAppCommandsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        appProfileId: zod.string(),
+        kind: zod.string(),
+        source: zod.string(),
+        name: zod.string(),
+        description: zod.string(),
+        shortcut: zod.string().nullish(),
+        payload: zod.unknown().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary Queue documentation ingestion for an app
+ */
+export const StartAppDeepLearnParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const StartAppDeepLearnHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const StartAppDeepLearnBody = zod.object({
+  rootUrl: zod.string().url().optional(),
+});
+
+export const StartAppDeepLearnResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    appProfileId: zod.string(),
+    status: zod.string(),
+    rootUrl: zod.string(),
+    pagesFetched: zod.number(),
+    pagesPlanned: zod.number(),
+    chunksEmbedded: zod.number(),
+    error: zod.string().nullish(),
+    startedAt: zod.coerce.date().nullish(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Connect the app's MCP server (one-click)
+ */
+export const ConnectAppMcpParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ConnectAppMcpHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ConnectAppMcpBody = zod.object({
+  endpoint: zod.string().url().optional(),
+});
+
+export const ConnectAppMcpResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    appProfileId: zod.string(),
+    endpoint: zod.string(),
+    status: zod.string(),
+    tools: zod.array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string().optional(),
+      }),
+    ),
+    error: zod.string().nullish(),
+    connectedAt: zod.coerce.date().nullish(),
+    disconnectedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Disconnect the app's MCP server
+ */
+export const DisconnectAppMcpParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DisconnectAppMcpHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DisconnectAppMcpResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    appProfileId: zod.string(),
+    endpoint: zod.string(),
+    status: zod.string(),
+    tools: zod.array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string().optional(),
+      }),
+    ),
+    error: zod.string().nullish(),
+    connectedAt: zod.coerce.date().nullish(),
+    disconnectedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Bind a community App Skill to this app profile
+ */
+export const InstallAppSkillParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const InstallAppSkillHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const InstallAppSkillBody = zod.object({
+  skillId: zod.string(),
+});
+
+export const InstallAppSkillResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    appId: zod.string(),
+    appName: zod.string(),
+    appVersion: zod.string(),
+    platform: zod.string(),
+    sources: zod.object({
+      osNative: zod.boolean(),
+      mcp: zod.boolean(),
+      docs: zod.boolean(),
+      skill: zod.boolean(),
+    }),
+    commandCount: zod.number(),
+    menuCount: zod.number(),
+    shortcutCount: zod.number(),
+    docIndexStatus: zod.string(),
+    mcpStatus: zod.string(),
+    installedSkillId: zod.string().nullish(),
+    lastRefreshedAt: zod.coerce.date().nullish(),
+    profileTtlMs: zod.number(),
+    discoveredPath: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
  * @summary List knowledge-base collections
  */
 export const listKnowledgeCollectionsQueryLimitDefault = 20;

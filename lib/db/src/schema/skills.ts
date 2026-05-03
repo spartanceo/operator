@@ -107,6 +107,13 @@ export const skills = sqliteTable(
      * deterministic agent loop.
      */
     executionManifest: text("execution_manifest"),
+    /**
+     * App-Skill type extension (Task #70). When set, this skill targets a
+     * specific application — the App Capability Indexer surfaces it in the
+     * matching `app_profiles` row and the Planner prefers it over generic
+     * skills when the user's request mentions that app.
+     */
+    targetAppId: text("target_app_id"),
   },
   (t) => ({
     tenantIdx: index("idx_skills_tenant").on(t.tenantId),
@@ -117,6 +124,7 @@ export const skills = sqliteTable(
     ratingIdx: index("idx_skills_rating").on(t.tenantId, t.ratingAvg),
     usageIdx: index("idx_skills_usage").on(t.tenantId, t.usageCount),
     updatedIdx: index("idx_skills_updated").on(t.tenantId, t.updatedAt),
+    targetAppIdx: index("idx_skills_target_app").on(t.tenantId, t.targetAppId),
   }),
 );
 

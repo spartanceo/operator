@@ -168,6 +168,9 @@ importers:
       '@types/supertest':
         specifier: ^6.0.3
         version: 6.0.3
+      '@workspace/scripts':
+        specifier: workspace:*
+        version: link:../../scripts
       esbuild:
         specifier: ^0.27.3
         version: 0.27.3

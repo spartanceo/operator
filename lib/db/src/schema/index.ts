@@ -80,6 +80,11 @@ export * from "./scheduled-tasks";
 export * from "./agent-orchestrations";
 export * from "./orchestration-nodes";
 
+export * from "./app-profiles";
+export * from "./app-capability-commands";
+export * from "./app-mcp-connections";
+export * from "./app-doc-ingestions";
+
 export * from "./skill-drafts";
 export * from "./creator-accounts";
 export * from "./store-skills";

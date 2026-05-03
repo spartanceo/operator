@@ -52,6 +52,10 @@ import {
 } from "./conversation.service";
 import { getSkill, matchSkillForGoal, type SkillRow } from "./skill.service";
 import {
+  listProfiles,
+  summariseCapabilitiesForAgent,
+} from "./app-capability.service";
+import {
   checkPremiumAccess,
   consumePreview,
   recordUsage,
@@ -219,6 +223,28 @@ function desktopRouterNote(goal: string): string {
     `Open /desktop and start a session — the LAV cycle (Look → Act → Verify) ` +
     `will plan and execute with semantic targeting.`
   );
+}
+
+/**
+ * Match a goal against the known app catalog (capability indexer) and
+ * return a pre-resolved app id when the goal explicitly names one. The
+ * router consults this BEFORE falling back to vision-based desktop
+ * control — capability-first planning is cheaper, more reliable, and
+ * leaves an auditable trail of which app the agent targeted.
+ *
+ * Tier 1 uses a substring match against the lower-cased app name in the
+ * goal. The full natural-language entity extractor lands with the LLM
+ * router upgrade in Task #69.
+ */
+export function matchAppFromGoal(
+  goal: string,
+  knownApps: ReadonlyArray<{ appId: string; appName: string }>,
+): { appId: string; appName: string } | null {
+  const g = goal.toLowerCase();
+  for (const app of knownApps) {
+    if (g.includes(app.appName.toLowerCase())) return app;
+  }
+  return null;
 }
 
 function plannerAgent(goal: string): PlanStep[] {
@@ -424,8 +450,47 @@ export async function createAgentRun(
       console.warn("kb retrieve failed", e);
     }
   }
+  // Capability-first planning (Task #70): before falling back to vision
+  // for any desktop intent, consult the App Capability Indexer. If the
+  // goal names a known app, prepend a compact capability hint to the
+  // plan so the executor can prefer MCP tools / installed skills /
+  // known shortcuts over coordinate-based clicking.
+  let capabilityNote: string | null = null;
+  try {
+    const profilesPage = await listProfiles(ctx, { limit: 50 });
+    const matched = matchAppFromGoal(
+      input.goal,
+      profilesPage.items.map((p) => ({ appId: p.appId, appName: p.appName })),
+    );
+    if (matched) {
+      const summary = await summariseCapabilitiesForAgent(ctx, matched.appId, 8);
+      if (summary && summary.commands.length > 0) {
+        const lines = summary.commands
+          .map(
+            (c) =>
+              `  - [${c.kind}/${c.source}] ${c.name}` +
+              (c.shortcut ? ` (${c.shortcut})` : ""),
+          )
+          .join("\n");
+        capabilityNote =
+          `Capability hint for ${summary.appName} (${summary.appId}):\n${lines}`;
+        emitOpEvent(ctx, "task_started", {
+          runId: id,
+          goal: input.goal,
+          appId: summary.appId,
+          capabilityCommands: summary.commands.length,
+        });
+      }
+    }
+  } catch (e) {
+    // Capability indexer is best-effort — never fail the run because of it.
+    // eslint-disable-next-line no-console
+    console.warn("capability lookup failed", e);
+  }
+
   const plan = plannerAgent(input.goal);
   const planText =
+    (capabilityNote ? `${capabilityNote}\n` : "") +
     (desktopNote ? `${desktopNote}\n` : "") +
     plan.map((p, i) => `${i + 1}. [${p.toolName}] ${p.rationale}`).join("\n");
 

@@ -2168,6 +2168,144 @@ export interface DesktopScreenResponse {
   data: DesktopScreenFrame;
 }
 
+export interface AppProfileSources {
+  osNative: boolean;
+  mcp: boolean;
+  docs: boolean;
+  skill: boolean;
+}
+
+export interface AppProfile {
+  id: string;
+  appId: string;
+  appName: string;
+  appVersion: string;
+  platform: string;
+  sources: AppProfileSources;
+  commandCount: number;
+  menuCount: number;
+  shortcutCount: number;
+  docIndexStatus: string;
+  mcpStatus: string;
+  installedSkillId?: string | null;
+  lastRefreshedAt?: string | null;
+  profileTtlMs: number;
+  discoveredPath?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppProfileResponse {
+  success: boolean;
+  data: AppProfile;
+}
+
+export interface AppProfileListPage {
+  items: AppProfile[];
+  nextCursor: string | null;
+}
+
+export interface AppProfileListResponse {
+  success: boolean;
+  data: AppProfileListPage;
+}
+
+export interface AppCommand {
+  id: string;
+  appProfileId: string;
+  kind: string;
+  source: string;
+  name: string;
+  description: string;
+  shortcut?: string | null;
+  payload?: unknown | null;
+  createdAt: string;
+}
+
+export interface AppCommandListPage {
+  items: AppCommand[];
+  nextCursor: string | null;
+}
+
+export interface AppCommandListResponse {
+  success: boolean;
+  data: AppCommandListPage;
+}
+
+export interface AppFeatureStatus {
+  enabled: boolean;
+  reason: string;
+  platform: string;
+  cachedProfiles: number;
+}
+
+export interface AppFeatureResponse {
+  success: boolean;
+  data: AppFeatureStatus;
+}
+
+export interface AppScanResult {
+  scanned: number;
+  profiles: AppProfile[];
+}
+
+export interface AppScanResponse {
+  success: boolean;
+  data: AppScanResult;
+}
+
+export interface AppDeepLearnRequest {
+  rootUrl?: string;
+}
+
+export interface AppDocIngestion {
+  id: string;
+  appProfileId: string;
+  status: string;
+  rootUrl: string;
+  pagesFetched: number;
+  pagesPlanned: number;
+  chunksEmbedded: number;
+  error?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+}
+
+export interface AppDocIngestionResponse {
+  success: boolean;
+  data: AppDocIngestion;
+}
+
+export interface AppMcpConnectRequest {
+  endpoint?: string;
+}
+
+export interface AppMcpTool {
+  name: string;
+  description?: string;
+}
+
+export interface AppMcpConnection {
+  id: string;
+  appProfileId: string;
+  endpoint: string;
+  status: string;
+  tools: AppMcpTool[];
+  error?: string | null;
+  connectedAt?: string | null;
+  disconnectedAt?: string | null;
+}
+
+export interface AppMcpConnectionResponse {
+  success: boolean;
+  data: AppMcpConnection;
+}
+
+export interface AppInstallSkillRequest {
+  skillId: string;
+}
+
 export interface KnowledgeCollection {
   id: string;
   name: string;
@@ -8964,6 +9102,44 @@ export type ListDesktopSessionStepsParams = {
    */
   limit?: LimitParamParameter;
 };
+
+export type ListAppProfilesParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListAppCommandsParams = {
+  kind?: ListAppCommandsKind;
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type ListAppCommandsKind =
+  (typeof ListAppCommandsKind)[keyof typeof ListAppCommandsKind];
+
+export const ListAppCommandsKind = {
+  command: "command",
+  menu: "menu",
+  shortcut: "shortcut",
+  mcp_tool: "mcp_tool",
+  skill_action: "skill_action",
+} as const;
 
 export type ListKnowledgeCollectionsParams = {
   /**
