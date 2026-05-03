@@ -203,6 +203,11 @@ const VERSION_EXEMPT_KEYWORDS = [
   "membership",
   "interaction",
   "vote",
+  "invocation",
+  "screening",
+  "document",
+  "notice",
+  "collection",
 ];
 
 function checkDrizzleSchema(): CheckResult {

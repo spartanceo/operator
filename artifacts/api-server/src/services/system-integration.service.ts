@@ -81,6 +81,7 @@ const TRAY_RECENT_LIMIT = 5;
 // mode suppression. Approvals and errors must always reach the user even
 // when DND is on — silently dropping an approval would block the agent
 // loop indefinitely.
+// tier-review: bounded — fixed-size literal allowlist of categories that bypass focus mode
 const FOCUS_BYPASS_CATEGORIES: ReadonlySet<string> = new Set([
   "approval",
   "error",

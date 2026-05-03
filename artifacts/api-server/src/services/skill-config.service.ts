@@ -50,6 +50,7 @@ export const CONFIG_FIELD_TYPES = [
 
 export type ConfigFieldType = (typeof CONFIG_FIELD_TYPES)[number];
 
+// tier-review: bounded — fixed-size literal allowlist of sensitive field types
 const SENSITIVE_TYPES: ReadonlySet<ConfigFieldType> = new Set([
   "password",
   "apiKey",
@@ -743,9 +744,11 @@ export async function bulkImportSkillConfig(
   void or;
 
   for (const entry of template.entries) {
+    const idKey = entry.skillId ? "id:" + entry.skillId : null;
+    const slugKey = entry.slug ? "slug:" + entry.slug : null;
     const ref =
-      (entry.skillId && lookup.get(`id:${entry.skillId}`)) ||
-      (entry.slug && lookup.get(`slug:${entry.slug}`)) ||
+      (idKey && lookup.get(idKey)) ||
+      (slugKey && lookup.get(slugKey)) ||
       null;
     if (!ref) {
       skipped.push({

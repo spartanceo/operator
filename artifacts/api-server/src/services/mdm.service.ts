@@ -177,6 +177,7 @@ const CONFIG_FIELDS: readonly ConfigFieldDef[] = [
   },
 ];
 
+// tier-review: bounded — index built from the fixed-size CONFIG_FIELDS array literal
 const CONFIG_INDEX: Map<string, ConfigFieldDef> = new Map(
   CONFIG_FIELDS.map((f) => [f.key, f]),
 );

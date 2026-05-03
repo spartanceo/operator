@@ -255,6 +255,7 @@ export const DMCA_STATUSES = [
 ] as const;
 export type DmcaStatus = (typeof DMCA_STATUSES)[number];
 
+// tier-review: bounded — fixed-size literal allowlist of DMCA terminal statuses
 export const DMCA_TERMINAL_STATUSES: ReadonlySet<DmcaStatus> = new Set([
   "rejected",
   "restored",

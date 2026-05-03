@@ -9096,6 +9096,215 @@ export interface PrivateSkillPushResponse {
   data: PrivateSkillPushResult;
 }
 
+export interface BackupSettings {
+  [key: string]: unknown;
+}
+
+export interface BackupSettingsResponse {
+  success: boolean;
+  data: BackupSettings;
+}
+
+export interface UpdateBackupSettingsRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateBackupRequest {
+  password: string;
+  uploadToCloud?: boolean;
+}
+
+export interface BackupJob {
+  [key: string]: unknown;
+}
+
+export interface CreateBackupResponse {
+  success: boolean;
+  data: BackupJob;
+}
+
+export interface BackupJobResponse {
+  success: boolean;
+  data: BackupJob;
+}
+
+export type BackupJobPageResponseData = {
+  items: BackupJob[];
+  nextCursor?: string | null;
+};
+
+export interface BackupJobPageResponse {
+  success: boolean;
+  data: BackupJobPageResponseData;
+}
+
+export interface VerifyBackupRequest {
+  password: string;
+  archiveBase64: string;
+}
+
+export type VerifyBackupResponseData = { [key: string]: unknown };
+
+export interface VerifyBackupResponse {
+  success: boolean;
+  data: VerifyBackupResponseData;
+}
+
+export type RestoreBackupRequestScopesItem =
+  (typeof RestoreBackupRequestScopesItem)[keyof typeof RestoreBackupRequestScopesItem];
+
+export const RestoreBackupRequestScopesItem = {
+  all: "all",
+  knowledge: "knowledge",
+  memories: "memories",
+  settings: "settings",
+  conversations: "conversations",
+} as const;
+
+export interface RestoreBackupRequest {
+  password: string;
+  archiveBase64: string;
+  scopes?: RestoreBackupRequestScopesItem[];
+  replaceExisting?: boolean;
+}
+
+export type RestoreBackupResponseData = { [key: string]: unknown };
+
+export interface RestoreBackupResponse {
+  success: boolean;
+  data: RestoreBackupResponseData;
+}
+
+export interface SchedulerTickRequest {
+  now?: number;
+}
+
+export type SchedulerTickResponseDataDueItem = { [key: string]: unknown };
+
+export type SchedulerTickResponseData = {
+  now: string;
+  due: SchedulerTickResponseDataDueItem[];
+};
+
+export interface SchedulerTickResponse {
+  success: boolean;
+  data: SchedulerTickResponseData;
+}
+
+export type PruneBackupsResponseData = { [key: string]: unknown };
+
+export interface PruneBackupsResponse {
+  success: boolean;
+  data: PruneBackupsResponseData;
+}
+
+export type FullDataExportResponseData = { [key: string]: unknown };
+
+export interface FullDataExportResponse {
+  success: boolean;
+  data: FullDataExportResponseData;
+}
+
+export type ExportConversationsResponseData = { [key: string]: unknown };
+
+export interface ExportConversationsResponse {
+  success: boolean;
+  data: ExportConversationsResponseData;
+}
+
+export type MemoriesExportResponseDataMemoriesItem = { [key: string]: unknown };
+
+export type MemoriesExportResponseData = {
+  exportedAt: string;
+  memories: MemoriesExportResponseDataMemoriesItem[];
+};
+
+export interface MemoriesExportResponse {
+  success: boolean;
+  data: MemoriesExportResponseData;
+}
+
+export type SettingsExportResponseData = { [key: string]: unknown };
+
+export interface SettingsExportResponse {
+  success: boolean;
+  data: SettingsExportResponseData;
+}
+
+export interface SystemIntegrationSettings {
+  [key: string]: unknown;
+}
+
+export type SystemIntegrationSettingsResponseData = {
+  settings: SystemIntegrationSettings;
+};
+
+export interface SystemIntegrationSettingsResponse {
+  success: boolean;
+  data: SystemIntegrationSettingsResponseData;
+}
+
+export interface UpdateSystemIntegrationSettingsRequest {
+  [key: string]: unknown;
+}
+
+export interface SystemIntegrationHotkeyConflictRequest {
+  binding: string;
+  detail?: string;
+}
+
+export interface SystemIntegrationLoginItemRequest {
+  enabled: boolean;
+}
+
+export interface SystemIntegrationFocusModeRequest {
+  active: boolean;
+  source: string;
+}
+
+export interface SystemIntegrationQuickInvocation {
+  [key: string]: unknown;
+}
+
+export interface SystemIntegrationQuickInvocationRequest {
+  prompt: string;
+  source: string;
+  surface?: string;
+  contextKind?: string;
+  contextText?: string;
+  applicationHint?: string;
+  expanded?: boolean;
+  enqueue?: boolean;
+}
+
+export type SystemIntegrationQuickInvocationResponseData = {
+  [key: string]: unknown;
+};
+
+export interface SystemIntegrationQuickInvocationResponse {
+  success: boolean;
+  data: SystemIntegrationQuickInvocationResponseData;
+}
+
+export type SystemIntegrationQuickInvocationListResponseData = {
+  items: SystemIntegrationQuickInvocation[];
+  nextCursor?: string | null;
+};
+
+export interface SystemIntegrationQuickInvocationListResponse {
+  success: boolean;
+  data: SystemIntegrationQuickInvocationListResponseData;
+}
+
+export type SystemIntegrationTrayStatusResponseData = {
+  [key: string]: unknown;
+};
+
+export interface SystemIntegrationTrayStatusResponse {
+  success: boolean;
+  data: SystemIntegrationTrayStatusResponseData;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.

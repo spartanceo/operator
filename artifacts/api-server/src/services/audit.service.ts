@@ -121,15 +121,71 @@ async function readTip(ctx: TenantContext): Promise<{
 }
 
 /**
+ * Per-tenant async mutex. The hash chain requires `readTip` and the
+ * subsequent INSERT to be observed atomically — without this, two
+ * concurrent appenders for the same tenant both read sequence N and
+ * both insert at N+1, producing duplicate sequence numbers and a
+ * verifier-breaking fork in the chain. SQLite is single-writer at the
+ * file level but the read-then-write window lives entirely in JS, so a
+ * Promise-chain mutex is sufficient (and the right scope: this is a
+ * local-first single-process app).
+ *
+ * Pruned opportunistically: when the last waiter completes (the map's
+ * stored tail still equals the promise we just resolved), the entry is
+ * deleted, so the map's steady-state size is "tenants with an in-flight
+ * append" rather than "tenants ever seen". Tail identity is preserved
+ * by storing the materialised `tail` promise (not `prev.then(...)`,
+ * which returns a fresh promise on every call).
+ */
+const tenantAppendLocks = new Map<string, Promise<void>>();
+
+async function withTenantAppendLock<T>(
+  tenantId: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const prev = tenantAppendLocks.get(tenantId) ?? Promise.resolve();
+  let release!: () => void;
+  const gate = new Promise<void>((res) => {
+    release = res;
+  });
+  // The new tail resolves once both the predecessor finishes AND this
+  // call releases its gate. Materialise it once so the identity check
+  // in the finally-block works (Promise.then returns a fresh instance
+  // each time, so reusing the expression would never match).
+  const tail = prev.then(() => gate);
+  tenantAppendLocks.set(tenantId, tail);
+  try {
+    await prev;
+    return await fn();
+  } finally {
+    release();
+    // Drop the entry only if no later caller chained onto our tail.
+    if (tenantAppendLocks.get(tenantId) === tail) {
+      tenantAppendLocks.delete(tenantId);
+    }
+  }
+}
+
+/**
  * Append an audit entry. Writes are NOT wrapped in a transaction with
  * the caller's business write — by design. The audit log records intent
  * even when the business write fails; a separate compensating entry
  * marks the failure.
  *
+ * Serialised per tenant via `withTenantAppendLock` so the hash-chain's
+ * read-tip + insert pair is observed atomically by concurrent callers.
+ *
  * After persisting, the alert-rule engine is invoked best-effort —
  * a failure there never aborts the audit append.
  */
 export async function appendAuditEntry(
+  ctx: TenantContext,
+  input: AuditEntryInput,
+): Promise<AuditEntryRow> {
+  return withTenantAppendLock(ctx.tenantId, () => appendAuditEntryLocked(ctx, input));
+}
+
+async function appendAuditEntryLocked(
   ctx: TenantContext,
   input: AuditEntryInput,
 ): Promise<AuditEntryRow> {

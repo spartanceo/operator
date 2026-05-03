@@ -57,6 +57,7 @@ export const STRIPE_UNSUPPORTED_COUNTRIES: ReadonlyArray<string> = [
  * automatic deny — a human always confirms a real-world OFAC match
  * (Standard 12: explicit failure modes, no silent blocks).
  */
+// tier-review: bounded — fixed-size literal synthetic SDN list (test fixture)
 const SYNTHETIC_SDN_NAMES: ReadonlySet<string> = new Set([
   "test sanctioned individual",
   "blocked party example",

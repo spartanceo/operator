@@ -19,6 +19,7 @@ import executeRouter from "./execute";
 import {
   applySkillUpdate,
   createSkill,
+  type CreateSkillInput,
   deleteSkill,
   dismissSkillUpdate,
   exportSkill,
@@ -32,11 +33,13 @@ import {
   publishSkillVersion,
   rollbackSkill,
   setAutoUpdate,
+  type SkillManifest,
   type SkillSort,
   SkillNotFoundError,
   SkillValidationError,
   uninstallSkill,
   updateSkill,
+  type UpdateSkillInput,
 } from "../../services/skill.service";
 import {
   flagReview,
@@ -407,7 +410,10 @@ router.post("/", requireTenant(), async (req, res, next) => {
       res.status(400).json(err("VALIDATION", "Invalid skill payload"));
       return;
     }
-    const row = await createSkill(ctx, parsed.data);
+    // ConfigSchemaWire is intentionally loose (`Record<string, unknown>[]`);
+    // the service layer's `validateConfigSchema` is the single source of
+    // truth for the precise `ConfigField[]` shape.
+    const row = await createSkill(ctx, parsed.data as CreateSkillInput);
     res.json(ok(row));
   } catch (e) {
     next(e);
@@ -433,7 +439,7 @@ router.post("/import", requireTenant(), async (req, res, next) => {
       return;
     }
     const opts = parsed.data.install !== undefined ? { install: parsed.data.install } : {};
-    const row = await importSkill(ctx, parsed.data.manifest, opts);
+    const row = await importSkill(ctx, parsed.data.manifest as SkillManifest, opts);
     res.json(ok(row));
   } catch (e) {
     if (e instanceof SkillValidationError) {
@@ -466,7 +472,7 @@ router.put("/:id", requireTenant(), async (req, res, next) => {
       res.status(400).json(err("VALIDATION", "Invalid skill payload"));
       return;
     }
-    const row = await updateSkill(ctx, String(req.params.id), parsed.data);
+    const row = await updateSkill(ctx, String(req.params.id), parsed.data as UpdateSkillInput);
     res.json(ok(row));
   } catch (e) {
     if (e instanceof SkillNotFoundError) {

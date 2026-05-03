@@ -53,6 +53,7 @@ const EU_COUNTRIES: ReadonlyArray<{ code: string; name: string; rateBps: number 
   { code: "SE", name: "Sweden", rateBps: 2500 },
 ];
 
+// tier-review: bounded — fixed-size literal jurisdiction table (EU + a handful of others)
 const TABLE: ReadonlyMap<string, TaxJurisdiction> = new Map<string, TaxJurisdiction>([
   ...EU_COUNTRIES.map(
     (c): [string, TaxJurisdiction] => [
