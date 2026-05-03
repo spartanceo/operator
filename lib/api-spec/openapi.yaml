@@ -91,6 +91,11 @@ tags:
     description: Per-domain data-portability exports (conversations, memories, settings)
   - name: recovery
     description: Crash recovery & mid-task resumption (Task #58 — checkpoints, interrupted-task detection, resume / discard / partial-undo, clean-shutdown registration)
+  - name: voice
+    description: |
+      Local speech-to-text (Whisper) and text-to-speech (Kokoro/Coqui).
+      Tier 1 ships deterministic stubs so the frontend voice loop can be
+      built and tested end-to-end before the native binaries land.
 paths:
   /healthz:
     get:
@@ -9711,11 +9716,85 @@ paths:
               $ref: "#/components/schemas/IntegrationOAuthStartRequest"
       responses:
         "200":
-          description: Authorise URL + state
+          description: Authorise URL
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/IntegrationOAuthStartResponse"
+        "404":
+          description: Unknown provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /voice/transcribe:
+    post:
+      operationId: transcribeAudio
+      tags: [voice]
+      summary: Transcribe audio (speech-to-text) via the local Whisper engine
+      description: |
+        Accepts a base64-encoded audio clip and returns the recognised
+        transcript. Tier 1 ships a deterministic stub so the UI loop can be
+        exercised without the native Whisper binary present.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceTranscribeRequest"
+      responses:
+        "200":
+          description: Transcription result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoiceTranscribeResponse"
+
+  /voice/synthesize:
+    post:
+      operationId: synthesizeSpeech
+      tags: [voice]
+      summary: Render text to speech via the local TTS engine
+      description: |
+        Accepts plain text and returns base64 audio (WAV) playable in any
+        browser. Tier 1 ships a procedural waveform sized to the text so the
+        playback + waveform UI work end-to-end before the native Kokoro/Coqui
+        binary is wired in.
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceSynthesizeRequest"
+      responses:
+        "200":
+          description: Synthesised audio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoiceSynthesizeResponse"
+
+  /voice/voices:
+    get:
+      operationId: listVoices
+      tags: [voice]
+      summary: List installed TTS voices
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Voices page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoiceListResponse"
 
   /integrations/{provider}/oauth/callback:
     post:
@@ -19990,3788 +20069,49 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/RecoveryInterruptedTask'
-    RecoveryDetails:
-      allOf:
-        - $ref: '#/components/schemas/RecoveryInterruptedTask'
-        - type: object
-          required: [history, validation]
-          properties:
-            history:
-              type: array
-              items:
-                $ref: '#/components/schemas/RecoveryCheckpoint'
-            validation:
-              $ref: '#/components/schemas/RecoveryValidationReport'
-    RecoveryDetailsResponse:
+                $ref: "#/components/schemas/RecoveryInterruptedTask"
+
+    VoiceTranscribeRequest:
       type: object
-      required: [success, data]
+      required: [audio]
       properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          $ref: '#/components/schemas/RecoveryDetails'
-    RecoveryResumeResponse:
+        audio:
+          type: string
+          description: Base64-encoded audio bytes (no data URL prefix).
+        mimeType:
+          type: string
+          description: MIME type of the source audio (e.g. audio/webm).
+        language:
+          type: string
+          description: BCP-47 language hint for Whisper (e.g. "en").
+
+    VoiceTranscribeResult:
       type: object
-      required: [success, data]
+      required: [transcript, durationMs, language, model]
       properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [resumed, validation]
-          properties:
-            resumed: { type: boolean, enum: [true] }
-            validation:
-              $ref: '#/components/schemas/RecoveryValidationReport'
-    RecoveryDiscardRequest:
-      type: object
-      required: [confirm]
-      properties:
-        confirm:
-          type: boolean
-          description: Must be `true` — discard requires explicit confirmation.
-        partialUndo:
-          type: boolean
-          description: When true, also reverses every reversible destructive step.
-    RecoveryDiscardResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [discarded, reversed, archivedUntil]
-          properties:
-            discarded: { type: boolean, enum: [true] }
-            reversed: { type: integer }
-            archivedUntil:
-              type: string
-              format: date-time
-    RecoveryPartialUndoResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [reversed]
-          properties:
-            reversed: { type: integer }
-    RecoveryShutdownRequest:
-      type: object
-      properties:
-        reason:
+        transcript:
           type: string
-          enum: [normal, user_quit, system_restart, test]
-    RecoveryShutdownResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [id, shutdownAt]
-          properties:
-            id: { type: string }
-            shutdownAt:
-              type: string
-              format: date-time
-    Workspace:
-      type: object
-      required:
-        - id
-        - name
-        - isDefault
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-          nullable: true
-        color:
-          type: string
-          nullable: true
-        icon:
-          type: string
-          nullable: true
-        isDefault:
-          type: boolean
-        lastActiveAt:
-          type: string
-          format: date-time
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    WorkspaceList:
-      type: object
-      required:
-        - items
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Workspace'
-    WorkspaceListResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/WorkspaceList'
-    WorkspaceResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/Workspace'
-    CreateWorkspaceRequest:
-      type: object
-      required:
-        - name
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 80
-        description:
-          type: string
-          maxLength: 500
-        color:
-          type: string
-          maxLength: 40
-        icon:
-          type: string
-          maxLength: 40
-        isDefault:
-          type: boolean
-    UpdateWorkspaceRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 80
-        description:
-          type: string
-          nullable: true
-          maxLength: 500
-        color:
-          type: string
-          nullable: true
-          maxLength: 40
-        icon:
-          type: string
-          nullable: true
-          maxLength: 40
-        isDefault:
-          type: boolean
-    WorkspaceDeleteReceipt:
-      type: object
-      required:
-        - id
-        - deleted
-      properties:
-        id:
-          type: string
-        deleted:
-          type: boolean
-    WorkspaceDeleteResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/WorkspaceDeleteReceipt'
-    WorkspaceOverview:
-      type: object
-      required:
-        - workspace
-        - stats
-      properties:
-        workspace:
-          $ref: '#/components/schemas/Workspace'
-        stats:
-          type: object
-          required:
-            - agentRunCount
-            - kbCollectionCount
-            - kbDocumentCount
-            - memoryCount
-          properties:
-            agentRunCount:
-              type: integer
-            kbCollectionCount:
-              type: integer
-            kbDocumentCount:
-              type: integer
-            memoryCount:
-              type: integer
-            lastActiveAt:
-              type: string
-              format: date-time
-              nullable: true
-    WorkspaceOverviewResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/WorkspaceOverview'
-    WorkspaceTemplate:
-      type: object
-      required:
-        - schemaVersion
-        - exportedAt
-        - workspace
-        - collections
-      properties:
-        schemaVersion:
+        durationMs:
           type: integer
-          enum:
-            - 1
-        exportedAt:
+        language:
           type: string
-          format: date-time
-        workspace:
-          type: object
-          required:
-            - name
-          properties:
-            name:
-              type: string
-            description:
-              type: string
-              nullable: true
-            color:
-              type: string
-              nullable: true
-            icon:
-              type: string
-              nullable: true
-        collections:
-          type: array
-          items:
-            type: object
-            required:
-              - name
-            properties:
-              name:
-                type: string
-              description:
-                type: string
-                nullable: true
-              color:
-                type: string
-                nullable: true
-    WorkspaceTemplateResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/WorkspaceTemplate'
-    ImportWorkspaceRequest:
-      type: object
-      required:
-        - template
-      properties:
-        template:
-          $ref: '#/components/schemas/WorkspaceTemplate'
-        name:
-          type: string
-          minLength: 1
-          maxLength: 80
-    CreateSkillRequest:
-      type: object
-      required:
-        - name
-        - content
-      properties:
-        slug:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        content:
-          type: string
-        modelTags:
-          type: array
-          items:
-            type: string
-        triggers:
-          type: array
-          items:
-            type: string
-        category:
-          type: string
-        author:
-          type: string
-        isPremium:
-          type: boolean
-        previewUsesAllowed:
-          type: integer
-        configurationSchema:
-          type: array
-          description: |
-            Optional per-field configuration declarations (Task #43). Empty
-            or omitted means the skill has no user-supplied configuration.
-          items:
-            $ref: '#/components/schemas/SkillConfigField'
-    Skill:
-      type: object
-      required:
-        - id
-        - slug
-        - name
-        - description
-        - content
-        - modelTags
-        - triggers
-        - category
-        - author
-        - isInstalled
-        - installCount
-        - version
-        - latestVersion
-        - installedVersion
-        - changelog
-        - breakingChange
-        - minOpVersion
-        - autoUpdate
-        - publishedAt
-        - hasUpdate
-        - opIncompatible
-        - unmaintained
-        - isPremium
-        - previewUsesAllowed
-        - createdAt
-        - updatedAt
-        - usageCount
-        - ratingAvg
-        - ratingCount
-        - editorialPick
-        - verifiedByOp
-        - configurationSchema
-      properties:
-        id:
-          type: string
-        slug:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        content:
-          type: string
-        modelTags:
-          type: array
-          items:
-            type: string
-        triggers:
-          type: array
-          items:
-            type: string
-        category:
-          type: string
-        author:
-          type: string
-        isInstalled:
-          type: boolean
-        installCount:
-          type: integer
-        usageCount:
-          type: integer
-        ratingAvg:
-          type: number
-          format: float
-        ratingCount:
-          type: integer
-        editorialPick:
-          type: boolean
-        verifiedByOp:
-          type: boolean
-        isPremium:
-          type: boolean
-          description: True iff this skill requires a Creator Pro subscription past its preview allowance.
-        previewUsesAllowed:
-          type: integer
-          description: Free invocations granted before the paywall kicks in.
-        version:
-          type: integer
-        latestVersion:
-          type: string
-          description: Latest published semantic version of this skill.
-        installedVersion:
-          type: string
-          description: Currently installed semantic version (may lag latestVersion).
-        changelog:
-          type: string
-          description: Changelog entry for the latest published version.
-        breakingChange:
-          type: boolean
-          description: True iff the latest published version was flagged as a breaking change.
-        minOpVersion:
-          type: string
-          description: Minimum Omninity Operator version required by the latest skill version.
-        autoUpdate:
-          type: boolean
-          description: True iff the user opted into auto-applying non-breaking updates.
-        publishedAt:
-          type: string
-          format: date-time
-          description: Wall-clock of the most recent publish.
-        hasUpdate:
-          type: boolean
-          description: True iff a newer non-dismissed version is available than the installed one.
-        opIncompatible:
-          type: boolean
-          description: True iff the latest version requires an OP newer than this server.
-        unmaintained:
-          type: boolean
-          description: True iff the skill has not been published to in over 12 months.
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    SkillVersion:
-      type: object
-      required:
-        - id
-        - skillId
-        - semver
-        - changelog
-        - breakingChange
-        - minOpVersion
-        - name
-        - description
-        - content
-        - modelTags
-        - triggers
-        - category
-        - author
-        - installCount
-        - createdAt
-      properties:
-        id: { type: string }
-        skillId: { type: string }
-        semver: { type: string }
-        changelog: { type: string }
-        breakingChange: { type: boolean }
-        minOpVersion: { type: string }
-        name: { type: string }
-        description: { type: string }
-        content: { type: string }
-        modelTags:
-          type: array
-          items: { type: string }
-        triggers:
-          type: array
-          items: { type: string }
-        category: { type: string }
-        author: { type: string }
-        installCount: { type: integer }
-        createdAt:
-          type: string
-          format: date-time
-    SkillVersionListPage:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillVersion'
-    SkillVersionListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          $ref: '#/components/schemas/SkillVersionListPage'
-    SkillUpdatesPage:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Skill'
-    SkillUpdatesResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          $ref: '#/components/schemas/SkillUpdatesPage'
-    PublishSkillVersionRequest:
-      type: object
-      required: [version, changelog]
-      properties:
-        version:
-          type: string
-          description: New semantic version (must be greater than current latestVersion).
-        changelog:
-          type: string
-          description: User-facing changelog entry shown before applying the update.
-        breakingChange:
-          type: boolean
-          description: When true the update card forces manual approval.
-        minOpVersion:
-          type: string
-          description: Minimum OP version this skill version requires.
-        name: { type: string }
-        description: { type: string }
-        content: { type: string }
-        modelTags:
-          type: array
-          items: { type: string }
-        triggers:
-          type: array
-          items: { type: string }
-        category: { type: string }
-    RollbackSkillRequest:
-      type: object
-      required: [version]
-      properties:
-        version:
-          type: string
-          description: Semantic version from this skill's history to roll back to.
-    ApplySkillUpdateRequest:
-      type: object
-      properties:
-        acceptBreaking:
-          type: boolean
-          description: Required to be true to apply a breaking-change update.
-    SkillAutoUpdateRequest:
-      type: object
-      required: [enabled]
-      properties:
-        enabled: { type: boolean }
-    SkillVersionAdoption:
-      type: object
-      required: [semver, installCount, isLatest, isInstalled, share]
-      properties:
-        semver: { type: string }
-        installCount: { type: integer }
-        isLatest: { type: boolean }
-        isInstalled: { type: boolean }
-        share:
-          type: number
-          format: float
-          description: Share of total installs across all versions in [0, 1].
-    SkillAdoptionPage:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillVersionAdoption'
-    SkillAdoptionResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          $ref: '#/components/schemas/SkillAdoptionPage'
-    SkillRating:
-      type: object
-      required:
-        - id
-        - skillId
-        - userId
-        - stars
-        - reviewText
-        - status
-        - helpfulCount
-        - unhelpfulCount
-        - flagCount
-        - verifiedPurchase
-        - createdAt
-        - updatedAt
-        - response
-      properties:
-        id:
-          type: string
-        skillId:
-          type: string
-        userId:
-          type: string
-        stars:
-          type: integer
-        reviewText:
-          type: string
-          nullable: true
-        status:
-          type: string
-          enum: [active, hidden, removed]
-        helpfulCount:
-          type: integer
-        unhelpfulCount:
-          type: integer
-        flagCount:
-          type: integer
-        verifiedPurchase:
-          type: boolean
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        response:
-          allOf:
-            - $ref: '#/components/schemas/SkillReviewResponseRow'
-          nullable: true
-    SkillReviewResponseRow:
-      type: object
-      required:
-        - id
-        - ratingId
-        - authorId
-        - body
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        ratingId:
-          type: string
-        authorId:
-          type: string
-        body:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    SkillReviewFlag:
-      type: object
-      required:
-        - id
-        - ratingId
-        - skillId
-        - reporterId
-        - reason
-        - detail
-        - status
-        - resolution
-        - resolvedAt
-        - resolvedBy
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        ratingId:
-          type: string
-        skillId:
-          type: string
-        reporterId:
-          type: string
-        reason:
-          type: string
-        detail:
-          type: string
-          nullable: true
-        status:
-          type: string
-          enum: [open, dismissed, upheld]
-        resolution:
-          type: string
-          nullable: true
-        resolvedAt:
-          type: string
-          format: date-time
-          nullable: true
-        resolvedBy:
-          type: string
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    SkillRatingResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillRating'
-    SkillReviewResponseResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillReviewResponseRow'
-    SkillReviewFlagResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillReviewFlag'
-    SkillRatingListPage:
-      type: object
-      required: [items, nextCursor]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillRating'
-        nextCursor:
-          type: string
-          nullable: true
-    SkillRatingListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillRatingListPage'
-    SkillReviewFlagListPage:
-      type: object
-      required: [items, nextCursor]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillReviewFlag'
-        nextCursor:
-          type: string
-          nullable: true
-    SkillReviewFlagListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillReviewFlagListPage'
-    SkillRatingSummary:
-      type: object
-      required: [skillId, ratingAvg, ratingCount, usageCount, breakdown]
-      properties:
-        skillId:
-          type: string
-        ratingAvg:
-          type: number
-          format: float
-        ratingCount:
-          type: integer
-        usageCount:
-          type: integer
-        breakdown:
-          type: array
-          items:
-            type: object
-            required: [stars, count]
-            properties:
-              stars:
-                type: integer
-              count:
-                type: integer
-    SkillRatingSummaryResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillRatingSummary'
-    TrustBadge:
-      type: object
-      required: [id, label]
-      properties:
-        id:
-          type: string
-        label:
-          type: string
-    SkillBadges:
-      type: object
-      required: [skillId, badges, status, usageCount, ratingAvg, ratingCount]
-      properties:
-        skillId:
-          type: string
-        badges:
-          type: array
-          items:
-            $ref: '#/components/schemas/TrustBadge'
-        status:
-          type: string
-          enum: [active, unmaintained]
-        usageCount:
-          type: integer
-        ratingAvg:
-          type: number
-          format: float
-        ratingCount:
-          type: integer
-    SkillBadgesResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillBadges'
-    TrendingSkill:
-      type: object
-      required: [skillId, slug, name, installsLastWeek, ratingAvg, usageCount]
-      properties:
-        skillId:
-          type: string
-        slug:
-          type: string
-        name:
-          type: string
-        installsLastWeek:
-          type: integer
-        ratingAvg:
-          type: number
-          format: float
-        usageCount:
-          type: integer
-    TrendingSkillsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [items]
-          properties:
-            items:
-              type: array
-              items:
-                $ref: '#/components/schemas/TrendingSkill'
-    SimilarSkill:
-      type: object
-      required: [skillId, slug, name, category, sharedUsers]
-      properties:
-        skillId:
-          type: string
-        slug:
-          type: string
-        name:
-          type: string
-        category:
-          type: string
-        sharedUsers:
-          type: integer
-    SimilarSkillsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [items]
-          properties:
-            items:
-              type: array
-              items:
-                $ref: '#/components/schemas/SimilarSkill'
-    SubmitSkillRatingRequest:
-      type: object
-      required: [stars]
-      properties:
-        stars:
-          type: integer
-          minimum: 1
-          maximum: 5
-        reviewText:
-          type: string
-          nullable: true
-    HelpfulVoteRequest:
-      type: object
-      required: [helpful]
-      properties:
-        helpful:
-          type: boolean
-    ReviewResponseRequest:
-      type: object
-      required: [body]
-      properties:
-        body:
-          type: string
-    FlagReviewRequest:
-      type: object
-      required: [reason]
-      properties:
-        reason:
-          type: string
-        detail:
-          type: string
-          nullable: true
-    ModerateReviewRequest:
-      type: object
-      required: [action]
-      properties:
-        action:
-          type: string
-          enum: [hide, restore, remove, dismiss]
-        resolution:
-          type: string
-    SetSkillTrustFlagsRequest:
-      type: object
-      properties:
-        verifiedByOp:
-          type: boolean
-        editorialPick:
-          type: boolean
-    RecordSkillUsageRequest:
-      type: object
-      properties:
-        runId:
-          type: string
-    RecordSkillUsageResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [recorded]
-          properties:
-            recorded:
-              type: boolean
-    QueuedTaskPriority:
-      type: string
-      enum: [high, normal, low]
-    QueuedTaskStatus:
-      type: string
-      enum: [queued, running, completed, failed, cancelled, stale]
-    QueuedTask:
-      type: object
-      required:
-        - id
-        - goal
-        - priority
-        - status
-        - useKnowledgeBase
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        goal:
-          type: string
-        modelName:
-          type: string
-          nullable: true
-        useKnowledgeBase:
-          type: boolean
-        knowledgeCollectionId:
-          type: string
-          nullable: true
-        priority:
-          $ref: "#/components/schemas/QueuedTaskPriority"
-        status:
-          $ref: "#/components/schemas/QueuedTaskStatus"
-        runId:
-          type: string
-          nullable: true
-        contextSnapshot:
-          type: object
-          nullable: true
-          additionalProperties: true
-        staleReason:
-          type: string
-          nullable: true
-        error:
-          type: string
-          nullable: true
-        summary:
-          type: string
-          nullable: true
-        position:
-          type: integer
-          nullable: true
-          description: 0-based position among queued entries (null when not queued).
-        estimatedWaitMs:
-          type: integer
-          nullable: true
-          description: |
-            Projected milliseconds before this task is expected to start,
-            computed from recent run durations and the current parallelism
-            budget. Null for tasks that are not queued.
-        startedAt:
-          type: string
-          format: date-time
-          nullable: true
-        completedAt:
-          type: string
-          format: date-time
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    SkillDeleteReceipt:
-      type: object
-      required:
-        - id
-        - deleted
-      properties:
-        id:
-          type: string
-        deleted:
-          type: boolean
-    SkillDeleteResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/SkillDeleteReceipt'
-    SkillExportResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/SkillManifest'
-    SkillImportRequest:
-      type: object
-      required:
-        - manifest
-      properties:
-        manifest:
-          $ref: '#/components/schemas/SkillManifest'
-        install:
-          type: boolean
-    SkillInvokeRequest:
-      type: object
-      required:
-        - goal
-      properties:
-        goal:
-          type: string
-        modelName:
-          type: string
-        autoExecute:
-          type: boolean
-    SkillListPage:
-      type: object
-      required:
-        - items
-        - nextCursor
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Skill'
-        nextCursor:
-          type: string
-          nullable: true
-    SkillListResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/SkillListPage'
-    SkillManifest:
-      type: object
-      required:
-        - omninitySkillVersion
-        - slug
-        - name
-        - description
-        - content
-        - modelTags
-        - triggers
-        - category
-        - author
-        - version
-      properties:
-        omninitySkillVersion:
-          type: integer
-          enum:
-            - 1
-        slug:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        content:
-          type: string
-        modelTags:
-          type: array
-          items:
-            type: string
-        triggers:
-          type: array
-          items:
-            type: string
-        category:
-          type: string
-        author:
-          type: string
-        version:
-          type: integer
-          description: Optimistic-concurrency revision counter (legacy field).
-        semver:
-          type: string
-          description: Semantic version of the skill release.
-        changelog:
-          type: string
-          description: Changelog entry for the manifest's version.
-        breakingChange:
-          type: boolean
-        minOpVersion:
-          type: string
-    SkillResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/Skill'
-    UpdateSkillRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        content:
-          type: string
-        modelTags:
-          type: array
-          items:
-            type: string
-        triggers:
-          type: array
-          items:
-            type: string
-        category:
-          type: string
-        version:
-          type: integer
-          description: Expected current version for optimistic concurrency control.
-        configurationSchema:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillConfigField'
-    SkillConfigFieldType:
-      type: string
-      enum:
-        - string
-        - password
-        - apiKey
-        - folder-path
-        - select
-        - toggle
-        - number
-        - url
-    SkillConfigSelectOption:
-      type: object
-      required:
-        - value
-        - label
-      properties:
-        value:
-          type: string
-        label:
-          type: string
-    SkillConfigField:
-      type: object
-      required:
-        - key
-        - type
-        - label
-        - required
-      properties:
-        key:
-          type: string
-          description: Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`.
-        type:
-          $ref: '#/components/schemas/SkillConfigFieldType'
-        label:
-          type: string
-        description:
-          type: string
-        required:
-          type: boolean
-        defaultValue:
-          oneOf:
-            - type: string
-            - type: number
-            - type: boolean
-            - type: 'null'
-        options:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillConfigSelectOption'
-        pattern:
-          type: string
-          description: RegExp source applied to string values for inline validation.
-        helpUrl:
-          type: string
-        placeholder:
-          type: string
-        sensitive:
-          type: boolean
-          description: |
-            True iff the field's value lives in the OS keychain vault and
-            is never returned over the wire. Server-projected — clients
-            ignore on input.
-        filled:
-          type: boolean
-          description: |
-            True iff the user has supplied a value (or sealed a secret)
-            for this field. Server-projected.
-    SkillConfigValue:
-      oneOf:
-        - type: string
-        - type: number
-        - type: boolean
-        - type: 'null'
-    SkillConfigStatus:
-      type: object
-      required:
-        - skillId
-        - schema
-        - values
-        - secretRefs
-        - required
-        - missingRequired
-        - configured
-        - configuredAt
-        - updatedAt
-      properties:
-        skillId:
-          type: string
-        schema:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillConfigField'
-        values:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/SkillConfigValue'
-          description: Non-sensitive values keyed by field key.
-        secretRefs:
-          type: array
-          items:
-            type: string
-          description: Sensitive field keys whose value is sealed in the vault.
-        required:
-          type: array
-          items:
-            type: string
-        missingRequired:
-          type: array
-          items:
-            type: string
-        configured:
-          type: boolean
-        configuredAt:
-          type: string
-          format: date-time
-          nullable: true
-        updatedAt:
-          type: string
-          format: date-time
-          nullable: true
-    SkillConfigResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillConfigStatus'
-    SkillConfigUpdateRequest:
-      type: object
-      required:
-        - values
-      properties:
-        values:
-          type: object
-          description: Map of field key → user-supplied value (null clears).
-          additionalProperties:
-            $ref: '#/components/schemas/SkillConfigValue'
-        masterPassword:
-          type: string
-          description: |
-            Required when any sensitive (password / apiKey) field is being
-            written — used to seal the plaintext into the keychain vault.
-    SkillConfigStatusEnvelope:
-      type: object
-      required:
-        - skillId
-        - configured
-        - missingRequired
-        - configuredAt
-      properties:
-        skillId:
-          type: string
-        configured:
-          type: boolean
-        missingRequired:
-          type: array
-          items:
-            type: string
-        configuredAt:
-          type: string
-          format: date-time
-          nullable: true
-    SkillConfigStatusResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillConfigStatusEnvelope'
-    SkillConfigTemplateEntry:
-      type: object
-      required:
-        - values
-      properties:
-        slug:
-          type: string
-        skillId:
-          type: string
-        values:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/SkillConfigValue'
-    SkillConfigTemplate:
-      type: object
-      required:
-        - omninityConfigTemplateVersion
-        - entries
-      properties:
-        omninityConfigTemplateVersion:
-          type: integer
-          enum: [1]
-        entries:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillConfigTemplateEntry'
-    SkillConfigImportRequest:
-      type: object
-      required:
-        - template
-      properties:
-        template:
-          $ref: '#/components/schemas/SkillConfigTemplate'
-        masterPassword:
-          type: string
-    SkillConfigImportSummary:
-      type: object
-      required:
-        - applied
-        - skipped
-      properties:
-        applied:
-          type: array
-          items:
-            type: object
-            required: [skillId, slug, configured]
-            properties:
-              skillId: { type: string }
-              slug: { type: string }
-              configured: { type: boolean }
-        skipped:
-          type: array
-          items:
-            type: object
-            required: [reason]
-            properties:
-              skillId: { type: string, nullable: true }
-              slug: { type: string, nullable: true }
-              reason: { type: string }
-    SkillConfigImportResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: '#/components/schemas/SkillConfigImportSummary'
-    QueueEnqueueRequest:
-      type: object
-      required:
-        - goal
-      properties:
-        goal:
-          type: string
-        modelName:
-          type: string
-        useKnowledgeBase:
-          type: boolean
-        knowledgeCollectionId:
-          type: string
-        priority:
-          $ref: "#/components/schemas/QueuedTaskPriority"
-        contextSnapshot:
-          type: object
-          additionalProperties: true
-          description: |
-            Optional snapshot the queue runner uses to flag stale entries
-            before execution. Currently honoured: `requiredFiles: string[]`
-            (each entry must exist inside the workspace sandbox at the
-            moment the runner picks the task up).
-    QueueSetPriorityRequest:
-      type: object
-      required:
-        - priority
-      properties:
-        priority:
-          $ref: "#/components/schemas/QueuedTaskPriority"
-    QueueClearRequest:
-      type: object
-      properties:
-        confirm:
-          type: boolean
-          description: Must be true — guards against accidental queue wipes.
-    QueueClearResult:
-      type: object
-      required:
-        - cleared
-      properties:
-        cleared:
-          type: integer
-    QueueSnapshot:
-      type: object
-      required:
-        - active
-        - queued
-        - recent
-        - mode
-        - parallelism
-      properties:
-        mode:
-          type: string
-          enum: [sequential, parallel]
-        parallelism:
-          type: integer
-          description: Maximum concurrent runs the coordinator allows (1 in sequential mode).
-        active:
-          type: array
-          items:
-            $ref: "#/components/schemas/QueuedTask"
-        queued:
-          type: array
-          items:
-            $ref: "#/components/schemas/QueuedTask"
-        recent:
-          type: array
-          items:
-            $ref: "#/components/schemas/QueuedTask"
-    QueuedTaskResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/QueuedTask"
-    QueueSnapshotResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/QueueSnapshot"
-    QueueClearResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/QueueClearResult"
-    QueuedTaskListPage:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/QueuedTask"
-        nextCursor:
-          type: string
-          nullable: true
-    QueuedTaskListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/QueuedTaskListPage"
-    TaskTemplateVariable:
-      type: object
-      required: [name, label]
-      properties:
-        name: { type: string, minLength: 1, maxLength: 40 }
-        label: { type: string, minLength: 1, maxLength: 120 }
-        defaultValue: { type: string, maxLength: 2000 }
-        required: { type: boolean }
-    TaskTemplateSkillConfig:
-      type: object
-      additionalProperties: true
-      properties:
-        agentMode: { type: boolean }
-        model: { type: string, maxLength: 200 }
-        conversationId: { type: string, nullable: true }
-    TaskTemplate:
-      type: object
-      required:
-        - id
-        - name
-        - prompt
-        - variables
-        - skillConfig
-        - usageCount
-        - createdAt
-        - updatedAt
-      properties:
-        id: { type: string }
-        name: { type: string }
-        description: { type: string, nullable: true }
-        prompt: { type: string }
-        variables:
-          type: array
-          items: { $ref: "#/components/schemas/TaskTemplateVariable" }
-        skillConfig: { $ref: "#/components/schemas/TaskTemplateSkillConfig" }
-        categoryId: { type: string, nullable: true }
-        pinnedOrder: { type: integer, nullable: true }
-        usageCount: { type: integer }
-        lastUsedAt: { type: string, format: date-time, nullable: true }
-        sourceRunId: { type: string, nullable: true }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-    TaskTemplatePage:
-      type: object
-      required: [items, nextCursor]
-      properties:
-        items:
-          type: array
-          items: { $ref: "#/components/schemas/TaskTemplate" }
-        nextCursor: { type: string, nullable: true }
-    TaskTemplateListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/TaskTemplatePage" }
-    TaskTemplateCollection:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items: { $ref: "#/components/schemas/TaskTemplate" }
-    TaskTemplateCollectionResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/TaskTemplateCollection" }
-    TaskTemplateResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/TaskTemplate" }
-    CreateTaskTemplateRequest:
-      type: object
-      required: [name, prompt]
-      properties:
-        name: { type: string, minLength: 1, maxLength: 120 }
-        description: { type: string, nullable: true, maxLength: 1000 }
-        prompt: { type: string, minLength: 1, maxLength: 20000 }
-        variables:
-          type: array
-          maxItems: 32
-          items: { $ref: "#/components/schemas/TaskTemplateVariable" }
-        skillConfig: { $ref: "#/components/schemas/TaskTemplateSkillConfig" }
-        categoryId: { type: string, nullable: true }
-        sourceRunId: { type: string, nullable: true }
-    UpdateTaskTemplateRequest:
-      type: object
-      properties:
-        name: { type: string, minLength: 1, maxLength: 120 }
-        description: { type: string, nullable: true, maxLength: 1000 }
-        prompt: { type: string, minLength: 1, maxLength: 20000 }
-        variables:
-          type: array
-          maxItems: 32
-          items: { $ref: "#/components/schemas/TaskTemplateVariable" }
-        skillConfig: { $ref: "#/components/schemas/TaskTemplateSkillConfig" }
-        categoryId: { type: string, nullable: true }
-    TaskTemplateDeleteReceipt:
-      type: object
-      required: [deleted]
-      properties:
-        deleted: { type: boolean }
-    TaskTemplateDeleteResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/TaskTemplateDeleteReceipt" }
-    RunTaskTemplateRequest:
-      type: object
-      properties:
-        values:
-          type: object
-          additionalProperties: { type: string, maxLength: 4000 }
-    RunTaskTemplateResult:
-      type: object
-      required: [template, resolvedPrompt]
-      properties:
-        template: { $ref: "#/components/schemas/TaskTemplate" }
-        resolvedPrompt: { type: string }
-    RunTaskTemplateResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/RunTaskTemplateResult" }
-    PinTaskTemplateRequest:
-      type: object
-      required: [pinned]
-      properties:
-        pinned: { type: boolean }
-    TaskTemplateCategory:
-      type: object
-      required: [id, name, createdAt, updatedAt]
-      properties:
-        id: { type: string }
-        name: { type: string }
-        color: { type: string, nullable: true }
-        icon: { type: string, nullable: true }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-    TaskTemplateCategoryList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items: { $ref: "#/components/schemas/TaskTemplateCategory" }
-    TaskTemplateCategoryListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/TaskTemplateCategoryList" }
-    TaskTemplateCategoryResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/TaskTemplateCategory" }
-    CreateTaskTemplateCategoryRequest:
-      type: object
-      required: [name]
-      properties:
-        name: { type: string, minLength: 1, maxLength: 80 }
-        color: { type: string, nullable: true, maxLength: 40 }
-        icon: { type: string, nullable: true, maxLength: 40 }
-    TaskTemplateExport:
-      type: object
-      required: [schemaVersion, exportedAt, template]
-      properties:
-        schemaVersion: { type: integer, enum: [1] }
-        exportedAt: { type: string, format: date-time }
-        template:
-          type: object
-          required: [name, prompt, variables, skillConfig]
-          properties:
-            name: { type: string }
-            description: { type: string, nullable: true }
-            prompt: { type: string }
-            variables:
-              type: array
-              items: { $ref: "#/components/schemas/TaskTemplateVariable" }
-            skillConfig: { $ref: "#/components/schemas/TaskTemplateSkillConfig" }
-            category:
-              type: object
-              nullable: true
-              required: [name]
-              properties:
-                name: { type: string }
-                color: { type: string, nullable: true }
-                icon: { type: string, nullable: true }
-    TaskTemplateExportResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/TaskTemplateExport" }
-    ImportTaskTemplateRequest:
-      type: object
-      required: [template]
-      properties:
-        template: { $ref: "#/components/schemas/TaskTemplateExport" }
-        name: { type: string, minLength: 1, maxLength: 120 }
-    ScheduledTask:
-      type: object
-      required:
-        - id
-        - title
-        - prompt
-        - cronExpression
-        - timezone
-        - recurrenceKind
-        - paused
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        title:
-          type: string
-        prompt:
-          type: string
-        cronExpression:
-          type: string
-        naturalLanguage:
-          type: string
-          nullable: true
-        timezone:
-          type: string
-        recurrenceKind:
-          type: string
-        paused:
-          type: boolean
-        taskContext:
-          nullable: true
-        lastRunAt:
-          type: string
-          format: date-time
-          nullable: true
-        lastRunStatus:
-          type: string
-          nullable: true
-        lastRunSummary:
-          type: string
-          nullable: true
-        nextRunAt:
-          type: string
-          format: date-time
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    ScheduledTaskResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [schedule]
-          properties:
-            schedule:
-              $ref: "#/components/schemas/ScheduledTask"
-    ScheduledTaskListPage:
-      type: object
-      required: [items, nextCursor]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/ScheduledTask"
-        nextCursor:
-          type: string
-          nullable: true
-    ScheduledTaskListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/ScheduledTaskListPage"
-    CreateScheduleRequest:
-      type: object
-      required: [title, prompt]
-      properties:
-        title:
-          type: string
-        prompt:
-          type: string
-        cronExpression:
-          type: string
-        naturalLanguage:
-          type: string
-        tzOffsetMinutes:
-          type: integer
-        timezone:
-          type: string
-        taskContext: {}
-        recurrenceKind:
-          type: string
-          enum: [minutely, hourly, daily, weekly, monthly, custom]
-    UpdateScheduleRequest:
-      type: object
-      properties:
-        title:
-          type: string
-        prompt:
-          type: string
-        cronExpression:
-          type: string
-        naturalLanguage:
-          type: string
-        tzOffsetMinutes:
-          type: integer
-        timezone:
-          type: string
-        taskContext: {}
-        paused:
-          type: boolean
-        recurrenceKind:
-          type: string
-          enum: [minutely, hourly, daily, weekly, monthly, custom]
-    PauseScheduleRequest:
-      type: object
-      required: [paused]
-      properties:
-        paused:
-          type: boolean
-    PreviewScheduleRequest:
-      type: object
-      properties:
-        cronExpression:
-          type: string
-        naturalLanguage:
-          type: string
-        tzOffsetMinutes:
-          type: integer
-    SchedulePreview:
-      type: object
-      required: [cronExpression, recurrenceKind, nextRuns]
-      properties:
-        cronExpression:
-          type: string
-        recurrenceKind:
-          type: string
-        nextRuns:
-          type: array
-          items:
-            type: string
-            format: date-time
-    PreviewScheduleResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [preview]
-          properties:
-            preview:
-              $ref: "#/components/schemas/SchedulePreview"
-    DeleteScheduleResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [deleted, id]
-          properties:
-            deleted:
-              type: boolean
-              enum: [true]
-            id:
-              type: string
-    ScheduledTaskRun:
-      type: object
-      required:
-        - id
-        - scheduledTaskId
-        - scheduledFor
-        - startedAt
-        - status
-        - triggerKind
-        - createdAt
-      properties:
-        id:
-          type: string
-        scheduledTaskId:
-          type: string
-        scheduledFor:
-          type: string
-          format: date-time
-        startedAt:
-          type: string
-          format: date-time
-        completedAt:
-          type: string
-          format: date-time
-          nullable: true
-        status:
-          type: string
-        summary:
-          type: string
-          nullable: true
-        error:
-          type: string
-          nullable: true
-        agentRunId:
-          type: string
-          nullable: true
-        triggerKind:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-    ScheduledTaskRunResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [run]
-          properties:
-            run:
-              $ref: "#/components/schemas/ScheduledTaskRun"
-    ScheduledTaskRunListPage:
-      type: object
-      required: [items, nextCursor]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/ScheduledTaskRun"
-        nextCursor:
-          type: string
-          nullable: true
-    ScheduledTaskRunListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          $ref: "#/components/schemas/ScheduledTaskRunListPage"
-    ScheduleSettings:
-      type: object
-      required: [globalPaused, updatedAt]
-      properties:
-        globalPaused:
-          type: boolean
-        lastTickAt:
-          type: string
-          format: date-time
-          nullable: true
-        updatedAt:
-          type: string
-          format: date-time
-    ScheduleSettingsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        data:
-          type: object
-          required: [settings]
-          properties:
-            settings:
-              $ref: "#/components/schemas/ScheduleSettings"
-    UpdateScheduleSettingsRequest:
-      type: object
-      required: [globalPaused]
-      properties:
-        globalPaused:
-          type: boolean
-    SkillDraftInterviewTurn:
-      type: object
-      required:
-        - role
-        - content
-      properties:
-        role:
-          type: string
-          enum:
-            - system
-            - user
-            - assistant
-        content:
-          type: string
-    SkillDraft:
-      type: object
-      required:
-        - id
-        - source
-        - status
-        - rawInput
-        - interviewTranscript
-        - interviewStep
-        - name
-        - description
-        - content
-        - modelTags
-        - triggers
-        - examplePrompts
-        - category
-        - skillId
-        - publishedStoreSkillId
-        - version
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        source:
-          type: string
-          enum:
-            - upload
-            - paste
-            - interview
-        status:
-          type: string
-          enum:
-            - draft
-            - ready
-            - published
-        rawInput:
-          type: string
-        interviewTranscript:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillDraftInterviewTurn'
-        interviewStep:
-          type: integer
-        name:
-          type: string
-        description:
-          type: string
-        content:
-          type: string
-        modelTags:
-          type: array
-          items:
-            type: string
-        triggers:
-          type: array
-          items:
-            type: string
-        examplePrompts:
-          type: array
-          items:
-            type: string
-        category:
-          type: string
-        skillId:
-          type: string
-          nullable: true
-        publishedStoreSkillId:
-          type: string
-          nullable: true
-        version:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    SkillDraftResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/SkillDraft'
-    SkillDraftListPage:
-      type: object
-      required:
-        - items
-        - nextCursor
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/SkillDraft'
-        nextCursor:
-          type: string
-          nullable: true
-    SkillDraftListResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/SkillDraftListPage'
-    SkillDraftDeleteReceipt:
-      type: object
-      required:
-        - id
-        - deleted
-      properties:
-        id:
-          type: string
-        deleted:
-          type: boolean
-    SkillDraftDeleteResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/SkillDraftDeleteReceipt'
-    SkillDraftInterviewQuestionsPayload:
-      type: object
-      required:
-        - questions
-      properties:
-        questions:
-          type: array
-          items:
-            type: string
-    SkillDraftInterviewQuestionsResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/SkillDraftInterviewQuestionsPayload'
-    SkillDraftInterviewAnswerRequest:
-      type: object
-      required:
-        - answer
-      properties:
-        answer:
-          type: string
-    CreateDraftFromUploadRequest:
-      type: object
-      required:
-        - fileName
-        - kind
-      properties:
-        fileName:
-          type: string
-        kind:
-          type: string
-        base64:
-          type: string
-        text:
-          type: string
-    CreateDraftFromPasteRequest:
-      type: object
-      required:
-        - text
-      properties:
-        text:
-          type: string
-    UpdateSkillDraftRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        content:
-          type: string
-        modelTags:
-          type: array
-          items:
-            type: string
-        triggers:
-          type: array
-          items:
-            type: string
-        examplePrompts:
-          type: array
-          items:
-            type: string
-        category:
-          type: string
-    SkillDraftTestRequest:
-      type: object
-      required:
-        - message
-      properties:
-        message:
-          type: string
-        modelName:
-          type: string
-    SkillDraftTestPayload:
-      type: object
-      required:
-        - model
-        - reply
-      properties:
         model:
           type: string
-        reply:
-          type: string
-    SkillDraftTestResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/SkillDraftTestPayload'
-    StoreSkill:
-      type: object
-      required:
-        - id
-        - creatorId
-        - creatorHandle
-        - slug
-        - name
-        - description
-        - content
-        - modelTags
-        - triggers
-        - examplePrompts
-        - category
-        - skillVersion
-        - isLatest
-        - installCount
-        - documentation
-        - isPremium
-        - previewUsesAllowed
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        creatorId:
-          type: string
-        creatorHandle:
-          type: string
-        slug:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        content:
-          type: string
-        modelTags:
-          type: array
-          items:
-            type: string
-        triggers:
-          type: array
-          items:
-            type: string
-        examplePrompts:
-          type: array
-          items:
-            type: string
-        category:
-          type: string
-        skillVersion:
-          type: integer
-        isLatest:
-          type: boolean
-        installCount:
-          type: integer
-        documentation:
-          type: string
-        isPremium:
-          type: boolean
-        previewUsesAllowed:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    StoreSkillResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/StoreSkill'
-    StoreSkillListPage:
-      type: object
-      required:
-        - items
-        - nextCursor
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/StoreSkill'
-        nextCursor:
-          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
           nullable: true
-    StoreSkillListResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/StoreSkillListPage'
-    StoreSkillDetailPayload:
-      type: object
-      required:
-        - skill
-        - versions
-      properties:
-        skill:
-          $ref: '#/components/schemas/StoreSkill'
-        versions:
-          type: array
-          items:
-            $ref: '#/components/schemas/StoreSkill'
-    StoreSkillDetailResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/StoreSkillDetailPayload'
-    StoreSkillInstallPayload:
-      type: object
-      required:
-        - skillId
-        - storeSkill
-      properties:
-        skillId:
-          type: string
-        storeSkill:
-          $ref: '#/components/schemas/StoreSkill'
-    StoreSkillInstallResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/StoreSkillInstallPayload'
-    StoreSkillUpdate:
-      type: object
-      required:
-        - skillId
-        - creatorHandle
-        - slug
-        - installedVersion
-        - latestVersion
-        - storeSkillId
-        - name
-      properties:
-        skillId:
-          type: string
-        creatorHandle:
-          type: string
-        slug:
-          type: string
-        installedVersion:
-          type: integer
-        latestVersion:
-          type: integer
-        storeSkillId:
-          type: string
-        name:
-          type: string
-    StoreSkillUpdatesPayload:
-      type: object
-      required:
-        - updates
-      properties:
-        updates:
-          type: array
-          items:
-            $ref: '#/components/schemas/StoreSkillUpdate'
-    StoreSkillUpdatesResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/StoreSkillUpdatesPayload'
-    PublishStoreSkillRequest:
-      type: object
-      required:
-        - draftId
-        - apiToken
-      properties:
-        draftId:
-          type: string
-        apiToken:
-          type: string
-        documentation:
-          type: string
-        isPremium:
-          type: boolean
-        previewUsesAllowed:
-          type: integer
-    StoreCreatorExternalLink:
-      type: object
-      required:
-        - label
-        - url
-      properties:
-        label:
-          type: string
-        url:
-          type: string
-    StoreCreator:
-      type: object
-      required:
-        - id
-        - handle
-        - displayName
-        - bio
-        - websiteUrl
-        - externalLinks
-        - publishedSkillCount
-        - totalInstalls
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        handle:
-          type: string
-        displayName:
-          type: string
-        bio:
-          type: string
-        websiteUrl:
-          type: string
-          nullable: true
-        externalLinks:
-          type: array
-          items:
-            $ref: '#/components/schemas/StoreCreatorExternalLink'
-        publishedSkillCount:
-          type: integer
-        totalInstalls:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    StoreCreatorResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/StoreCreator'
-    StoreCreatorListPage:
-      type: object
-      required:
-        - items
-        - nextCursor
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/StoreCreator'
-        nextCursor:
-          type: string
-          nullable: true
-    StoreCreatorListResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/StoreCreatorListPage'
-    StoreCreatorSignupRequest:
-      type: object
-      required:
-        - displayName
-      properties:
-        handle:
-          type: string
-        displayName:
-          type: string
-        bio:
-          type: string
-        websiteUrl:
-          type: string
-        externalLinks:
-          type: array
-          items:
-            $ref: '#/components/schemas/StoreCreatorExternalLink'
-    StoreCreatorSignupPayload:
-      type: object
-      required:
-        - account
-        - apiToken
-      properties:
-        account:
-          $ref: '#/components/schemas/StoreCreator'
-        apiToken:
-          type: string
-    StoreCreatorSignupResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/StoreCreatorSignupPayload'
-    StoreCreatorDashboardRequest:
-      type: object
-      required:
-        - apiToken
-      properties:
-        apiToken:
-          type: string
-    StoreCreatorDashboardPayload:
-      type: object
-      required:
-        - account
-        - publishedSkills
-        - totalInstalls
-        - totalVersions
-      properties:
-        account:
-          $ref: '#/components/schemas/StoreCreator'
-        publishedSkills:
-          type: array
-          items:
-            $ref: '#/components/schemas/StoreSkill'
-        totalInstalls:
-          type: integer
-        totalVersions:
-          type: integer
-    StoreCreatorDashboardResponse:
-      type: object
-      required:
-        - success
-        - data
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        data:
-          $ref: '#/components/schemas/StoreCreatorDashboardPayload'
-    SubscriptionRow:
-      type: object
-      required:
-        - id
-        - status
-        - planId
-        - priceCents
-        - currentPeriodEnd
-        - cancelAtPeriodEnd
-        - stripeCustomerId
-        - stripeSubscriptionId
-        - createdAt
-        - updatedAt
-      properties:
-        id: { type: string }
-        status:
-          type: string
-          enum: [inactive, trialing, active, past_due, cancelled]
-        planId: { type: string }
-        priceCents: { type: integer }
-        currentPeriodEnd:
-          type: string
-          format: date-time
-          nullable: true
-        cancelAtPeriodEnd: { type: boolean }
-        stripeCustomerId:
-          type: string
-          nullable: true
-        stripeSubscriptionId:
-          type: string
-          nullable: true
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-    SubscriptionStatusPayload:
-      type: object
-      required: [subscription, hasAccess, stripeStubMode]
-      properties:
-        subscription: { $ref: '#/components/schemas/SubscriptionRow' }
-        hasAccess: { type: boolean }
-        stripeStubMode: { type: boolean }
-    SubscriptionStatusResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/SubscriptionStatusPayload' }
-    SubscriptionCheckoutRequest:
-      type: object
-      properties:
-        successPath: { type: string }
-        cancelPath: { type: string }
-    SubscriptionCheckoutPayload:
-      type: object
-      required: [checkoutUrl, sessionId, stripeStubMode]
-      properties:
-        checkoutUrl: { type: string }
-        sessionId: { type: string }
-        stripeStubMode: { type: boolean }
-    SubscriptionCheckoutResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/SubscriptionCheckoutPayload' }
-    SubscriptionConfirmRequest:
-      type: object
-      required: [sessionId]
-      properties:
-        sessionId: { type: string }
-    SubscriptionWebhookRequest:
-      type: object
-      required: [type]
-      properties:
-        type: { type: string }
-        data:
-          type: object
-          additionalProperties: true
-    SubscriptionWebhookPayload:
-      type: object
-      required: [processed, type]
-      properties:
-        processed: { type: boolean }
-        type: { type: string }
-    SubscriptionWebhookResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/SubscriptionWebhookPayload' }
-    SubscriptionUsageItem:
-      type: object
-      required:
-        - id
-        - skillId
-        - skillSlug
-        - creatorHandle
-        - modelName
-        - wasPreview
-        - approvedByUser
-        - createdAt
-      properties:
-        id: { type: string }
-        skillId: { type: string }
-        skillSlug: { type: string }
-        creatorHandle:
-          type: string
-          nullable: true
-        modelName:
-          type: string
-          nullable: true
-        wasPreview: { type: boolean }
-        approvedByUser: { type: boolean }
-        createdAt: { type: string, format: date-time }
-    SubscriptionUsagePerSkill:
-      type: object
-      required: [skillId, skillSlug, count]
-      properties:
-        skillId: { type: string }
-        skillSlug: { type: string }
-        count: { type: integer }
-    SubscriptionUsagePayload:
-      type: object
-      required: [totalThisMonth, totalAllTime, perSkill, recent]
-      properties:
-        totalThisMonth: { type: integer }
-        totalAllTime: { type: integer }
-        perSkill:
-          type: array
-          items: { $ref: '#/components/schemas/SubscriptionUsagePerSkill' }
-        recent:
-          type: array
-          items: { $ref: '#/components/schemas/SubscriptionUsageItem' }
-    SubscriptionUsageResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/SubscriptionUsagePayload' }
-    CreatorEarningsRequest:
-      type: object
-      required: [apiToken]
-      properties:
-        apiToken: { type: string }
-    CreatorEarningsCreator:
-      type: object
-      required: [handle, displayName]
-      properties:
-        handle: { type: string }
-        displayName: { type: string }
-    CreatorEarningsPerSkill:
-      type: object
-      required: [skillSlug, uses, earningsCents]
-      properties:
-        skillSlug: { type: string }
-        uses: { type: integer }
-        earningsCents: { type: integer }
-    CreatorEarningsPayload:
-      type: object
-      required:
-        - creator
-        - creatorHandle
-        - periodStart
-        - periodEnd
-        - totalUses
-        - globalUses
-        - poolCents
-        - estimatedEarningsCents
-        - perSkill
-      properties:
-        creator: { $ref: '#/components/schemas/CreatorEarningsCreator' }
-        creatorHandle: { type: string }
-        periodStart: { type: string, format: date-time }
-        periodEnd: { type: string, format: date-time }
-        totalUses: { type: integer }
-        globalUses: { type: integer }
-        poolCents: { type: integer }
-        estimatedEarningsCents: { type: integer }
-        perSkill:
-          type: array
-          items: { $ref: '#/components/schemas/CreatorEarningsPerSkill' }
-    CreatorEarningsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/CreatorEarningsPayload' }
-    ReferralCode:
-      type: object
-      required: [code, shareUrl, createdAt]
-      properties:
-        code: { type: string }
-        shareUrl: { type: string }
-        createdAt: { type: string, format: date-time }
-    ReferralCodeResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [code]
-          properties:
-            code: { $ref: '#/components/schemas/ReferralCode' }
-    Referral:
-      type: object
-      required: [id, code, status, completedAt, rewardGrantedAt, createdAt, referredEmail, referredLabel]
-      properties:
-        id: { type: string }
-        code: { type: string }
-        status: { type: string, enum: [pending, completed] }
-        referredEmail: { type: string, nullable: true }
-        referredLabel: { type: string, nullable: true }
-        completedAt: { type: string, nullable: true, format: date-time }
-        rewardGrantedAt: { type: string, nullable: true, format: date-time }
-        createdAt: { type: string, format: date-time }
-    ReferralReward:
-      type: object
-      required: [id, referralId, kind, role, grantedAt, expiresAt, active]
-      properties:
-        id: { type: string }
-        referralId: { type: string, nullable: true }
-        kind: { type: string }
-        role: { type: string, enum: [referrer, referred] }
-        grantedAt: { type: string, format: date-time }
-        expiresAt: { type: string, format: date-time }
-        active: { type: boolean }
-    ReferralDashboard:
-      type: object
-      required:
-        - code
-        - totalReferred
-        - totalCompleted
-        - totalPending
-        - activeRewards
-        - betaUnlocked
-        - betaThreshold
-        - referrals
-        - rewards
-      properties:
-        code: { $ref: '#/components/schemas/ReferralCode' }
-        totalReferred: { type: integer }
-        totalCompleted: { type: integer }
-        totalPending: { type: integer }
-        activeRewards: { type: integer }
-        betaUnlocked: { type: boolean }
-        betaThreshold: { type: integer }
-        referrals:
-          type: array
-          items: { $ref: '#/components/schemas/Referral' }
-        rewards:
-          type: array
-          items: { $ref: '#/components/schemas/ReferralReward' }
-    ReferralDashboardResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [dashboard]
-          properties:
-            dashboard: { $ref: '#/components/schemas/ReferralDashboard' }
-    ReferralRewardListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [rewards]
-          properties:
-            rewards:
-              type: array
-              items: { $ref: '#/components/schemas/ReferralReward' }
-    BetaAccess:
-      type: object
-      required: [unlocked, threshold, completedReferrals]
-      properties:
-        unlocked: { type: boolean }
-        tier: { type: string, nullable: true }
-        reason: { type: string, nullable: true }
-        grantedAt: { type: string, nullable: true, format: date-time }
-        threshold: { type: integer }
-        completedReferrals: { type: integer }
-    BetaAccessResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [access]
-          properties:
-            access: { $ref: '#/components/schemas/BetaAccess' }
-    AttributeReferralRequest:
-      type: object
-      required: [code]
-      properties:
-        code: { type: string }
-        email: { type: string, format: email }
-        label: { type: string }
-    ReferralResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [referral]
-          properties:
-            referral: { $ref: '#/components/schemas/Referral' }
-    ReferralLookupResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [valid, code]
-          properties:
-            valid: { type: boolean }
-            code: { type: string }
-    AcquisitionChannelKey:
-      type: string
-      enum: [search, social, friend, creator, podcast, blog, work, other]
-    AcquisitionChannel:
-      type: object
-      required: [channel]
-      properties:
-        channel:
-          $ref: '#/components/schemas/AcquisitionChannelKey'
-          nullable: true
-        detail: { type: string, nullable: true }
-    AcquisitionChannelResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [channel]
-          properties:
-            channel:
-              allOf:
-                - $ref: '#/components/schemas/AcquisitionChannel'
-              nullable: true
-    SetAcquisitionChannelRequest:
-      type: object
-      required: [channel]
-      properties:
-        channel: { $ref: '#/components/schemas/AcquisitionChannelKey' }
-        detail: { type: string }
-    EnterpriseTrialInvite:
-      type: object
-      required: [id, colleagueEmail, status, createdAt]
-      properties:
-        id: { type: string }
-        colleagueEmail: { type: string }
-        colleagueName: { type: string, nullable: true }
-        company: { type: string, nullable: true }
-        note: { type: string, nullable: true }
-        status: { type: string }
-        createdAt: { type: string, format: date-time }
-    EnterpriseTrialInviteResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [invite]
-          properties:
-            invite: { $ref: '#/components/schemas/EnterpriseTrialInvite' }
-    EnterpriseTrialInviteListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [invites]
-          properties:
-            invites:
-              type: array
-              items: { $ref: '#/components/schemas/EnterpriseTrialInvite' }
-    CreateEnterpriseTrialInviteRequest:
-      type: object
-      required: [colleagueEmail]
-      properties:
-        colleagueEmail: { type: string, format: email }
-        colleagueName: { type: string }
-        company: { type: string }
-        note: { type: string }
-    ShareEvent:
-      type: object
-      required: [id, targetKind, targetId, channel, createdAt]
-      properties:
-        id: { type: string }
-        targetKind: { type: string, enum: [skill, task, creator] }
-        targetId: { type: string }
-        channel: { type: string, enum: [twitter, linkedin, whatsapp, copy, native, email] }
-        label: { type: string, nullable: true }
-        createdAt: { type: string, format: date-time }
-    ShareEventResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [event]
-          properties:
-            event: { $ref: '#/components/schemas/ShareEvent' }
-    ShareEventListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [events]
-          properties:
-            events:
-              type: array
-              items: { $ref: '#/components/schemas/ShareEvent' }
-    RecordShareEventRequest:
-      type: object
-      required: [targetKind, targetId]
-      properties:
-        targetKind: { type: string, enum: [skill, task, creator] }
-        targetId: { type: string }
-        channel: { type: string, enum: [twitter, linkedin, whatsapp, copy, native, email] }
-        label: { type: string }
-    SkillShareLinks:
-      type: object
-      required: [webUrl, deepLinkUrl, shortUrl]
-      properties:
-        webUrl: { type: string }
-        deepLinkUrl: { type: string }
-        shortUrl: { type: string }
-    SkillShareLinksResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [links]
-          properties:
-            links: { $ref: '#/components/schemas/SkillShareLinks' }
-    SocialChannelText:
-      type: object
-      required: [twitter, linkedin, whatsapp, email]
-      properties:
-        twitter: { type: string }
-        linkedin: { type: string }
-        whatsapp: { type: string }
-        email:
-          type: object
-          required: [subject, body]
-          properties:
-            subject: { type: string }
-            body: { type: string }
-    SkillSocialCard:
-      type: object
-      required:
-        - title
-        - creator
-        - description
-        - category
-        - installs
-        - rating
-        - ratingDisplay
-        - webUrl
-        - deepLinkUrl
-        - channels
-      properties:
-        title: { type: string }
-        creator: { type: string }
-        description: { type: string }
-        category: { type: string }
-        installs: { type: integer }
-        rating: { type: number }
-        ratingDisplay: { type: string }
-        webUrl: { type: string }
-        deepLinkUrl: { type: string }
-        channels: { $ref: '#/components/schemas/SocialChannelText' }
-    SkillSocialCardResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [card]
-          properties:
-            card: { $ref: '#/components/schemas/SkillSocialCard' }
-    BuildTaskShareCardRequest:
-      type: object
-      required: [goal, summary]
-      properties:
-        goal: { type: string }
-        summary: { type: string }
-        durationMs: { type: integer }
-    TaskShareCard:
-      type: object
-      required: [title, body, channels]
-      properties:
-        title: { type: string }
-        body: { type: string }
-        channels: { $ref: '#/components/schemas/SocialChannelText' }
-    TaskShareCardResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [card]
-          properties:
-            card: { $ref: '#/components/schemas/TaskShareCard' }
-    TaskSatisfactionRating:
-      type: object
-      required: [id, rating, shouldPromptShare, createdAt]
-      properties:
-        id: { type: string }
-        runId: { type: string, nullable: true }
-        rating: { type: string, enum: [up, down] }
-        summary: { type: string, nullable: true }
-        shouldPromptShare: { type: boolean }
-        createdAt: { type: string, format: date-time }
-    TaskSatisfactionResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [rating]
-          properties:
-            rating: { $ref: '#/components/schemas/TaskSatisfactionRating' }
-    TaskSatisfactionListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [ratings]
-          properties:
-            ratings:
-              type: array
-              items: { $ref: '#/components/schemas/TaskSatisfactionRating' }
-    RecordSatisfactionRequest:
-      type: object
-      required: [rating]
-      properties:
-        runId: { type: string }
-        rating: { type: string, enum: [up, down] }
-        summary: { type: string }
-    CreatorProfile:
-      type: object
-      required:
-        - id
-        - tenantId
-        - slug
-        - displayName
-        - bio
-        - badgeEnabled
-        - published
-        - publicUrl
-        - createdAt
-        - updatedAt
-      properties:
-        id: { type: string }
-        tenantId: { type: string }
-        slug: { type: string }
-        displayName: { type: string }
-        handle: { type: string, nullable: true }
-        bio: { type: string }
-        websiteUrl: { type: string, nullable: true }
-        twitterUrl: { type: string, nullable: true }
-        githubUrl: { type: string, nullable: true }
-        avatarUrl: { type: string, nullable: true }
-        badgeEnabled: { type: boolean }
-        published: { type: boolean }
-        publicUrl: { type: string }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-    CreatorProfileResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [profile]
-          properties:
-            profile:
-              allOf:
-                - $ref: '#/components/schemas/CreatorProfile'
-              nullable: true
-    UpsertCreatorProfileRequest:
-      type: object
-      properties:
-        displayName: { type: string }
-        handle: { type: string }
-        slug: { type: string }
-        bio: { type: string }
-        websiteUrl: { type: string }
-        twitterUrl: { type: string }
-        githubUrl: { type: string }
-        avatarUrl: { type: string }
-        badgeEnabled: { type: boolean }
-        published: { type: boolean }
-    CreatorBadge:
-      type: object
-      required: [embedHtml, embedScript, badgeImageUrl, publicUrl, altText]
-      properties:
-        embedHtml: { type: string }
-        embedScript: { type: string }
-        badgeImageUrl: { type: string }
-        publicUrl: { type: string }
-        altText: { type: string }
-    CreatorBadgeResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [badge]
-          properties:
-            badge: { $ref: '#/components/schemas/CreatorBadge' }
-    PublicCreatorProfileResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [profile]
-          properties:
-            profile: { $ref: '#/components/schemas/CreatorProfile' }
-            badge:
-              allOf:
-                - $ref: '#/components/schemas/CreatorBadge'
-              nullable: true
-    LeaderboardEntry:
-      type: object
-      required:
-        - rank
-        - creatorName
-        - skillCount
-        - totalInstalls
-        - averageRating
-        - estimatedEarningsUsd
-      properties:
-        rank: { type: integer }
-        creatorSlug: { type: string, nullable: true }
-        creatorName: { type: string }
-        creatorTenantId: { type: string, nullable: true }
-        skillCount: { type: integer }
-        totalInstalls: { type: integer }
-        averageRating: { type: number }
-        estimatedEarningsUsd: { type: number }
-    CreatorLeaderboardResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [kind, entries]
-          properties:
-            kind: { type: string, enum: [top_earners, most_used, highest_rated] }
-            entries:
-              type: array
-              items: { $ref: '#/components/schemas/LeaderboardEntry' }
-    CreatorMilestone:
-      type: object
-      required:
-        - id
-        - skillId
-        - skillName
-        - milestone
-        - threshold
-        - dismissed
-        - shareText
-        - createdAt
-      properties:
-        id: { type: string }
-        skillId: { type: string }
-        skillName: { type: string }
-        milestone: { type: string }
-        threshold: { type: integer }
-        dismissed: { type: boolean }
-        shareText: { type: string }
-        createdAt: { type: string, format: date-time }
-    CreatorMilestoneResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [milestone]
-          properties:
-            milestone: { $ref: '#/components/schemas/CreatorMilestone' }
-    CreatorMilestoneListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          properties:
-            milestones:
-              type: array
-              items: { $ref: '#/components/schemas/CreatorMilestone' }
-            created:
-              type: array
-              items: { $ref: '#/components/schemas/CreatorMilestone' }
-    WaitlistSignup:
-      type: object
-      required: [id, feature, email, createdAt]
-      properties:
-        id: { type: string }
-        feature: { type: string }
-        email: { type: string }
-        name: { type: string, nullable: true }
-        source: { type: string, nullable: true }
-        referralCode: { type: string, nullable: true }
-        notifiedAt: { type: string, nullable: true, format: date-time }
-        createdAt: { type: string, format: date-time }
-    CreateWaitlistSignupRequest:
-      type: object
-      required: [feature, email]
-      properties:
-        feature: { type: string }
-        email: { type: string, format: email }
-        name: { type: string }
-        source: { type: string }
-        referralCode: { type: string }
-    WaitlistSignupResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [signup, deduplicated]
-          properties:
-            signup: { $ref: '#/components/schemas/WaitlistSignup' }
-            deduplicated: { type: boolean }
-    WaitlistSignupListPage:
-      type: object
-      required: [items, nextCursor]
-      properties:
-        items:
-          type: array
-          items: { $ref: '#/components/schemas/WaitlistSignup' }
-        nextCursor: { type: string, nullable: true }
-    WaitlistSignupListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/WaitlistSignupListPage' }
-    WaitlistFeatureStat:
-      type: object
-      required: [feature, total]
-      properties:
-        feature: { type: string }
-        total: { type: integer }
-    WaitlistStatsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [stats]
-          properties:
-            stats:
-              type: array
-              items: { $ref: '#/components/schemas/WaitlistFeatureStat' }
-    PluginTool:
-      type: object
-      required: [id, name, description, riskLevel, inputSchema, invokeUrl, enabled, createdAt, updatedAt, version]
-      properties:
-        id: { type: string }
-        name: { type: string }
-        description: { type: string }
-        riskLevel:
-          type: string
-          enum: [low, medium, high, critical]
-        inputSchema:
-          type: object
-          additionalProperties: true
-        invokeUrl: { type: string }
-        enabled: { type: boolean }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-        version: { type: integer }
-    PluginToolList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items: { $ref: '#/components/schemas/PluginTool' }
-    PluginToolListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/PluginToolList' }
-    PluginToolResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/PluginTool' }
-    PluginToolDeleteResult:
-      type: object
-      required: [id, deleted]
-      properties:
-        id: { type: string }
-        deleted: { type: boolean }
-    PluginToolDeleteResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/PluginToolDeleteResult' }
-    RegisterPluginToolRequest:
-      type: object
-      required: [name, invokeUrl]
-      properties:
-        name: { type: string, minLength: 2, maxLength: 80 }
-        description: { type: string, maxLength: 2000 }
-        riskLevel:
-          type: string
-          enum: [low, medium, high, critical]
-        inputSchema:
-          type: object
-          additionalProperties: true
-        invokeUrl: { type: string, description: "Loopback URL the agent server posts inputs to (http://localhost:...)" }
-        authToken: { type: string, description: "Optional bearer token forwarded as Authorization header" }
-    UpdatePluginToolRequest:
-      type: object
-      properties:
-        description: { type: string, maxLength: 2000 }
-        riskLevel:
-          type: string
-          enum: [low, medium, high, critical]
-        inputSchema:
-          type: object
-          additionalProperties: true
-        invokeUrl: { type: string }
-        authToken:
-          type: string
-          nullable: true
-        enabled: { type: boolean }
-    PluginInvokeRequest:
-      type: object
-      required: [input]
-      properties:
-        input:
-          type: object
-          additionalProperties: true
-    PluginInvokeResult:
-      type: object
-      required: [toolName, output, durationMs]
-      properties:
-        toolName: { type: string }
-        output:
-          type: object
-          additionalProperties: true
-        durationMs: { type: integer }
-    PluginInvokeResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/PluginInvokeResult' }
-    WebhookSubscription:
-      type: object
-      required: [id, url, label, eventTypes, enabled, hasSecret, failureCount, createdAt, updatedAt, version]
-      properties:
-        id: { type: string }
-        url: { type: string }
-        label: { type: string }
-        eventTypes:
-          type: array
-          items: { type: string }
-        enabled: { type: boolean }
-        hasSecret: { type: boolean }
-        lastDeliveryAt:
-          type: string
-          format: date-time
-          nullable: true
-        lastDeliveryStatus:
-          type: integer
-          nullable: true
-        failureCount: { type: integer }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-        version: { type: integer }
-    WebhookSubscriptionList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items: { $ref: '#/components/schemas/WebhookSubscription' }
-    WebhookSubscriptionListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/WebhookSubscriptionList' }
-    WebhookSubscriptionResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/WebhookSubscription' }
-    WebhookSubscriptionDeleteResult:
-      type: object
-      required: [id, deleted]
-      properties:
-        id: { type: string }
-        deleted: { type: boolean }
-    WebhookSubscriptionDeleteResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/WebhookSubscriptionDeleteResult' }
-    CreateWebhookSubscriptionRequest:
-      type: object
-      required: [url]
-      properties:
-        url: { type: string, description: "Loopback URL — http(s)://localhost..." }
-        label: { type: string, maxLength: 200 }
-        eventTypes:
-          type: array
-          maxItems: 64
-          items: { type: string }
-        secret:
-          type: string
-          minLength: 8
-          maxLength: 512
-    UpdateWebhookSubscriptionRequest:
-      type: object
-      properties:
-        url: { type: string }
-        label: { type: string, maxLength: 200 }
-        eventTypes:
-          type: array
-          maxItems: 64
-          items: { type: string }
-        enabled: { type: boolean }
-        secret:
-          type: string
-          nullable: true
-          minLength: 8
-          maxLength: 512
-    OpEvent:
-      type: object
-      required: [id, type, tenantId, workspaceId, timestamp, data]
-      properties:
-        id: { type: string }
-        type: { type: string }
-        tenantId: { type: string }
-        workspaceId: { type: string }
-        timestamp: { type: string, format: date-time }
-        data:
-          type: object
-          additionalProperties: true
-    OpEventList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items: { $ref: '#/components/schemas/OpEvent' }
-    OpEventListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/OpEventList' }
-    IntegrationProviderField:
-      type: object
-      required: [name, label]
-      properties:
-        name:
-          type: string
-        label:
-          type: string
-        placeholder:
-          type: string
-        secret:
-          type: boolean
-        required:
-          type: boolean
 
-    IntegrationProviderAction:
+    VoiceTranscribeResponse:
       type: object
-      required: [name, description, riskLevel]
+      required: [success, data]
       properties:
-        name:
-          type: string
-        description:
-          type: string
-        riskLevel:
-          type: string
-          enum: [low, medium, high]
-
-    IntegrationProvider:
-      type: object
-      required: [id, label, category, authType, description, oauthScopes, fields, actions]
-      properties:
-        id:
-          type: string
-        label:
-          type: string
-        category:
-          type: string
-          enum: [productivity, communication, files, code, tickets, crm, commerce, data]
-        authType:
-          type: string
-          enum: [oauth, api_key]
-        description:
-          type: string
-        oauthScopes:
-          type: array
-          items:
-            type: string
-        fields:
-          type: array
-          items:
-            $ref: "#/components/schemas/IntegrationProviderField"
-        actions:
-          type: array
-          items:
-            $ref: "#/components/schemas/IntegrationProviderAction"
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/VoiceTranscribeResult"
 
     IntegrationProviderListResponse:
       type: object
@@ -23833,6 +20173,52 @@ components:
           type: string
           format: date-time
 
+    VoiceSynthesizeRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        voice:
+          type: string
+          description: Voice id from /voice/voices.
+        speed:
+          type: number
+          minimum: 0.5
+          maximum: 2
+          description: Playback rate multiplier (1.0 = natural).
+        format:
+          type: string
+          enum: [wav]
+
+    VoiceSynthesizeResult:
+      type: object
+      required: [audio, mimeType, durationMs, voice, engine]
+      properties:
+        audio:
+          type: string
+          description: Base64-encoded audio bytes (WAV).
+        mimeType:
+          type: string
+        durationMs:
+          type: integer
+        voice:
+          type: string
+        engine:
+          type: string
+
+    VoiceSynthesizeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/VoiceSynthesizeResult"
+
     IntegrationListPage:
       type: object
       required: [items, nextCursor]
@@ -23841,6 +20227,33 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Integration"
+
+    VoiceEntry:
+      type: object
+      required: [id, label, language, gender, engine]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        language:
+          type: string
+        gender:
+          type: string
+        engine:
+          type: string
+        sampleRate:
+          type: integer
+          nullable: true
+
+    VoiceListPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VoiceEntry"
         nextCursor:
           type: string
           nullable: true
@@ -23854,6 +20267,16 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/IntegrationListPage"
+
+    VoiceListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: "#/components/schemas/VoiceListPage"
 
     IntegrationResponse:
       type: object
@@ -23947,26 +20370,11 @@ components:
 
     IntegrationActionRequest:
       type: object
+      required: [action, params]
       properties:
-        input:
-          type: object
-          additionalProperties: true
-
-    IntegrationActionResult:
-      type: object
-      required: [provider, action, simulated, input, output]
-      properties:
-        provider:
-          type: string
         action:
           type: string
-        simulated:
-          type: boolean
-          enum: [true]
-        input:
-          type: object
-          additionalProperties: true
-        output:
+        params:
           type: object
           additionalProperties: true
 
@@ -23978,319 +20386,48 @@ components:
           type: boolean
           enum: [true]
         data:
-          $ref: "#/components/schemas/IntegrationActionResult"
-
-    CreatorAgreementDoc:
-      type: object
-      required: [version, hash, title, summary, body, effectiveDate]
-      properties:
-        version: { type: string }
-        hash: { type: string }
-        title: { type: string }
-        summary: { type: string }
-        body: { type: string }
-        effectiveDate: { type: string }
-    CreatorAgreementResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
           type: object
-          required: [agreement]
+          additionalProperties: true
+
+    RecoveryDetails:
+      allOf:
+        - $ref: '#/components/schemas/RecoveryInterruptedTask'
+        - type: object
+          required: [history, validation]
           properties:
-            agreement: { $ref: '#/components/schemas/CreatorAgreementDoc' }
-
-    AdminBoolEnvelope:
-      type: object
-      additionalProperties: true
-    AdminBoolResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          $ref: "#/components/schemas/AdminBoolEnvelope"
-
-    SuperAdminOverview:
-      type: object
-      required:
-        - totalInstalls
-        - totalUsers
-        - enterpriseOrgs
-        - paidSubscribers
-        - dailyActiveUsers
-        - weeklyActiveUsers
-        - monthlyActiveUsers
-        - churnRate
-        - conversationsThisMonth
-        - agentRunsThisMonth
-        - growthSeries
-      properties:
-        totalInstalls: { type: integer }
-        totalUsers: { type: integer }
-        enterpriseOrgs: { type: integer }
-        paidSubscribers: { type: integer }
-        dailyActiveUsers: { type: integer }
-        weeklyActiveUsers: { type: integer }
-        monthlyActiveUsers: { type: integer }
-        churnRate: { type: number }
-        conversationsThisMonth: { type: integer }
-        agentRunsThisMonth: { type: integer }
-        growthSeries:
-          type: array
-          items:
-            type: object
-            required: [date, installs]
-            properties:
-              date: { type: string }
-              installs: { type: integer }
-    SuperAdminOverviewResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/SuperAdminOverview" }
-
-    SuperAdminRevenue:
-      type: object
-      required:
-        - totalSubscribers
-        - monthlyRecurringCents
-        - platformCutCents
-        - creatorPoolCents
-        - pendingPayoutCents
-        - stripePayoutStatus
-        - recentInvoices
-      properties:
-        totalSubscribers: { type: integer }
-        monthlyRecurringCents: { type: integer }
-        platformCutCents: { type: integer }
-        creatorPoolCents: { type: integer }
-        pendingPayoutCents: { type: integer }
-        stripePayoutStatus: { type: string }
-        recentInvoices:
-          type: array
-          items:
-            type: object
-            required: [id, tenantId, amountCents, status, createdAt]
-            properties:
-              id: { type: string }
-              tenantId: { type: string }
-              amountCents: { type: integer }
-              status: { type: string }
-              createdAt: { type: string }
-    SuperAdminRevenueResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/SuperAdminRevenue" }
-
-    CreatorAgreementState:
-      type: object
-      required: [state, currentVersion, currentHash, title, summary]
-      properties:
-        state: { type: string, enum: [pending, accepted] }
-        currentVersion: { type: string }
-        currentHash: { type: string }
-        title: { type: string }
-        summary: { type: string }
-        signedAt: { type: integer, nullable: true }
-        signedName: { type: string, nullable: true }
-        lastSignedVersion: { type: string, nullable: true }
-        lastSignedAt: { type: integer, nullable: true }
-    CreatorAgreementStateResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: '#/components/schemas/CreatorAgreementState' }
-
-    SuperAdminSkillAnalytics:
-      type: object
-      required: [topInstalled, topEarning, trendingCategories]
-      properties:
-        topInstalled:
-          type: array
-          items:
-            type: object
-            required: [slug, name, installs]
-            properties:
-              slug: { type: string }
-              name: { type: string }
-              installs: { type: integer }
-        topEarning:
-          type: array
-          items:
-            type: object
-            required: [creatorHandle, usage]
-            properties:
-              creatorHandle: { type: string }
-              usage: { type: integer }
-        trendingCategories:
-          type: array
-          items:
-            type: object
-            required: [category, installs]
-            properties:
-              category: { type: string }
-              installs: { type: integer }
-    SuperAdminSkillAnalyticsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/SuperAdminSkillAnalytics" }
-
-    SignCreatorAgreementRequest:
-      type: object
-      required: [signedName]
-      properties:
-        creatorId: { type: string }
-        signedName: { type: string }
-        locale: { type: string }
-
-    DmcaTakedownRequest:
-      type: object
-      required:
-        - claimantName
-        - claimantEmail
-        - claimantAddress
-        - workDescription
-        - infringementDescription
-        - goodFaithStatement
-        - accuracyStatement
-        - signature
-      properties:
-        storeSkillId: { type: string }
-        creatorHandle: { type: string }
-        skillSlug: { type: string }
-        skillUrl: { type: string }
-        claimantName: { type: string }
-        claimantEmail: { type: string }
-        claimantAddress: { type: string }
-        claimantPhone: { type: string }
-        workDescription: { type: string }
-        infringementDescription: { type: string }
-        goodFaithStatement: { type: boolean }
-        accuracyStatement: { type: boolean }
-        signature: { type: string }
-    DmcaTakedown:
-      type: object
-      required: [id, status, claimantName, claimantEmail, workDescription, infringementDescription, createdAt, updatedAt]
-      properties:
-        id: { type: string }
-        status:
-          type: string
-          enum: [received, reviewing, upheld, rejected, counter_noticed, restored]
-        storeSkillId: { type: string, nullable: true }
-        creatorHandle: { type: string, nullable: true }
-        skillSlug: { type: string, nullable: true }
-        skillUrl: { type: string, nullable: true }
-        claimantName: { type: string }
-        claimantEmail: { type: string }
-        workDescription: { type: string }
-        infringementDescription: { type: string }
-        decisionNotes: { type: string, nullable: true }
-        decidedAt: { type: integer, nullable: true }
-        decidedBy: { type: string, nullable: true }
-        skillRemovedAt: { type: integer, nullable: true }
-        counterNoticeId: { type: string, nullable: true }
-        createdAt: { type: integer }
-        updatedAt: { type: integer }
-    DmcaTakedownResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [takedown]
-          properties:
-            takedown: { $ref: '#/components/schemas/DmcaTakedown' }
-    DmcaTakedownListResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [items, nextCursor]
-          properties:
-            items:
+            history:
               type: array
-              items: { $ref: '#/components/schemas/DmcaTakedown' }
-            nextCursor: { type: string, nullable: true }
+              items:
+                $ref: '#/components/schemas/RecoveryCheckpoint'
+            validation:
+              $ref: '#/components/schemas/RecoveryValidationReport'
 
-    ModerationItem:
+    RecoveryDetailsResponse:
       type: object
-      required: [id, name, description, category, status, createdAt, updatedAt]
+      required: [success, data]
       properties:
-        id: { type: string }
-        name: { type: string }
-        description: { type: string }
-        category: { type: string }
-        status: { type: string }
-        createdAt: { type: string }
-        updatedAt: { type: string }
-    ModerationQueuePageResponse:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/RecoveryDetails'
+
+    RecoveryResumeResponse:
       type: object
       required: [success, data]
       properties:
         success: { type: boolean, enum: [true] }
         data:
           type: object
-          required: [items, nextCursor]
+          required: [resumed, validation]
           properties:
-            items:
-              type: array
-              items: { $ref: "#/components/schemas/ModerationItem" }
-            nextCursor: { type: string, nullable: true }
+            resumed: { type: boolean, enum: [true] }
+            validation:
+              $ref: '#/components/schemas/RecoveryValidationReport'
 
-    DmcaDecideRequest:
+    RecoveryDiscardRequest:
       type: object
-      required: [decision]
+      required: [confirm]
       properties:
-        decision: { type: string, enum: [uphold, reject] }
-        notes: { type: string }
-    DmcaCounterNoticeRequest:
-      type: object
-      required:
-        - takedownId
-        - creatorName
-        - creatorEmail
-        - creatorAddress
-        - statement
-        - consentToJurisdiction
-        - perjuryStatement
-        - signature
-      properties:
-        takedownId: { type: string }
-        creatorId: { type: string }
-        creatorName: { type: string }
-        creatorEmail: { type: string }
-        creatorAddress: { type: string }
-        statement: { type: string }
-        consentToJurisdiction: { type: boolean }
-        perjuryStatement: { type: boolean }
-        signature: { type: string }
-    DmcaCounterNoticeResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data:
-          type: object
-          required: [counterNoticeId, takedownId]
-          properties:
-            counterNoticeId: { type: string }
-            takedownId: { type: string }
 
-    SubmitCreatorTaxFormRequest:
-      type: object
-      required: [formType, fullName, address, taxId, countryCode]
-      properties:
         creatorId: { type: string }
         formType: { type: string, enum: [w9, w8ben] }
         fullName: { type: string }
@@ -25032,232 +21169,148 @@ components:
       required: [category, confirm]
       properties:
         category: { type: string }
+
+
         confirm:
           type: boolean
-          enum: [true]
-    ErasureRequest:
+          description: Must be `true` — discard requires explicit confirmation.
+        partialUndo:
+          type: boolean
+          description: When true, also reverses every reversible destructive step.
+
+    RecoveryDiscardResponse:
       type: object
-      required:
-        - id
-        - requesterEmail
-        - scope
-        - status
-        - createdAt
+      required: [success, data]
       properties:
-        id: { type: string }
-        requesterEmail: { type: string }
-        scope: { type: string }
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [discarded, reversed, archivedUntil]
+          properties:
+            discarded: { type: boolean, enum: [true] }
+            reversed: { type: integer }
+            archivedUntil:
+              type: string
+              format: date-time
+
+    RecoveryPartialUndoResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [reversed]
+          properties:
+            reversed: { type: integer }
+
+    RecoveryShutdownRequest:
+      type: object
+      properties:
         reason:
           type: string
-          nullable: true
-        status: { type: string }
-        completedAt:
-          type: string
-          format: date-time
-          nullable: true
-        createdAt: { type: string, format: date-time }
-    ErasureRequestListResponse:
+          enum: [normal, user_quit, system_restart, test]
+
+    RecoveryShutdownResponse:
       type: object
       required: [success, data]
       properties:
         success: { type: boolean, enum: [true] }
         data:
           type: object
-          required: [items, nextCursor]
+          required: [id, shutdownAt]
           properties:
-            items:
-              type: array
-              items: { $ref: "#/components/schemas/ErasureRequest" }
-            nextCursor:
+            id: { type: string }
+            shutdownAt:
               type: string
-              nullable: true
-    ErasureRequestResponse:
+              format: date-time
+
+    Workspace:
       type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/ErasureRequest" }
-    InventoryCategory:
-      type: object
-      required: [key, label, description, itemCount]
-      properties:
-        key: { type: string }
-        label: { type: string }
-        description: { type: string }
-        itemCount: { type: integer }
-    NetworkCall:
-      type: object
-      required:
-        - id
-        - domain
-        - purpose
-        - dataType
-        - initiator
-        - bytesSent
-        - bytesReceived
-        - createdAt
+      required: [id, name, slug, createdAt, updatedAt]
       properties:
         id: { type: string }
-        domain: { type: string }
-        purpose: { type: string }
-        dataType: { type: string }
-        initiator:
-          type: string
-          enum: [user, automatic]
-        bytesSent: { type: integer }
-        bytesReceived: { type: integer }
-        statusCode:
-          type: integer
-          nullable: true
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string, nullable: true }
+        icon: { type: string, nullable: true }
+        color: { type: string, nullable: true }
+        isDefault: { type: boolean }
         createdAt: { type: string, format: date-time }
-    NetworkCallDomainBreakdown:
+        updatedAt: { type: string, format: date-time }
+
+    WorkspaceResponse:
       type: object
-      required: [domain, count, purposes]
+      required: [success, data]
       properties:
-        domain: { type: string }
-        count: { type: integer }
-        purposes:
-          type: array
-          items: { type: string }
-    NetworkCallListResponse:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/Workspace" }
+
+    WorkspaceListResponse:
       type: object
       required: [success, data]
       properties:
         success: { type: boolean, enum: [true] }
         data:
           type: object
-          required: [items, nextCursor]
+          required: [items]
           properties:
             items:
               type: array
-              items: { $ref: "#/components/schemas/NetworkCall" }
-            nextCursor:
-              type: string
-              nullable: true
-    NetworkCallSummary:
+              items: { $ref: "#/components/schemas/Workspace" }
+
+    CreateWorkspaceRequest:
       type: object
-      required:
-        - windowStart
-        - windowEnd
-        - totalCalls
-        - totalBytesSent
-        - totalBytesReceived
-        - userInitiated
-        - automatic
-        - byDomain
+      required: [name]
       properties:
-        windowStart: { type: string, format: date-time }
-        windowEnd: { type: string, format: date-time }
-        totalCalls: { type: integer }
-        totalBytesSent: { type: integer }
-        totalBytesReceived: { type: integer }
-        userInitiated: { type: integer }
-        automatic: { type: integer }
-        byDomain:
-          type: array
-          items: { $ref: "#/components/schemas/NetworkCallDomainBreakdown" }
-    NetworkCallSummaryResponse:
+        name: { type: string, minLength: 1, maxLength: 64 }
+        description: { type: string, maxLength: 256 }
+        icon: { type: string }
+        color: { type: string }
+
+    UpdateWorkspaceRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 64 }
+        description: { type: string, maxLength: 256, nullable: true }
+        icon: { type: string, nullable: true }
+        color: { type: string, nullable: true }
+
+    Skill:
+      type: object
+      required: [id, slug, name, description, author, version, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string }
+        author: { type: string }
+        version: { type: string }
+        icon: { type: string, nullable: true }
+        category: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    SkillResponse:
       type: object
       required: [success, data]
       properties:
         success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/NetworkCallSummary" }
-    PrivacyExportBundle:
+        data: { $ref: "#/components/schemas/Skill" }
+
+    SkillListResponse:
       type: object
-      required: [tenantId, exportedAt, version, data]
+      required: [success, data]
       properties:
-        tenantId: { type: string }
-        exportedAt: { type: string, format: date-time }
-        version:
-          type: string
-          enum: ["1"]
+        success: { type: boolean, enum: [true] }
         data:
           type: object
-          additionalProperties:
-            type: array
-            items: {}
-    PrivacyExportResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/PrivacyExportBundle" }
-    PrivacyMeterBreakdown:
-      type: object
-      required:
-        - integrations
-        - telemetry
-        - externalModels
-        - marketplaceUsageStats
-        - skillNetwork
-        - recentNetworkCalls
-      properties:
-        integrations: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
-        telemetry: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
-        externalModels: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
-        marketplaceUsageStats: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
-        skillNetwork: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
-        recentNetworkCalls: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
-    PrivacyMeterDeduction:
-      type: object
-      required: [deduction]
-      properties:
-        deduction:
-          type: number
-        local:
-          type: boolean
-        connected:
-          type: integer
-        anyEnabled:
-          type: boolean
-        allowed:
-          type: boolean
-        skillsWithNetwork:
-          type: integer
-        count:
-          type: integer
-    PrivacyMeterReading:
-      type: object
-      required: [score, band, summary, breakdown, generatedAt]
-      properties:
-        score:
-          type: number
-        band:
-          type: string
-          enum: [green, amber, red]
-        summary:
-          type: string
-        breakdown:
-          $ref: "#/components/schemas/PrivacyMeterBreakdown"
-        generatedAt:
-          type: string
-          format: date-time
-    PrivacyMeterResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/PrivacyMeterReading" }
-    PrivacySettings:
-      type: object
-      required:
-        - allowExternalModels
-        - allowMarketplaceUsageStats
-        - allowIntegrationDataReads
-        - allowSkillNetworkCalls
-        - updatedAt
-      properties:
-        allowExternalModels: { type: boolean }
-        allowMarketplaceUsageStats: { type: boolean }
-        allowIntegrationDataReads: { type: boolean }
-        allowSkillNetworkCalls: { type: boolean }
-        updatedAt: { type: string, format: date-time }
-    PrivacySettingsResponse:
-      type: object
-      required: [success, data]
-      properties:
-        success: { type: boolean, enum: [true] }
-        data: { $ref: "#/components/schemas/PrivacySettings" }
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/Skill" }
+
     SetSkillPermissionRequest:
       type: object
       required: [skillId, permission, granted]
@@ -25276,36 +21329,27 @@ components:
             - memory.write
             - shell.exec
         granted: { type: boolean }
+
     SkillPermission:
       type: object
-      required:
-        - id
-        - skillId
-        - skillSlug
-        - permission
-        - granted
-        - updatedAt
+      required: [id, skillId, skillSlug, permission, granted, updatedAt]
       properties:
         id: { type: string }
         skillId: { type: string }
         skillSlug: { type: string }
         permission: { type: string }
         granted: { type: boolean }
-        grantedAt:
-          type: string
-          format: date-time
-          nullable: true
-        revokedAt:
-          type: string
-          format: date-time
-          nullable: true
+        grantedAt: { type: string, format: date-time, nullable: true }
+        revokedAt: { type: string, format: date-time, nullable: true }
         updatedAt: { type: string, format: date-time }
+
     SkillPermissionResponse:
       type: object
       required: [success, data]
       properties:
         success: { type: boolean, enum: [true] }
         data: { $ref: "#/components/schemas/SkillPermission" }
+
     SkillPermissionsForSkill:
       type: object
       required: [skillId, slug, name, permissions]
@@ -25316,6 +21360,7 @@ components:
         permissions:
           type: array
           items: { $ref: "#/components/schemas/SkillPermission" }
+
     SkillPermissionsResponse:
       type: object
       required: [success, data]
@@ -25328,6 +21373,7 @@ components:
             items:
               type: array
               items: { $ref: "#/components/schemas/SkillPermissionsForSkill" }
+
     UpdatePrivacySettingsRequest:
       type: object
       properties:
@@ -25335,6 +21381,7 @@ components:
         allowMarketplaceUsageStats: { type: boolean }
         allowIntegrationDataReads: { type: boolean }
         allowSkillNetworkCalls: { type: boolean }
+
 
     PrivateRegistrySettings:
       type: object
@@ -25780,6 +21827,7 @@ components:
           type: object
           additionalProperties: true
 
+
     RuntimeResidency:
       type: string
       enum: [local, cloud-assist, cloud-required]
@@ -26016,6 +22064,10 @@ components:
           enum: [true]
         data:
           $ref: "#/components/schemas/ResidencySignal"
+
+
+
+
   responses: {}
   requestBodies: {}
   headers: {}

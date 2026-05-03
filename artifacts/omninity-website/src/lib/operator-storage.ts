@@ -5,6 +5,15 @@ export interface OperatorSettings {
   defaultModel: string;
   cloudMode: boolean;
   workspacePath: string;
+  // Voice interface (Task #9). All voice fields default to "off" so the
+  // experience is opt-in and microphone permission is never requested
+  // until the user explicitly enables it from the chat header or settings.
+  voiceMode: boolean;
+  voiceName: string;
+  voiceSpeed: number;
+  voiceAutoplay: boolean;
+  wakeWordEnabled: boolean;
+  wakeWordPhrase: string;
 }
 
 const THEME_KEY = "omninity.operator.theme";
@@ -15,6 +24,12 @@ export const DEFAULT_SETTINGS: OperatorSettings = {
   defaultModel: "llama3.1:8b",
   cloudMode: false,
   workspacePath: "~/Omninity/workspace",
+  voiceMode: false,
+  voiceName: "ember",
+  voiceSpeed: 1,
+  voiceAutoplay: true,
+  wakeWordEnabled: false,
+  wakeWordPhrase: "hey op",
 };
 
 function safeWindow(): Storage | null {

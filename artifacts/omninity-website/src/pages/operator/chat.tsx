@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useChat,
   useCreateAgentRun,
@@ -14,6 +14,8 @@ import {
   useListConversationMessages,
   useAppendConversationMessage,
   useListSkills,
+  useTranscribeAudio,
+  useSynthesizeSpeech,
   type ChatMessage,
   type Approval,
   type Message,
@@ -46,6 +48,11 @@ import { SaveTemplateDialog } from "@/components/operator/save-template-dialog";
 import { StarterChips } from "@/components/onboarding/starter-chips";
 import { SuccessSparkle } from "@/components/onboarding/success-sparkle";
 import {
+  MicButton,
+  VoiceModeToggle,
+  Waveform,
+} from "@/components/operator/voice-controls";
+import {
   HelpIcon,
   InlineHints,
   FirstTimeTooltip,
@@ -53,6 +60,12 @@ import {
 } from "@/components/help";
 import { useSettings } from "@/contexts/settings-context";
 import { cn } from "@/lib/utils";
+import {
+  useVoicePlayer,
+  useVoiceRecorder,
+  useWakeWord,
+  type VoiceRecording,
+} from "@/lib/voice-engine";
 
 // tier-review: bounded — fixed status enum, never mutated at runtime
 const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
@@ -68,7 +81,7 @@ function ChatReadyMarker() {
 }
 
 export default function ChatPage() {
-  const { settings } = useSettings();
+  const { settings, update: updateSettings } = useSettings();
   const qc = useQueryClient();
   const { completeChecklistItem } = useHelp();
   const [agentMode, setAgentMode] = useState(false);
@@ -267,6 +280,83 @@ export default function ChatPage() {
     [approvals],
   );
 
+  // ---------- Voice interface (Task #9) ----------
+  const player = useVoicePlayer();
+  const lastSpokenIdRef = useRef<string | null>(null);
+  const autoSendOnNextTranscriptRef = useRef(false);
+
+  const synthesize = useSynthesizeSpeech();
+
+  const speakReply = useCallback(
+    async (text: string) => {
+      if (!settings.voiceMode || !settings.voiceAutoplay) return;
+      try {
+        const resp = await synthesize.mutateAsync({
+          data: {
+            text,
+            voice: settings.voiceName,
+            speed: settings.voiceSpeed,
+          },
+        });
+        await player.play(resp.data.audio, resp.data.mimeType);
+      } catch {
+        /* surfaced via the mutation error state */
+      }
+    },
+    [
+      player,
+      settings.voiceAutoplay,
+      settings.voiceMode,
+      settings.voiceName,
+      settings.voiceSpeed,
+      synthesize,
+    ],
+  );
+
+  const transcribeMut = useTranscribeAudio({
+    mutation: {
+      onSuccess: (resp) => {
+        const transcript = resp.data.transcript.trim();
+        if (!transcript) return;
+        if (autoSendOnNextTranscriptRef.current) {
+          autoSendOnNextTranscriptRef.current = false;
+          void submitText(transcript);
+        } else {
+          setInput((curr) => (curr ? `${curr} ${transcript}` : transcript));
+        }
+      },
+    },
+  });
+
+  const onRecording = useCallback(
+    (rec: VoiceRecording) => {
+      transcribeMut.mutate({
+        data: {
+          audio: rec.base64,
+          mimeType: rec.mimeType,
+          language: "en-US",
+        },
+      });
+    },
+    [transcribeMut],
+  );
+
+  const recorder = useVoiceRecorder({ onRecording });
+
+  const startVoiceCapture = useCallback(() => {
+    // Interrupt any ongoing TTS before opening the mic — feels much more
+    // natural and lets the user "talk over" the assistant.
+    if (player.isPlaying) player.stop();
+    autoSendOnNextTranscriptRef.current = settings.voiceMode;
+    void recorder.start();
+  }, [player, recorder, settings.voiceMode]);
+
+  useWakeWord({
+    enabled: settings.wakeWordEnabled && !recorder.isRecording,
+    phrase: settings.wakeWordPhrase,
+    onWake: startVoiceCapture,
+  });
+
   useEffect(() => {
     if (pendingApproval && !activeApproval) {
       setActiveApproval(pendingApproval);
@@ -299,46 +389,87 @@ export default function ChatPage() {
     markFirstTask.mutate({ data: { firstTaskCompleted: true } });
   }, [run, activeRunId, firstTaskCompleted, markFirstTask]);
 
-  const submit = async () => {
-    const text = input.trim();
-    if (!text) return;
-    completeChecklistItem("first-chat");
-    if (agentMode) {
-      completeChecklistItem("agent-run");
-      const conversation = await ensureConversation(text);
-      createRun.mutate({
-        data: {
-          goal: text,
-          conversationId: conversation.id,
-          ...(model ? { modelName: model } : {}),
-          ...(skillId !== "auto" ? { skillId } : {}),
-        },
-      });
-      setLastSentPrompt(text);
-      setInput("");
-    } else {
-      // Build the message history from the persisted conversation transcript so
-      // each turn is anchored to one thread.
-      const history: ChatMessage[] = conversationMessages
-        .filter((m) => m.role === "user" || m.role === "assistant")
-        .map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        }));
-      const newMessages: ChatMessage[] = [
-        ...history,
-        { role: "user", content: text },
-      ];
-      chatMutation.mutate({
-        data: {
-          messages: newMessages,
-          ...(model ? { model } : {}),
-        },
-      });
-      setLastSentPrompt(text);
-      setInput("");
+  const submitText = useCallback(
+    async (raw: string) => {
+      const text = raw.trim();
+      if (!text) return;
+      completeChecklistItem("first-chat");
+      if (agentMode) {
+        completeChecklistItem("agent-run");
+        const conversation = await ensureConversation(text);
+        createRun.mutate({
+          data: {
+            goal: text,
+            conversationId: conversation.id,
+            ...(model ? { modelName: model } : {}),
+            ...(skillId !== "auto" ? { skillId } : {}),
+          },
+        });
+        setLastSentPrompt(text);
+        setInput("");
+      } else {
+        // Build the message history from the persisted conversation transcript so
+        // each turn is anchored to one thread.
+        const history: ChatMessage[] = conversationMessages
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .map((m) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          }));
+        const newMessages: ChatMessage[] = [
+          ...history,
+          { role: "user", content: text },
+        ];
+        chatMutation.mutate({
+          data: {
+            messages: newMessages,
+            ...(model ? { model } : {}),
+          },
+        });
+        setLastSentPrompt(text);
+        setInput("");
+      }
+    },
+    [
+      agentMode,
+      chatMutation,
+      conversationMessages,
+      createRun,
+      ensureConversation,
+      model,
+      skillId,
+      completeChecklistItem,
+    ],
+  );
+
+  const submit = () => void submitText(input);
+
+  // Speak the most recent assistant turn whenever it changes (voice mode
+  // only). We keep a ref of the last id we spoke so toggling voice mode
+  // mid-conversation doesn't replay older replies.
+  useEffect(() => {
+    if (!settings.voiceMode || !settings.voiceAutoplay) return;
+    const lastMsg = conversationMessages[conversationMessages.length - 1];
+    if (lastMsg && lastMsg.role === "assistant") {
+      if (lastSpokenIdRef.current !== lastMsg.id) {
+        lastSpokenIdRef.current = lastMsg.id;
+        void speakReply(lastMsg.content);
+      }
     }
-  };
+    const lastAgentMsg = [...runMessages]
+      .reverse()
+      .find((m) => m.role === "assistant");
+    if (lastAgentMsg && lastSpokenIdRef.current !== lastAgentMsg.id) {
+      lastSpokenIdRef.current = lastAgentMsg.id;
+      void speakReply(lastAgentMsg.content);
+    }
+  }, [
+    conversationMessages,
+    runMessages,
+    settings.voiceMode,
+    settings.voiceAutoplay,
+    speakReply,
+  ]);
 
   // Pick up resolved prompt from Templates page hand-off.
   useEffect(() => {
@@ -373,6 +504,12 @@ export default function ChatPage() {
 
   const headerActions = (
     <div className="flex items-center gap-3">
+      <VoiceModeToggle
+        enabled={settings.voiceMode}
+        onChange={(next) => updateSettings({ voiceMode: next })}
+        isPlaying={player.isPlaying}
+        onInterrupt={player.stop}
+      />
       <div className="flex items-center gap-2">
         <FirstTimeTooltip
           id="chat-agent-toggle"
@@ -477,10 +614,48 @@ export default function ChatPage() {
 
             <div className="border-t border-border bg-background/95 px-6 py-4">
               <ErrorBanner
-                error={chatMutation.error ?? createRun.error ?? null}
+                error={
+                  chatMutation.error ??
+                  createRun.error ??
+                  transcribeMut.error ??
+                  synthesize.error ??
+                  (recorder.error ? new Error(recorder.error) : null)
+                }
                 className="mb-3"
               />
-              {(agentMode
+              {recorder.isRecording ||
+              transcribeMut.isPending ||
+              player.isPlaying ? (
+                <div
+                  className="mb-2 flex items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2"
+                  data-testid="voice-status-bar"
+                >
+                  <Waveform
+                    active={recorder.isRecording || player.isPlaying}
+                    level={player.isPlaying ? player.level : recorder.level}
+                    variant={player.isPlaying ? "output" : "input"}
+                    className="w-32"
+                  />
+                  <span className="flex-1 truncate text-xs text-muted-foreground">
+                    {recorder.isRecording
+                      ? recorder.liveCaption || "Listening — release to send."
+                      : transcribeMut.isPending
+                        ? "Transcribing…"
+                        : "Speaking…"}
+                  </span>
+                  {player.isPlaying ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={player.stop}
+                      data-testid="button-interrupt-inline"
+                      className="h-7 px-2 text-xs"
+                    >
+                      Stop
+                    </Button>
+                  ) : null}
+                </div>
+              ) : (agentMode
                 ? !activeRunId
                 : conversationMessages.length === 0) ? (
                 <div className="mb-3 space-y-3">
@@ -547,7 +722,9 @@ export default function ChatPage() {
                   placeholder={
                     agentMode
                       ? "Describe a goal for the agent…"
-                      : "Send a message…"
+                      : settings.voiceMode
+                        ? "Hold the mic, or type — voice mode is on."
+                        : "Send a message…"
                   }
                   className="min-h-[72px] max-h-48 resize-none"
                   disabled={chatMutation.isPending || createRun.isPending}
@@ -579,9 +756,16 @@ export default function ChatPage() {
                       <Square className="h-4 w-4" />
                     </Button>
                   ) : null}
+                  <MicButton
+                    isRecording={recorder.isRecording}
+                    isBusy={transcribeMut.isPending}
+                    onStart={startVoiceCapture}
+                    onStop={recorder.stop}
+                    onCancel={recorder.cancel}
+                  />
                   <Button
                     size="icon"
-                    onClick={() => void submit()}
+                    onClick={submit}
                     disabled={
                       !input.trim() ||
                       chatMutation.isPending ||

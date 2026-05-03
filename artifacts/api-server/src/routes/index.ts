@@ -63,6 +63,7 @@ import waitlistRouter from "./waitlist";
 import supportRouter from "./support";
 import feedbackRouter from "./feedback";
 import statusPageRouter from "./status-page";
+import voiceRouter from "./voice";
 
 const router: IRouter = Router();
 
@@ -86,6 +87,7 @@ router.use("/browser", browserRouter);
 router.use("/onboarding", onboardingRouter);
 router.use("/integrations", integrationsRouter);
 router.use("/updates", updatesRouter);
+router.use("/voice", voiceRouter);
 router.use("/desktop", desktopRouter);
 router.use("/diagnostics", diagnosticsRouter);
 router.use("/distribution", distributionRouter);

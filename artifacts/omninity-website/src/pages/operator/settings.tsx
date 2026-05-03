@@ -1,10 +1,18 @@
 import { useEffect, useId, useState } from "react";
-import { Save, Download, RotateCcw } from "lucide-react";
+import { Save, Download, RotateCcw, Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OperatorLayout } from "@/components/operator/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -17,10 +25,16 @@ import {
   useListModels,
   usePullModel,
   useGetCurrentUser,
+  useListVoices,
+  useSynthesizeSpeech,
 } from "@workspace/api-client-react";
 import { HardwareModelSettings } from "@/components/operator/hardware-model-settings";
 import { TelemetryCard } from "@/components/operator/telemetry-card";
 import { DiagnosticsPanel } from "@/components/operator/diagnostics-panel";
+import {
+  isSpeechRecognitionSupported,
+  useVoicePlayer,
+} from "@/lib/voice-engine";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettings } from "@/contexts/settings-context";
 import { useTheme } from "@/contexts/theme-context";
@@ -91,8 +105,35 @@ export default function SettingsPage() {
     draft.defaultModel !== settings.defaultModel ||
     draft.cloudMode !== settings.cloudMode ||
     draft.workspacePath !== settings.workspacePath ||
+    draft.voiceMode !== settings.voiceMode ||
+    draft.voiceName !== settings.voiceName ||
+    draft.voiceSpeed !== settings.voiceSpeed ||
+    draft.voiceAutoplay !== settings.voiceAutoplay ||
+    draft.wakeWordEnabled !== settings.wakeWordEnabled ||
+    draft.wakeWordPhrase !== settings.wakeWordPhrase ||
     tenantId !== getTenantId() ||
     workspaceId !== getWorkspaceId();
+
+  const voicesQuery = useListVoices();
+  const previewSynth = useSynthesizeSpeech();
+  const previewPlayer = useVoicePlayer();
+  const speechSupported = isSpeechRecognitionSupported();
+
+  const onPreviewVoice = async () => {
+    try {
+      const resp = await previewSynth.mutateAsync({
+        data: {
+          text:
+            "Hi, this is the Omninity Operator. The voice interface is ready.",
+          voice: draft.voiceName,
+          speed: draft.voiceSpeed,
+        },
+      });
+      await previewPlayer.play(resp.data.audio, resp.data.mimeType);
+    } catch {
+      /* surfaced via mutation error */
+    }
+  };
 
   return (
     <OperatorLayout
@@ -373,6 +414,150 @@ export default function SettingsPage() {
         <div className="lg:col-span-2">
           <RemoteAccessCard />
         </div>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Volume2 className="h-4 w-4" aria-hidden="true" /> Voice interface
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Local speech-to-text and text-to-speech. Microphone access is
+              only requested after you press the mic button on the chat screen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="flex items-center justify-between rounded-md border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Voice mode</p>
+                <p className="text-xs text-muted-foreground">
+                  Auto-send transcribed speech and play replies aloud.
+                </p>
+              </div>
+              <Switch
+                checked={draft.voiceMode}
+                onCheckedChange={(v) => setDraft({ ...draft, voiceMode: v })}
+                data-testid="switch-voice-mode-settings"
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Speak replies</p>
+                <p className="text-xs text-muted-foreground">
+                  Render assistant replies through the local TTS engine.
+                </p>
+              </div>
+              <Switch
+                checked={draft.voiceAutoplay}
+                onCheckedChange={(v) =>
+                  setDraft({ ...draft, voiceAutoplay: v })
+                }
+                data-testid="switch-voice-autoplay"
+              />
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Voice
+              </label>
+              <Select
+                value={draft.voiceName}
+                onValueChange={(v) => setDraft({ ...draft, voiceName: v })}
+              >
+                <SelectTrigger data-testid="select-voice" className="mt-1">
+                  <SelectValue placeholder="Pick a voice" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(voicesQuery.data?.data.items ?? []).length === 0 ? (
+                    <SelectItem value={draft.voiceName} disabled>
+                      {draft.voiceName} (loading…)
+                    </SelectItem>
+                  ) : (
+                    (voicesQuery.data?.data.items ?? []).map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.label}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Speed ({draft.voiceSpeed.toFixed(2)}×)
+              </label>
+              <Slider
+                value={[draft.voiceSpeed]}
+                onValueChange={([v]) =>
+                  setDraft({ ...draft, voiceSpeed: v ?? 1 })
+                }
+                min={0.5}
+                max={2}
+                step={0.05}
+                className="mt-3"
+                data-testid="slider-voice-speed"
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Wake word</p>
+                <p className="text-xs text-muted-foreground">
+                  {speechSupported
+                    ? "Continuously listens for the phrase below."
+                    : "Not supported in this browser."}
+                </p>
+              </div>
+              <Switch
+                checked={draft.wakeWordEnabled}
+                disabled={!speechSupported}
+                onCheckedChange={(v) =>
+                  setDraft({ ...draft, wakeWordEnabled: v })
+                }
+                data-testid="switch-wake-word"
+              />
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Wake phrase
+              </label>
+              <Input
+                value={draft.wakeWordPhrase}
+                onChange={(e) =>
+                  setDraft({ ...draft, wakeWordPhrase: e.target.value })
+                }
+                placeholder="hey op"
+                data-testid="input-wake-phrase"
+                className="mt-1"
+              />
+            </div>
+            <div className="md:col-span-2 flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onPreviewVoice}
+                disabled={previewSynth.isPending || previewPlayer.isPlaying}
+                data-testid="button-preview-voice"
+              >
+                {previewPlayer.isPlaying
+                  ? "Playing…"
+                  : previewSynth.isPending
+                    ? "Synthesising…"
+                    : "Preview voice"}
+              </Button>
+              {previewPlayer.isPlaying ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={previewPlayer.stop}
+                  data-testid="button-preview-stop"
+                >
+                  Stop
+                </Button>
+              ) : null}
+              <span className="text-xs text-muted-foreground">
+                Sample uses the current voice + speed.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="lg:col-span-2">
           <CardHeader>

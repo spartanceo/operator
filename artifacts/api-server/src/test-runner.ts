@@ -260,6 +260,7 @@ const cases: TestCase[] = [
     },
   },
   {
+
     name: "GET /api/runtimes lists adapters with health + residency",
     run: async () => {
       const res = await request(app).get("/api/runtimes").set("X-Tenant-ID", TENANT);
@@ -598,6 +599,94 @@ const cases: TestCase[] = [
       assert.equal(res.status, 200);
       assert.equal(res.body.success, true);
       assert.ok(Array.isArray(res.body.data.items));
+    },
+  },
+  {
+    name: "voice transcribe → returns deterministic transcript + privacy log",
+    run: async () => {
+      const audio = Buffer.from("hello-test-clip-bytes").toString("base64");
+      const res = await request(app)
+        .post("/api/voice/transcribe")
+        .set("X-Tenant-ID", TENANT)
+        .send({ audio, mimeType: "audio/webm" });
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.success, true);
+      assert.ok(typeof res.body.data.transcript === "string");
+      assert.ok(res.body.data.transcript.length > 0);
+      assert.ok(res.body.data.durationMs > 0);
+      assert.equal(res.body.data.model, "whisper-stub-tier1");
+    },
+  },
+  {
+    name: "voice transcribe → rejects empty audio payload",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/voice/transcribe")
+        .set("X-Tenant-ID", TENANT)
+        .send({ audio: "" });
+      assert.equal(res.status, 400);
+      assert.equal(res.body.success, false);
+    },
+  },
+  {
+    name: "voice synthesize → returns base64 WAV with RIFF header",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/voice/synthesize")
+        .set("X-Tenant-ID", TENANT)
+        .send({ text: "Hello operator", voice: "ember", speed: 1 });
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.data.mimeType, "audio/wav");
+      assert.equal(res.body.data.voice, "ember");
+      const wav = Buffer.from(res.body.data.audio, "base64");
+      assert.equal(wav.subarray(0, 4).toString(), "RIFF");
+      assert.equal(wav.subarray(8, 12).toString(), "WAVE");
+      assert.ok(res.body.data.durationMs >= 600);
+    },
+  },
+  {
+    name: "voice synthesize → rejects empty text",
+    run: async () => {
+      const res = await request(app)
+        .post("/api/voice/synthesize")
+        .set("X-Tenant-ID", TENANT)
+        .send({ text: "" });
+      assert.equal(res.status, 400);
+      assert.equal(res.body.error.code, "VALIDATION");
+    },
+  },
+  {
+    name: "voice voices → paginated catalogue with stable ids",
+    run: async () => {
+      const res = await request(app)
+        .get("/api/voice/voices?limit=10")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200);
+      assert.ok(Array.isArray(res.body.data.items));
+      assert.ok(res.body.data.items.length >= 1);
+      const ids = new Set(
+        res.body.data.items.map((v: { id: string }) => v.id),
+      );
+      assert.ok(ids.has("ember"));
+      assert.ok("nextCursor" in res.body.data);
+    },
+  },
+  {
+    name: "voice routes are tenant-isolated in the privacy log",
+    run: async () => {
+      const audio = Buffer.from("tenant-iso-clip").toString("base64");
+      await request(app)
+        .post("/api/voice/transcribe")
+        .set("X-Tenant-ID", TENANT)
+        .send({ audio });
+      const otherTenant = await request(app)
+        .get("/api/privacy/events?limit=50")
+        .set("X-Tenant-ID", TENANT_2);
+      const otherTypes = new Set(
+        otherTenant.body.data.items.map((e: { eventType: string }) => e.eventType),
+      );
+      assert.ok(!otherTypes.has("voice.transcribe"));
+
     },
   },
   {
