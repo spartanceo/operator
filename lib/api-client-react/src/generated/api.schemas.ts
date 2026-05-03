@@ -1253,6 +1253,56 @@ export interface OnboardingStarterTaskResponse {
   data: OnboardingStarterTaskList;
 }
 
+export type UpdateReleaseManifestChannel =
+  (typeof UpdateReleaseManifestChannel)[keyof typeof UpdateReleaseManifestChannel];
+
+export const UpdateReleaseManifestChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type UpdateReleaseManifestPlatform =
+  (typeof UpdateReleaseManifestPlatform)[keyof typeof UpdateReleaseManifestPlatform];
+
+export const UpdateReleaseManifestPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+} as const;
+
+export interface UpdatePackageDescriptor {
+  url: string;
+  /** @pattern ^[a-fA-F0-9]{64}$ */
+  sha256: string;
+  /** @minimum 0 */
+  size: number;
+}
+
+export type UpdateDeltaDescriptor = UpdatePackageDescriptor & {
+  fromVersion: string;
+};
+
+export interface UpdateReleaseManifest {
+  version: string;
+  channel: UpdateReleaseManifestChannel;
+  platform: UpdateReleaseManifestPlatform;
+  arch: string;
+  full: UpdatePackageDescriptor;
+  delta?: UpdateDeltaDescriptor | null;
+  /** Base64-encoded ed25519 signature over the canonical payload. */
+  signature?: string | null;
+  signatureAlgorithm: string;
+  releaseNotes: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  rolloutPercentage: number;
+  publishedAt: string;
+}
+
 export interface UpdateCheck {
   currentVersion: string;
   latestVersion: string;
@@ -1262,11 +1312,395 @@ export interface UpdateCheck {
   downloadUrl?: string | null;
   releaseNotes?: string | null;
   checkedAt: string;
+  /** True iff the tenant has version pinning or auto-update opt-out enabled. */
+  pinned: boolean;
+  pinnedVersion?: string | null;
+  /** True iff the tenant fell inside the staged-rollout window for
+the latest release. Bucketing is deterministic per tenant +
+version (sha-256 modulo 100), so a release at 20% rollout
+admits the same 20% of tenants on every check.
+ */
+  inRollout: boolean;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  rolloutPercentage?: number | null;
+  manifest?: UpdateReleaseManifest | null;
 }
 
 export interface UpdateCheckResponse {
   success: boolean;
   data: UpdateCheck;
+}
+
+export interface UpdateReleaseManifestResponse {
+  success: boolean;
+  data: UpdateReleaseManifest;
+}
+
+export type UpdateReleaseListResponseData = {
+  items: UpdateReleaseManifest[];
+};
+
+export interface UpdateReleaseListResponse {
+  success: boolean;
+  data: UpdateReleaseListResponseData;
+}
+
+export interface UpdateChangelog {
+  version: string;
+  channel: string;
+  publishedAt: string;
+  releaseNotes: string;
+}
+
+export interface UpdateChangelogResponse {
+  success: boolean;
+  data: UpdateChangelog;
+}
+
+export type UpdateServerHealthStatus =
+  (typeof UpdateServerHealthStatus)[keyof typeof UpdateServerHealthStatus];
+
+export const UpdateServerHealthStatus = {
+  ok: "ok",
+  degraded: "degraded",
+  down: "down",
+} as const;
+
+export interface UpdateServerHealth {
+  status: UpdateServerHealthStatus;
+  /** @minimum 0 */
+  releasesPublished: number;
+  channelsActive: string[];
+  latestPublishedAt?: string | null;
+  signingConfigured: boolean;
+  verificationConfigured: boolean;
+  /** @minimum 0 */
+  rollbackPendingCount: number;
+  checkedAt: string;
+}
+
+export interface UpdateServerHealthResponse {
+  success: boolean;
+  data: UpdateServerHealth;
+}
+
+export type UpdateInstallStartRequestPlatform =
+  (typeof UpdateInstallStartRequestPlatform)[keyof typeof UpdateInstallStartRequestPlatform];
+
+export const UpdateInstallStartRequestPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+} as const;
+
+export type UpdateInstallStartRequestChannel =
+  (typeof UpdateInstallStartRequestChannel)[keyof typeof UpdateInstallStartRequestChannel];
+
+export const UpdateInstallStartRequestChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type UpdateInstallStartRequestUpdateKind =
+  (typeof UpdateInstallStartRequestUpdateKind)[keyof typeof UpdateInstallStartRequestUpdateKind];
+
+export const UpdateInstallStartRequestUpdateKind = {
+  full: "full",
+  delta: "delta",
+} as const;
+
+export interface UpdateInstallStartRequest {
+  /**
+   * @minLength 1
+   * @maxLength 128
+   */
+  deviceId: string;
+  fromVersion?: string | null;
+  toVersion: string;
+  platform: UpdateInstallStartRequestPlatform;
+  arch?: string;
+  channel?: UpdateInstallStartRequestChannel;
+  updateKind: UpdateInstallStartRequestUpdateKind;
+}
+
+export type UpdateInstallResultRequestStatus =
+  (typeof UpdateInstallResultRequestStatus)[keyof typeof UpdateInstallResultRequestStatus];
+
+export const UpdateInstallResultRequestStatus = {
+  downloading: "downloading",
+  downloaded: "downloaded",
+  verifying: "verifying",
+  verified: "verified",
+  installing: "installing",
+  installed: "installed",
+  launch_pending: "launch_pending",
+  launch_succeeded: "launch_succeeded",
+  launch_failed: "launch_failed",
+  rolled_back: "rolled_back",
+  aborted: "aborted",
+  signature_invalid: "signature_invalid",
+} as const;
+
+export interface UpdateInstallResultRequest {
+  attemptId: string;
+  status: UpdateInstallResultRequestStatus;
+  /** @maxLength 1024 */
+  failureReason?: string;
+  signatureVerified?: boolean;
+  /** @minimum 0 */
+  bytesDownloaded?: number;
+}
+
+export type UpdateInstallAttemptUpdateKind =
+  (typeof UpdateInstallAttemptUpdateKind)[keyof typeof UpdateInstallAttemptUpdateKind];
+
+export const UpdateInstallAttemptUpdateKind = {
+  full: "full",
+  delta: "delta",
+} as const;
+
+export interface UpdateInstallAttempt {
+  id: string;
+  deviceId: string;
+  fromVersion?: string | null;
+  toVersion: string;
+  channel: string;
+  platform: string;
+  arch: string;
+  updateKind: UpdateInstallAttemptUpdateKind;
+  status: string;
+  failureReason?: string | null;
+  signatureVerified: boolean;
+  /** @minimum 0 */
+  bytesDownloaded: number;
+  startedAt: string;
+  completedAt?: string | null;
+  rolledBackAt?: string | null;
+  rolledBackToVersion?: string | null;
+}
+
+export interface UpdateInstallAttemptResponse {
+  success: boolean;
+  data: UpdateInstallAttempt;
+}
+
+export type UpdateInstallAttemptListResponseData = {
+  items: UpdateInstallAttempt[];
+};
+
+export interface UpdateInstallAttemptListResponse {
+  success: boolean;
+  data: UpdateInstallAttemptListResponseData;
+}
+
+export interface UpdateRollbackDecision {
+  shouldRollBack: boolean;
+  rollbackToVersion?: string | null;
+  failedVersion?: string | null;
+  reason?: string | null;
+  attemptId?: string | null;
+}
+
+export interface UpdateRollbackDecisionResponse {
+  success: boolean;
+  data: UpdateRollbackDecision;
+}
+
+export type UpdateSignatureVerifyRequestPlatform =
+  (typeof UpdateSignatureVerifyRequestPlatform)[keyof typeof UpdateSignatureVerifyRequestPlatform];
+
+export const UpdateSignatureVerifyRequestPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+} as const;
+
+export type UpdateSignatureVerifyRequestKind =
+  (typeof UpdateSignatureVerifyRequestKind)[keyof typeof UpdateSignatureVerifyRequestKind];
+
+export const UpdateSignatureVerifyRequestKind = {
+  full: "full",
+  delta: "delta",
+} as const;
+
+export interface UpdateSignatureVerifyRequest {
+  version: string;
+  platform: UpdateSignatureVerifyRequestPlatform;
+  arch?: string;
+  /** @pattern ^[a-fA-F0-9]{64}$ */
+  sha256: string;
+  /** @minimum 0 */
+  size: number;
+  kind: UpdateSignatureVerifyRequestKind;
+  signature: string;
+}
+
+export interface UpdateSignatureVerifyResult {
+  verified: boolean;
+  reason?: string | null;
+  attempted: boolean;
+}
+
+export interface UpdateSignatureVerifyResponse {
+  success: boolean;
+  data: UpdateSignatureVerifyResult;
+}
+
+export type UpdatePinningViewPinnedChannel =
+  | (typeof UpdatePinningViewPinnedChannel)[keyof typeof UpdatePinningViewPinnedChannel]
+  | null;
+
+export const UpdatePinningViewPinnedChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type UpdatePinningViewManagedBy =
+  (typeof UpdatePinningViewManagedBy)[keyof typeof UpdatePinningViewManagedBy];
+
+export const UpdatePinningViewManagedBy = {
+  user: "user",
+  admin: "admin",
+  enterprise: "enterprise",
+} as const;
+
+export interface UpdatePinningView {
+  pinnedVersion?: string | null;
+  pinnedChannel?: UpdatePinningViewPinnedChannel;
+  autoUpdateEnabled: boolean;
+  managedBy: UpdatePinningViewManagedBy;
+  managedByUserId?: string | null;
+  notes?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface UpdatePinningResponse {
+  success: boolean;
+  data: UpdatePinningView;
+}
+
+export type UpdatePinningRequestPinnedChannel =
+  | (typeof UpdatePinningRequestPinnedChannel)[keyof typeof UpdatePinningRequestPinnedChannel]
+  | null;
+
+export const UpdatePinningRequestPinnedChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type UpdatePinningRequestManagedBy =
+  (typeof UpdatePinningRequestManagedBy)[keyof typeof UpdatePinningRequestManagedBy];
+
+export const UpdatePinningRequestManagedBy = {
+  user: "user",
+  admin: "admin",
+  enterprise: "enterprise",
+} as const;
+
+export interface UpdatePinningRequest {
+  pinnedVersion?: string | null;
+  pinnedChannel?: UpdatePinningRequestPinnedChannel;
+  autoUpdateEnabled?: boolean;
+  managedBy?: UpdatePinningRequestManagedBy;
+  managedByUserId?: string | null;
+  notes?: string | null;
+}
+
+export type UpdatePublishReleaseRequestChannel =
+  (typeof UpdatePublishReleaseRequestChannel)[keyof typeof UpdatePublishReleaseRequestChannel];
+
+export const UpdatePublishReleaseRequestChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type UpdatePublishReleaseRequestPlatform =
+  (typeof UpdatePublishReleaseRequestPlatform)[keyof typeof UpdatePublishReleaseRequestPlatform];
+
+export const UpdatePublishReleaseRequestPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+} as const;
+
+export type UpdatePublishReleaseRequestDelta = {
+  fromVersion: string;
+  url: string;
+  /** @pattern ^[a-fA-F0-9]{64}$ */
+  sha256: string;
+  /** @minimum 0 */
+  size?: number;
+};
+
+export interface UpdatePublishReleaseRequest {
+  version: string;
+  channel?: UpdatePublishReleaseRequestChannel;
+  platform: UpdatePublishReleaseRequestPlatform;
+  arch?: string;
+  fullUrl: string;
+  /** @pattern ^[a-fA-F0-9]{64}$ */
+  fullSha256: string;
+  /** @minimum 0 */
+  fullSize?: number;
+  delta?: UpdatePublishReleaseRequestDelta;
+  /** @maxLength 16384 */
+  releaseNotes?: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  rolloutPercentage?: number;
+}
+
+export type UpdatePatchReleaseRequestChannel =
+  (typeof UpdatePatchReleaseRequestChannel)[keyof typeof UpdatePatchReleaseRequestChannel];
+
+export const UpdatePatchReleaseRequestChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type UpdatePatchReleaseRequestPlatform =
+  (typeof UpdatePatchReleaseRequestPlatform)[keyof typeof UpdatePatchReleaseRequestPlatform];
+
+export const UpdatePatchReleaseRequestPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+} as const;
+
+export type UpdatePatchReleaseRequestYank = {
+  /**
+   * @minLength 1
+   * @maxLength 512
+   */
+  reason: string;
+};
+
+export interface UpdatePatchReleaseRequest {
+  channel: UpdatePatchReleaseRequestChannel;
+  platform: UpdatePatchReleaseRequestPlatform;
+  arch?: string;
+  version: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  rolloutPercentage?: number;
+  yank?: UpdatePatchReleaseRequestYank;
 }
 
 export interface BrowserScreenshotRequest {
@@ -7395,6 +7829,100 @@ export type ListFilesParams = {
   limit?: LimitParamParameter;
   path?: string;
 };
+
+export type GetUpdateReleaseParams = {
+  platform: GetUpdateReleasePlatform;
+  channel?: GetUpdateReleaseChannel;
+  arch?: string;
+};
+
+export type GetUpdateReleasePlatform =
+  (typeof GetUpdateReleasePlatform)[keyof typeof GetUpdateReleasePlatform];
+
+export const GetUpdateReleasePlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+} as const;
+
+export type GetUpdateReleaseChannel =
+  (typeof GetUpdateReleaseChannel)[keyof typeof GetUpdateReleaseChannel];
+
+export const GetUpdateReleaseChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type GetUpdateChangelogParams = {
+  platform: GetUpdateChangelogPlatform;
+  channel?: GetUpdateChangelogChannel;
+  arch?: string;
+};
+
+export type GetUpdateChangelogPlatform =
+  (typeof GetUpdateChangelogPlatform)[keyof typeof GetUpdateChangelogPlatform];
+
+export const GetUpdateChangelogPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+} as const;
+
+export type GetUpdateChangelogChannel =
+  (typeof GetUpdateChangelogChannel)[keyof typeof GetUpdateChangelogChannel];
+
+export const GetUpdateChangelogChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type ListUpdateInstallAttemptsParams = {
+  deviceId?: string;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+};
+
+export type GetUpdateRollbackDecisionParams = {
+  deviceId: string;
+};
+
+export type ListUpdateReleasesParams = {
+  channel?: ListUpdateReleasesChannel;
+  platform?: ListUpdateReleasesPlatform;
+  arch?: string;
+  includeYanked?: boolean;
+  /**
+   * @minimum 1
+   * @maximum 200
+   */
+  limit?: number;
+};
+
+export type ListUpdateReleasesChannel =
+  (typeof ListUpdateReleasesChannel)[keyof typeof ListUpdateReleasesChannel];
+
+export const ListUpdateReleasesChannel = {
+  stable: "stable",
+  beta: "beta",
+  canary: "canary",
+  dev: "dev",
+} as const;
+
+export type ListUpdateReleasesPlatform =
+  (typeof ListUpdateReleasesPlatform)[keyof typeof ListUpdateReleasesPlatform];
+
+export const ListUpdateReleasesPlatform = {
+  darwin: "darwin",
+  win32: "win32",
+  linux: "linux",
+} as const;
 
 export type ListDesktopSessionsParams = {
   /**

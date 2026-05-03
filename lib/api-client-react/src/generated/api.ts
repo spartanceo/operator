@@ -151,6 +151,9 @@ import type {
   GenerateImageRequest,
   GenerateVideoRequest,
   GetCreatorLeaderboardParams,
+  GetUpdateChangelogParams,
+  GetUpdateReleaseParams,
+  GetUpdateRollbackDecisionParams,
   HardwareCapabilitiesResponse,
   HealthCheckResponse,
   HelpfulVoteRequest,
@@ -249,6 +252,8 @@ import type {
   ListTrendingSkillsParams,
   ListUndoActionsParams,
   ListUndoTaskActionsParams,
+  ListUpdateInstallAttemptsParams,
+  ListUpdateReleasesParams,
   ListVoipCallsParams,
   ListWaitlistSignupsParams,
   LoginRequest,
@@ -472,14 +477,29 @@ import type {
   UndoTaskRequest,
   UndoTaskResponse,
   UpdateCalendarEventRequest,
+  UpdateChangelogResponse,
   UpdateCheckResponse,
   UpdateContactRequest,
   UpdateConversationRequest,
+  UpdateInstallAttemptListResponse,
+  UpdateInstallAttemptResponse,
+  UpdateInstallResultRequest,
+  UpdateInstallStartRequest,
   UpdateMemoryRequest,
   UpdateMemorySettingsRequest,
+  UpdatePatchReleaseRequest,
+  UpdatePinningRequest,
+  UpdatePinningResponse,
   UpdatePluginToolRequest,
+  UpdatePublishReleaseRequest,
+  UpdateReleaseListResponse,
+  UpdateReleaseManifestResponse,
+  UpdateRollbackDecisionResponse,
   UpdateScheduleRequest,
   UpdateScheduleSettingsRequest,
+  UpdateServerHealthResponse,
+  UpdateSignatureVerifyRequest,
+  UpdateSignatureVerifyResponse,
   UpdateSkillDraftRequest,
   UpdateSkillRequest,
   UpdateSystemIntegrationSettingsRequest,
@@ -9185,6 +9205,1248 @@ export function useCheckForUpdates<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Full release manifest for a specific version
+ */
+export const getGetUpdateReleaseUrl = (
+  version: string,
+  params: GetUpdateReleaseParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/updates/release/${version}?${stringifiedParams}`
+    : `/api/updates/release/${version}`;
+};
+
+export const getUpdateRelease = async (
+  version: string,
+  params: GetUpdateReleaseParams,
+  options?: RequestInit,
+): Promise<UpdateReleaseManifestResponse> => {
+  return customFetch<UpdateReleaseManifestResponse>(
+    getGetUpdateReleaseUrl(version, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetUpdateReleaseQueryKey = (
+  version: string,
+  params?: GetUpdateReleaseParams,
+) => {
+  return [
+    `/api/updates/release/${version}`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetUpdateReleaseQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUpdateRelease>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  version: string,
+  params: GetUpdateReleaseParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpdateRelease>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetUpdateReleaseQueryKey(version, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUpdateRelease>>
+  > = ({ signal }) =>
+    getUpdateRelease(version, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUpdateRelease>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUpdateReleaseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUpdateRelease>>
+>;
+export type GetUpdateReleaseQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Full release manifest for a specific version
+ */
+
+export function useGetUpdateRelease<
+  TData = Awaited<ReturnType<typeof getUpdateRelease>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  version: string,
+  params: GetUpdateReleaseParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpdateRelease>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUpdateReleaseQueryOptions(
+    version,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Human-readable release notes for a version
+ */
+export const getGetUpdateChangelogUrl = (
+  version: string,
+  params: GetUpdateChangelogParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/updates/changelog/${version}?${stringifiedParams}`
+    : `/api/updates/changelog/${version}`;
+};
+
+export const getUpdateChangelog = async (
+  version: string,
+  params: GetUpdateChangelogParams,
+  options?: RequestInit,
+): Promise<UpdateChangelogResponse> => {
+  return customFetch<UpdateChangelogResponse>(
+    getGetUpdateChangelogUrl(version, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetUpdateChangelogQueryKey = (
+  version: string,
+  params?: GetUpdateChangelogParams,
+) => {
+  return [
+    `/api/updates/changelog/${version}`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetUpdateChangelogQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUpdateChangelog>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  version: string,
+  params: GetUpdateChangelogParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpdateChangelog>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetUpdateChangelogQueryKey(version, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUpdateChangelog>>
+  > = ({ signal }) =>
+    getUpdateChangelog(version, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUpdateChangelog>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUpdateChangelogQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUpdateChangelog>>
+>;
+export type GetUpdateChangelogQueryError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Human-readable release notes for a version
+ */
+
+export function useGetUpdateChangelog<
+  TData = Awaited<ReturnType<typeof getUpdateChangelog>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  version: string,
+  params: GetUpdateChangelogParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpdateChangelog>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUpdateChangelogQueryOptions(
+    version,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update-server status-page snapshot
+ */
+export const getGetUpdateServerHealthUrl = () => {
+  return `/api/updates/server-health`;
+};
+
+export const getUpdateServerHealth = async (
+  options?: RequestInit,
+): Promise<UpdateServerHealthResponse> => {
+  return customFetch<UpdateServerHealthResponse>(
+    getGetUpdateServerHealthUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetUpdateServerHealthQueryKey = () => {
+  return [`/api/updates/server-health`] as const;
+};
+
+export const getGetUpdateServerHealthQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUpdateServerHealth>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUpdateServerHealth>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUpdateServerHealthQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUpdateServerHealth>>
+  > = ({ signal }) => getUpdateServerHealth({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUpdateServerHealth>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUpdateServerHealthQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUpdateServerHealth>>
+>;
+export type GetUpdateServerHealthQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Update-server status-page snapshot
+ */
+
+export function useGetUpdateServerHealth<
+  TData = Awaited<ReturnType<typeof getUpdateServerHealth>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUpdateServerHealth>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUpdateServerHealthQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Desktop shell records a new install attempt
+ */
+export const getStartUpdateInstallUrl = () => {
+  return `/api/updates/install/start`;
+};
+
+export const startUpdateInstall = async (
+  updateInstallStartRequest: UpdateInstallStartRequest,
+  options?: RequestInit,
+): Promise<UpdateInstallAttemptResponse> => {
+  return customFetch<UpdateInstallAttemptResponse>(getStartUpdateInstallUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateInstallStartRequest),
+  });
+};
+
+export const getStartUpdateInstallMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startUpdateInstall>>,
+    TError,
+    { data: BodyType<UpdateInstallStartRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startUpdateInstall>>,
+  TError,
+  { data: BodyType<UpdateInstallStartRequest> },
+  TContext
+> => {
+  const mutationKey = ["startUpdateInstall"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startUpdateInstall>>,
+    { data: BodyType<UpdateInstallStartRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return startUpdateInstall(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartUpdateInstallMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startUpdateInstall>>
+>;
+export type StartUpdateInstallMutationBody =
+  BodyType<UpdateInstallStartRequest>;
+export type StartUpdateInstallMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Desktop shell records a new install attempt
+ */
+export const useStartUpdateInstall = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startUpdateInstall>>,
+    TError,
+    { data: BodyType<UpdateInstallStartRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startUpdateInstall>>,
+  TError,
+  { data: BodyType<UpdateInstallStartRequest> },
+  TContext
+> => {
+  return useMutation(getStartUpdateInstallMutationOptions(options));
+};
+
+/**
+ * @summary Desktop shell flips the install state machine
+ */
+export const getRecordUpdateInstallResultUrl = () => {
+  return `/api/updates/install/result`;
+};
+
+export const recordUpdateInstallResult = async (
+  updateInstallResultRequest: UpdateInstallResultRequest,
+  options?: RequestInit,
+): Promise<UpdateInstallAttemptResponse> => {
+  return customFetch<UpdateInstallAttemptResponse>(
+    getRecordUpdateInstallResultUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateInstallResultRequest),
+    },
+  );
+};
+
+export const getRecordUpdateInstallResultMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordUpdateInstallResult>>,
+    TError,
+    { data: BodyType<UpdateInstallResultRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordUpdateInstallResult>>,
+  TError,
+  { data: BodyType<UpdateInstallResultRequest> },
+  TContext
+> => {
+  const mutationKey = ["recordUpdateInstallResult"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordUpdateInstallResult>>,
+    { data: BodyType<UpdateInstallResultRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordUpdateInstallResult(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordUpdateInstallResultMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordUpdateInstallResult>>
+>;
+export type RecordUpdateInstallResultMutationBody =
+  BodyType<UpdateInstallResultRequest>;
+export type RecordUpdateInstallResultMutationError =
+  ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Desktop shell flips the install state machine
+ */
+export const useRecordUpdateInstallResult = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordUpdateInstallResult>>,
+    TError,
+    { data: BodyType<UpdateInstallResultRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordUpdateInstallResult>>,
+  TError,
+  { data: BodyType<UpdateInstallResultRequest> },
+  TContext
+> => {
+  return useMutation(getRecordUpdateInstallResultMutationOptions(options));
+};
+
+/**
+ * @summary Recent install attempts for a device
+ */
+export const getListUpdateInstallAttemptsUrl = (
+  params?: ListUpdateInstallAttemptsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/updates/install/attempts?${stringifiedParams}`
+    : `/api/updates/install/attempts`;
+};
+
+export const listUpdateInstallAttempts = async (
+  params?: ListUpdateInstallAttemptsParams,
+  options?: RequestInit,
+): Promise<UpdateInstallAttemptListResponse> => {
+  return customFetch<UpdateInstallAttemptListResponse>(
+    getListUpdateInstallAttemptsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListUpdateInstallAttemptsQueryKey = (
+  params?: ListUpdateInstallAttemptsParams,
+) => {
+  return [
+    `/api/updates/install/attempts`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListUpdateInstallAttemptsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUpdateInstallAttempts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUpdateInstallAttemptsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUpdateInstallAttempts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListUpdateInstallAttemptsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listUpdateInstallAttempts>>
+  > = ({ signal }) =>
+    listUpdateInstallAttempts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUpdateInstallAttempts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUpdateInstallAttemptsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUpdateInstallAttempts>>
+>;
+export type ListUpdateInstallAttemptsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Recent install attempts for a device
+ */
+
+export function useListUpdateInstallAttempts<
+  TData = Awaited<ReturnType<typeof listUpdateInstallAttempts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUpdateInstallAttemptsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUpdateInstallAttempts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUpdateInstallAttemptsQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Crash-detector verdict for a device
+ */
+export const getGetUpdateRollbackDecisionUrl = (
+  params: GetUpdateRollbackDecisionParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/updates/rollback?${stringifiedParams}`
+    : `/api/updates/rollback`;
+};
+
+export const getUpdateRollbackDecision = async (
+  params: GetUpdateRollbackDecisionParams,
+  options?: RequestInit,
+): Promise<UpdateRollbackDecisionResponse> => {
+  return customFetch<UpdateRollbackDecisionResponse>(
+    getGetUpdateRollbackDecisionUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetUpdateRollbackDecisionQueryKey = (
+  params?: GetUpdateRollbackDecisionParams,
+) => {
+  return [`/api/updates/rollback`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetUpdateRollbackDecisionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUpdateRollbackDecision>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetUpdateRollbackDecisionParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpdateRollbackDecision>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetUpdateRollbackDecisionQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUpdateRollbackDecision>>
+  > = ({ signal }) =>
+    getUpdateRollbackDecision(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUpdateRollbackDecision>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUpdateRollbackDecisionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUpdateRollbackDecision>>
+>;
+export type GetUpdateRollbackDecisionQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Crash-detector verdict for a device
+ */
+
+export function useGetUpdateRollbackDecision<
+  TData = Awaited<ReturnType<typeof getUpdateRollbackDecision>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetUpdateRollbackDecisionParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpdateRollbackDecision>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUpdateRollbackDecisionQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Server-side ed25519 signature verification helper
+ */
+export const getVerifyUpdateSignatureUrl = () => {
+  return `/api/updates/verify`;
+};
+
+export const verifyUpdateSignature = async (
+  updateSignatureVerifyRequest: UpdateSignatureVerifyRequest,
+  options?: RequestInit,
+): Promise<UpdateSignatureVerifyResponse> => {
+  return customFetch<UpdateSignatureVerifyResponse>(
+    getVerifyUpdateSignatureUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateSignatureVerifyRequest),
+    },
+  );
+};
+
+export const getVerifyUpdateSignatureMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyUpdateSignature>>,
+    TError,
+    { data: BodyType<UpdateSignatureVerifyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyUpdateSignature>>,
+  TError,
+  { data: BodyType<UpdateSignatureVerifyRequest> },
+  TContext
+> => {
+  const mutationKey = ["verifyUpdateSignature"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof verifyUpdateSignature>>,
+    { data: BodyType<UpdateSignatureVerifyRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return verifyUpdateSignature(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyUpdateSignatureMutationResult = NonNullable<
+  Awaited<ReturnType<typeof verifyUpdateSignature>>
+>;
+export type VerifyUpdateSignatureMutationBody =
+  BodyType<UpdateSignatureVerifyRequest>;
+export type VerifyUpdateSignatureMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Server-side ed25519 signature verification helper
+ */
+export const useVerifyUpdateSignature = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyUpdateSignature>>,
+    TError,
+    { data: BodyType<UpdateSignatureVerifyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof verifyUpdateSignature>>,
+  TError,
+  { data: BodyType<UpdateSignatureVerifyRequest> },
+  TContext
+> => {
+  return useMutation(getVerifyUpdateSignatureMutationOptions(options));
+};
+
+/**
+ * @summary Current per-tenant pinning + auto-update config
+ */
+export const getGetUpdatePinningUrl = () => {
+  return `/api/updates/pinning`;
+};
+
+export const getUpdatePinning = async (
+  options?: RequestInit,
+): Promise<UpdatePinningResponse> => {
+  return customFetch<UpdatePinningResponse>(getGetUpdatePinningUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUpdatePinningQueryKey = () => {
+  return [`/api/updates/pinning`] as const;
+};
+
+export const getGetUpdatePinningQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUpdatePinning>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUpdatePinning>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUpdatePinningQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUpdatePinning>>
+  > = ({ signal }) => getUpdatePinning({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUpdatePinning>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUpdatePinningQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUpdatePinning>>
+>;
+export type GetUpdatePinningQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Current per-tenant pinning + auto-update config
+ */
+
+export function useGetUpdatePinning<
+  TData = Awaited<ReturnType<typeof getUpdatePinning>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUpdatePinning>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUpdatePinningQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set per-tenant pinning + auto-update config
+ */
+export const getSetUpdatePinningUrl = () => {
+  return `/api/updates/pinning`;
+};
+
+export const setUpdatePinning = async (
+  updatePinningRequest: UpdatePinningRequest,
+  options?: RequestInit,
+): Promise<UpdatePinningResponse> => {
+  return customFetch<UpdatePinningResponse>(getSetUpdatePinningUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updatePinningRequest),
+  });
+};
+
+export const getSetUpdatePinningMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setUpdatePinning>>,
+    TError,
+    { data: BodyType<UpdatePinningRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setUpdatePinning>>,
+  TError,
+  { data: BodyType<UpdatePinningRequest> },
+  TContext
+> => {
+  const mutationKey = ["setUpdatePinning"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setUpdatePinning>>,
+    { data: BodyType<UpdatePinningRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setUpdatePinning(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetUpdatePinningMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setUpdatePinning>>
+>;
+export type SetUpdatePinningMutationBody = BodyType<UpdatePinningRequest>;
+export type SetUpdatePinningMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Set per-tenant pinning + auto-update config
+ */
+export const useSetUpdatePinning = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setUpdatePinning>>,
+    TError,
+    { data: BodyType<UpdatePinningRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setUpdatePinning>>,
+  TError,
+  { data: BodyType<UpdatePinningRequest> },
+  TContext
+> => {
+  return useMutation(getSetUpdatePinningMutationOptions(options));
+};
+
+/**
+ * @summary List published releases (admin)
+ */
+export const getListUpdateReleasesUrl = (params?: ListUpdateReleasesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/updates/admin/releases?${stringifiedParams}`
+    : `/api/updates/admin/releases`;
+};
+
+export const listUpdateReleases = async (
+  params?: ListUpdateReleasesParams,
+  options?: RequestInit,
+): Promise<UpdateReleaseListResponse> => {
+  return customFetch<UpdateReleaseListResponse>(
+    getListUpdateReleasesUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListUpdateReleasesQueryKey = (
+  params?: ListUpdateReleasesParams,
+) => {
+  return [`/api/updates/admin/releases`, ...(params ? [params] : [])] as const;
+};
+
+export const getListUpdateReleasesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUpdateReleases>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUpdateReleasesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUpdateReleases>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListUpdateReleasesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listUpdateReleases>>
+  > = ({ signal }) => listUpdateReleases(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUpdateReleases>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUpdateReleasesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUpdateReleases>>
+>;
+export type ListUpdateReleasesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List published releases (admin)
+ */
+
+export function useListUpdateReleases<
+  TData = Awaited<ReturnType<typeof listUpdateReleases>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUpdateReleasesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUpdateReleases>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUpdateReleasesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Publish a new release manifest (admin)
+ */
+export const getPublishUpdateReleaseUrl = () => {
+  return `/api/updates/admin/releases`;
+};
+
+export const publishUpdateRelease = async (
+  updatePublishReleaseRequest: UpdatePublishReleaseRequest,
+  options?: RequestInit,
+): Promise<UpdateReleaseManifestResponse> => {
+  return customFetch<UpdateReleaseManifestResponse>(
+    getPublishUpdateReleaseUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updatePublishReleaseRequest),
+    },
+  );
+};
+
+export const getPublishUpdateReleaseMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishUpdateRelease>>,
+    TError,
+    { data: BodyType<UpdatePublishReleaseRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof publishUpdateRelease>>,
+  TError,
+  { data: BodyType<UpdatePublishReleaseRequest> },
+  TContext
+> => {
+  const mutationKey = ["publishUpdateRelease"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof publishUpdateRelease>>,
+    { data: BodyType<UpdatePublishReleaseRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return publishUpdateRelease(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PublishUpdateReleaseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof publishUpdateRelease>>
+>;
+export type PublishUpdateReleaseMutationBody =
+  BodyType<UpdatePublishReleaseRequest>;
+export type PublishUpdateReleaseMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Publish a new release manifest (admin)
+ */
+export const usePublishUpdateRelease = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishUpdateRelease>>,
+    TError,
+    { data: BodyType<UpdatePublishReleaseRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof publishUpdateRelease>>,
+  TError,
+  { data: BodyType<UpdatePublishReleaseRequest> },
+  TContext
+> => {
+  return useMutation(getPublishUpdateReleaseMutationOptions(options));
+};
+
+/**
+ * @summary Adjust rollout percentage or yank a release (admin)
+ */
+export const getPatchUpdateReleaseUrl = () => {
+  return `/api/updates/admin/releases`;
+};
+
+export const patchUpdateRelease = async (
+  updatePatchReleaseRequest: UpdatePatchReleaseRequest,
+  options?: RequestInit,
+): Promise<UpdateReleaseManifestResponse> => {
+  return customFetch<UpdateReleaseManifestResponse>(
+    getPatchUpdateReleaseUrl(),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updatePatchReleaseRequest),
+    },
+  );
+};
+
+export const getPatchUpdateReleaseMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof patchUpdateRelease>>,
+    TError,
+    { data: BodyType<UpdatePatchReleaseRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof patchUpdateRelease>>,
+  TError,
+  { data: BodyType<UpdatePatchReleaseRequest> },
+  TContext
+> => {
+  const mutationKey = ["patchUpdateRelease"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof patchUpdateRelease>>,
+    { data: BodyType<UpdatePatchReleaseRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return patchUpdateRelease(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PatchUpdateReleaseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof patchUpdateRelease>>
+>;
+export type PatchUpdateReleaseMutationBody =
+  BodyType<UpdatePatchReleaseRequest>;
+export type PatchUpdateReleaseMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Adjust rollout percentage or yank a release (admin)
+ */
+export const usePatchUpdateRelease = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof patchUpdateRelease>>,
+    TError,
+    { data: BodyType<UpdatePatchReleaseRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof patchUpdateRelease>>,
+  TError,
+  { data: BodyType<UpdatePatchReleaseRequest> },
+  TContext
+> => {
+  return useMutation(getPatchUpdateReleaseMutationOptions(options));
+};
 
 /**
  * @summary Capture a screenshot via the local browser tool (Tier 1 stub)

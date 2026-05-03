@@ -4366,6 +4366,21 @@ export const CheckForUpdatesHeader = zod.object({
     ),
 });
 
+export const checkForUpdatesResponseDataRolloutPercentageMin = 0;
+export const checkForUpdatesResponseDataRolloutPercentageMax = 100;
+
+export const checkForUpdatesResponseDataManifestFullSha256RegExp = new RegExp(
+  "^[a-fA-F0-9]{64}$",
+);
+export const checkForUpdatesResponseDataManifestFullSizeMin = 0;
+
+export const checkForUpdatesResponseDataManifestDeltaOneSha256RegExp =
+  new RegExp("^[a-fA-F0-9]{64}$");
+export const checkForUpdatesResponseDataManifestDeltaOneSizeMin = 0;
+
+export const checkForUpdatesResponseDataManifestRolloutPercentageMin = 0;
+export const checkForUpdatesResponseDataManifestRolloutPercentageMax = 100;
+
 export const CheckForUpdatesResponse = zod.object({
   success: zod.literal(true),
   data: zod.object({
@@ -4376,6 +4391,700 @@ export const CheckForUpdatesResponse = zod.object({
     downloadUrl: zod.string().nullish(),
     releaseNotes: zod.string().nullish(),
     checkedAt: zod.coerce.date(),
+    pinned: zod
+      .boolean()
+      .describe(
+        "True iff the tenant has version pinning or auto-update opt-out enabled.",
+      ),
+    pinnedVersion: zod.string().nullish(),
+    inRollout: zod
+      .boolean()
+      .describe(
+        "True iff the tenant fell inside the staged-rollout window for\nthe latest release. Bucketing is deterministic per tenant +\nversion (sha-256 modulo 100), so a release at 20% rollout\nadmits the same 20% of tenants on every check.\n",
+      ),
+    rolloutPercentage: zod
+      .number()
+      .min(checkForUpdatesResponseDataRolloutPercentageMin)
+      .max(checkForUpdatesResponseDataRolloutPercentageMax)
+      .nullish(),
+    manifest: zod
+      .object({
+        version: zod.string(),
+        channel: zod.enum(["stable", "beta", "canary", "dev"]),
+        platform: zod.enum(["darwin", "win32", "linux"]),
+        arch: zod.string(),
+        full: zod.object({
+          url: zod.string(),
+          sha256: zod
+            .string()
+            .regex(checkForUpdatesResponseDataManifestFullSha256RegExp),
+          size: zod
+            .number()
+            .min(checkForUpdatesResponseDataManifestFullSizeMin),
+        }),
+        delta: zod
+          .object({
+            url: zod.string(),
+            sha256: zod
+              .string()
+              .regex(checkForUpdatesResponseDataManifestDeltaOneSha256RegExp),
+            size: zod
+              .number()
+              .min(checkForUpdatesResponseDataManifestDeltaOneSizeMin),
+          })
+          .and(
+            zod.object({
+              fromVersion: zod.string(),
+            }),
+          )
+          .nullish(),
+        signature: zod
+          .string()
+          .nullish()
+          .describe(
+            "Base64-encoded ed25519 signature over the canonical payload.",
+          ),
+        signatureAlgorithm: zod.string(),
+        releaseNotes: zod.string(),
+        rolloutPercentage: zod
+          .number()
+          .min(checkForUpdatesResponseDataManifestRolloutPercentageMin)
+          .max(checkForUpdatesResponseDataManifestRolloutPercentageMax),
+        publishedAt: zod.coerce.date(),
+      })
+      .nullish(),
+  }),
+});
+
+/**
+ * @summary Full release manifest for a specific version
+ */
+export const GetUpdateReleaseParams = zod.object({
+  version: zod.coerce.string(),
+});
+
+export const GetUpdateReleaseQueryParams = zod.object({
+  platform: zod.enum(["darwin", "win32", "linux"]),
+  channel: zod.enum(["stable", "beta", "canary", "dev"]).optional(),
+  arch: zod.coerce.string().optional(),
+});
+
+export const GetUpdateReleaseHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const getUpdateReleaseResponseDataFullSha256RegExp = new RegExp(
+  "^[a-fA-F0-9]{64}$",
+);
+export const getUpdateReleaseResponseDataFullSizeMin = 0;
+
+export const getUpdateReleaseResponseDataDeltaOneSha256RegExp = new RegExp(
+  "^[a-fA-F0-9]{64}$",
+);
+export const getUpdateReleaseResponseDataDeltaOneSizeMin = 0;
+
+export const getUpdateReleaseResponseDataRolloutPercentageMin = 0;
+export const getUpdateReleaseResponseDataRolloutPercentageMax = 100;
+
+export const GetUpdateReleaseResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    version: zod.string(),
+    channel: zod.enum(["stable", "beta", "canary", "dev"]),
+    platform: zod.enum(["darwin", "win32", "linux"]),
+    arch: zod.string(),
+    full: zod.object({
+      url: zod.string(),
+      sha256: zod.string().regex(getUpdateReleaseResponseDataFullSha256RegExp),
+      size: zod.number().min(getUpdateReleaseResponseDataFullSizeMin),
+    }),
+    delta: zod
+      .object({
+        url: zod.string(),
+        sha256: zod
+          .string()
+          .regex(getUpdateReleaseResponseDataDeltaOneSha256RegExp),
+        size: zod.number().min(getUpdateReleaseResponseDataDeltaOneSizeMin),
+      })
+      .and(
+        zod.object({
+          fromVersion: zod.string(),
+        }),
+      )
+      .nullish(),
+    signature: zod
+      .string()
+      .nullish()
+      .describe("Base64-encoded ed25519 signature over the canonical payload."),
+    signatureAlgorithm: zod.string(),
+    releaseNotes: zod.string(),
+    rolloutPercentage: zod
+      .number()
+      .min(getUpdateReleaseResponseDataRolloutPercentageMin)
+      .max(getUpdateReleaseResponseDataRolloutPercentageMax),
+    publishedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Human-readable release notes for a version
+ */
+export const GetUpdateChangelogParams = zod.object({
+  version: zod.coerce.string(),
+});
+
+export const GetUpdateChangelogQueryParams = zod.object({
+  platform: zod.enum(["darwin", "win32", "linux"]),
+  channel: zod.enum(["stable", "beta", "canary", "dev"]).optional(),
+  arch: zod.coerce.string().optional(),
+});
+
+export const GetUpdateChangelogHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetUpdateChangelogResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    version: zod.string(),
+    channel: zod.string(),
+    publishedAt: zod.coerce.date(),
+    releaseNotes: zod.string(),
+  }),
+});
+
+/**
+ * @summary Update-server status-page snapshot
+ */
+export const GetUpdateServerHealthHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const getUpdateServerHealthResponseDataReleasesPublishedMin = 0;
+
+export const getUpdateServerHealthResponseDataRollbackPendingCountMin = 0;
+
+export const GetUpdateServerHealthResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    status: zod.enum(["ok", "degraded", "down"]),
+    releasesPublished: zod
+      .number()
+      .min(getUpdateServerHealthResponseDataReleasesPublishedMin),
+    channelsActive: zod.array(zod.string()),
+    latestPublishedAt: zod.coerce.date().nullish(),
+    signingConfigured: zod.boolean(),
+    verificationConfigured: zod.boolean(),
+    rollbackPendingCount: zod
+      .number()
+      .min(getUpdateServerHealthResponseDataRollbackPendingCountMin),
+    checkedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Desktop shell records a new install attempt
+ */
+export const StartUpdateInstallHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const startUpdateInstallBodyDeviceIdMax = 128;
+
+export const StartUpdateInstallBody = zod.object({
+  deviceId: zod.string().min(1).max(startUpdateInstallBodyDeviceIdMax),
+  fromVersion: zod.string().nullish(),
+  toVersion: zod.string(),
+  platform: zod.enum(["darwin", "win32", "linux"]),
+  arch: zod.string().optional(),
+  channel: zod.enum(["stable", "beta", "canary", "dev"]).optional(),
+  updateKind: zod.enum(["full", "delta"]),
+});
+
+/**
+ * @summary Desktop shell flips the install state machine
+ */
+export const RecordUpdateInstallResultHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const recordUpdateInstallResultBodyFailureReasonMax = 1024;
+
+export const recordUpdateInstallResultBodyBytesDownloadedMin = 0;
+
+export const RecordUpdateInstallResultBody = zod.object({
+  attemptId: zod.string(),
+  status: zod.enum([
+    "downloading",
+    "downloaded",
+    "verifying",
+    "verified",
+    "installing",
+    "installed",
+    "launch_pending",
+    "launch_succeeded",
+    "launch_failed",
+    "rolled_back",
+    "aborted",
+    "signature_invalid",
+  ]),
+  failureReason: zod
+    .string()
+    .max(recordUpdateInstallResultBodyFailureReasonMax)
+    .optional(),
+  signatureVerified: zod.boolean().optional(),
+  bytesDownloaded: zod
+    .number()
+    .min(recordUpdateInstallResultBodyBytesDownloadedMin)
+    .optional(),
+});
+
+export const recordUpdateInstallResultResponseDataBytesDownloadedMin = 0;
+
+export const RecordUpdateInstallResultResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    deviceId: zod.string(),
+    fromVersion: zod.string().nullish(),
+    toVersion: zod.string(),
+    channel: zod.string(),
+    platform: zod.string(),
+    arch: zod.string(),
+    updateKind: zod.enum(["full", "delta"]),
+    status: zod.string(),
+    failureReason: zod.string().nullish(),
+    signatureVerified: zod.boolean(),
+    bytesDownloaded: zod
+      .number()
+      .min(recordUpdateInstallResultResponseDataBytesDownloadedMin),
+    startedAt: zod.coerce.date(),
+    completedAt: zod.coerce.date().nullish(),
+    rolledBackAt: zod.coerce.date().nullish(),
+    rolledBackToVersion: zod.string().nullish(),
+  }),
+});
+
+/**
+ * @summary Recent install attempts for a device
+ */
+export const listUpdateInstallAttemptsQueryLimitMax = 100;
+
+export const ListUpdateInstallAttemptsQueryParams = zod.object({
+  deviceId: zod.coerce.string().optional(),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listUpdateInstallAttemptsQueryLimitMax)
+    .optional(),
+});
+
+export const ListUpdateInstallAttemptsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const listUpdateInstallAttemptsResponseDataItemsItemBytesDownloadedMin = 0;
+
+export const ListUpdateInstallAttemptsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        deviceId: zod.string(),
+        fromVersion: zod.string().nullish(),
+        toVersion: zod.string(),
+        channel: zod.string(),
+        platform: zod.string(),
+        arch: zod.string(),
+        updateKind: zod.enum(["full", "delta"]),
+        status: zod.string(),
+        failureReason: zod.string().nullish(),
+        signatureVerified: zod.boolean(),
+        bytesDownloaded: zod
+          .number()
+          .min(
+            listUpdateInstallAttemptsResponseDataItemsItemBytesDownloadedMin,
+          ),
+        startedAt: zod.coerce.date(),
+        completedAt: zod.coerce.date().nullish(),
+        rolledBackAt: zod.coerce.date().nullish(),
+        rolledBackToVersion: zod.string().nullish(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Crash-detector verdict for a device
+ */
+export const GetUpdateRollbackDecisionQueryParams = zod.object({
+  deviceId: zod.coerce.string(),
+});
+
+export const GetUpdateRollbackDecisionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetUpdateRollbackDecisionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    shouldRollBack: zod.boolean(),
+    rollbackToVersion: zod.string().nullish(),
+    failedVersion: zod.string().nullish(),
+    reason: zod.string().nullish(),
+    attemptId: zod.string().nullish(),
+  }),
+});
+
+/**
+ * @summary Server-side ed25519 signature verification helper
+ */
+export const VerifyUpdateSignatureHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const verifyUpdateSignatureBodySha256RegExp = new RegExp(
+  "^[a-fA-F0-9]{64}$",
+);
+export const verifyUpdateSignatureBodySizeMin = 0;
+
+export const VerifyUpdateSignatureBody = zod.object({
+  version: zod.string(),
+  platform: zod.enum(["darwin", "win32", "linux"]),
+  arch: zod.string().optional(),
+  sha256: zod.string().regex(verifyUpdateSignatureBodySha256RegExp),
+  size: zod.number().min(verifyUpdateSignatureBodySizeMin),
+  kind: zod.enum(["full", "delta"]),
+  signature: zod.string(),
+});
+
+export const VerifyUpdateSignatureResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    verified: zod.boolean(),
+    reason: zod.string().nullish(),
+    attempted: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Current per-tenant pinning + auto-update config
+ */
+export const GetUpdatePinningHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetUpdatePinningResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    pinnedVersion: zod.string().nullish(),
+    pinnedChannel: zod.enum(["stable", "beta", "canary", "dev"]).nullish(),
+    autoUpdateEnabled: zod.boolean(),
+    managedBy: zod.enum(["user", "admin", "enterprise"]),
+    managedByUserId: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    updatedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Set per-tenant pinning + auto-update config
+ */
+export const SetUpdatePinningHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetUpdatePinningBody = zod.object({
+  pinnedVersion: zod.string().nullish(),
+  pinnedChannel: zod.enum(["stable", "beta", "canary", "dev"]).nullish(),
+  autoUpdateEnabled: zod.boolean().optional(),
+  managedBy: zod.enum(["user", "admin", "enterprise"]).optional(),
+  managedByUserId: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const SetUpdatePinningResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    pinnedVersion: zod.string().nullish(),
+    pinnedChannel: zod.enum(["stable", "beta", "canary", "dev"]).nullish(),
+    autoUpdateEnabled: zod.boolean(),
+    managedBy: zod.enum(["user", "admin", "enterprise"]),
+    managedByUserId: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    updatedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary List published releases (admin)
+ */
+export const listUpdateReleasesQueryLimitMax = 200;
+
+export const ListUpdateReleasesQueryParams = zod.object({
+  channel: zod.enum(["stable", "beta", "canary", "dev"]).optional(),
+  platform: zod.enum(["darwin", "win32", "linux"]).optional(),
+  arch: zod.coerce.string().optional(),
+  includeYanked: zod.coerce.boolean().optional(),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listUpdateReleasesQueryLimitMax)
+    .optional(),
+});
+
+export const ListUpdateReleasesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const listUpdateReleasesResponseDataItemsItemFullSha256RegExp =
+  new RegExp("^[a-fA-F0-9]{64}$");
+export const listUpdateReleasesResponseDataItemsItemFullSizeMin = 0;
+
+export const listUpdateReleasesResponseDataItemsItemDeltaOneSha256RegExp =
+  new RegExp("^[a-fA-F0-9]{64}$");
+export const listUpdateReleasesResponseDataItemsItemDeltaOneSizeMin = 0;
+
+export const listUpdateReleasesResponseDataItemsItemRolloutPercentageMin = 0;
+export const listUpdateReleasesResponseDataItemsItemRolloutPercentageMax = 100;
+
+export const ListUpdateReleasesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        version: zod.string(),
+        channel: zod.enum(["stable", "beta", "canary", "dev"]),
+        platform: zod.enum(["darwin", "win32", "linux"]),
+        arch: zod.string(),
+        full: zod.object({
+          url: zod.string(),
+          sha256: zod
+            .string()
+            .regex(listUpdateReleasesResponseDataItemsItemFullSha256RegExp),
+          size: zod
+            .number()
+            .min(listUpdateReleasesResponseDataItemsItemFullSizeMin),
+        }),
+        delta: zod
+          .object({
+            url: zod.string(),
+            sha256: zod
+              .string()
+              .regex(
+                listUpdateReleasesResponseDataItemsItemDeltaOneSha256RegExp,
+              ),
+            size: zod
+              .number()
+              .min(listUpdateReleasesResponseDataItemsItemDeltaOneSizeMin),
+          })
+          .and(
+            zod.object({
+              fromVersion: zod.string(),
+            }),
+          )
+          .nullish(),
+        signature: zod
+          .string()
+          .nullish()
+          .describe(
+            "Base64-encoded ed25519 signature over the canonical payload.",
+          ),
+        signatureAlgorithm: zod.string(),
+        releaseNotes: zod.string(),
+        rolloutPercentage: zod
+          .number()
+          .min(listUpdateReleasesResponseDataItemsItemRolloutPercentageMin)
+          .max(listUpdateReleasesResponseDataItemsItemRolloutPercentageMax),
+        publishedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Publish a new release manifest (admin)
+ */
+export const PublishUpdateReleaseHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const publishUpdateReleaseBodyFullSha256RegExp = new RegExp(
+  "^[a-fA-F0-9]{64}$",
+);
+export const publishUpdateReleaseBodyFullSizeMin = 0;
+
+export const publishUpdateReleaseBodyDeltaSha256RegExp = new RegExp(
+  "^[a-fA-F0-9]{64}$",
+);
+export const publishUpdateReleaseBodyDeltaSizeMin = 0;
+
+export const publishUpdateReleaseBodyReleaseNotesMax = 16384;
+
+export const publishUpdateReleaseBodyRolloutPercentageMin = 0;
+export const publishUpdateReleaseBodyRolloutPercentageMax = 100;
+
+export const PublishUpdateReleaseBody = zod.object({
+  version: zod.string(),
+  channel: zod.enum(["stable", "beta", "canary", "dev"]).optional(),
+  platform: zod.enum(["darwin", "win32", "linux"]),
+  arch: zod.string().optional(),
+  fullUrl: zod.string().url(),
+  fullSha256: zod.string().regex(publishUpdateReleaseBodyFullSha256RegExp),
+  fullSize: zod.number().min(publishUpdateReleaseBodyFullSizeMin).optional(),
+  delta: zod
+    .object({
+      fromVersion: zod.string(),
+      url: zod.string().url(),
+      sha256: zod.string().regex(publishUpdateReleaseBodyDeltaSha256RegExp),
+      size: zod.number().min(publishUpdateReleaseBodyDeltaSizeMin).optional(),
+    })
+    .optional(),
+  releaseNotes: zod
+    .string()
+    .max(publishUpdateReleaseBodyReleaseNotesMax)
+    .optional(),
+  rolloutPercentage: zod
+    .number()
+    .min(publishUpdateReleaseBodyRolloutPercentageMin)
+    .max(publishUpdateReleaseBodyRolloutPercentageMax)
+    .optional(),
+});
+
+/**
+ * @summary Adjust rollout percentage or yank a release (admin)
+ */
+export const PatchUpdateReleaseHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const patchUpdateReleaseBodyRolloutPercentageMin = 0;
+export const patchUpdateReleaseBodyRolloutPercentageMax = 100;
+
+export const patchUpdateReleaseBodyYankReasonMax = 512;
+
+export const PatchUpdateReleaseBody = zod.object({
+  channel: zod.enum(["stable", "beta", "canary", "dev"]),
+  platform: zod.enum(["darwin", "win32", "linux"]),
+  arch: zod.string().optional(),
+  version: zod.string(),
+  rolloutPercentage: zod
+    .number()
+    .min(patchUpdateReleaseBodyRolloutPercentageMin)
+    .max(patchUpdateReleaseBodyRolloutPercentageMax)
+    .optional(),
+  yank: zod
+    .object({
+      reason: zod.string().min(1).max(patchUpdateReleaseBodyYankReasonMax),
+    })
+    .optional(),
+});
+
+export const patchUpdateReleaseResponseDataFullSha256RegExp = new RegExp(
+  "^[a-fA-F0-9]{64}$",
+);
+export const patchUpdateReleaseResponseDataFullSizeMin = 0;
+
+export const patchUpdateReleaseResponseDataDeltaOneSha256RegExp = new RegExp(
+  "^[a-fA-F0-9]{64}$",
+);
+export const patchUpdateReleaseResponseDataDeltaOneSizeMin = 0;
+
+export const patchUpdateReleaseResponseDataRolloutPercentageMin = 0;
+export const patchUpdateReleaseResponseDataRolloutPercentageMax = 100;
+
+export const PatchUpdateReleaseResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    version: zod.string(),
+    channel: zod.enum(["stable", "beta", "canary", "dev"]),
+    platform: zod.enum(["darwin", "win32", "linux"]),
+    arch: zod.string(),
+    full: zod.object({
+      url: zod.string(),
+      sha256: zod
+        .string()
+        .regex(patchUpdateReleaseResponseDataFullSha256RegExp),
+      size: zod.number().min(patchUpdateReleaseResponseDataFullSizeMin),
+    }),
+    delta: zod
+      .object({
+        url: zod.string(),
+        sha256: zod
+          .string()
+          .regex(patchUpdateReleaseResponseDataDeltaOneSha256RegExp),
+        size: zod.number().min(patchUpdateReleaseResponseDataDeltaOneSizeMin),
+      })
+      .and(
+        zod.object({
+          fromVersion: zod.string(),
+        }),
+      )
+      .nullish(),
+    signature: zod
+      .string()
+      .nullish()
+      .describe("Base64-encoded ed25519 signature over the canonical payload."),
+    signatureAlgorithm: zod.string(),
+    releaseNotes: zod.string(),
+    rolloutPercentage: zod
+      .number()
+      .min(patchUpdateReleaseResponseDataRolloutPercentageMin)
+      .max(patchUpdateReleaseResponseDataRolloutPercentageMax),
+    publishedAt: zod.coerce.date(),
   }),
 });
 

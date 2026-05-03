@@ -2242,6 +2242,311 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdateCheckResponse'
+  /updates/release/{version}:
+    get:
+      operationId: getUpdateRelease
+      tags: [updates]
+      summary: Full release manifest for a specific version
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: version
+          in: path
+          required: true
+          schema: { type: string }
+        - name: platform
+          in: query
+          required: true
+          schema: { type: string, enum: [darwin, win32, linux] }
+        - name: channel
+          in: query
+          required: false
+          schema: { type: string, enum: [stable, beta, canary, dev] }
+        - name: arch
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Release manifest
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateReleaseManifestResponse' }
+        '404':
+          description: Release not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiErrorResponse' }
+  /updates/changelog/{version}:
+    get:
+      operationId: getUpdateChangelog
+      tags: [updates]
+      summary: Human-readable release notes for a version
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: version
+          in: path
+          required: true
+          schema: { type: string }
+        - name: platform
+          in: query
+          required: true
+          schema: { type: string, enum: [darwin, win32, linux] }
+        - name: channel
+          in: query
+          required: false
+          schema: { type: string, enum: [stable, beta, canary, dev] }
+        - name: arch
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Changelog
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateChangelogResponse' }
+        '404':
+          description: Release not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiErrorResponse' }
+  /updates/server-health:
+    get:
+      operationId: getUpdateServerHealth
+      tags: [updates]
+      summary: Update-server status-page snapshot
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Health snapshot
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateServerHealthResponse' }
+  /updates/install/start:
+    post:
+      operationId: startUpdateInstall
+      tags: [updates]
+      summary: Desktop shell records a new install attempt
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateInstallStartRequest' }
+      responses:
+        '201':
+          description: Install attempt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateInstallAttemptResponse' }
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiErrorResponse' }
+  /updates/install/result:
+    post:
+      operationId: recordUpdateInstallResult
+      tags: [updates]
+      summary: Desktop shell flips the install state machine
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateInstallResultRequest' }
+      responses:
+        '200':
+          description: Updated install attempt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateInstallAttemptResponse' }
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiErrorResponse' }
+        '404':
+          description: Install attempt not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiErrorResponse' }
+  /updates/install/attempts:
+    get:
+      operationId: listUpdateInstallAttempts
+      tags: [updates]
+      summary: Recent install attempts for a device
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: deviceId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: Install attempts
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateInstallAttemptListResponse' }
+  /updates/rollback:
+    get:
+      operationId: getUpdateRollbackDecision
+      tags: [updates]
+      summary: Crash-detector verdict for a device
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: deviceId
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Rollback decision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateRollbackDecisionResponse' }
+  /updates/verify:
+    post:
+      operationId: verifyUpdateSignature
+      tags: [updates]
+      summary: Server-side ed25519 signature verification helper
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateSignatureVerifyRequest' }
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateSignatureVerifyResponse' }
+  /updates/pinning:
+    get:
+      operationId: getUpdatePinning
+      tags: [updates]
+      summary: Current per-tenant pinning + auto-update config
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Pinning view
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdatePinningResponse' }
+    put:
+      operationId: setUpdatePinning
+      tags: [updates]
+      summary: Set per-tenant pinning + auto-update config
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePinningRequest' }
+      responses:
+        '200':
+          description: Updated pinning view
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdatePinningResponse' }
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiErrorResponse' }
+  /updates/admin/releases:
+    get:
+      operationId: listUpdateReleases
+      tags: [updates]
+      summary: List published releases (admin)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: channel
+          in: query
+          required: false
+          schema: { type: string, enum: [stable, beta, canary, dev] }
+        - name: platform
+          in: query
+          required: false
+          schema: { type: string, enum: [darwin, win32, linux] }
+        - name: arch
+          in: query
+          required: false
+          schema: { type: string }
+        - name: includeYanked
+          in: query
+          required: false
+          schema: { type: boolean }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200 }
+      responses:
+        '200':
+          description: Release list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateReleaseListResponse' }
+    post:
+      operationId: publishUpdateRelease
+      tags: [updates]
+      summary: Publish a new release manifest (admin)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePublishReleaseRequest' }
+      responses:
+        '201':
+          description: Published manifest
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateReleaseManifestResponse' }
+        '400':
+          description: Invalid release payload
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiErrorResponse' }
+    patch:
+      operationId: patchUpdateRelease
+      tags: [updates]
+      summary: Adjust rollout percentage or yank a release (admin)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePatchReleaseRequest' }
+      responses:
+        '200':
+          description: Updated manifest
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateReleaseManifestResponse' }
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiErrorResponse' }
+        '404':
+          description: Release not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiErrorResponse' }
   /browser/screenshot:
     post:
       operationId: browserScreenshot
@@ -10694,6 +10999,8 @@ components:
         - updateAvailable
         - channel
         - checkedAt
+        - pinned
+        - inRollout
       properties:
         currentVersion:
           type: string
@@ -10713,6 +11020,27 @@ components:
         checkedAt:
           type: string
           format: date-time
+        pinned:
+          type: boolean
+          description: True iff the tenant has version pinning or auto-update opt-out enabled.
+        pinnedVersion:
+          type: string
+          nullable: true
+        inRollout:
+          type: boolean
+          description: |
+            True iff the tenant fell inside the staged-rollout window for
+            the latest release. Bucketing is deterministic per tenant +
+            version (sha-256 modulo 100), so a release at 20% rollout
+            admits the same 20% of tenants on every check.
+        rolloutPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+        manifest:
+          $ref: '#/components/schemas/UpdateReleaseManifest'
+          nullable: true
     UpdateCheckResponse:
       type: object
       required:
@@ -10725,6 +11053,373 @@ components:
             - true
         data:
           $ref: '#/components/schemas/UpdateCheck'
+    UpdatePackageDescriptor:
+      type: object
+      required:
+        - url
+        - sha256
+        - size
+      properties:
+        url:
+          type: string
+        sha256:
+          type: string
+          pattern: '^[a-fA-F0-9]{64}$'
+        size:
+          type: integer
+          minimum: 0
+    UpdateDeltaDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/UpdatePackageDescriptor'
+        - type: object
+          required:
+            - fromVersion
+          properties:
+            fromVersion:
+              type: string
+    UpdateReleaseManifest:
+      type: object
+      required:
+        - version
+        - channel
+        - platform
+        - arch
+        - full
+        - signatureAlgorithm
+        - releaseNotes
+        - rolloutPercentage
+        - publishedAt
+      properties:
+        version:
+          type: string
+        channel:
+          type: string
+          enum: [stable, beta, canary, dev]
+        platform:
+          type: string
+          enum: [darwin, win32, linux]
+        arch:
+          type: string
+        full:
+          $ref: '#/components/schemas/UpdatePackageDescriptor'
+        delta:
+          $ref: '#/components/schemas/UpdateDeltaDescriptor'
+          nullable: true
+        signature:
+          type: string
+          nullable: true
+          description: Base64-encoded ed25519 signature over the canonical payload.
+        signatureAlgorithm:
+          type: string
+        releaseNotes:
+          type: string
+        rolloutPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        publishedAt:
+          type: string
+          format: date-time
+    UpdateReleaseManifestResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/UpdateReleaseManifest'
+    UpdateReleaseListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/UpdateReleaseManifest'
+    UpdateChangelog:
+      type: object
+      required: [version, channel, publishedAt, releaseNotes]
+      properties:
+        version: { type: string }
+        channel: { type: string }
+        publishedAt: { type: string, format: date-time }
+        releaseNotes: { type: string }
+    UpdateChangelogResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/UpdateChangelog'
+    UpdateServerHealth:
+      type: object
+      required:
+        - status
+        - releasesPublished
+        - channelsActive
+        - signingConfigured
+        - verificationConfigured
+        - rollbackPendingCount
+        - checkedAt
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, down]
+        releasesPublished: { type: integer, minimum: 0 }
+        channelsActive:
+          type: array
+          items: { type: string }
+        latestPublishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        signingConfigured: { type: boolean }
+        verificationConfigured: { type: boolean }
+        rollbackPendingCount: { type: integer, minimum: 0 }
+        checkedAt: { type: string, format: date-time }
+    UpdateServerHealthResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/UpdateServerHealth'
+    UpdateInstallStartRequest:
+      type: object
+      required: [deviceId, toVersion, platform, updateKind]
+      properties:
+        deviceId: { type: string, minLength: 1, maxLength: 128 }
+        fromVersion:
+          type: string
+          nullable: true
+        toVersion: { type: string }
+        platform:
+          type: string
+          enum: [darwin, win32, linux]
+        arch: { type: string }
+        channel:
+          type: string
+          enum: [stable, beta, canary, dev]
+        updateKind:
+          type: string
+          enum: [full, delta]
+    UpdateInstallResultRequest:
+      type: object
+      required: [attemptId, status]
+      properties:
+        attemptId: { type: string }
+        status:
+          type: string
+          enum:
+            - downloading
+            - downloaded
+            - verifying
+            - verified
+            - installing
+            - installed
+            - launch_pending
+            - launch_succeeded
+            - launch_failed
+            - rolled_back
+            - aborted
+            - signature_invalid
+        failureReason: { type: string, maxLength: 1024 }
+        signatureVerified: { type: boolean }
+        bytesDownloaded: { type: integer, minimum: 0 }
+    UpdateInstallAttempt:
+      type: object
+      required:
+        - id
+        - deviceId
+        - toVersion
+        - channel
+        - platform
+        - arch
+        - updateKind
+        - status
+        - signatureVerified
+        - bytesDownloaded
+        - startedAt
+      properties:
+        id: { type: string }
+        deviceId: { type: string }
+        fromVersion:
+          type: string
+          nullable: true
+        toVersion: { type: string }
+        channel: { type: string }
+        platform: { type: string }
+        arch: { type: string }
+        updateKind: { type: string, enum: [full, delta] }
+        status: { type: string }
+        failureReason: { type: string, nullable: true }
+        signatureVerified: { type: boolean }
+        bytesDownloaded: { type: integer, minimum: 0 }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time, nullable: true }
+        rolledBackAt: { type: string, format: date-time, nullable: true }
+        rolledBackToVersion: { type: string, nullable: true }
+    UpdateInstallAttemptResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/UpdateInstallAttempt'
+    UpdateInstallAttemptListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/UpdateInstallAttempt'
+    UpdateRollbackDecision:
+      type: object
+      required: [shouldRollBack]
+      properties:
+        shouldRollBack: { type: boolean }
+        rollbackToVersion: { type: string, nullable: true }
+        failedVersion: { type: string, nullable: true }
+        reason: { type: string, nullable: true }
+        attemptId: { type: string, nullable: true }
+    UpdateRollbackDecisionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/UpdateRollbackDecision'
+    UpdateSignatureVerifyRequest:
+      type: object
+      required: [version, platform, sha256, size, kind, signature]
+      properties:
+        version: { type: string }
+        platform:
+          type: string
+          enum: [darwin, win32, linux]
+        arch: { type: string }
+        sha256:
+          type: string
+          pattern: '^[a-fA-F0-9]{64}$'
+        size: { type: integer, minimum: 0 }
+        kind: { type: string, enum: [full, delta] }
+        signature: { type: string }
+    UpdateSignatureVerifyResult:
+      type: object
+      required: [verified, attempted]
+      properties:
+        verified: { type: boolean }
+        reason: { type: string, nullable: true }
+        attempted: { type: boolean }
+    UpdateSignatureVerifyResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/UpdateSignatureVerifyResult'
+    UpdatePinningView:
+      type: object
+      required:
+        - autoUpdateEnabled
+        - managedBy
+      properties:
+        pinnedVersion: { type: string, nullable: true }
+        pinnedChannel:
+          type: string
+          enum: [stable, beta, canary, dev]
+          nullable: true
+        autoUpdateEnabled: { type: boolean }
+        managedBy:
+          type: string
+          enum: [user, admin, enterprise]
+        managedByUserId: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+    UpdatePinningResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/UpdatePinningView'
+    UpdatePinningRequest:
+      type: object
+      properties:
+        pinnedVersion: { type: string, nullable: true }
+        pinnedChannel:
+          type: string
+          enum: [stable, beta, canary, dev]
+          nullable: true
+        autoUpdateEnabled: { type: boolean }
+        managedBy:
+          type: string
+          enum: [user, admin, enterprise]
+        managedByUserId: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+    UpdatePublishReleaseRequest:
+      type: object
+      required: [version, platform, fullUrl, fullSha256]
+      properties:
+        version: { type: string }
+        channel:
+          type: string
+          enum: [stable, beta, canary, dev]
+        platform:
+          type: string
+          enum: [darwin, win32, linux]
+        arch: { type: string }
+        fullUrl: { type: string, format: uri }
+        fullSha256:
+          type: string
+          pattern: '^[a-fA-F0-9]{64}$'
+        fullSize: { type: integer, minimum: 0 }
+        delta:
+          type: object
+          required: [fromVersion, url, sha256]
+          properties:
+            fromVersion: { type: string }
+            url: { type: string, format: uri }
+            sha256:
+              type: string
+              pattern: '^[a-fA-F0-9]{64}$'
+            size: { type: integer, minimum: 0 }
+        releaseNotes: { type: string, maxLength: 16384 }
+        rolloutPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+    UpdatePatchReleaseRequest:
+      type: object
+      required: [channel, platform, version]
+      properties:
+        channel:
+          type: string
+          enum: [stable, beta, canary, dev]
+        platform:
+          type: string
+          enum: [darwin, win32, linux]
+        arch: { type: string }
+        version: { type: string }
+        rolloutPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        yank:
+          type: object
+          required: [reason]
+          properties:
+            reason: { type: string, minLength: 1, maxLength: 512 }
     BrowserScreenshotRequest:
       type: object
       required:

@@ -91,6 +91,9 @@ export * from "./beta-access-grants";
 
 export * from "./plugin-tools";
 export * from "./webhook-subscriptions";
-export * from "./integrations";
 export * from "./desktop-integration-settings";
 export * from "./desktop-quick-invocations";
+
+export * from "./update-releases";
+export * from "./update-install-attempts";
+export * from "./update-pinning";
