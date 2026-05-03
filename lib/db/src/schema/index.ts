@@ -135,3 +135,11 @@ export * from "./dr-drills";
 export * from "./dr-storage-nodes";
 export * from "./dr-incidents";
 export * from "./dr-alerts";
+
+export * from "./sso-configurations";
+export * from "./sso-group-role-mappings";
+export * from "./sso-login-events";
+export * from "./sso-sessions";
+export * from "./scim-provisioning-tokens";
+export * from "./scim-groups";
+export * from "./break-glass-accounts";

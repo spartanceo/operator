@@ -11,6 +11,7 @@ import { Router, type IRouter } from "express";
 import enterpriseRouter from "./enterprise";
 import enterpriseAuditRouter from "./enterprise-audit";
 import moderationRouter from "./moderation";
+import ssoRouter from "./sso";
 import superRouter from "./super";
 import tenantDataRouter from "./tenant-data";
 
@@ -24,5 +25,6 @@ router.use("/", superRouter);
 router.use("/", enterpriseAuditRouter);
 router.use("/", moderationRouter);
 router.use("/", enterpriseRouter);
+router.use("/", ssoRouter);
 
 export default router;

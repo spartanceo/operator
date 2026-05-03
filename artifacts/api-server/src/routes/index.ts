@@ -117,4 +117,9 @@ router.use("/events", eventsRouter);
 router.use("/backup", backupRouter);
 router.use("/export", exportRouter);
 
+import ssoRouter from "./sso";
+import scimRouter from "./scim";
+router.use("/sso", ssoRouter);
+router.use("/scim", scimRouter);
+
 export default router;

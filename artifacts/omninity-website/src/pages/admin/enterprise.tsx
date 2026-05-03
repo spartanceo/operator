@@ -13,7 +13,7 @@
  * tenant context comes from the user's session via the Tenant header
  * already injected by `initApiClient` (see `lib/api-config.ts`).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Building2,
   Users,
@@ -22,6 +22,8 @@ import {
   BarChart3,
   Loader2,
   Download,
+  KeyRound,
+  AlertTriangle,
 } from "lucide-react";
 import {
   useGetEnterpriseOrg,
@@ -334,6 +336,288 @@ function UsageTab() {
   );
 }
 
+type SsoConfig = {
+  protocol: "saml" | "oidc" | "disabled";
+  enabled: boolean;
+  jitProvisioningEnabled: boolean;
+  defaultRole: string;
+  samlIdpEntityId?: string | null;
+  samlIdpSsoUrl?: string | null;
+  samlIdpCertPem?: string | null;
+  oidcIssuer?: string | null;
+  oidcClientId?: string | null;
+  oidcClientSecret?: string | null;
+  oidcScopes?: string | null;
+};
+
+type SsoLoginEvent = {
+  id: string;
+  protocol: string;
+  outcome: string;
+  subject?: string | null;
+  email?: string | null;
+  errorCode?: string | null;
+  createdAt: number;
+};
+
+type ScimToken = { id: string; name: string; createdAt: number; lastUsedAt?: number | null; revokedAt?: number | null };
+type BreakGlass = { id: string; email: string; lastUsedAt?: number | null; createdAt: number; disabledAt?: number | null };
+
+async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    ...init,
+    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    credentials: "include",
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error?.message ?? res.statusText);
+  return body.data as T;
+}
+
+function SsoTab() {
+  const [cfg, setCfg] = useState<SsoConfig | null>(null);
+  const [events, setEvents] = useState<SsoLoginEvent[]>([]);
+  const [tokens, setTokens] = useState<ScimToken[]>([]);
+  const [newTokenName, setNewTokenName] = useState("");
+  const [newTokenSecret, setNewTokenSecret] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function reload() {
+    try {
+      const [c, e, t] = await Promise.all([
+        api<SsoConfig>("/admin/enterprise/sso/config"),
+        api<{ items: SsoLoginEvent[] }>("/admin/enterprise/sso/login-events?limit=20"),
+        api<{ items: ScimToken[] }>("/admin/enterprise/sso/scim-tokens"),
+      ]);
+      setCfg(c);
+      setEvents(e.items ?? []);
+      setTokens(t.items ?? []);
+    } catch (x) {
+      setErr((x as Error).message);
+    }
+  }
+  useEffect(() => { void reload(); }, []);
+
+  async function save() {
+    if (!cfg) return;
+    setBusy(true); setErr(null);
+    try {
+      await api("/admin/enterprise/sso/config", { method: "PUT", body: JSON.stringify(cfg) });
+      await reload();
+    } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
+  }
+
+  async function mintToken() {
+    if (!newTokenName.trim()) return;
+    setBusy(true); setErr(null);
+    try {
+      const out = await api<{ token: string }>("/admin/enterprise/sso/scim-tokens", {
+        method: "POST",
+        body: JSON.stringify({ name: newTokenName.trim() }),
+      });
+      setNewTokenSecret(out.token);
+      setNewTokenName("");
+      await reload();
+    } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
+  }
+
+  async function revokeToken(id: string) {
+    setBusy(true); setErr(null);
+    try {
+      await api(`/admin/enterprise/sso/scim-tokens/${id}`, { method: "DELETE" });
+      await reload();
+    } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
+  }
+
+  if (!cfg) return <Loader2 className="h-5 w-5 animate-spin" />;
+
+  return (
+    <div className="space-y-6">
+      {err ? <div className="text-sm text-red-600">{err}</div> : null}
+      <Card>
+        <CardHeader><CardTitle>Identity provider</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <Label>Protocol</Label>
+              <Select value={cfg.protocol} onValueChange={(v) => setCfg({ ...cfg, protocol: v as SsoConfig["protocol"] })}>
+                <SelectTrigger data-testid="sso-protocol"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="disabled">Disabled</SelectItem>
+                  <SelectItem value="saml">SAML 2.0</SelectItem>
+                  <SelectItem value="oidc">OIDC</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <Switch checked={cfg.enabled} onCheckedChange={(v) => setCfg({ ...cfg, enabled: v })} id="sso-enabled" />
+              <Label htmlFor="sso-enabled">Enabled</Label>
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <Switch checked={cfg.jitProvisioningEnabled} onCheckedChange={(v) => setCfg({ ...cfg, jitProvisioningEnabled: v })} id="sso-jit" />
+              <Label htmlFor="sso-jit">JIT provisioning</Label>
+            </div>
+          </div>
+
+          {cfg.protocol === "saml" ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div><Label>IdP entity ID</Label><Input value={cfg.samlIdpEntityId ?? ""} onChange={(e) => setCfg({ ...cfg, samlIdpEntityId: e.target.value })} /></div>
+              <div><Label>IdP SSO URL</Label><Input value={cfg.samlIdpSsoUrl ?? ""} onChange={(e) => setCfg({ ...cfg, samlIdpSsoUrl: e.target.value })} /></div>
+              <div className="md:col-span-2"><Label>IdP signing certificate (PEM)</Label>
+                <textarea className="w-full rounded border p-2 font-mono text-xs" rows={6} value={cfg.samlIdpCertPem ?? ""} onChange={(e) => setCfg({ ...cfg, samlIdpCertPem: e.target.value })} />
+              </div>
+              <div className="text-xs text-muted-foreground md:col-span-2">
+                SP metadata: <a className="underline" href="/api/sso/saml/metadata">/api/sso/saml/metadata</a>
+              </div>
+            </div>
+          ) : null}
+
+          {cfg.protocol === "oidc" ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div><Label>Issuer URL</Label><Input value={cfg.oidcIssuer ?? ""} onChange={(e) => setCfg({ ...cfg, oidcIssuer: e.target.value })} /></div>
+              <div><Label>Client ID</Label><Input value={cfg.oidcClientId ?? ""} onChange={(e) => setCfg({ ...cfg, oidcClientId: e.target.value })} /></div>
+              <div><Label>Client secret</Label><Input type="password" value={cfg.oidcClientSecret ?? ""} onChange={(e) => setCfg({ ...cfg, oidcClientSecret: e.target.value })} /></div>
+              <div><Label>Scopes</Label><Input value={cfg.oidcScopes ?? "openid profile email"} onChange={(e) => setCfg({ ...cfg, oidcScopes: e.target.value })} /></div>
+            </div>
+          ) : null}
+
+          <div>
+            <Label>Default role for new users</Label>
+            <Input value={cfg.defaultRole} onChange={(e) => setCfg({ ...cfg, defaultRole: e.target.value })} className="max-w-xs" />
+          </div>
+
+          <Button onClick={save} disabled={busy} data-testid="save-sso">Save</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>SCIM provisioning tokens</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input placeholder="Token name (e.g. Okta)" value={newTokenName} onChange={(e) => setNewTokenName(e.target.value)} data-testid="scim-token-name" />
+            <Button onClick={mintToken} disabled={busy || !newTokenName.trim()}>Generate</Button>
+          </div>
+          {newTokenSecret ? (
+            <div className="rounded border bg-amber-50 p-3 text-xs">
+              <div className="font-semibold text-amber-900">Copy this token now — it won't be shown again:</div>
+              <code className="mt-1 block break-all">{newTokenSecret}</code>
+              <Button variant="ghost" size="sm" className="mt-1" onClick={() => setNewTokenSecret(null)}>Dismiss</Button>
+            </div>
+          ) : null}
+          <table className="w-full text-sm">
+            <thead><tr className="text-muted-foreground"><th className="text-left">Name</th><th className="text-left">Created</th><th className="text-left">Last used</th><th /></tr></thead>
+            <tbody>
+              {tokens.map((t) => (
+                <tr key={t.id} className="border-t">
+                  <td className="py-1">{t.name}{t.revokedAt ? <Badge variant="secondary" className="ml-2">revoked</Badge> : null}</td>
+                  <td>{new Date(t.createdAt).toLocaleString()}</td>
+                  <td>{t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleString() : "—"}</td>
+                  <td>{!t.revokedAt ? <Button size="sm" variant="ghost" onClick={() => revokeToken(t.id)}>Revoke</Button> : null}</td>
+                </tr>
+              ))}
+              {tokens.length === 0 ? <tr><td colSpan={4} className="text-muted-foreground py-2">No tokens yet.</td></tr> : null}
+            </tbody>
+          </table>
+          <div className="text-xs text-muted-foreground">SCIM endpoint: <code>/api/scim/v2/Users</code>, <code>/api/scim/v2/Groups</code></div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Recent SSO login events</CardTitle></CardHeader>
+        <CardContent>
+          <table className="w-full text-sm">
+            <thead><tr className="text-muted-foreground"><th className="text-left">When</th><th className="text-left">Protocol</th><th className="text-left">Outcome</th><th className="text-left">Subject</th><th className="text-left">Error</th></tr></thead>
+            <tbody>
+              {events.map((e) => (
+                <tr key={e.id} className="border-t">
+                  <td className="py-1">{new Date(e.createdAt).toLocaleString()}</td>
+                  <td>{e.protocol}</td>
+                  <td><Badge variant={e.outcome === "success" ? "default" : "destructive"}>{e.outcome}</Badge></td>
+                  <td className="font-mono text-xs">{e.email ?? e.subject ?? "—"}</td>
+                  <td className="text-xs text-red-600">{e.errorCode ?? ""}</td>
+                </tr>
+              ))}
+              {events.length === 0 ? <tr><td colSpan={5} className="text-muted-foreground py-2">No SSO logins yet.</td></tr> : null}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function BreakGlassBanner() {
+  const [accounts, setAccounts] = useState<BreakGlass[] | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [email, setEmail] = useState("");
+  const [issued, setIssued] = useState<{ email: string; password: string } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function reload() {
+    try {
+      const r = await api<{ items: BreakGlass[] }>("/admin/enterprise/break-glass");
+      setAccounts(r.items ?? []);
+    } catch (x) { setErr((x as Error).message); }
+  }
+  useEffect(() => { void reload(); }, []);
+
+  async function create() {
+    setErr(null);
+    try {
+      const out = await api<{ email: string; password: string }>("/admin/enterprise/break-glass", {
+        method: "POST",
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      setIssued(out);
+      setEmail("");
+      setCreating(false);
+      await reload();
+    } catch (x) { setErr((x as Error).message); }
+  }
+
+  if (accounts === null) return null;
+  const active = accounts.filter((a) => !a.disabledAt);
+  if (active.length > 0 && !creating && !issued) return null;
+
+  return (
+    <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-700" />
+        <div className="flex-1">
+          {active.length === 0 ? (
+            <>
+              <div className="font-semibold text-amber-900">No break-glass account configured</div>
+              <div className="text-xs text-amber-800">If your IdP fails, you'll be locked out. Create an emergency local-admin login now.</div>
+            </>
+          ) : (
+            <div className="font-semibold text-amber-900">Break-glass account active — keep credentials in your password vault.</div>
+          )}
+          {err ? <div className="text-xs text-red-700">{err}</div> : null}
+          {issued ? (
+            <div className="mt-2 rounded border bg-white p-2 text-xs">
+              <div className="font-semibold">Save these credentials — the password is shown only once:</div>
+              <div>Email: <code>{issued.email}</code></div>
+              <div>Password: <code>{issued.password}</code></div>
+              <Button size="sm" variant="ghost" className="mt-1" onClick={() => setIssued(null)}>Dismiss</Button>
+            </div>
+          ) : creating ? (
+            <div className="mt-2 flex gap-2">
+              <Input placeholder="admin@yourco.com" value={email} onChange={(e) => setEmail(e.target.value)} className="max-w-xs" />
+              <Button size="sm" onClick={create}><KeyRound className="mr-1 h-3 w-3" /> Generate</Button>
+              <Button size="sm" variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>
+            </div>
+          ) : active.length === 0 ? (
+            <Button size="sm" className="mt-2" onClick={() => setCreating(true)} data-testid="create-break-glass">
+              <KeyRound className="mr-1 h-3 w-3" /> Create break-glass account
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EnterpriseAdminPage() {
   return (
     <div className="container mx-auto max-w-6xl p-6">
@@ -341,15 +625,18 @@ export default function EnterpriseAdminPage() {
         <h1 className="text-3xl font-semibold">Enterprise Admin</h1>
         <p className="text-muted-foreground">Manage your organisation's branding, seats, allow-listed skills, audit log and usage. All actions are recorded.</p>
       </div>
+      <BreakGlassBanner />
       <Tabs defaultValue="branding">
         <TabsList>
           <TabsTrigger value="branding"><Building2 className="mr-1 h-4 w-4" /> Branding</TabsTrigger>
+          <TabsTrigger value="sso"><KeyRound className="mr-1 h-4 w-4" /> SSO &amp; SCIM</TabsTrigger>
           <TabsTrigger value="seats"><Users className="mr-1 h-4 w-4" /> Seats</TabsTrigger>
           <TabsTrigger value="whitelist"><ShieldCheck className="mr-1 h-4 w-4" /> Whitelist</TabsTrigger>
           <TabsTrigger value="audit"><ScrollText className="mr-1 h-4 w-4" /> Audit log</TabsTrigger>
           <TabsTrigger value="usage"><BarChart3 className="mr-1 h-4 w-4" /> Usage</TabsTrigger>
         </TabsList>
         <TabsContent value="branding" className="mt-6"><BrandingTab /></TabsContent>
+        <TabsContent value="sso" className="mt-6"><SsoTab /></TabsContent>
         <TabsContent value="seats" className="mt-6"><SeatsTab /></TabsContent>
         <TabsContent value="whitelist" className="mt-6"><WhitelistTab /></TabsContent>
         <TabsContent value="audit" className="mt-6"><AuditTab /></TabsContent>
