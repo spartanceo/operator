@@ -14,6 +14,7 @@ import { createAgentRun } from "../../services/agent.service";
 import configRouter from "./config";
 import draftsRouter from "./drafts";
 import { SkillNotConfiguredError } from "../../services/skill-config.service";
+import executeRouter from "./execute";
 import {
   applySkillUpdate,
   createSkill,
@@ -63,6 +64,8 @@ router.use("/drafts", draftsRouter);
 // /config/import bulk endpoint. Mounted before the `/:id` catch-alls so
 // the config paths take precedence.
 router.use(configRouter);
+// Task #39 — execute / run-tests / manifest / SSE progress endpoints.
+router.use("/", executeRouter);
 
 const PageSchema = z.object({
   cursor: z.string().min(1).max(2048).optional(),

@@ -43,6 +43,8 @@ export const skillVersions = sqliteTable(
     installCount: integer("install_count").notNull().default(0),
     /** Snapshot of the skill's configuration schema at this version. */
     configurationSchema: text("configuration_schema").notNull().default("[]"),
+    /** Snapshot of `skills.execution_manifest` at publish time (Task #39). */
+    executionManifest: text("execution_manifest"),
     createdAt: integer("created_at")
       .notNull()
       .default(sql`(unixepoch() * 1000)`),

@@ -161,6 +161,13 @@ export interface SkillManifest {
   minOpVersion?: string;
   /** Schema declaration carried alongside the prompt content. */
   configurationSchema?: ConfigField[];
+  /**
+   * Optional Task #39 execution manifest. When present it is validated
+   * (schema + cycle check) at import time and snapshotted into
+   * `skill_versions.execution_manifest` so every published version
+   * carries its own contract.
+   */
+  executionManifest?: unknown;
 }
 
 export interface SkillVersionRow {
@@ -221,6 +228,8 @@ export interface CreateSkillInput {
   isPremium?: boolean;
   previewUsesAllowed?: number;
   configurationSchema?: ConfigField[];
+  /** Pre-validated JSON-stringified execution manifest (Task #39). */
+  executionManifest?: string | null;
 }
 
 export interface UpdateSkillInput {
@@ -362,6 +371,10 @@ async function recordVersionSnapshot(
         author: skill.author,
         installCount: 0,
         configurationSchema: skill.configurationSchema ?? "[]",
+        // Task #39 — snapshot the execution manifest with the version so
+        // each published semver carries the contract that was in force
+        // at publish time. Older skills with no manifest snapshot null.
+        executionManifest: skill.executionManifest ?? null,
       }),
     )
     .onConflictDoNothing();
@@ -550,6 +563,7 @@ export async function createSkill(
           ? Math.max(0, Math.floor(input.previewUsesAllowed))
           : 2,
       configurationSchema: configSchemaJson,
+      executionManifest: input.executionManifest ?? null,
     }),
   );
   // Seed the version-history snapshot — the row above is the canonical
@@ -740,6 +754,15 @@ export async function exportSkill(
 ): Promise<SkillManifest> {
   const row = await getSkill(ctx, id);
   if (!row) throw new SkillNotFoundError(id);
+  // Fetch the raw row so we can round-trip the JSON-encoded
+  // execution manifest (Task #39) without leaking it through SkillRow.
+  const rawRows = await db
+    .select()
+    .from(skills)
+    .where(and(tenantScope(ctx, skills), eq(skills.id, id)))
+    .limit(1);
+  const rawSkillRow = rawRows[0];
+  if (!rawSkillRow) throw new SkillNotFoundError(id);
   await logPrivacyEvent(ctx, {
     eventType: "skill.export",
     actor: ctx.userId ?? ctx.tenantId,
@@ -763,7 +786,19 @@ export async function exportSkill(
     breakingChange: row.breakingChange,
     minOpVersion: row.minOpVersion,
     configurationSchema: row.configurationSchema,
+    // Task #39 — round-trip the execution manifest through export/import.
+    executionManifest: rawSkillRow.executionManifest
+      ? safeJsonParse(rawSkillRow.executionManifest)
+      : undefined,
   };
+}
+
+function safeJsonParse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
 }
 
 export async function importSkill(
@@ -785,6 +820,17 @@ export async function importSkill(
     manifest.minOpVersion && parseSemver(manifest.minOpVersion)
       ? manifest.minOpVersion
       : "0.0.0";
+  // Task #39 — if the imported skill ships an execution manifest,
+  // validate it (schema + DAG cycle check) before any DB write so a
+  // bad manifest cannot reach the runtime via the import path.
+  let validatedExecutionManifest: string | null = null;
+  if (manifest.executionManifest !== undefined) {
+    const { validatePublishManifest } = await import(
+      "./skill-execution.service"
+    );
+    const checked = await validatePublishManifest(ctx, manifest.executionManifest);
+    validatedExecutionManifest = JSON.stringify(checked);
+  }
   const created = await createSkill(ctx, {
     slug: manifest.slug,
     name: manifest.name,
@@ -798,6 +844,7 @@ export async function importSkill(
     initialChangelog: manifest.changelog ?? "",
     minOpVersion: importedMinOp,
     configurationSchema: manifest.configurationSchema ?? [],
+    executionManifest: validatedExecutionManifest,
   });
   await logPrivacyEvent(ctx, {
     eventType: "skill.import",

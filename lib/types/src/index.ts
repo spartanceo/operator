@@ -19,5 +19,9 @@ export * from "./tenant-context";
 export * from "./api-envelope";
 export * from "./runtime-modes";
 export * from "./agent-loop";
-export * from "./skill-runtime";
+// `./skill-runtime` was the original Task #6 placeholder. Task #39 replaces
+// it with the formal execution contract in `./skill-execution`; the
+// placeholder is no longer exported to avoid name collisions on
+// SkillPermission / SkillContext / SkillResult / SkillManifest.
+export * from "./skill-execution";
 export * from "./model-catalogue";

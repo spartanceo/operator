@@ -5616,6 +5616,209 @@ const cases: TestCase[] = [
       assert.equal(buf.readUInt32LE(0), 0x04034b50);
     },
   },
+  {
+    name: "skill manifest validator rejects unknown tool verb",
+    run: async () => {
+      const { parseManifest, ManifestValidationError } = await import(
+        "./skill-runtime/manifest"
+      );
+      assert.throws(
+        () =>
+          parseManifest({
+            omninitySkillContractVersion: 1,
+            id: "bad-skill",
+            version: "1.0.0",
+            name: "Bad",
+            description: "",
+            inputSchema: { type: "object" },
+            outputSchema: { type: "object" },
+            permissions: ["network:fetch"],
+            requiredTools: ["nonExistentVerb"],
+            minOpVersion: "1.0.0",
+            timeoutMs: 5000,
+          }),
+        (e) =>
+          e instanceof ManifestValidationError && e.path === "requiredTools",
+      );
+    },
+  },
+  {
+    name: "skill manifest validator rejects tool without granted permission",
+    run: async () => {
+      const { parseManifest, ManifestValidationError } = await import(
+        "./skill-runtime/manifest"
+      );
+      assert.throws(
+        () =>
+          parseManifest({
+            omninitySkillContractVersion: 1,
+            id: "needs-perm",
+            version: "1.0.0",
+            name: "Needs Perm",
+            description: "",
+            inputSchema: { type: "object" },
+            outputSchema: { type: "object" },
+            permissions: [],
+            requiredTools: ["fetch"],
+            minOpVersion: "1.0.0",
+            timeoutMs: 5000,
+          }),
+        (e) => e instanceof ManifestValidationError,
+      );
+    },
+  },
+  {
+    name: "skill JSON Schema validator catches missing required field",
+    run: async () => {
+      const { validateAgainstSchema } = await import(
+        "./skill-runtime/manifest"
+      );
+      const errors = validateAgainstSchema(
+        { name: "x" },
+        {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            count: { type: "integer", minimum: 0 },
+          },
+          required: ["name", "count"],
+        },
+      );
+      assert.ok(errors.length > 0);
+      assert.ok(errors.some((e) => e.message === "is required"));
+    },
+  },
+  {
+    name: "executeSkill validates input + output and returns SkillResult",
+    run: async () => {
+      const { executeSkill } = await import("./skill-runtime/executor");
+      const { parseManifest } = await import("./skill-runtime/manifest");
+      const manifest = parseManifest({
+        omninitySkillContractVersion: 1,
+        id: "doubler",
+        version: "1.0.0",
+        name: "Doubler",
+        description: "doubles a number",
+        inputSchema: {
+          type: "object",
+          properties: { n: { type: "integer", minimum: 0 } },
+          required: ["n"],
+        },
+        outputSchema: {
+          type: "object",
+          properties: { doubled: { type: "integer" } },
+          required: ["doubled"],
+        },
+        permissions: [],
+        requiredTools: [],
+        minOpVersion: "1.0.0",
+        timeoutMs: 5000,
+      });
+      const source = `
+        module.exports = async (ctx) => ({
+          status: "success",
+          summary: "doubled",
+          output: { doubled: ctx.input.n * 2 },
+        });
+      `;
+      const ok = await executeSkill({
+        manifest,
+        source,
+        input: { n: 21 },
+        tenantId: TENANT,
+        workspaceId: TENANT,
+        toolBindings: {},
+      });
+      assert.equal(ok.status, "success");
+      assert.equal(JSON.stringify(ok.output), JSON.stringify({ doubled: 42 }));
+
+      const bad = await executeSkill({
+        manifest,
+        source,
+        input: { n: -1 },
+        tenantId: TENANT,
+        workspaceId: TENANT,
+        toolBindings: {},
+      });
+      assert.equal(bad.status, "failure");
+      assert.equal(bad.error?.code, "SKILL_INPUT_INVALID");
+    },
+  },
+  {
+    name: "skill cycle detector flags self-referential dependency graph",
+    run: async () => {
+      const { assertNoDependencyCycle, SkillCycleError } = await import(
+        "./skill-runtime/composition"
+      );
+      const a = {
+        omninitySkillContractVersion: 1 as const,
+        id: "a",
+        version: "1.0.0",
+        name: "A",
+        description: "",
+        inputSchema: { type: "object" as const },
+        outputSchema: { type: "object" as const },
+        permissions: ["skills:invoke" as const],
+        requiredTools: ["callSkill"],
+        requiredSkills: ["b"],
+        minOpVersion: "1.0.0",
+        timeoutMs: 5000,
+      };
+      const b = { ...a, id: "b", name: "B", requiredSkills: ["a"] };
+      let threw = false;
+      try {
+        await assertNoDependencyCycle(a, async (id) =>
+          id === "a" ? a : id === "b" ? b : null,
+        );
+      } catch (e) {
+        threw = e instanceof SkillCycleError;
+      }
+      assert.ok(threw, "expected SkillCycleError");
+    },
+  },
+  {
+    name: "skill progress bus delivers backlog + live events",
+    run: async () => {
+      const {
+        publishProgress,
+        getBacklog,
+        subscribeProgress,
+        endProgress,
+        __resetProgressBus,
+      } = await import("./skill-runtime/progress-bus");
+      __resetProgressBus();
+      const id = "test-inv-1";
+      const T = "tenant_a";
+      publishProgress(T, {
+        invocationId: id,
+        skillId: "x",
+        fraction: 0.5,
+        message: "halfway",
+        at: new Date().toISOString(),
+      });
+      const seen: string[] = [];
+      const unsub = subscribeProgress(T, id, (e) => seen.push(e.message));
+      assert.equal(getBacklog(T, id).length, 1);
+      // Cross-tenant subscriber MUST NOT receive events for tenant_a.
+      const otherSeen: string[] = [];
+      const unsubOther = subscribeProgress("tenant_b", id, (e) =>
+        otherSeen.push(e.message),
+      );
+      publishProgress(T, {
+        invocationId: id,
+        skillId: "x",
+        fraction: 1,
+        message: "done",
+        at: new Date().toISOString(),
+      });
+      assert.deepEqual(seen, ["done"]);
+      assert.deepEqual(otherSeen, []);
+      unsub();
+      unsubOther();
+      endProgress(T, id);
+      endProgress("tenant_b", id);
+    },
+  },
 ];
 
 cases.push(

@@ -100,6 +100,13 @@ export const skills = sqliteTable(
      * first-run gate is bypassed.
      */
     configurationSchema: text("configuration_schema").notNull().default("[]"),
+    /**
+     * JSON-encoded `SkillExecutionManifest` (Task #39). Nullable for
+     * skills authored before the contract existed; the runtime treats
+     * NULL as "legacy text-prompt skill" and routes it through the
+     * deterministic agent loop.
+     */
+    executionManifest: text("execution_manifest"),
   },
   (t) => ({
     tenantIdx: index("idx_skills_tenant").on(t.tenantId),

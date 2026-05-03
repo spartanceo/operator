@@ -9,6 +9,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "tier-review": "tsx ./tier-review.ts",
+    "op-skill-test": "tsx ./op-skill-test.ts",
     "i18n-check": "tsx ./i18n-check.ts",
     "a11y-check": "tsx ./a11y-check.ts",
     "lint": "tsx ./src/lint.ts",
