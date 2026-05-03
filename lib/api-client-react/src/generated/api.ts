@@ -68,6 +68,7 @@ import type {
   CalendarEventListResponse,
   CalendarEventResponse,
   CalendarFreeSlotsResponse,
+  CategoryDeletionResponse,
   ChatRequest,
   ChatResponse,
   CommAccountDisconnectResponse,
@@ -97,6 +98,7 @@ import type {
   CreateDraftFromUploadRequest,
   CreateEmailDraftRequest,
   CreateEnterpriseTrialInviteRequest,
+  CreateErasureRequestRequest,
   CreateIncidentReportRequest,
   CreateKnowledgeCollectionRequest,
   CreateMemoryRequest,
@@ -123,6 +125,9 @@ import type {
   CreatorTaxDocumentListResponse,
   CreatorTaxDocumentResponse,
   CreatorTaxFormStateResponse,
+  DataCategoriesResponse,
+  DataInventoryResponse,
+  DeleteCategoryRequest,
   DeleteConversationResponse,
   DeleteScheduleResponse,
   DeleteWorkspaceParams,
@@ -151,6 +156,8 @@ import type {
   EnrolOutreachContactRequest,
   EnterpriseTrialInviteListResponse,
   EnterpriseTrialInviteResponse,
+  ErasureRequestListResponse,
+  ErasureRequestResponse,
   ExportConversationParams,
   ExportConversationsParams,
   ExportConversationsResponse,
@@ -243,6 +250,7 @@ import type {
   ListDmcaTakedownsParams,
   ListEmailDraftsParams,
   ListEmailMessagesParams,
+  ListErasureRequestsParams,
   ListFilesParams,
   ListFlaggedReviewsParams,
   ListIncidentReportsParams,
@@ -257,6 +265,7 @@ import type {
   ListMobileDevicesParams,
   ListMobileQuickTasksParams,
   ListModelsParams,
+  ListNetworkCallsParams,
   ListNotificationsParams,
   ListOutreachEnrolmentsParams,
   ListOutreachSequencesParams,
@@ -343,6 +352,8 @@ import type {
   ModelPullResponse,
   ModelRecommendationResponse,
   ModerateReviewRequest,
+  NetworkCallListResponse,
+  NetworkCallSummaryResponse,
   NotificationBulkDeleteResponse,
   NotificationBulkUpdateResponse,
   NotificationClaimResponse,
@@ -379,6 +390,9 @@ import type {
   PreviewScheduleResponse,
   PrivacyEventListResponse,
   PrivacyEventResponse,
+  PrivacyExportResponse,
+  PrivacyMeterResponse,
+  PrivacySettingsResponse,
   PruneBackupsResponse,
   PublicCreatorProfileResponse,
   PublishSkillVersionRequest,
@@ -434,6 +448,7 @@ import type {
   SecurityWebhookSecretsListParams,
   SelectModelRequest,
   SetAcquisitionChannelRequest,
+  SetSkillPermissionRequest,
   SetSkillTrustFlagsRequest,
   SettingsExportResponse,
   ShareEventListResponse,
@@ -460,6 +475,8 @@ import type {
   SkillImportRequest,
   SkillInvokeRequest,
   SkillListResponse,
+  SkillPermissionResponse,
+  SkillPermissionsResponse,
   SkillRatingListResponse,
   SkillRatingResponse,
   SkillRatingSummaryResponse,
@@ -549,6 +566,7 @@ import type {
   UpdatePinningRequest,
   UpdatePinningResponse,
   UpdatePluginToolRequest,
+  UpdatePrivacySettingsRequest,
   UpdatePublishReleaseRequest,
   UpdateReleaseListResponse,
   UpdateReleaseManifestResponse,
@@ -39184,4 +39202,1167 @@ export const useScreenCreatorPayout = <
   TContext
 > => {
   return useMutation(getScreenCreatorPayoutMutationOptions(options));
+};
+
+/**
+ * @summary Compute the privacy-meter score and breakdown
+ */
+export const getGetPrivacyMeterUrl = () => {
+  return `/api/privacy/meter`;
+};
+
+export const getPrivacyMeter = async (
+  options?: RequestInit,
+): Promise<PrivacyMeterResponse> => {
+  return customFetch<PrivacyMeterResponse>(getGetPrivacyMeterUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPrivacyMeterQueryKey = () => {
+  return [`/api/privacy/meter`] as const;
+};
+
+export const getGetPrivacyMeterQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPrivacyMeter>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPrivacyMeter>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPrivacyMeterQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPrivacyMeter>>> = ({
+    signal,
+  }) => getPrivacyMeter({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPrivacyMeter>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPrivacyMeterQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPrivacyMeter>>
+>;
+export type GetPrivacyMeterQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Compute the privacy-meter score and breakdown
+ */
+
+export function useGetPrivacyMeter<
+  TData = Awaited<ReturnType<typeof getPrivacyMeter>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPrivacyMeter>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPrivacyMeterQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Read per-feature privacy toggles
+ */
+export const getGetPrivacySettingsUrl = () => {
+  return `/api/privacy/settings`;
+};
+
+export const getPrivacySettings = async (
+  options?: RequestInit,
+): Promise<PrivacySettingsResponse> => {
+  return customFetch<PrivacySettingsResponse>(getGetPrivacySettingsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPrivacySettingsQueryKey = () => {
+  return [`/api/privacy/settings`] as const;
+};
+
+export const getGetPrivacySettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPrivacySettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPrivacySettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPrivacySettingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPrivacySettings>>
+  > = ({ signal }) => getPrivacySettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPrivacySettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPrivacySettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPrivacySettings>>
+>;
+export type GetPrivacySettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Read per-feature privacy toggles
+ */
+
+export function useGetPrivacySettings<
+  TData = Awaited<ReturnType<typeof getPrivacySettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPrivacySettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPrivacySettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update privacy toggles (partial)
+ */
+export const getUpdatePrivacySettingsUrl = () => {
+  return `/api/privacy/settings`;
+};
+
+export const updatePrivacySettings = async (
+  updatePrivacySettingsRequest: UpdatePrivacySettingsRequest,
+  options?: RequestInit,
+): Promise<PrivacySettingsResponse> => {
+  return customFetch<PrivacySettingsResponse>(getUpdatePrivacySettingsUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updatePrivacySettingsRequest),
+  });
+};
+
+export const getUpdatePrivacySettingsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePrivacySettings>>,
+    TError,
+    { data: BodyType<UpdatePrivacySettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePrivacySettings>>,
+  TError,
+  { data: BodyType<UpdatePrivacySettingsRequest> },
+  TContext
+> => {
+  const mutationKey = ["updatePrivacySettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePrivacySettings>>,
+    { data: BodyType<UpdatePrivacySettingsRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updatePrivacySettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePrivacySettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePrivacySettings>>
+>;
+export type UpdatePrivacySettingsMutationBody =
+  BodyType<UpdatePrivacySettingsRequest>;
+export type UpdatePrivacySettingsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update privacy toggles (partial)
+ */
+export const useUpdatePrivacySettings = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePrivacySettings>>,
+    TError,
+    { data: BodyType<UpdatePrivacySettingsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePrivacySettings>>,
+  TError,
+  { data: BodyType<UpdatePrivacySettingsRequest> },
+  TContext
+> => {
+  return useMutation(getUpdatePrivacySettingsMutationOptions(options));
+};
+
+/**
+ * @summary Inventory of locally-held data ("what's on my machine")
+ */
+export const getGetDataInventoryUrl = () => {
+  return `/api/privacy/inventory`;
+};
+
+export const getDataInventory = async (
+  options?: RequestInit,
+): Promise<DataInventoryResponse> => {
+  return customFetch<DataInventoryResponse>(getGetDataInventoryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDataInventoryQueryKey = () => {
+  return [`/api/privacy/inventory`] as const;
+};
+
+export const getGetDataInventoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDataInventory>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDataInventory>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDataInventoryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDataInventory>>
+  > = ({ signal }) => getDataInventory({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDataInventory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDataInventoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDataInventory>>
+>;
+export type GetDataInventoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Inventory of locally-held data ("what's on my machine")
+ */
+
+export function useGetDataInventory<
+  TData = Awaited<ReturnType<typeof getDataInventory>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDataInventory>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDataInventoryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Paginated outbound network call log
+ */
+export const getListNetworkCallsUrl = (params?: ListNetworkCallsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/privacy/network-calls?${stringifiedParams}`
+    : `/api/privacy/network-calls`;
+};
+
+export const listNetworkCalls = async (
+  params?: ListNetworkCallsParams,
+  options?: RequestInit,
+): Promise<NetworkCallListResponse> => {
+  return customFetch<NetworkCallListResponse>(getListNetworkCallsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListNetworkCallsQueryKey = (
+  params?: ListNetworkCallsParams,
+) => {
+  return [`/api/privacy/network-calls`, ...(params ? [params] : [])] as const;
+};
+
+export const getListNetworkCallsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listNetworkCalls>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListNetworkCallsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listNetworkCalls>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListNetworkCallsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listNetworkCalls>>
+  > = ({ signal }) => listNetworkCalls(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listNetworkCalls>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListNetworkCallsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listNetworkCalls>>
+>;
+export type ListNetworkCallsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Paginated outbound network call log
+ */
+
+export function useListNetworkCalls<
+  TData = Awaited<ReturnType<typeof listNetworkCalls>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListNetworkCallsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listNetworkCalls>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListNetworkCallsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary 30-day aggregate of outbound network calls
+ */
+export const getGetNetworkCallsSummaryUrl = () => {
+  return `/api/privacy/network-calls/summary`;
+};
+
+export const getNetworkCallsSummary = async (
+  options?: RequestInit,
+): Promise<NetworkCallSummaryResponse> => {
+  return customFetch<NetworkCallSummaryResponse>(
+    getGetNetworkCallsSummaryUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetNetworkCallsSummaryQueryKey = () => {
+  return [`/api/privacy/network-calls/summary`] as const;
+};
+
+export const getGetNetworkCallsSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNetworkCallsSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNetworkCallsSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetNetworkCallsSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getNetworkCallsSummary>>
+  > = ({ signal }) => getNetworkCallsSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNetworkCallsSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetNetworkCallsSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNetworkCallsSummary>>
+>;
+export type GetNetworkCallsSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary 30-day aggregate of outbound network calls
+ */
+
+export function useGetNetworkCallsSummary<
+  TData = Awaited<ReturnType<typeof getNetworkCallsSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNetworkCallsSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetNetworkCallsSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Per-skill granular permission grid
+ */
+export const getListSkillPermissionsUrl = () => {
+  return `/api/privacy/skill-permissions`;
+};
+
+export const listSkillPermissions = async (
+  options?: RequestInit,
+): Promise<SkillPermissionsResponse> => {
+  return customFetch<SkillPermissionsResponse>(getListSkillPermissionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSkillPermissionsQueryKey = () => {
+  return [`/api/privacy/skill-permissions`] as const;
+};
+
+export const getListSkillPermissionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSkillPermissions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillPermissions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSkillPermissionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSkillPermissions>>
+  > = ({ signal }) => listSkillPermissions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillPermissions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSkillPermissionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSkillPermissions>>
+>;
+export type ListSkillPermissionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Per-skill granular permission grid
+ */
+
+export function useListSkillPermissions<
+  TData = Awaited<ReturnType<typeof listSkillPermissions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillPermissions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSkillPermissionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Grant or revoke a single permission for a skill
+ */
+export const getSetSkillPermissionUrl = () => {
+  return `/api/privacy/skill-permissions/set`;
+};
+
+export const setSkillPermission = async (
+  setSkillPermissionRequest: SetSkillPermissionRequest,
+  options?: RequestInit,
+): Promise<SkillPermissionResponse> => {
+  return customFetch<SkillPermissionResponse>(getSetSkillPermissionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setSkillPermissionRequest),
+  });
+};
+
+export const getSetSkillPermissionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSkillPermission>>,
+    TError,
+    { data: BodyType<SetSkillPermissionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setSkillPermission>>,
+  TError,
+  { data: BodyType<SetSkillPermissionRequest> },
+  TContext
+> => {
+  const mutationKey = ["setSkillPermission"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setSkillPermission>>,
+    { data: BodyType<SetSkillPermissionRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setSkillPermission(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetSkillPermissionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setSkillPermission>>
+>;
+export type SetSkillPermissionMutationBody =
+  BodyType<SetSkillPermissionRequest>;
+export type SetSkillPermissionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Grant or revoke a single permission for a skill
+ */
+export const useSetSkillPermission = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSkillPermission>>,
+    TError,
+    { data: BodyType<SetSkillPermissionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setSkillPermission>>,
+  TError,
+  { data: BodyType<SetSkillPermissionRequest> },
+  TContext
+> => {
+  return useMutation(getSetSkillPermissionMutationOptions(options));
+};
+
+/**
+ * @summary One-shot full export of every data category
+ */
+export const getExportPrivacyBundleUrl = () => {
+  return `/api/privacy/export`;
+};
+
+export const exportPrivacyBundle = async (
+  options?: RequestInit,
+): Promise<PrivacyExportResponse> => {
+  return customFetch<PrivacyExportResponse>(getExportPrivacyBundleUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportPrivacyBundleQueryKey = () => {
+  return [`/api/privacy/export`] as const;
+};
+
+export const getExportPrivacyBundleQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportPrivacyBundle>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportPrivacyBundle>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getExportPrivacyBundleQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof exportPrivacyBundle>>
+  > = ({ signal }) => exportPrivacyBundle({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportPrivacyBundle>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportPrivacyBundleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportPrivacyBundle>>
+>;
+export type ExportPrivacyBundleQueryError = ErrorType<unknown>;
+
+/**
+ * @summary One-shot full export of every data category
+ */
+
+export function useExportPrivacyBundle<
+  TData = Awaited<ReturnType<typeof exportPrivacyBundle>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportPrivacyBundle>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportPrivacyBundleQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Enumerate categories that can be deleted individually
+ */
+export const getListDataCategoriesUrl = () => {
+  return `/api/privacy/categories`;
+};
+
+export const listDataCategories = async (
+  options?: RequestInit,
+): Promise<DataCategoriesResponse> => {
+  return customFetch<DataCategoriesResponse>(getListDataCategoriesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDataCategoriesQueryKey = () => {
+  return [`/api/privacy/categories`] as const;
+};
+
+export const getListDataCategoriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDataCategories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDataCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDataCategoriesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDataCategories>>
+  > = ({ signal }) => listDataCategories({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDataCategories>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDataCategoriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDataCategories>>
+>;
+export type ListDataCategoriesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Enumerate categories that can be deleted individually
+ */
+
+export function useListDataCategories<
+  TData = Awaited<ReturnType<typeof listDataCategories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDataCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDataCategoriesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Permanently delete one category of data
+ */
+export const getDeleteDataCategoryUrl = () => {
+  return `/api/privacy/delete-category`;
+};
+
+export const deleteDataCategory = async (
+  deleteCategoryRequest: DeleteCategoryRequest,
+  options?: RequestInit,
+): Promise<CategoryDeletionResponse> => {
+  return customFetch<CategoryDeletionResponse>(getDeleteDataCategoryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(deleteCategoryRequest),
+  });
+};
+
+export const getDeleteDataCategoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDataCategory>>,
+    TError,
+    { data: BodyType<DeleteCategoryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDataCategory>>,
+  TError,
+  { data: BodyType<DeleteCategoryRequest> },
+  TContext
+> => {
+  const mutationKey = ["deleteDataCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDataCategory>>,
+    { data: BodyType<DeleteCategoryRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return deleteDataCategory(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDataCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDataCategory>>
+>;
+export type DeleteDataCategoryMutationBody = BodyType<DeleteCategoryRequest>;
+export type DeleteDataCategoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Permanently delete one category of data
+ */
+export const useDeleteDataCategory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDataCategory>>,
+    TError,
+    { data: BodyType<DeleteCategoryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDataCategory>>,
+  TError,
+  { data: BodyType<DeleteCategoryRequest> },
+  TContext
+> => {
+  return useMutation(getDeleteDataCategoryMutationOptions(options));
+};
+
+/**
+ * @summary List filed GDPR erasure requests
+ */
+export const getListErasureRequestsUrl = (
+  params?: ListErasureRequestsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/privacy/erasure-requests?${stringifiedParams}`
+    : `/api/privacy/erasure-requests`;
+};
+
+export const listErasureRequests = async (
+  params?: ListErasureRequestsParams,
+  options?: RequestInit,
+): Promise<ErasureRequestListResponse> => {
+  return customFetch<ErasureRequestListResponse>(
+    getListErasureRequestsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListErasureRequestsQueryKey = (
+  params?: ListErasureRequestsParams,
+) => {
+  return [
+    `/api/privacy/erasure-requests`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListErasureRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listErasureRequests>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListErasureRequestsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listErasureRequests>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListErasureRequestsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listErasureRequests>>
+  > = ({ signal }) =>
+    listErasureRequests(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listErasureRequests>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListErasureRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listErasureRequests>>
+>;
+export type ListErasureRequestsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List filed GDPR erasure requests
+ */
+
+export function useListErasureRequests<
+  TData = Awaited<ReturnType<typeof listErasureRequests>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListErasureRequestsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listErasureRequests>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListErasureRequestsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary File a GDPR erasure request
+ */
+export const getCreateErasureRequestUrl = () => {
+  return `/api/privacy/erasure-requests`;
+};
+
+export const createErasureRequest = async (
+  createErasureRequestRequest: CreateErasureRequestRequest,
+  options?: RequestInit,
+): Promise<ErasureRequestResponse> => {
+  return customFetch<ErasureRequestResponse>(getCreateErasureRequestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createErasureRequestRequest),
+  });
+};
+
+export const getCreateErasureRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createErasureRequest>>,
+    TError,
+    { data: BodyType<CreateErasureRequestRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createErasureRequest>>,
+  TError,
+  { data: BodyType<CreateErasureRequestRequest> },
+  TContext
+> => {
+  const mutationKey = ["createErasureRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createErasureRequest>>,
+    { data: BodyType<CreateErasureRequestRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createErasureRequest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateErasureRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createErasureRequest>>
+>;
+export type CreateErasureRequestMutationBody =
+  BodyType<CreateErasureRequestRequest>;
+export type CreateErasureRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary File a GDPR erasure request
+ */
+export const useCreateErasureRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createErasureRequest>>,
+    TError,
+    { data: BodyType<CreateErasureRequestRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createErasureRequest>>,
+  TError,
+  { data: BodyType<CreateErasureRequestRequest> },
+  TContext
+> => {
+  return useMutation(getCreateErasureRequestMutationOptions(options));
+};
+
+/**
+ * @summary Cancel a pending erasure request
+ */
+export const getCancelErasureRequestUrl = (id: string) => {
+  return `/api/privacy/erasure-requests/${id}/cancel`;
+};
+
+export const cancelErasureRequest = async (
+  id: string,
+  options?: RequestInit,
+): Promise<ErasureRequestResponse> => {
+  return customFetch<ErasureRequestResponse>(getCancelErasureRequestUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCancelErasureRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelErasureRequest>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelErasureRequest>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["cancelErasureRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelErasureRequest>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return cancelErasureRequest(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CancelErasureRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof cancelErasureRequest>>
+>;
+
+export type CancelErasureRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Cancel a pending erasure request
+ */
+export const useCancelErasureRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelErasureRequest>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof cancelErasureRequest>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getCancelErasureRequestMutationOptions(options));
 };

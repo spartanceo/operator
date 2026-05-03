@@ -8666,6 +8666,283 @@ export interface ScreenCreatorPayoutResponse {
   data: ScreenCreatorPayoutResponseData;
 }
 
+export interface CategoryDeletionResult {
+  category: string;
+  deleted: number;
+  completedAt: string;
+}
+
+export interface CategoryDeletionResponse {
+  success: boolean;
+  data: CategoryDeletionResult;
+}
+
+export type CreateErasureRequestRequestScope =
+  (typeof CreateErasureRequestRequestScope)[keyof typeof CreateErasureRequestRequestScope];
+
+export const CreateErasureRequestRequestScope = {
+  all: "all",
+  personal_data_only: "personal_data_only",
+} as const;
+
+export interface CreateErasureRequestRequest {
+  requesterEmail: string;
+  scope?: CreateErasureRequestRequestScope;
+  reason?: string;
+}
+
+export interface DataCategory {
+  key: string;
+  label: string;
+}
+
+export type DataCategoriesResponseData = {
+  items: DataCategory[];
+};
+
+export interface DataCategoriesResponse {
+  success: boolean;
+  data: DataCategoriesResponseData;
+}
+
+export interface InventoryCategory {
+  key: string;
+  label: string;
+  description: string;
+  itemCount: number;
+}
+
+export interface DataInventory {
+  categories: InventoryCategory[];
+  totalItems: number;
+  databaseBytes: number;
+  workspaceBytes: number;
+  totalDiskBytes: number;
+  generatedAt: string;
+}
+
+export interface DataInventoryResponse {
+  success: boolean;
+  data: DataInventory;
+}
+
+export interface DeleteCategoryRequest {
+  category: string;
+  confirm: boolean;
+}
+
+export interface ErasureRequest {
+  id: string;
+  requesterEmail: string;
+  scope: string;
+  reason?: string | null;
+  status: string;
+  completedAt?: string | null;
+  createdAt: string;
+}
+
+export type ErasureRequestListResponseData = {
+  items: ErasureRequest[];
+  nextCursor: string | null;
+};
+
+export interface ErasureRequestListResponse {
+  success: boolean;
+  data: ErasureRequestListResponseData;
+}
+
+export interface ErasureRequestResponse {
+  success: boolean;
+  data: ErasureRequest;
+}
+
+export type NetworkCallInitiator =
+  (typeof NetworkCallInitiator)[keyof typeof NetworkCallInitiator];
+
+export const NetworkCallInitiator = {
+  user: "user",
+  automatic: "automatic",
+} as const;
+
+export interface NetworkCall {
+  id: string;
+  domain: string;
+  purpose: string;
+  dataType: string;
+  initiator: NetworkCallInitiator;
+  bytesSent: number;
+  bytesReceived: number;
+  statusCode?: number | null;
+  createdAt: string;
+}
+
+export interface NetworkCallDomainBreakdown {
+  domain: string;
+  count: number;
+  purposes: string[];
+}
+
+export type NetworkCallListResponseData = {
+  items: NetworkCall[];
+  nextCursor: string | null;
+};
+
+export interface NetworkCallListResponse {
+  success: boolean;
+  data: NetworkCallListResponseData;
+}
+
+export interface NetworkCallSummary {
+  windowStart: string;
+  windowEnd: string;
+  totalCalls: number;
+  totalBytesSent: number;
+  totalBytesReceived: number;
+  userInitiated: number;
+  automatic: number;
+  byDomain: NetworkCallDomainBreakdown[];
+}
+
+export interface NetworkCallSummaryResponse {
+  success: boolean;
+  data: NetworkCallSummary;
+}
+
+export type PrivacyExportBundleVersion =
+  (typeof PrivacyExportBundleVersion)[keyof typeof PrivacyExportBundleVersion];
+
+export const PrivacyExportBundleVersion = {
+  NUMBER_1: "1",
+} as const;
+
+export type PrivacyExportBundleData = { [key: string]: unknown[] };
+
+export interface PrivacyExportBundle {
+  tenantId: string;
+  exportedAt: string;
+  version: PrivacyExportBundleVersion;
+  data: PrivacyExportBundleData;
+}
+
+export interface PrivacyExportResponse {
+  success: boolean;
+  data: PrivacyExportBundle;
+}
+
+export interface PrivacyMeterDeduction {
+  deduction: number;
+  local?: boolean;
+  connected?: number;
+  anyEnabled?: boolean;
+  allowed?: boolean;
+  skillsWithNetwork?: number;
+  count?: number;
+}
+
+export interface PrivacyMeterBreakdown {
+  integrations: PrivacyMeterDeduction;
+  telemetry: PrivacyMeterDeduction;
+  externalModels: PrivacyMeterDeduction;
+  marketplaceUsageStats: PrivacyMeterDeduction;
+  skillNetwork: PrivacyMeterDeduction;
+  recentNetworkCalls: PrivacyMeterDeduction;
+}
+
+export type PrivacyMeterReadingBand =
+  (typeof PrivacyMeterReadingBand)[keyof typeof PrivacyMeterReadingBand];
+
+export const PrivacyMeterReadingBand = {
+  green: "green",
+  amber: "amber",
+  red: "red",
+} as const;
+
+export interface PrivacyMeterReading {
+  score: number;
+  band: PrivacyMeterReadingBand;
+  summary: string;
+  breakdown: PrivacyMeterBreakdown;
+  generatedAt: string;
+}
+
+export interface PrivacyMeterResponse {
+  success: boolean;
+  data: PrivacyMeterReading;
+}
+
+export interface PrivacySettings {
+  allowExternalModels: boolean;
+  allowMarketplaceUsageStats: boolean;
+  allowIntegrationDataReads: boolean;
+  allowSkillNetworkCalls: boolean;
+  updatedAt: string;
+}
+
+export interface PrivacySettingsResponse {
+  success: boolean;
+  data: PrivacySettings;
+}
+
+export type SetSkillPermissionRequestPermission =
+  (typeof SetSkillPermissionRequestPermission)[keyof typeof SetSkillPermissionRequestPermission];
+
+export const SetSkillPermissionRequestPermission = {
+  filesystemread: "filesystem.read",
+  filesystemwrite: "filesystem.write",
+  networkoutbound: "network.outbound",
+  integrationread: "integration.read",
+  integrationwrite: "integration.write",
+  desktopcontrol: "desktop.control",
+  memoryread: "memory.read",
+  memorywrite: "memory.write",
+  shellexec: "shell.exec",
+} as const;
+
+export interface SetSkillPermissionRequest {
+  skillId: string;
+  permission: SetSkillPermissionRequestPermission;
+  granted: boolean;
+}
+
+export interface SkillPermission {
+  id: string;
+  skillId: string;
+  skillSlug: string;
+  permission: string;
+  granted: boolean;
+  grantedAt?: string | null;
+  revokedAt?: string | null;
+  updatedAt: string;
+}
+
+export interface SkillPermissionResponse {
+  success: boolean;
+  data: SkillPermission;
+}
+
+export interface SkillPermissionsForSkill {
+  skillId: string;
+  slug: string;
+  name: string;
+  permissions: SkillPermission[];
+}
+
+export type SkillPermissionsResponseData = {
+  items: SkillPermissionsForSkill[];
+};
+
+export interface SkillPermissionsResponse {
+  success: boolean;
+  data: SkillPermissionsResponseData;
+}
+
+export interface UpdatePrivacySettingsRequest {
+  allowExternalModels?: boolean;
+  allowMarketplaceUsageStats?: boolean;
+  allowIntegrationDataReads?: boolean;
+  allowSkillNetworkCalls?: boolean;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -9866,4 +10143,34 @@ export type GetTaxRemittanceReportParams = {
 
 export type GetCreatorPayoutSettingsParams = {
   creatorId?: string;
+};
+
+export type ListNetworkCallsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  /**
+   * @minimum 0
+   */
+  sinceMs?: number;
+};
+
+export type ListErasureRequestsParams = {
+  /**
+   * Opaque cursor returned by the previous page.
+   */
+  cursor?: CursorParamParameter;
+  /**
+   * Page size, default 20, max 100.
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
 };

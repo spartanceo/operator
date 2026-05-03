@@ -400,7 +400,7 @@ export async function recordUsage(
 export interface UsageItem {
   id: string;
   skillId: string;
-  skillSlug: string;
+  skillSlug: string | null;
   creatorHandle: string | null;
   modelName: string | null;
   wasPreview: boolean;
@@ -411,7 +411,7 @@ export interface UsageItem {
 export interface MonthlyUsagePayload {
   totalThisMonth: number;
   totalAllTime: number;
-  perSkill: Array<{ skillId: string; skillSlug: string; count: number }>;
+  perSkill: Array<{ skillId: string; skillSlug: string | null; count: number }>;
   recent: UsageItem[];
 }
 
@@ -438,7 +438,7 @@ export async function listMonthlyUsage(ctx: TenantContext): Promise<MonthlyUsage
     .select({ count: drizzleSql<number>`count(*)` })
     .from(skillUsageEvents)
     .where(tenantScope(ctx, skillUsageEvents));
-  const perSkillMap = new Map<string, { skillId: string; skillSlug: string; count: number }>();
+  const perSkillMap = new Map<string, { skillId: string; skillSlug: string | null; count: number }>();
   for (const r of monthRows) {
     const key = r.skillId;
     const existing = perSkillMap.get(key);
@@ -501,7 +501,8 @@ export async function getCreatorEarnings(
     globalUses === 0 ? 0 : Math.round((totalUses / globalUses) * POOL_CENTS_PER_MONTH);
   const perSkillMap = new Map<string, number>();
   for (const r of creatorRows) {
-    perSkillMap.set(r.skillSlug, (perSkillMap.get(r.skillSlug) ?? 0) + 1);
+    const slug = r.skillSlug ?? "";
+    perSkillMap.set(slug, (perSkillMap.get(slug) ?? 0) + 1);
   }
   const perSkill = Array.from(perSkillMap.entries())
     .map(([skillSlug, uses]) => ({

@@ -19024,3 +19024,491 @@ export const ScreenCreatorPayoutResponse = zod.object({
     ),
   }),
 });
+
+/**
+ * @summary Compute the privacy-meter score and breakdown
+ */
+export const GetPrivacyMeterHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetPrivacyMeterResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    score: zod.number(),
+    band: zod.enum(["green", "amber", "red"]),
+    summary: zod.string(),
+    breakdown: zod.object({
+      integrations: zod.object({
+        deduction: zod.number(),
+        local: zod.boolean().optional(),
+        connected: zod.number().optional(),
+        anyEnabled: zod.boolean().optional(),
+        allowed: zod.boolean().optional(),
+        skillsWithNetwork: zod.number().optional(),
+        count: zod.number().optional(),
+      }),
+      telemetry: zod.object({
+        deduction: zod.number(),
+        local: zod.boolean().optional(),
+        connected: zod.number().optional(),
+        anyEnabled: zod.boolean().optional(),
+        allowed: zod.boolean().optional(),
+        skillsWithNetwork: zod.number().optional(),
+        count: zod.number().optional(),
+      }),
+      externalModels: zod.object({
+        deduction: zod.number(),
+        local: zod.boolean().optional(),
+        connected: zod.number().optional(),
+        anyEnabled: zod.boolean().optional(),
+        allowed: zod.boolean().optional(),
+        skillsWithNetwork: zod.number().optional(),
+        count: zod.number().optional(),
+      }),
+      marketplaceUsageStats: zod.object({
+        deduction: zod.number(),
+        local: zod.boolean().optional(),
+        connected: zod.number().optional(),
+        anyEnabled: zod.boolean().optional(),
+        allowed: zod.boolean().optional(),
+        skillsWithNetwork: zod.number().optional(),
+        count: zod.number().optional(),
+      }),
+      skillNetwork: zod.object({
+        deduction: zod.number(),
+        local: zod.boolean().optional(),
+        connected: zod.number().optional(),
+        anyEnabled: zod.boolean().optional(),
+        allowed: zod.boolean().optional(),
+        skillsWithNetwork: zod.number().optional(),
+        count: zod.number().optional(),
+      }),
+      recentNetworkCalls: zod.object({
+        deduction: zod.number(),
+        local: zod.boolean().optional(),
+        connected: zod.number().optional(),
+        anyEnabled: zod.boolean().optional(),
+        allowed: zod.boolean().optional(),
+        skillsWithNetwork: zod.number().optional(),
+        count: zod.number().optional(),
+      }),
+    }),
+    generatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Read per-feature privacy toggles
+ */
+export const GetPrivacySettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetPrivacySettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    allowExternalModels: zod.boolean(),
+    allowMarketplaceUsageStats: zod.boolean(),
+    allowIntegrationDataReads: zod.boolean(),
+    allowSkillNetworkCalls: zod.boolean(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Update privacy toggles (partial)
+ */
+export const UpdatePrivacySettingsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdatePrivacySettingsBody = zod.object({
+  allowExternalModels: zod.boolean().optional(),
+  allowMarketplaceUsageStats: zod.boolean().optional(),
+  allowIntegrationDataReads: zod.boolean().optional(),
+  allowSkillNetworkCalls: zod.boolean().optional(),
+});
+
+export const UpdatePrivacySettingsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    allowExternalModels: zod.boolean(),
+    allowMarketplaceUsageStats: zod.boolean(),
+    allowIntegrationDataReads: zod.boolean(),
+    allowSkillNetworkCalls: zod.boolean(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Inventory of locally-held data ("what's on my machine")
+ */
+export const GetDataInventoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetDataInventoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    categories: zod.array(
+      zod.object({
+        key: zod.string(),
+        label: zod.string(),
+        description: zod.string(),
+        itemCount: zod.number(),
+      }),
+    ),
+    totalItems: zod.number(),
+    databaseBytes: zod.number(),
+    workspaceBytes: zod.number(),
+    totalDiskBytes: zod.number(),
+    generatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Paginated outbound network call log
+ */
+export const listNetworkCallsQueryLimitDefault = 20;
+export const listNetworkCallsQueryLimitMax = 100;
+
+export const listNetworkCallsQuerySinceMsMin = 0;
+
+export const ListNetworkCallsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listNetworkCallsQueryLimitMax)
+    .default(listNetworkCallsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+  sinceMs: zod.coerce.number().min(listNetworkCallsQuerySinceMsMin).optional(),
+});
+
+export const ListNetworkCallsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListNetworkCallsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        domain: zod.string(),
+        purpose: zod.string(),
+        dataType: zod.string(),
+        initiator: zod.enum(["user", "automatic"]),
+        bytesSent: zod.number(),
+        bytesReceived: zod.number(),
+        statusCode: zod.number().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary 30-day aggregate of outbound network calls
+ */
+export const GetNetworkCallsSummaryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetNetworkCallsSummaryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    windowStart: zod.coerce.date(),
+    windowEnd: zod.coerce.date(),
+    totalCalls: zod.number(),
+    totalBytesSent: zod.number(),
+    totalBytesReceived: zod.number(),
+    userInitiated: zod.number(),
+    automatic: zod.number(),
+    byDomain: zod.array(
+      zod.object({
+        domain: zod.string(),
+        count: zod.number(),
+        purposes: zod.array(zod.string()),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Per-skill granular permission grid
+ */
+export const ListSkillPermissionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSkillPermissionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        skillId: zod.string(),
+        slug: zod.string(),
+        name: zod.string(),
+        permissions: zod.array(
+          zod.object({
+            id: zod.string(),
+            skillId: zod.string(),
+            skillSlug: zod.string(),
+            permission: zod.string(),
+            granted: zod.boolean(),
+            grantedAt: zod.coerce.date().nullish(),
+            revokedAt: zod.coerce.date().nullish(),
+            updatedAt: zod.coerce.date(),
+          }),
+        ),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Grant or revoke a single permission for a skill
+ */
+export const SetSkillPermissionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetSkillPermissionBody = zod.object({
+  skillId: zod.string(),
+  permission: zod.enum([
+    "filesystem.read",
+    "filesystem.write",
+    "network.outbound",
+    "integration.read",
+    "integration.write",
+    "desktop.control",
+    "memory.read",
+    "memory.write",
+    "shell.exec",
+  ]),
+  granted: zod.boolean(),
+});
+
+export const SetSkillPermissionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    skillId: zod.string(),
+    skillSlug: zod.string(),
+    permission: zod.string(),
+    granted: zod.boolean(),
+    grantedAt: zod.coerce.date().nullish(),
+    revokedAt: zod.coerce.date().nullish(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary One-shot full export of every data category
+ */
+export const ExportPrivacyBundleHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ExportPrivacyBundleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    tenantId: zod.string(),
+    exportedAt: zod.coerce.date(),
+    version: zod.enum(["1"]),
+    data: zod.record(zod.string(), zod.array(zod.unknown())),
+  }),
+});
+
+/**
+ * @summary Enumerate categories that can be deleted individually
+ */
+export const ListDataCategoriesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListDataCategoriesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        key: zod.string(),
+        label: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Permanently delete one category of data
+ */
+export const DeleteDataCategoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DeleteDataCategoryBody = zod.object({
+  category: zod.string(),
+  confirm: zod.literal(true),
+});
+
+export const DeleteDataCategoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    category: zod.string(),
+    deleted: zod.number(),
+    completedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List filed GDPR erasure requests
+ */
+export const listErasureRequestsQueryLimitDefault = 20;
+export const listErasureRequestsQueryLimitMax = 100;
+
+export const ListErasureRequestsQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listErasureRequestsQueryLimitMax)
+    .default(listErasureRequestsQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListErasureRequestsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListErasureRequestsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        requesterEmail: zod.string(),
+        scope: zod.string(),
+        reason: zod.string().nullish(),
+        status: zod.string(),
+        completedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
+ * @summary File a GDPR erasure request
+ */
+export const CreateErasureRequestHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CreateErasureRequestBody = zod.object({
+  requesterEmail: zod.string().email(),
+  scope: zod.enum(["all", "personal_data_only"]).optional(),
+  reason: zod.string().optional(),
+});
+
+export const CreateErasureRequestResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    requesterEmail: zod.string(),
+    scope: zod.string(),
+    reason: zod.string().nullish(),
+    status: zod.string(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Cancel a pending erasure request
+ */
+export const CancelErasureRequestParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CancelErasureRequestHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const CancelErasureRequestResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    requesterEmail: zod.string(),
+    scope: zod.string(),
+    reason: zod.string().nullish(),
+    status: zod.string(),
+    completedAt: zod.coerce.date().nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});

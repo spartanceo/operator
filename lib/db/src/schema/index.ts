@@ -111,3 +111,8 @@ export * from "./creator-tax-documents";
 export * from "./tax-collections";
 export * from "./creator-payout-settings";
 export * from "./creator-payout-screenings";
+
+export * from "./privacy-settings";
+export * from "./network-calls";
+export * from "./skill-permissions";
+export * from "./erasure-requests";

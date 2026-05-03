@@ -9526,6 +9526,239 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ScreenCreatorPayoutResponse' }
+  /privacy/meter:
+    get:
+      operationId: getPrivacyMeter
+      tags: [privacy]
+      summary: Compute the privacy-meter score and breakdown
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Privacy meter reading
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacyMeterResponse'
+  /privacy/settings:
+    get:
+      operationId: getPrivacySettings
+      tags: [privacy]
+      summary: Read per-feature privacy toggles
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacySettingsResponse'
+    patch:
+      operationId: updatePrivacySettings
+      tags: [privacy]
+      summary: Update privacy toggles (partial)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePrivacySettingsRequest'
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacySettingsResponse'
+  /privacy/inventory:
+    get:
+      operationId: getDataInventory
+      tags: [privacy]
+      summary: Inventory of locally-held data ("what's on my machine")
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataInventoryResponse'
+  /privacy/network-calls:
+    get:
+      operationId: listNetworkCalls
+      tags: [privacy]
+      summary: Paginated outbound network call log
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: sinceMs
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: Network calls page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkCallListResponse'
+  /privacy/network-calls/summary:
+    get:
+      operationId: getNetworkCallsSummary
+      tags: [privacy]
+      summary: 30-day aggregate of outbound network calls
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkCallSummaryResponse'
+  /privacy/skill-permissions:
+    get:
+      operationId: listSkillPermissions
+      tags: [privacy]
+      summary: Per-skill granular permission grid
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillPermissionsResponse'
+  /privacy/skill-permissions/set:
+    post:
+      operationId: setSkillPermission
+      tags: [privacy]
+      summary: Grant or revoke a single permission for a skill
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetSkillPermissionRequest'
+      responses:
+        '200':
+          description: Updated permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillPermissionResponse'
+  /privacy/export:
+    get:
+      operationId: exportPrivacyBundle
+      tags: [privacy]
+      summary: One-shot full export of every data category
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Export bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacyExportResponse'
+  /privacy/categories:
+    get:
+      operationId: listDataCategories
+      tags: [privacy]
+      summary: Enumerate categories that can be deleted individually
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataCategoriesResponse'
+  /privacy/delete-category:
+    post:
+      operationId: deleteDataCategory
+      tags: [privacy]
+      summary: Permanently delete one category of data
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteCategoryRequest'
+      responses:
+        '200':
+          description: Deletion summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryDeletionResponse'
+  /privacy/erasure-requests:
+    get:
+      operationId: listErasureRequests
+      tags: [privacy]
+      summary: List filed GDPR erasure requests
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Erasure requests page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErasureRequestListResponse'
+    post:
+      operationId: createErasureRequest
+      tags: [privacy]
+      summary: File a GDPR erasure request
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateErasureRequestRequest'
+      responses:
+        '200':
+          description: Created request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErasureRequestResponse'
+  /privacy/erasure-requests/{id}/cancel:
+    post:
+      operationId: cancelErasureRequest
+      tags: [privacy]
+      summary: Cancel a pending erasure request
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErasureRequestResponse'
 components:
   parameters:
     TenantHeader:
@@ -23521,6 +23754,382 @@ components:
               type: array
               items: { $ref: '#/components/schemas/SanctionsScreeningOutcome' }
 
+
+    CategoryDeletionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/CategoryDeletionResult" }
+    CategoryDeletionResult:
+      type: object
+      required: [category, deleted, completedAt]
+      properties:
+        category: { type: string }
+        deleted: { type: integer }
+        completedAt: { type: string, format: date-time }
+    CreateErasureRequestRequest:
+      type: object
+      required: [requesterEmail]
+      properties:
+        requesterEmail:
+          type: string
+          format: email
+        scope:
+          type: string
+          enum: [all, personal_data_only]
+        reason:
+          type: string
+    DataCategoriesResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/DataCategory" }
+    DataCategory:
+      type: object
+      required: [key, label]
+      properties:
+        key: { type: string }
+        label: { type: string }
+    DataInventory:
+      type: object
+      required:
+        - categories
+        - totalItems
+        - databaseBytes
+        - workspaceBytes
+        - totalDiskBytes
+        - generatedAt
+      properties:
+        categories:
+          type: array
+          items: { $ref: "#/components/schemas/InventoryCategory" }
+        totalItems: { type: integer }
+        databaseBytes: { type: integer }
+        workspaceBytes: { type: integer }
+        totalDiskBytes: { type: integer }
+        generatedAt: { type: string, format: date-time }
+    DataInventoryResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/DataInventory" }
+    DeleteCategoryRequest:
+      type: object
+      required: [category, confirm]
+      properties:
+        category: { type: string }
+        confirm:
+          type: boolean
+          enum: [true]
+    ErasureRequest:
+      type: object
+      required:
+        - id
+        - requesterEmail
+        - scope
+        - status
+        - createdAt
+      properties:
+        id: { type: string }
+        requesterEmail: { type: string }
+        scope: { type: string }
+        reason:
+          type: string
+          nullable: true
+        status: { type: string }
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt: { type: string, format: date-time }
+    ErasureRequestListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/ErasureRequest" }
+            nextCursor:
+              type: string
+              nullable: true
+    ErasureRequestResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/ErasureRequest" }
+    InventoryCategory:
+      type: object
+      required: [key, label, description, itemCount]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        description: { type: string }
+        itemCount: { type: integer }
+    NetworkCall:
+      type: object
+      required:
+        - id
+        - domain
+        - purpose
+        - dataType
+        - initiator
+        - bytesSent
+        - bytesReceived
+        - createdAt
+      properties:
+        id: { type: string }
+        domain: { type: string }
+        purpose: { type: string }
+        dataType: { type: string }
+        initiator:
+          type: string
+          enum: [user, automatic]
+        bytesSent: { type: integer }
+        bytesReceived: { type: integer }
+        statusCode:
+          type: integer
+          nullable: true
+        createdAt: { type: string, format: date-time }
+    NetworkCallDomainBreakdown:
+      type: object
+      required: [domain, count, purposes]
+      properties:
+        domain: { type: string }
+        count: { type: integer }
+        purposes:
+          type: array
+          items: { type: string }
+    NetworkCallListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items, nextCursor]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/NetworkCall" }
+            nextCursor:
+              type: string
+              nullable: true
+    NetworkCallSummary:
+      type: object
+      required:
+        - windowStart
+        - windowEnd
+        - totalCalls
+        - totalBytesSent
+        - totalBytesReceived
+        - userInitiated
+        - automatic
+        - byDomain
+      properties:
+        windowStart: { type: string, format: date-time }
+        windowEnd: { type: string, format: date-time }
+        totalCalls: { type: integer }
+        totalBytesSent: { type: integer }
+        totalBytesReceived: { type: integer }
+        userInitiated: { type: integer }
+        automatic: { type: integer }
+        byDomain:
+          type: array
+          items: { $ref: "#/components/schemas/NetworkCallDomainBreakdown" }
+    NetworkCallSummaryResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/NetworkCallSummary" }
+    PrivacyExportBundle:
+      type: object
+      required: [tenantId, exportedAt, version, data]
+      properties:
+        tenantId: { type: string }
+        exportedAt: { type: string, format: date-time }
+        version:
+          type: string
+          enum: ["1"]
+        data:
+          type: object
+          additionalProperties:
+            type: array
+            items: {}
+    PrivacyExportResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/PrivacyExportBundle" }
+    PrivacyMeterBreakdown:
+      type: object
+      required:
+        - integrations
+        - telemetry
+        - externalModels
+        - marketplaceUsageStats
+        - skillNetwork
+        - recentNetworkCalls
+      properties:
+        integrations: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
+        telemetry: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
+        externalModels: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
+        marketplaceUsageStats: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
+        skillNetwork: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
+        recentNetworkCalls: { $ref: "#/components/schemas/PrivacyMeterDeduction" }
+    PrivacyMeterDeduction:
+      type: object
+      required: [deduction]
+      properties:
+        deduction:
+          type: number
+        local:
+          type: boolean
+        connected:
+          type: integer
+        anyEnabled:
+          type: boolean
+        allowed:
+          type: boolean
+        skillsWithNetwork:
+          type: integer
+        count:
+          type: integer
+    PrivacyMeterReading:
+      type: object
+      required: [score, band, summary, breakdown, generatedAt]
+      properties:
+        score:
+          type: number
+        band:
+          type: string
+          enum: [green, amber, red]
+        summary:
+          type: string
+        breakdown:
+          $ref: "#/components/schemas/PrivacyMeterBreakdown"
+        generatedAt:
+          type: string
+          format: date-time
+    PrivacyMeterResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/PrivacyMeterReading" }
+    PrivacySettings:
+      type: object
+      required:
+        - allowExternalModels
+        - allowMarketplaceUsageStats
+        - allowIntegrationDataReads
+        - allowSkillNetworkCalls
+        - updatedAt
+      properties:
+        allowExternalModels: { type: boolean }
+        allowMarketplaceUsageStats: { type: boolean }
+        allowIntegrationDataReads: { type: boolean }
+        allowSkillNetworkCalls: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+    PrivacySettingsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/PrivacySettings" }
+    SetSkillPermissionRequest:
+      type: object
+      required: [skillId, permission, granted]
+      properties:
+        skillId: { type: string }
+        permission:
+          type: string
+          enum:
+            - filesystem.read
+            - filesystem.write
+            - network.outbound
+            - integration.read
+            - integration.write
+            - desktop.control
+            - memory.read
+            - memory.write
+            - shell.exec
+        granted: { type: boolean }
+    SkillPermission:
+      type: object
+      required:
+        - id
+        - skillId
+        - skillSlug
+        - permission
+        - granted
+        - updatedAt
+      properties:
+        id: { type: string }
+        skillId: { type: string }
+        skillSlug: { type: string }
+        permission: { type: string }
+        granted: { type: boolean }
+        grantedAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt: { type: string, format: date-time }
+    SkillPermissionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: "#/components/schemas/SkillPermission" }
+    SkillPermissionsForSkill:
+      type: object
+      required: [skillId, slug, name, permissions]
+      properties:
+        skillId: { type: string }
+        slug: { type: string }
+        name: { type: string }
+        permissions:
+          type: array
+          items: { $ref: "#/components/schemas/SkillPermission" }
+    SkillPermissionsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/SkillPermissionsForSkill" }
+    UpdatePrivacySettingsRequest:
+      type: object
+      properties:
+        allowExternalModels: { type: boolean }
+        allowMarketplaceUsageStats: { type: boolean }
+        allowIntegrationDataReads: { type: boolean }
+        allowSkillNetworkCalls: { type: boolean }
   responses: {}
   requestBodies: {}
   headers: {}

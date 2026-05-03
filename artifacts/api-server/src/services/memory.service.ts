@@ -294,6 +294,7 @@ export async function deleteMemory(
 
 // ─── Retrieval (pre-prompt context injection) ────────────────────────────────
 
+// tier-review: bounded — fixed-size literal stopword list, never grows at runtime
 const STOPWORDS = new Set([
   "the",
   "a",

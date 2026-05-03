@@ -25,6 +25,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
 import { OnboardingChecklist } from "@/components/help";
+import { PrivacyMeter } from "@/components/operator/privacy-meter";
+import { useGetPrivacyMeter } from "@workspace/api-client-react";
 
 interface NavItem {
   href: string;
@@ -58,6 +60,10 @@ const NAV_ITEMS: NavItem[] = [
 
 export function OperatorSidebar() {
   const [location] = useLocation();
+  const meterQuery = useGetPrivacyMeter({
+    query: { refetchInterval: 60_000 } as never,
+  });
+  const meter = meterQuery.data?.data;
 
   return (
     <aside
@@ -79,6 +85,7 @@ export function OperatorSidebar() {
           const Icon = item.icon;
           const active =
             location === item.href || location.startsWith(`${item.href}/`);
+          const showMeter = item.href === "/privacy" && meter;
           return (
             <Link
               key={item.href}
@@ -94,7 +101,15 @@ export function OperatorSidebar() {
               aria-current={active ? "page" : undefined}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {showMeter ? (
+                <PrivacyMeter
+                  variant="compact"
+                  score={meter.score}
+                  band={meter.band}
+                  summary={meter.summary}
+                />
+              ) : null}
             </Link>
           );
         })}
