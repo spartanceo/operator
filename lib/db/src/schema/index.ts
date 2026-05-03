@@ -77,6 +77,9 @@ export * from "./task-template-categories";
 export * from "./task-templates";
 export * from "./scheduled-tasks";
 
+export * from "./agent-orchestrations";
+export * from "./orchestration-nodes";
+
 export * from "./skill-drafts";
 export * from "./creator-accounts";
 export * from "./store-skills";
@@ -161,3 +164,5 @@ export * from "./lora-adapters";
 export * from "./workspace-adapter-assignments";
 export * from "./enterprise-model-distributions";
 export * from "./skill-adapter-preferences";
+export * from "./agent-orchestrations";
+export * from "./orchestration-nodes";

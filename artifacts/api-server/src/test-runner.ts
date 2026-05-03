@@ -7524,6 +7524,170 @@ cases.push(
       assert.ok(r.body.data.shutdownAt);
     },
   },
+  {
+    name: "orchestration: POST /api/orchestrations/decompose returns a DAG",
+    run: async () => {
+      const r = await request(app)
+        .post("/api/orchestrations/decompose")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "research climate data and write a brief" });
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      const keys = r.body.data.nodes.map((n: { nodeKey: string }) => n.nodeKey);
+      assert.ok(keys.includes("research"));
+      assert.ok(keys.includes("writing"));
+      const writing = r.body.data.nodes.find(
+        (n: { nodeKey: string }) => n.nodeKey === "writing",
+      );
+      assert.ok(writing.dependsOn.includes("research"));
+    },
+  },
+  {
+    name: "orchestration: GET /api/orchestrations/agents lists six agents",
+    run: async () => {
+      const r = await request(app)
+        .get("/api/orchestrations/agents")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(r.status, 200);
+      assert.equal(r.body.data.agents.length, 6);
+    },
+  },
+  {
+    name: "orchestration: POST /api/orchestrations runs a goal to completion",
+    run: async () => {
+      const r = await request(app)
+        .post("/api/orchestrations")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "research the topic and write a summary" });
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      const id = r.body.data.id;
+      assert.ok(id.startsWith("orc_"));
+      const orc = await import("./services/orchestrator.service");
+      const ctx = { tenantId: TENANT, workspaceId: `default-${TENANT}`, requestId: "test" };
+      const final = await orc.drainOrchestrationForTests(ctx, id, 5000);
+      assert.ok(final);
+      assert.equal(final!.status, "completed", JSON.stringify(final));
+      const detail = await request(app)
+        .get(`/api/orchestrations/${id}`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(detail.status, 200);
+      assert.equal(
+        detail.body.data.nodes.filter(
+          (n: { status: string }) => n.status === "completed",
+        ).length,
+        detail.body.data.nodeCount,
+      );
+      const trace = await request(app)
+        .get(`/api/orchestrations/${id}/trace`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(trace.status, 200);
+      assert.ok(trace.body.data.nodes.length > 0);
+    },
+  },
+  {
+    name: "orchestration: communication node pauses on approval gate",
+    run: async () => {
+      const r = await request(app)
+        .post("/api/orchestrations")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "research the topic, write a brief, and email it" });
+      assert.equal(r.status, 200);
+      const id = r.body.data.id;
+      const orc = await import("./services/orchestrator.service");
+      const ctx = { tenantId: TENANT, workspaceId: `default-${TENANT}`, requestId: "test" };
+      const paused = await orc.drainOrchestrationForTests(ctx, id, 5000);
+      assert.equal(paused!.status, "awaiting_approval", JSON.stringify(paused));
+      const decide = await request(app)
+        .post(`/api/orchestrations/${id}/nodes/communication/decide`)
+        .set("X-Tenant-ID", TENANT)
+        .send({ decision: "approved" });
+      assert.equal(decide.status, 200, JSON.stringify(decide.body));
+      const done = await orc.drainOrchestrationForTests(ctx, id, 5000);
+      assert.equal(done!.status, "completed", JSON.stringify(done));
+    },
+  },
+  {
+    name: "orchestration: denying an approval gate fails the orchestration",
+    run: async () => {
+      const r = await request(app)
+        .post("/api/orchestrations")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "open the desktop app and click save" });
+      assert.equal(r.status, 200);
+      const id = r.body.data.id;
+      const orc = await import("./services/orchestrator.service");
+      const ctx = { tenantId: TENANT, workspaceId: `default-${TENANT}`, requestId: "test" };
+      await orc.drainOrchestrationForTests(ctx, id, 5000);
+      const decide = await request(app)
+        .post(`/api/orchestrations/${id}/nodes/desktop/decide`)
+        .set("X-Tenant-ID", TENANT)
+        .send({ decision: "denied" });
+      assert.equal(decide.status, 200);
+      const done = await orc.drainOrchestrationForTests(ctx, id, 5000);
+      assert.equal(done!.status, "failed", JSON.stringify(done));
+    },
+  },
+  {
+    name: "orchestration: depth limit rejects nesting beyond MAX",
+    run: async () => {
+      const orc = await import("./services/orchestrator.service");
+      const ctx = { tenantId: TENANT, workspaceId: `default-${TENANT}`, requestId: "test" };
+      let parentId: string | undefined;
+      for (let depth = 0; depth <= orc.MAX_ORCHESTRATION_DEPTH; depth += 1) {
+        const created: { id: string } = await orc.createOrchestration(ctx, {
+          goal: `level ${depth}`,
+          ...(parentId ? { parentOrchestrationId: parentId } : {}),
+        });
+        parentId = created.id;
+      }
+      let threw = false;
+      try {
+        await orc.createOrchestration(ctx, {
+          goal: "too deep",
+          parentOrchestrationId: parentId!,
+        });
+      } catch (e) {
+        threw = e instanceof orc.OrchestrationDepthExceededError;
+      }
+      assert.ok(threw, "expected OrchestrationDepthExceededError");
+    },
+  },
+  {
+    name: "orchestration: cancel marks pending nodes as skipped",
+    run: async () => {
+      const orc = await import("./services/orchestrator.service");
+      const ctx = { tenantId: TENANT, workspaceId: `default-${TENANT}`, requestId: "test" };
+      const created = await orc.createOrchestration(ctx, {
+        goal: "open the desktop app and save the file",
+      });
+      await orc.drainOrchestrationForTests(ctx, created.id, 5000);
+      const cancel = await request(app)
+        .post(`/api/orchestrations/${created.id}/cancel`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(cancel.status, 200);
+      assert.equal(cancel.body.data.status, "cancelled");
+      const detail = await orc.getOrchestration(ctx, created.id);
+      assert.ok(
+        detail!.nodes.every(
+          (n) => n.status === "skipped" || n.status === "completed",
+        ),
+      );
+    },
+  },
+  {
+    name: "orchestration: tenant isolation hides other tenant's orchestrations",
+    run: async () => {
+      const create = await request(app)
+        .post("/api/orchestrations")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "research and write" });
+      assert.equal(create.status, 200);
+      const id = create.body.data.id;
+      const otherGet = await request(app)
+        .get(`/api/orchestrations/${id}`)
+        .set("X-Tenant-ID", TENANT_2);
+      assert.equal(otherGet.status, 404);
+    },
+  },
 );
 
 async function main() {

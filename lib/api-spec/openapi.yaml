@@ -100,6 +100,8 @@ tags:
     description: Dynamic Resource Governor (Task #36) — sequential / parallel mode, RAM ceiling, emergency throttle, LAV phase indicator
   - name: custom-models
     description: Fine-tuned GGUF models, LoRA adapters, workspace-scoped adapter activation, skill adapter declarations, and the enterprise model distribution registry (Task #47)
+  - name: orchestration
+    description: Multi-Agent Orchestration Engine (Task #50) — DAG decomposition, specialised sub-agents, parallel/sequential execution, approval gates, partial failure handling, and the "how was this done?" trace
 paths:
   /healthz:
     get:
@@ -7089,6 +7091,206 @@ paths:
                 $ref: "#/components/schemas/QueuedTaskResponse"
         "404":
           description: Unknown task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /orchestrations:
+    get:
+      operationId: listOrchestrations
+      tags:
+        - orchestration
+      summary: List multi-agent orchestrations for the tenant
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/CursorParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Page of orchestrations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestrationListResponse"
+    post:
+      operationId: createOrchestration
+      tags:
+        - orchestration
+      summary: Decompose a goal into a DAG and start executing it
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrchestrationRequest"
+      responses:
+        "200":
+          description: Orchestration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestrationResponse"
+        "400":
+          description: Validation, depth-exceeded, or invalid DAG
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /orchestrations/agents:
+    get:
+      operationId: listOrchestrationAgents
+      tags:
+        - orchestration
+      summary: List the built-in specialised agents
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: Built-in agents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestrationAgentsResponse"
+  /orchestrations/decompose:
+    post:
+      operationId: decomposeOrchestrationGoal
+      tags:
+        - orchestration
+      summary: Preview the DAG for a goal without executing it
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecomposeOrchestrationRequest"
+      responses:
+        "200":
+          description: Decomposed plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestrationPlanResponse"
+        "400":
+          description: Invalid plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /orchestrations/{id}:
+    get:
+      operationId: getOrchestration
+      tags:
+        - orchestration
+      summary: Fetch an orchestration with its node timeline
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Orchestration detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestrationDetailResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /orchestrations/{id}/trace:
+    get:
+      operationId: getOrchestrationTrace
+      tags:
+        - orchestration
+      summary: Fetch the explainability trace for an orchestration
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestrationTraceResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /orchestrations/{id}/cancel:
+    post:
+      operationId: cancelOrchestration
+      tags:
+        - orchestration
+      summary: Cancel an in-flight orchestration
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated orchestration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestrationResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /orchestrations/{id}/nodes/{nodeKey}/decide:
+    post:
+      operationId: decideOrchestrationApproval
+      tags:
+        - orchestration
+      summary: Approve or deny a gated orchestration node
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: nodeKey
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrchestrationDecisionRequest"
+      responses:
+        "200":
+          description: Updated node
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestrationNodeResponse"
+        "404":
+          description: Not found
           content:
             application/json:
               schema:
@@ -24506,6 +24708,81 @@ components:
           required: [deleted]
           properties:
             deleted: { type: boolean }
+    OrchestrationResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          additionalProperties: true
+    OrchestrationListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          additionalProperties: true
+    OrchestrationDetailResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          additionalProperties: true
+    OrchestrationTraceResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          additionalProperties: true
+    OrchestrationNodeResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          additionalProperties: true
+    OrchestrationAgentsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          additionalProperties: true
+    OrchestrationPlanResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          additionalProperties: true
+    CreateOrchestrationRequest:
+      type: object
+      required: [goal]
+      properties:
+        goal: { type: string }
+        conversationId: { type: string }
+        parentOrchestrationId: { type: string }
+    DecomposeOrchestrationRequest:
+      type: object
+      required: [goal]
+      properties:
+        goal: { type: string }
+    OrchestrationDecisionRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [approved, denied]
   responses: {}
   requestBodies: {}
   headers: {}
