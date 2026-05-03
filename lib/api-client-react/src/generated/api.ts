@@ -171,6 +171,11 @@ import type {
   DmcaTakedownListResponse,
   DmcaTakedownRequest,
   DmcaTakedownResponse,
+  DrgConfigResponse,
+  DrgMemoryResponse,
+  DrgStateResponse,
+  DrgThrottleAckResponse,
+  DrgThrottleResponse,
   EmailCategoryRequest,
   EmailDraftListResponse,
   EmailDraftResponse,
@@ -630,6 +635,7 @@ import type {
   ToolInvokeResponse,
   ToolListResponse,
   TrendingSkillsResponse,
+  TriggerDrgThrottleBody,
   UndoActionListResponse,
   UndoActionResponse,
   UndoActionTypesResponse,
@@ -642,6 +648,7 @@ import type {
   UpdateContactRequest,
   UpdateConversationRequest,
   UpdateCreatorPayoutSettingsRequest,
+  UpdateDrgConfigBody,
   UpdateEnterpriseAuditAlertRuleBody,
   UpdateEnterpriseOrgBody,
   UpdateEnterpriseSeatBody,
@@ -46990,6 +46997,409 @@ export const useConfirmRuntimeSession = <
   TContext
 > => {
   return useMutation(getConfirmRuntimeSessionMutationOptions(options));
+};
+
+/**
+ * @summary Full DRG state — config + memory snapshot + phase + throttle
+ */
+export const getGetDrgStatusUrl = () => {
+  return `/api/drg/status`;
+};
+
+export const getDrgStatus = async (
+  options?: RequestInit,
+): Promise<DrgStateResponse> => {
+  return customFetch<DrgStateResponse>(getGetDrgStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDrgStatusQueryKey = () => {
+  return [`/api/drg/status`] as const;
+};
+
+export const getGetDrgStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDrgStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDrgStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDrgStatusQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDrgStatus>>> = ({
+    signal,
+  }) => getDrgStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDrgStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDrgStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDrgStatus>>
+>;
+export type GetDrgStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Full DRG state — config + memory snapshot + phase + throttle
+ */
+
+export function useGetDrgStatus<
+  TData = Awaited<ReturnType<typeof getDrgStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDrgStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDrgStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Live memory probe (also runs the throttle monitor tick)
+ */
+export const getGetDrgMemoryUrl = () => {
+  return `/api/drg/memory`;
+};
+
+export const getDrgMemory = async (
+  options?: RequestInit,
+): Promise<DrgMemoryResponse> => {
+  return customFetch<DrgMemoryResponse>(getGetDrgMemoryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDrgMemoryQueryKey = () => {
+  return [`/api/drg/memory`] as const;
+};
+
+export const getGetDrgMemoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDrgMemory>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDrgMemory>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDrgMemoryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDrgMemory>>> = ({
+    signal,
+  }) => getDrgMemory({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDrgMemory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDrgMemoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDrgMemory>>
+>;
+export type GetDrgMemoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Live memory probe (also runs the throttle monitor tick)
+ */
+
+export function useGetDrgMemory<
+  TData = Awaited<ReturnType<typeof getDrgMemory>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDrgMemory>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDrgMemoryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update RAM ceiling, idle-unload window, or override the auto mode
+ */
+export const getUpdateDrgConfigUrl = () => {
+  return `/api/drg/config`;
+};
+
+export const updateDrgConfig = async (
+  updateDrgConfigBody: UpdateDrgConfigBody,
+  options?: RequestInit,
+): Promise<DrgConfigResponse> => {
+  return customFetch<DrgConfigResponse>(getUpdateDrgConfigUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateDrgConfigBody),
+  });
+};
+
+export const getUpdateDrgConfigMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDrgConfig>>,
+    TError,
+    { data: BodyType<UpdateDrgConfigBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDrgConfig>>,
+  TError,
+  { data: BodyType<UpdateDrgConfigBody> },
+  TContext
+> => {
+  const mutationKey = ["updateDrgConfig"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDrgConfig>>,
+    { data: BodyType<UpdateDrgConfigBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateDrgConfig(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDrgConfigMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDrgConfig>>
+>;
+export type UpdateDrgConfigMutationBody = BodyType<UpdateDrgConfigBody>;
+export type UpdateDrgConfigMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Update RAM ceiling, idle-unload window, or override the auto mode
+ */
+export const useUpdateDrgConfig = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDrgConfig>>,
+    TError,
+    { data: BodyType<UpdateDrgConfigBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDrgConfig>>,
+  TError,
+  { data: BodyType<UpdateDrgConfigBody> },
+  TContext
+> => {
+  return useMutation(getUpdateDrgConfigMutationOptions(options));
+};
+
+/**
+ * @summary Clear a pending emergency-throttle event after notifying the user
+ */
+export const getAcknowledgeDrgThrottleUrl = () => {
+  return `/api/drg/throttle/acknowledge`;
+};
+
+export const acknowledgeDrgThrottle = async (
+  options?: RequestInit,
+): Promise<DrgThrottleAckResponse> => {
+  return customFetch<DrgThrottleAckResponse>(getAcknowledgeDrgThrottleUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getAcknowledgeDrgThrottleMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acknowledgeDrgThrottle>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acknowledgeDrgThrottle>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["acknowledgeDrgThrottle"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acknowledgeDrgThrottle>>,
+    void
+  > = () => {
+    return acknowledgeDrgThrottle(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcknowledgeDrgThrottleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acknowledgeDrgThrottle>>
+>;
+
+export type AcknowledgeDrgThrottleMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Clear a pending emergency-throttle event after notifying the user
+ */
+export const useAcknowledgeDrgThrottle = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acknowledgeDrgThrottle>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof acknowledgeDrgThrottle>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getAcknowledgeDrgThrottleMutationOptions(options));
+};
+
+/**
+ * @summary Diagnostic trigger (dev only) — raises a synthetic throttle event
+ */
+export const getTriggerDrgThrottleUrl = () => {
+  return `/api/drg/throttle/trigger`;
+};
+
+export const triggerDrgThrottle = async (
+  triggerDrgThrottleBody: TriggerDrgThrottleBody,
+  options?: RequestInit,
+): Promise<DrgThrottleResponse> => {
+  return customFetch<DrgThrottleResponse>(getTriggerDrgThrottleUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(triggerDrgThrottleBody),
+  });
+};
+
+export const getTriggerDrgThrottleMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerDrgThrottle>>,
+    TError,
+    { data: BodyType<TriggerDrgThrottleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof triggerDrgThrottle>>,
+  TError,
+  { data: BodyType<TriggerDrgThrottleBody> },
+  TContext
+> => {
+  const mutationKey = ["triggerDrgThrottle"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof triggerDrgThrottle>>,
+    { data: BodyType<TriggerDrgThrottleBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return triggerDrgThrottle(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TriggerDrgThrottleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof triggerDrgThrottle>>
+>;
+export type TriggerDrgThrottleMutationBody = BodyType<TriggerDrgThrottleBody>;
+export type TriggerDrgThrottleMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Diagnostic trigger (dev only) — raises a synthetic throttle event
+ */
+export const useTriggerDrgThrottle = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerDrgThrottle>>,
+    TError,
+    { data: BodyType<TriggerDrgThrottleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof triggerDrgThrottle>>,
+  TError,
+  { data: BodyType<TriggerDrgThrottleBody> },
+  TContext
+> => {
+  return useMutation(getTriggerDrgThrottleMutationOptions(options));
 };
 
 /**

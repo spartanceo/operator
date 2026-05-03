@@ -17198,6 +17198,151 @@ export const ConfirmRuntimeSessionResponse = zod.object({
 });
 
 /**
+ * @summary Full DRG state — config + memory snapshot + phase + throttle
+ */
+export const GetDrgStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetDrgStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    config: zod.object({
+      mode: zod.enum(["sequential", "hybrid", "parallel"]),
+      ceilingBytes: zod.number(),
+      unloadIdleMs: zod.number(),
+      visionPollMs: zod.number(),
+    }),
+    memory: zod.object({
+      totalBytes: zod.number(),
+      freeBytes: zod.number(),
+      processRssBytes: zod.number(),
+      underPressure: zod.boolean(),
+      overCeiling: zod.boolean(),
+      capturedAt: zod.coerce.date(),
+    }),
+    phase: zod.object({
+      sessionId: zod.string().nullable(),
+      phase: zod.enum(["idle", "looking", "reasoning", "acting", "verifying"]),
+      message: zod.string(),
+      changedAt: zod.coerce.date(),
+    }),
+    throttle: zod
+      .object({
+        reason: zod.string(),
+        triggeredAt: zod.coerce.date(),
+        acknowledgedAt: zod.coerce.date().nullish(),
+        freeBytesAtTrigger: zod.number(),
+      })
+      .nullish(),
+  }),
+});
+
+/**
+ * @summary Live memory probe (also runs the throttle monitor tick)
+ */
+export const GetDrgMemoryHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetDrgMemoryResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    totalBytes: zod.number(),
+    freeBytes: zod.number(),
+    processRssBytes: zod.number(),
+    underPressure: zod.boolean(),
+    overCeiling: zod.boolean(),
+    capturedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Update RAM ceiling, idle-unload window, or override the auto mode
+ */
+export const UpdateDrgConfigHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const UpdateDrgConfigBody = zod.object({
+  ceilingBytes: zod.number().optional(),
+  unloadIdleMs: zod.number().optional(),
+  modeOverride: zod.enum(["sequential", "hybrid", "parallel"]).nullish(),
+});
+
+export const UpdateDrgConfigResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    mode: zod.enum(["sequential", "hybrid", "parallel"]),
+    ceilingBytes: zod.number(),
+    unloadIdleMs: zod.number(),
+    visionPollMs: zod.number(),
+  }),
+});
+
+/**
+ * @summary Clear a pending emergency-throttle event after notifying the user
+ */
+export const AcknowledgeDrgThrottleHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const AcknowledgeDrgThrottleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    cleared: zod
+      .object({
+        reason: zod.string(),
+        triggeredAt: zod.coerce.date(),
+        acknowledgedAt: zod.coerce.date().nullish(),
+        freeBytesAtTrigger: zod.number(),
+      })
+      .nullish(),
+  }),
+});
+
+/**
+ * @summary Diagnostic trigger (dev only) — raises a synthetic throttle event
+ */
+export const TriggerDrgThrottleHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const TriggerDrgThrottleBody = zod.object({
+  reason: zod.string(),
+});
+
+export const TriggerDrgThrottleResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    reason: zod.string(),
+    triggeredAt: zod.coerce.date(),
+    acknowledgedAt: zod.coerce.date().nullish(),
+    freeBytesAtTrigger: zod.number(),
+  }),
+});
+
+/**
  * @summary Real-time data-residency signal for the Privacy Meter
  */
 export const GetResidencySignalHeader = zod.object({

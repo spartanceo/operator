@@ -910,6 +910,108 @@ const cases: TestCase[] = [
     },
   },
   {
+    name: "DRG: status reports mode + memory + idle phase",
+    run: async () => {
+      const { resetDrgForTests } = await import("./services/drg.service");
+      resetDrgForTests();
+      const res = await request(app)
+        .get("/api/drg/status")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(res.status, 200, JSON.stringify(res.body));
+      assert.equal(res.body.success, true);
+      const { config, memory, phase } = res.body.data;
+      // Test runner pins 16GB Apple Silicon → parallel mode.
+      assert.equal(config.mode, "parallel", `expected parallel, got ${config.mode}`);
+      assert.equal(config.visionPollMs, 500);
+      assert.ok(config.ceilingBytes > 0);
+      assert.ok(memory.totalBytes > 0);
+      assert.equal(phase.phase, "idle");
+    },
+  },
+  {
+    name: "DRG: PUT /config updates ceiling and validates input",
+    run: async () => {
+      const { resetDrgForTests } = await import("./services/drg.service");
+      resetDrgForTests();
+      const ok = await request(app)
+        .put("/api/drg/config")
+        .set("X-Tenant-ID", TENANT)
+        .send({ ceilingBytes: 4 * 1024 * 1024 * 1024, unloadIdleMs: 60_000 });
+      assert.equal(ok.status, 200, JSON.stringify(ok.body));
+      assert.equal(ok.body.data.ceilingBytes, 4 * 1024 * 1024 * 1024);
+      assert.equal(ok.body.data.unloadIdleMs, 60_000);
+
+      const bad = await request(app)
+        .put("/api/drg/config")
+        .set("X-Tenant-ID", TENANT)
+        .send({ ceilingBytes: 1 }); // < 1GB lower bound
+      assert.equal(bad.status, 400);
+      assert.equal(bad.body.success, false);
+      assert.equal(bad.body.error.code, "INVALID_CEILING");
+    },
+  },
+  {
+    name: "DRG: throttle trigger + acknowledge round-trip",
+    run: async () => {
+      const { resetDrgForTests } = await import("./services/drg.service");
+      resetDrgForTests();
+      const trig = await request(app)
+        .post("/api/drg/throttle/trigger")
+        .set("X-Tenant-ID", TENANT)
+        .send({ reason: "synthetic test pressure" });
+      assert.equal(trig.status, 200, JSON.stringify(trig.body));
+      assert.equal(trig.body.data.acknowledgedAt, null);
+
+      const status = await request(app)
+        .get("/api/drg/status")
+        .set("X-Tenant-ID", TENANT);
+      assert.ok(status.body.data.throttle, "throttle should be pending");
+
+      const ack = await request(app)
+        .post("/api/drg/throttle/acknowledge")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(ack.status, 200);
+      assert.ok(ack.body.data.cleared);
+      assert.ok(ack.body.data.cleared.acknowledgedAt);
+
+      const after = await request(app)
+        .get("/api/drg/status")
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(after.body.data.throttle, null);
+      resetDrgForTests();
+    },
+  },
+  {
+    name: "DRG: pending throttle pauses the next desktop step",
+    run: async () => {
+      const { resetDrgForTests, triggerThrottle } = await import(
+        "./services/drg.service"
+      );
+      resetDrgForTests();
+      triggerThrottle("forced for test");
+
+      const created = await request(app)
+        .post("/api/desktop/sessions")
+        .set("X-Tenant-ID", TENANT)
+        .send({ goal: "screenshot the desktop", autoExecute: true });
+      assert.equal(created.status, 200);
+      const sessionId = created.body.data.id;
+      const session = await request(app)
+        .get(`/api/desktop/sessions/${sessionId}`)
+        .set("X-Tenant-ID", TENANT);
+      assert.equal(
+        session.body.data.status,
+        "failed",
+        `expected throttle to fail the session, got ${session.body.data.status}`,
+      );
+      assert.ok(
+        (session.body.data.error ?? "").includes("DRG throttle"),
+        `expected DRG throttle reason in error: ${session.body.data.error}`,
+      );
+      resetDrgForTests();
+    },
+  },
+  {
     name: "router agent routes desktop intents to the desktop note",
     run: async () => {
       const res = await request(app)

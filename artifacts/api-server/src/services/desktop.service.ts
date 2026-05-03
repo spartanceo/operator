@@ -35,6 +35,12 @@ import {
 import type { TenantContext } from "@workspace/types";
 
 import { logger } from "../lib/logger";
+import {
+  acknowledgeThrottle,
+  getThrottle,
+  setPhase as setDrgPhase,
+  tickMemoryMonitor,
+} from "./drg.service";
 import { logPrivacyEvent } from "./privacy.service";
 import {
   captureScreenshot,
@@ -548,10 +554,42 @@ async function ensureAwaitingApproval(
   return refreshed ?? step;
 }
 
+/**
+ * LAV self-healing — verify failures retry up to MAX_VERIFY_ATTEMPTS
+ * times before escalating. Per Task #36 spec:
+ *   Attempt 1: re-index (re-run the act + verify cycle)
+ *   Attempt 2: alternative approach (logged on the row)
+ *   Attempt 3: escalate to user — step parks with a needs-guidance error
+ */
+const MAX_VERIFY_ATTEMPTS = 3;
+
 async function runStep(
   ctx: TenantContext,
   step: DesktopStepRow,
 ): Promise<DesktopStepRow> {
+  // DRG memory-pressure gate — pause before doing anything if a throttle
+  // event is pending (or one fires on this tick).
+  tickMemoryMonitor();
+  const pending = getThrottle();
+  if (pending) {
+    const reason = pending.reason;
+    acknowledgeThrottle();
+    const errMsg = `DRG throttle: ${reason}`;
+    const completedAt = Date.now();
+    await db
+      .update(desktopSteps)
+      .set({
+        status: STEP_STATUS.failed,
+        error: errMsg,
+        completedAt,
+        updatedAt: completedAt,
+      })
+      .where(and(tenantScope(ctx, desktopSteps), eq(desktopSteps.id, step.id)));
+    await markSessionFailed(ctx, step.sessionId, errMsg);
+    const refreshed = await getStep(ctx, step.id);
+    return refreshed ?? step;
+  }
+
   const startedAt = Date.now();
   await db
     .update(desktopSteps)
@@ -571,47 +609,102 @@ async function runStep(
       ),
     );
 
-  let actReceipt: DesktopActionReceipt;
-  try {
-    actReceipt = await dispatchAction(ctx, step);
-  } catch (e) {
-    const errMsg = e instanceof Error ? e.message : String(e);
-    logger.error({ err: e, stepId: step.id }, "Desktop step failed");
-    const completedAt = Date.now();
-    await db
-      .update(desktopSteps)
-      .set({
-        status: STEP_STATUS.failed,
-        error: errMsg,
-        completedAt,
-        updatedAt: completedAt,
-      })
-      .where(and(tenantScope(ctx, desktopSteps), eq(desktopSteps.id, step.id)));
-    await markSessionFailed(ctx, step.sessionId, errMsg);
-    const refreshed = await getStep(ctx, step.id);
-    return refreshed ?? step;
+  setDrgPhase("looking", { sessionId: step.sessionId });
+
+  let actReceipt: DesktopActionReceipt | null = null;
+  let lastObserved = "";
+  let attempts = step.verifyAttempts;
+  let matched = false;
+
+  for (let i = 0; i < MAX_VERIFY_ATTEMPTS && !matched; i++) {
+    setDrgPhase("acting", { sessionId: step.sessionId });
+    try {
+      actReceipt = await dispatchAction(ctx, step);
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      logger.error({ err: e, stepId: step.id }, "Desktop step failed");
+      const completedAt = Date.now();
+      await db
+        .update(desktopSteps)
+        .set({
+          status: STEP_STATUS.failed,
+          error: errMsg,
+          completedAt,
+          updatedAt: completedAt,
+        })
+        .where(and(tenantScope(ctx, desktopSteps), eq(desktopSteps.id, step.id)));
+      await markSessionFailed(ctx, step.sessionId, errMsg);
+      const refreshed = await getStep(ctx, step.id);
+      return refreshed ?? step;
+    }
+
+    setDrgPhase("verifying", { sessionId: step.sessionId });
+    const verdict = await verifyStep(
+      ctx,
+      step.expectedState ?? "no expectation set",
+    );
+    attempts += 1;
+    lastObserved = verdict.observed;
+    matched = verdict.matched;
+
+    if (!matched && i + 1 < MAX_VERIFY_ATTEMPTS) {
+      // Tier strategy: log the recovery move so the audit trail is honest.
+      const strategy = i === 0 ? "reindex" : "alternative-approach";
+      await logPrivacyEvent(ctx, {
+        eventType: "desktop.lav.recover",
+        actor: ctx.userId ?? ctx.tenantId,
+        target: step.id,
+        severity: "low",
+        detail: `attempt=${attempts} strategy=${strategy} observed=${verdict.observed.slice(0, 160)}`,
+      });
+    }
   }
 
-  // Verify phase: ask the vision adapter to confirm the expected state.
-  const verdict = await verifyStep(
-    ctx,
-    step.expectedState ?? "no expectation set",
-  );
+  setDrgPhase("idle", { sessionId: step.sessionId });
+
   const completedAt = Date.now();
-  const finalStatus = verdict.matched
+  const escalated = !matched;
+  const finalStatus = matched
     ? STEP_STATUS.completed
-    : STEP_STATUS.failed;
+    : STEP_STATUS.awaitingApproval; // park for user guidance
+  const errorText = escalated
+    ? `Verification failed after ${attempts} attempts. Last observed: ${lastObserved}`
+    : null;
   await db
     .update(desktopSteps)
     .set({
       status: finalStatus,
-      observedState: actReceipt.observedState ?? verdict.observed,
-      verifyAttempts: step.verifyAttempts + 1,
+      observedState: actReceipt?.observedState ?? lastObserved,
+      verifyAttempts: attempts,
       completedAt,
       updatedAt: completedAt,
-      ...(verdict.matched ? {} : { error: verdict.observed }),
+      ...(escalated ? { error: errorText } : {}),
     })
     .where(and(tenantScope(ctx, desktopSteps), eq(desktopSteps.id, step.id)));
+
+  if (escalated) {
+    await logPrivacyEvent(ctx, {
+      eventType: "desktop.lav.escalated",
+      actor: ctx.userId ?? ctx.tenantId,
+      target: step.id,
+      severity: "medium",
+      detail: errorText ?? "lav-escalation",
+    });
+    await db
+      .update(desktopSessions)
+      .set({
+        status: SESSION_STATUS.awaitingApproval,
+        updatedAt: completedAt,
+      })
+      .where(
+        and(
+          tenantScope(ctx, desktopSessions),
+          eq(desktopSessions.id, step.sessionId),
+        ),
+      );
+    const refreshed = await getStep(ctx, step.id);
+    return refreshed ?? step;
+  }
 
   await advanceSession(ctx, step.sessionId);
 

@@ -7814,6 +7814,91 @@ export interface WorkspaceTemplateResponse {
   data: WorkspaceTemplateResponseData;
 }
 
+export type DrgConfigMode = (typeof DrgConfigMode)[keyof typeof DrgConfigMode];
+
+export const DrgConfigMode = {
+  sequential: "sequential",
+  hybrid: "hybrid",
+  parallel: "parallel",
+} as const;
+
+export interface DrgConfig {
+  mode: DrgConfigMode;
+  ceilingBytes: number;
+  unloadIdleMs: number;
+  visionPollMs: number;
+}
+
+export interface DrgMemorySnapshot {
+  totalBytes: number;
+  freeBytes: number;
+  processRssBytes: number;
+  underPressure: boolean;
+  overCeiling: boolean;
+  capturedAt: string;
+}
+
+export type DrgPhaseSnapshotPhase =
+  (typeof DrgPhaseSnapshotPhase)[keyof typeof DrgPhaseSnapshotPhase];
+
+export const DrgPhaseSnapshotPhase = {
+  idle: "idle",
+  looking: "looking",
+  reasoning: "reasoning",
+  acting: "acting",
+  verifying: "verifying",
+} as const;
+
+export interface DrgPhaseSnapshot {
+  sessionId: string | null;
+  phase: DrgPhaseSnapshotPhase;
+  message: string;
+  changedAt: string;
+}
+
+export interface DrgThrottleEvent {
+  reason: string;
+  triggeredAt: string;
+  acknowledgedAt?: string | null;
+  freeBytesAtTrigger: number;
+}
+
+export interface DrgState {
+  config: DrgConfig;
+  memory: DrgMemorySnapshot;
+  phase: DrgPhaseSnapshot;
+  throttle?: DrgThrottleEvent | null;
+}
+
+export interface DrgStateResponse {
+  success: boolean;
+  data: DrgState;
+}
+
+export interface DrgConfigResponse {
+  success: boolean;
+  data: DrgConfig;
+}
+
+export interface DrgMemoryResponse {
+  success: boolean;
+  data: DrgMemorySnapshot;
+}
+
+export interface DrgThrottleResponse {
+  success: boolean;
+  data: DrgThrottleEvent;
+}
+
+export type DrgThrottleAckResponseData = {
+  cleared?: DrgThrottleEvent | null;
+};
+
+export interface DrgThrottleAckResponse {
+  success: boolean;
+  data: DrgThrottleAckResponseData;
+}
+
 /**
  * Tenant identifier. Replaced by JWT-derived context once full SSO
 ships — until then this header is the request's tenant context.
@@ -9370,5 +9455,25 @@ export type ApprovePrivateSkillPackageBody = {
 };
 
 export type RejectPrivateSkillPackageBody = {
+  reason: string;
+};
+
+export type UpdateDrgConfigBodyModeOverride =
+  | (typeof UpdateDrgConfigBodyModeOverride)[keyof typeof UpdateDrgConfigBodyModeOverride]
+  | null;
+
+export const UpdateDrgConfigBodyModeOverride = {
+  sequential: "sequential",
+  hybrid: "hybrid",
+  parallel: "parallel",
+} as const;
+
+export type UpdateDrgConfigBody = {
+  ceilingBytes?: number;
+  unloadIdleMs?: number;
+  modeOverride?: UpdateDrgConfigBodyModeOverride;
+};
+
+export type TriggerDrgThrottleBody = {
   reason: string;
 };
