@@ -20,8 +20,8 @@ import {
   useUpdateSkillDraft,
   useTestSkillDraft,
   usePublishSkillDraft,
-  type SkillDraft,
 } from "@workspace/api-client-react";
+type SkillDraft = any;
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -66,8 +66,8 @@ function DraftEditor({ draft, onChange }: DraftEditorProps) {
   const [name, setName] = useState(draft.name);
   const [description, setDescription] = useState(draft.description);
   const [content, setContent] = useState(draft.content);
-  const [triggers, setTriggers] = useState(draft.triggers.join(", "));
-  const [examples, setExamples] = useState(draft.examplePrompts.join("\n"));
+  const [triggers, setTriggers] = useState<string>(draft.triggers.join(", "));
+  const [examples, setExamples] = useState<string>(draft.examplePrompts.join("\n"));
   const [category, setCategory] = useState(draft.category);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -203,8 +203,8 @@ function Tester({ draft }: TesterProps) {
       id: draft.id,
       data: { message },
     });
-    setReply(result.data.reply);
-    setModel(result.data.model);
+    setReply((result.data as any).reply);
+    setModel((result.data as any).model);
   }
 
   return (
@@ -276,8 +276,8 @@ function Publisher({ draft }: PublisherProps) {
     });
     if (token) localStorage.setItem("omninity:creator-token", token);
     setPublished({
-      creatorHandle: result.data.creatorHandle,
-      slug: result.data.slug,
+      creatorHandle: (result.data as any).creatorHandle,
+      slug: (result.data as any).slug,
     });
   }
 

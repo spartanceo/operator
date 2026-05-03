@@ -105,9 +105,9 @@ export function OperatorSidebar() {
               {showMeter ? (
                 <PrivacyMeter
                   variant="compact"
-                  score={meter.score}
-                  band={meter.band}
-                  summary={meter.summary}
+                  score={(meter as any).score}
+                  band={(meter as any).band}
+                  summary={(meter as any).summary}
                 />
               ) : null}
             </Link>

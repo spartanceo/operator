@@ -5030,6 +5030,8 @@ export interface VoiceTranscribeResponse {
   data: VoiceTranscribeResult;
 }
 
+export type IntegrationProvider = string;
+
 export type IntegrationProviderListResponseData = {
   providers: IntegrationProvider[];
 };
@@ -5953,6 +5955,8 @@ export interface DataCategoriesResponse {
   data: DataCategoriesResponseData;
 }
 
+export type InventoryCategory = string;
+
 export interface DataInventory {
   categories: InventoryCategory[];
   totalItems: number;
@@ -6080,6 +6084,19 @@ export interface Skill {
   category?: string | null;
   createdAt: string;
   updatedAt: string;
+  content: string;
+  triggers: string[];
+  installCount: number;
+  isInstalled: boolean;
+  modelTags: string[];
+  installedVersion?: string | null;
+  latestVersion?: string | null;
+  minOpVersion?: string | null;
+  unmaintained?: boolean | null;
+  opIncompatible?: boolean | null;
+  hasUpdate?: boolean | null;
+  breakingChange?: boolean | null;
+  autoUpdate?: boolean | null;
 }
 
 export interface SkillResponse {
@@ -6697,6 +6714,692 @@ export interface ResidencySignal {
 export interface ResidencySignalResponse {
   success: boolean;
   data: ResidencySignal;
+}
+
+export type QueuedTaskStatus = string;
+
+export interface AcquisitionChannelResponse {
+  [key: string]: unknown;
+}
+
+export interface AdminBoolResponse {
+  [key: string]: unknown;
+}
+
+export interface ApplySkillUpdateRequest {
+  [key: string]: unknown;
+}
+
+export interface AttributeReferralRequest {
+  [key: string]: unknown;
+}
+
+export interface BetaAccessResponse {
+  [key: string]: unknown;
+}
+
+export interface BuildTaskShareCardRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateDraftFromPasteRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateDraftFromUploadRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateEnterpriseTrialInviteRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateScheduleRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateSkillRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateTaskTemplateCategoryRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateTaskTemplateRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateWaitlistSignupRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateWebhookSubscriptionRequest {
+  [key: string]: unknown;
+}
+
+export interface CreatorAgreementResponse {
+  [key: string]: unknown;
+}
+
+export interface CreatorAgreementStateResponse {
+  [key: string]: unknown;
+}
+
+export interface CreatorBadgeResponse {
+  [key: string]: unknown;
+}
+
+export interface CreatorEarningsRequest {
+  [key: string]: unknown;
+}
+
+export interface CreatorEarningsResponse {
+  [key: string]: unknown;
+}
+
+export interface CreatorLeaderboardResponse {
+  [key: string]: unknown;
+}
+
+export interface CreatorMilestoneListResponse {
+  [key: string]: unknown;
+}
+
+export interface CreatorMilestoneResponse {
+  [key: string]: unknown;
+}
+
+export interface CreatorProfileResponse {
+  [key: string]: unknown;
+}
+
+export interface DeleteScheduleResponse {
+  [key: string]: unknown;
+}
+
+export interface DmcaCounterNoticeRequest {
+  [key: string]: unknown;
+}
+
+export interface DmcaCounterNoticeResponse {
+  [key: string]: unknown;
+}
+
+export interface DmcaDecideRequest {
+  [key: string]: unknown;
+}
+
+export interface DmcaTakedownListResponse {
+  [key: string]: unknown;
+}
+
+export interface DmcaTakedownRequest {
+  [key: string]: unknown;
+}
+
+export interface DmcaTakedownResponse {
+  [key: string]: unknown;
+}
+
+export interface EnterpriseTrialInviteListResponse {
+  [key: string]: unknown;
+}
+
+export interface EnterpriseTrialInviteResponse {
+  [key: string]: unknown;
+}
+
+export interface ErasureRequestListResponse {
+  [key: string]: unknown;
+}
+
+export interface ErasureRequestResponse {
+  [key: string]: unknown;
+}
+
+export interface FlagReviewRequest {
+  [key: string]: unknown;
+}
+
+export interface HelpfulVoteRequest {
+  [key: string]: unknown;
+}
+
+export interface ImportTaskTemplateRequest {
+  [key: string]: unknown;
+}
+
+export interface ImportWorkspaceRequest {
+  [key: string]: unknown;
+}
+
+export interface ModerateReviewRequest {
+  [key: string]: unknown;
+}
+
+export interface ModerationQueuePageResponse {
+  [key: string]: unknown;
+}
+
+export interface NetworkCallListResponse {
+  [key: string]: unknown;
+}
+
+export interface NetworkCallSummaryResponse {
+  [key: string]: unknown;
+}
+
+export interface OpEventListResponse {
+  [key: string]: unknown;
+}
+
+export interface PauseScheduleRequest {
+  [key: string]: unknown;
+}
+
+export interface PinTaskTemplateRequest {
+  [key: string]: unknown;
+}
+
+export interface PluginInvokeRequest {
+  [key: string]: unknown;
+}
+
+export interface PluginInvokeResponse {
+  [key: string]: unknown;
+}
+
+export interface PluginToolDeleteResponse {
+  [key: string]: unknown;
+}
+
+export interface PluginToolListResponse {
+  [key: string]: unknown;
+}
+
+export interface PluginToolResponse {
+  [key: string]: unknown;
+}
+
+export interface PreviewScheduleRequest {
+  [key: string]: unknown;
+}
+
+export interface PreviewScheduleResponse {
+  [key: string]: unknown;
+}
+
+export interface PrivacyExportResponse {
+  [key: string]: unknown;
+}
+
+export interface PrivacyMeterResponse {
+  [key: string]: unknown;
+}
+
+export interface PrivacySettingsResponse {
+  [key: string]: unknown;
+}
+
+export interface PublicCreatorProfileResponse {
+  [key: string]: unknown;
+}
+
+export interface PublishSkillVersionRequest {
+  [key: string]: unknown;
+}
+
+export interface PublishStoreSkillRequest {
+  [key: string]: unknown;
+}
+
+export interface QueueClearRequest {
+  [key: string]: unknown;
+}
+
+export interface QueueClearResponse {
+  [key: string]: unknown;
+}
+
+export interface QueuedTaskListResponse {
+  [key: string]: unknown;
+}
+
+export interface QueuedTaskResponse {
+  [key: string]: unknown;
+}
+
+export interface QueueEnqueueRequest {
+  [key: string]: unknown;
+}
+
+export interface QueueSetPriorityRequest {
+  [key: string]: unknown;
+}
+
+export interface QueueSnapshotResponse {
+  [key: string]: unknown;
+}
+
+export interface RecordSatisfactionRequest {
+  [key: string]: unknown;
+}
+
+export interface RecordShareEventRequest {
+  [key: string]: unknown;
+}
+
+export interface RecordSkillUsageRequest {
+  [key: string]: unknown;
+}
+
+export interface RecordSkillUsageResponse {
+  [key: string]: unknown;
+}
+
+export interface ReferralCodeResponse {
+  [key: string]: unknown;
+}
+
+export interface ReferralDashboardResponse {
+  [key: string]: unknown;
+}
+
+export interface ReferralLookupResponse {
+  [key: string]: unknown;
+}
+
+export interface ReferralResponse {
+  [key: string]: unknown;
+}
+
+export interface ReferralRewardListResponse {
+  [key: string]: unknown;
+}
+
+export interface RegisterPluginToolRequest {
+  [key: string]: unknown;
+}
+
+export interface ReviewResponseRequest {
+  [key: string]: unknown;
+}
+
+export interface RollbackSkillRequest {
+  [key: string]: unknown;
+}
+
+export interface RunTaskTemplateRequest {
+  [key: string]: unknown;
+}
+
+export interface RunTaskTemplateResponse {
+  [key: string]: unknown;
+}
+
+export interface ScheduledTaskListResponse {
+  [key: string]: unknown;
+}
+
+export interface ScheduledTaskResponse {
+  [key: string]: unknown;
+}
+
+export interface ScheduledTaskRunListResponse {
+  [key: string]: unknown;
+}
+
+export interface ScheduledTaskRunResponse {
+  [key: string]: unknown;
+}
+
+export interface ScheduleSettingsResponse {
+  [key: string]: unknown;
+}
+
+export interface SetAcquisitionChannelRequest {
+  [key: string]: unknown;
+}
+
+export interface SetSkillTrustFlagsRequest {
+  [key: string]: unknown;
+}
+
+export interface ShareEventListResponse {
+  [key: string]: unknown;
+}
+
+export interface ShareEventResponse {
+  [key: string]: unknown;
+}
+
+export interface SignCreatorAgreementRequest {
+  [key: string]: unknown;
+}
+
+export interface SimilarSkillsResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillAdoptionResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillAutoUpdateRequest {
+  [key: string]: unknown;
+}
+
+export interface SkillBadgesResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillConfigImportRequest {
+  [key: string]: unknown;
+}
+
+export interface SkillConfigImportResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillConfigResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillConfigStatusResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillConfigUpdateRequest {
+  [key: string]: unknown;
+}
+
+export interface SkillDeleteResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillDraftDeleteResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillDraftInterviewAnswerRequest {
+  [key: string]: unknown;
+}
+
+export interface SkillDraftInterviewQuestionsResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillDraftListResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillDraftResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillDraftTestRequest {
+  [key: string]: unknown;
+}
+
+export interface SkillDraftTestResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillExportResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillImportRequest {
+  [key: string]: unknown;
+}
+
+export interface SkillInvokeRequest {
+  [key: string]: unknown;
+}
+
+export interface SkillRatingListResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillRatingResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillRatingSummaryResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillReviewFlagListResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillReviewFlagResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillReviewResponseResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillShareLinksResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillSocialCardResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillUpdatesResponse {
+  [key: string]: unknown;
+}
+
+export interface SkillVersionListResponse {
+  [key: string]: unknown;
+}
+
+export interface StoreCreatorDashboardRequest {
+  [key: string]: unknown;
+}
+
+export interface StoreCreatorDashboardResponse {
+  [key: string]: unknown;
+}
+
+export interface StoreCreatorListResponse {
+  [key: string]: unknown;
+}
+
+export interface StoreCreatorResponse {
+  [key: string]: unknown;
+}
+
+export interface StoreCreatorSignupRequest {
+  [key: string]: unknown;
+}
+
+export interface StoreCreatorSignupResponse {
+  [key: string]: unknown;
+}
+
+export interface StoreSkillDetailResponse {
+  [key: string]: unknown;
+}
+
+export interface StoreSkillInstallResponse {
+  [key: string]: unknown;
+}
+
+export interface StoreSkillListResponse {
+  [key: string]: unknown;
+}
+
+export interface StoreSkillResponse {
+  [key: string]: unknown;
+}
+
+export interface StoreSkillUpdatesResponse {
+  [key: string]: unknown;
+}
+
+export interface SubmitCreatorTaxFormRequest {
+  [key: string]: unknown;
+}
+
+export interface SubmitSkillRatingRequest {
+  [key: string]: unknown;
+}
+
+export interface SubscriptionCheckoutRequest {
+  [key: string]: unknown;
+}
+
+export interface SubscriptionCheckoutResponse {
+  [key: string]: unknown;
+}
+
+export interface SubscriptionConfirmRequest {
+  [key: string]: unknown;
+}
+
+export interface SubscriptionStatusResponse {
+  [key: string]: unknown;
+}
+
+export interface SubscriptionUsageResponse {
+  [key: string]: unknown;
+}
+
+export interface SubscriptionWebhookRequest {
+  [key: string]: unknown;
+}
+
+export interface SubscriptionWebhookResponse {
+  [key: string]: unknown;
+}
+
+export interface SuperAdminOverviewResponse {
+  [key: string]: unknown;
+}
+
+export interface SuperAdminRevenueResponse {
+  [key: string]: unknown;
+}
+
+export interface SuperAdminSkillAnalyticsResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskSatisfactionListResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskSatisfactionResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskShareCardResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskTemplateCategoryListResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskTemplateCategoryResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskTemplateCollectionResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskTemplateDeleteResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskTemplateExportResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskTemplateListResponse {
+  [key: string]: unknown;
+}
+
+export interface TaskTemplateResponse {
+  [key: string]: unknown;
+}
+
+export interface TrendingSkillsResponse {
+  [key: string]: unknown;
+}
+
+export interface UpdatePluginToolRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateScheduleRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateScheduleSettingsRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateSkillDraftRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateSkillRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateTaskTemplateRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateWebhookSubscriptionRequest {
+  [key: string]: unknown;
+}
+
+export interface UpsertCreatorProfileRequest {
+  [key: string]: unknown;
+}
+
+export interface WaitlistSignupListResponse {
+  [key: string]: unknown;
+}
+
+export interface WaitlistSignupResponse {
+  [key: string]: unknown;
+}
+
+export interface WaitlistStatsResponse {
+  [key: string]: unknown;
+}
+
+export interface WebhookSubscriptionDeleteResponse {
+  [key: string]: unknown;
+}
+
+export interface WebhookSubscriptionListResponse {
+  [key: string]: unknown;
+}
+
+export interface WebhookSubscriptionResponse {
+  [key: string]: unknown;
+}
+
+export interface WorkspaceDeleteResponse {
+  [key: string]: unknown;
+}
+
+export interface WorkspaceOverviewResponse {
+  [key: string]: unknown;
+}
+
+export interface WorkspaceTemplateResponse {
+  [key: string]: unknown;
 }
 
 /**

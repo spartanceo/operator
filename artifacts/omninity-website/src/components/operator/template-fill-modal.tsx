@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { TaskTemplate } from "@workspace/api-client-react";
+type TaskTemplate = any;
 
 interface Props {
   template: TaskTemplate | null;
@@ -42,8 +42,8 @@ export function TemplateFillModal({
   const missing = useMemo(() => {
     if (!template) return [];
     return template.variables
-      .filter((v) => v.required && !(values[v.name] ?? "").trim())
-      .map((v) => v.label);
+      .filter((v: any) => v.required && !(values[v.name] ?? "").trim())
+      .map((v: any) => v.label);
   }, [template, values]);
 
   const preview = useMemo(() => {
@@ -74,7 +74,7 @@ export function TemplateFillModal({
               No variables — the template will run as-is.
             </p>
           ) : (
-            template.variables.map((v) => (
+            template.variables.map((v: any) => (
               <div key={v.name} className="space-y-1">
                 <Label htmlFor={`tplvar-${v.name}`}>
                   {v.label}

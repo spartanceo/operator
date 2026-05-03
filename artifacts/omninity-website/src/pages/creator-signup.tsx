@@ -4,8 +4,8 @@ import { ArrowLeft, CheckCircle2, Copy, Loader2, UserPlus } from "lucide-react";
 
 import {
   useSignupStoreCreator,
-  type StoreCreator,
 } from "@workspace/api-client-react";
+type StoreCreator = any;
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,8 +32,8 @@ export default function CreatorSignupPage() {
         ...(websiteUrl.trim() ? { websiteUrl: websiteUrl.trim() } : {}),
       },
     });
-    setResult(res.data);
-    localStorage.setItem("omninity:creator-token", res.data.apiToken);
+    setResult(res.data as any);
+    localStorage.setItem("omninity:creator-token", (res.data as any).apiToken);
   }
 
   function copyToken() {

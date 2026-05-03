@@ -15,7 +15,7 @@ export default function CreatorRevenuePage() {
   const [token, setToken] = useState("");
   const [submittedToken, setSubmittedToken] = useState<string | null>(null);
   const earnings = useGetCreatorEarnings();
-  const data = earnings.data?.data;
+  const data = earnings.data?.data as any;
 
   const handleLoad = async () => {
     if (!token.trim()) return;
@@ -85,7 +85,7 @@ export default function CreatorRevenuePage() {
               </p>
               {data.perSkill.length ? (
                 <ul className="divide-y rounded border">
-                  {data.perSkill.map((s) => (
+                  {data.perSkill.map((s: any) => (
                     <li
                       key={s.skillSlug}
                       className="flex justify-between px-3 py-2"

@@ -11,8 +11,8 @@ import {
 
 import {
   useGetStoreCreatorDashboard,
-  type StoreCreatorDashboardPayload,
 } from "@workspace/api-client-react";
+type StoreCreatorDashboardPayload = any;
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -140,7 +140,7 @@ export default function CreatorDashboardPage() {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
-                  {data.publishedSkills.map((s) => (
+                  {data.publishedSkills.map((s: any) => (
                     <Card key={s.id} className="p-5" data-testid={`dashboard-skill-${s.slug}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div>

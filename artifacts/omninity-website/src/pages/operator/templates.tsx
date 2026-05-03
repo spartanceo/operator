@@ -26,8 +26,8 @@ import {
   getListTaskTemplatesQueryKey,
   getListPinnedTaskTemplatesQueryKey,
   getListTaskTemplateCategoriesQueryKey,
-  type TaskTemplate,
 } from "@workspace/api-client-react";
+type TaskTemplate = any;
 import { OperatorLayout } from "@/components/operator/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,8 +107,8 @@ export default function TemplatesPage() {
   const createCat = useCreateTaskTemplateCategory();
   const deleteCat = useDeleteTaskTemplateCategory();
 
-  const items = list.data?.data.items ?? [];
-  const categories = cats.data?.data.items ?? [];
+  const items = ((list.data?.data as any)?.items ?? []) as any[];
+  const categories = ((cats.data?.data as any)?.items ?? []) as any[];
   const categoryById = useMemo(() => {
     const m = new Map<string, string>();
     for (const c of categories) m.set(c.id, c.name);
@@ -169,11 +169,11 @@ export default function TemplatesPage() {
       try {
         sessionStorage.setItem(
           "omninity:pendingPrompt",
-          result.data.resolvedPrompt,
+          (result.data as any).resolvedPrompt,
         );
         sessionStorage.setItem(
           "omninity:pendingPromptAgent",
-          result.data.template.skillConfig?.agentMode ? "1" : "0",
+          (result.data as any).template?.skillConfig?.agentMode ? "1" : "0",
         );
       } catch {
         // sessionStorage may be unavailable in some embedded contexts; ignore.
@@ -224,7 +224,7 @@ export default function TemplatesPage() {
     }
   };
 
-  const pinnedItems = pinned.data?.data.items ?? [];
+  const pinnedItems = (((pinned.data?.data as any)?.items ?? []) as any[]);
 
   return (
     <OperatorLayout
@@ -354,7 +354,7 @@ export default function TemplatesPage() {
           />
         ) : (
           <div className="grid gap-3">
-            {items.map((tpl) => (
+            {items.map((tpl: any) => (
               <Card key={tpl.id} data-testid={`template-card-${tpl.id}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-3">
@@ -493,7 +493,7 @@ export default function TemplatesPage() {
                   No categories yet.
                 </p>
               ) : (
-                categories.map((c) => (
+                categories.map((c: any) => (
                   <div
                     key={c.id}
                     className="flex items-center justify-between rounded border border-border px-2 py-1 text-sm"

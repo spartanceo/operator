@@ -60,8 +60,8 @@ function fmtMoney(cents: number): string {
 function OverviewTab() {
   const { data, isLoading } = useGetSuperAdminOverview();
   if (isLoading || !data) return <Loader2 className="h-5 w-5 animate-spin" />;
-  const o = data.data;
-  const maxInstall = Math.max(1, ...o.growthSeries.map((p) => p.installs));
+  const o = data.data as any;
+  const maxInstall = Math.max(1, ...o.growthSeries.map((p: any) => p.installs));
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
@@ -78,7 +78,7 @@ function OverviewTab() {
         <CardHeader><CardTitle>Install growth — last 14 days</CardTitle></CardHeader>
         <CardContent>
           <div className="flex h-32 items-end gap-1" data-testid="growth-chart">
-            {o.growthSeries.map((p) => (
+            {o.growthSeries.map((p: any) => (
               <div key={p.date} className="flex-1" title={`${p.date}: ${p.installs}`}>
                 <div
                   className="bg-primary/70 rounded-t"
@@ -100,7 +100,7 @@ function OverviewTab() {
 function RevenueTab() {
   const { data, isLoading } = useGetSuperAdminRevenue();
   if (isLoading || !data) return <Loader2 className="h-5 w-5 animate-spin" />;
-  const r = data.data;
+  const r = data.data as any;
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
@@ -117,7 +117,7 @@ function RevenueTab() {
               <tr><th className="py-2">Tenant</th><th>Status</th><th>Amount</th><th>Date</th></tr>
             </thead>
             <tbody>
-              {r.recentInvoices.map((inv) => (
+              {r.recentInvoices.map((inv: any) => (
                 <tr key={inv.id} className="border-t border-border/50">
                   <td className="py-2 font-mono text-xs">{inv.tenantId}</td>
                   <td><Badge variant={inv.status === "active" ? "default" : "secondary"}>{inv.status}</Badge></td>
@@ -139,14 +139,14 @@ function RevenueTab() {
 function SkillsTab() {
   const { data, isLoading } = useGetSuperAdminSkillAnalytics();
   if (isLoading || !data) return <Loader2 className="h-5 w-5 animate-spin" />;
-  const s = data.data;
+  const s = data.data as any;
   return (
     <div className="grid gap-6 md:grid-cols-3">
       <Card>
         <CardHeader><CardTitle>Top installed skills</CardTitle></CardHeader>
         <CardContent>
           <ol className="space-y-2 text-sm">
-            {s.topInstalled.map((sk, i) => (
+            {s.topInstalled.map((sk: any, i: number) => (
               <li key={sk.slug} className="flex justify-between">
                 <span><span className="text-muted-foreground mr-2">{i + 1}.</span>{sk.name}</span>
                 <span className="font-mono text-xs">{sk.installs}</span>
@@ -159,7 +159,7 @@ function SkillsTab() {
         <CardHeader><CardTitle>Top creators</CardTitle></CardHeader>
         <CardContent>
           <ol className="space-y-2 text-sm">
-            {s.topEarning.map((c, i) => (
+            {s.topEarning.map((c: any, i: number) => (
               <li key={c.creatorHandle} className="flex justify-between">
                 <span><span className="text-muted-foreground mr-2">{i + 1}.</span>@{c.creatorHandle}</span>
                 <span className="font-mono text-xs">{c.usage}</span>
@@ -172,7 +172,7 @@ function SkillsTab() {
         <CardHeader><CardTitle>Trending categories</CardTitle></CardHeader>
         <CardContent>
           <ol className="space-y-2 text-sm">
-            {s.trendingCategories.map((c, i) => (
+            {s.trendingCategories.map((c: any, i: number) => (
               <li key={c.category} className="flex justify-between">
                 <span><span className="text-muted-foreground mr-2">{i + 1}.</span>{c.category}</span>
                 <span className="font-mono text-xs">{c.installs}</span>
@@ -191,8 +191,8 @@ function ModerationTab() {
   const approve = useApproveModerationItem();
   const reject = useRejectModerationItem();
   const resolve = useResolveAbuseReport();
-  const queue = queueQ.data?.data.items ?? [];
-  const abuse = abuseQ.data?.data.items ?? [];
+  const queue = (((queueQ.data?.data as any)?.items ?? []) as any[]);
+  const abuse = (((abuseQ.data?.data as any)?.items ?? []) as any[]);
   return (
     <div className="space-y-6">
       <Card>

@@ -116,7 +116,7 @@ export function SaveTemplateDialog({
     }
   };
 
-  const categories = cats.data?.data.items ?? [];
+  const categories = (((cats.data?.data as any)?.items ?? []) as any[]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,7 +176,7 @@ export function SaveTemplateDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NO_CATEGORY}>Uncategorised</SelectItem>
-                {categories.map((c) => (
+                {categories.map((c: any) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>

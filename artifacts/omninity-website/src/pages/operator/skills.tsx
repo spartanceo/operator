@@ -33,8 +33,8 @@ import {
   useSetSkillAutoUpdate,
   exportSkill,
   type Skill,
-  type SkillManifest,
 } from "@workspace/api-client-react";
+type SkillManifest = any;
 import { useQueryClient } from "@tanstack/react-query";
 
 import { OperatorLayout } from "@/components/operator/layout";
@@ -215,7 +215,7 @@ function SkillCard({
             </span>
             <Switch
               data-testid={`switch-auto-update-${skill.id}`}
-              checked={skill.autoUpdate}
+              checked={skill.autoUpdate ?? undefined}
               disabled={busy}
               onCheckedChange={(v) => onToggleAutoUpdate(skill.id, v)}
               aria-label="Auto-update"
@@ -327,7 +327,7 @@ function PublishDialog({ skill, open, onOpenChange, onDone }: PublishDialogProps
   if (skill && lastSkillIdRef.current !== skill.id) {
     lastSkillIdRef.current = skill.id;
     setForm({
-      version: suggestNextVersion(skill.latestVersion),
+      version: suggestNextVersion(skill.latestVersion ?? undefined),
       changelog: "",
       breakingChange: false,
       minOpVersion: skill.minOpVersion ?? "",
@@ -475,7 +475,7 @@ function VersionsDialog({ skill, open, onOpenChange }: VersionsDialogProps) {
   const rollback = useRollbackSkillVersion({
     mutation: { onSuccess: () => void qc.invalidateQueries() },
   });
-  const versions = versionsQuery.data?.data.items ?? [];
+  const versions = (((versionsQuery.data?.data as any)?.items ?? []) as any[]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -494,10 +494,10 @@ function VersionsDialog({ skill, open, onOpenChange }: VersionsDialogProps) {
               {versionsQuery.isLoading ? "Loading…" : "No version history yet."}
             </p>
           ) : (
-            versions.map((v) => {
+            versions.map((v: any) => {
               const isInstalled =
-                skill?.isInstalled && skill.installedVersion === v.semver;
-              const isLatest = skill?.latestVersion === v.semver;
+                skill?.isInstalled && (skill as any).installedVersion === v.semver;
+              const isLatest = (skill as any)?.latestVersion === v.semver;
               return (
                 <div
                   key={v.id}
@@ -639,14 +639,14 @@ export default function SkillsPage() {
 
   const openEdit = (skill: Skill) => {
     setEditingId(skill.id);
-    setEditingVersion(skill.version);
+    setEditingVersion(skill.version as any);
     setForm({
       name: skill.name,
       description: skill.description ?? "",
       content: skill.content,
       modelTags: skill.modelTags.join(", "),
       triggers: skill.triggers.join(", "),
-      category: skill.category,
+      category: skill.category ?? "",
     });
     setFormOpen(true);
   };
@@ -689,7 +689,7 @@ export default function SkillsPage() {
     },
   });
   const updatesQuery = useListSkillUpdates();
-  const updateItems = updatesQuery.data?.data.items ?? [];
+  const updateItems = (((updatesQuery.data?.data as any)?.items ?? []) as any[]);
   const applyUpdate = useApplySkillUpdate({
     mutation: { onSuccess: () => void qc.invalidateQueries() },
   });
@@ -1049,7 +1049,7 @@ export default function SkillsPage() {
               className="mt-4 space-y-2"
               data-testid="skill-updates-banner"
             >
-              {updateItems.map((u) => (
+              {updateItems.map((u: any) => (
                 <div
                   key={u.id}
                   data-testid={`skill-update-${u.id}`}

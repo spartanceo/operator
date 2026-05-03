@@ -28,8 +28,8 @@ export default function SubscriptionPage() {
   const qc = useQueryClient();
   const [pendingSession, setPendingSession] = useState<string | null>(null);
 
-  const data = status.data?.data;
-  const usageData = usage.data?.data;
+  const data = status.data?.data as any;
+  const usageData = usage.data?.data as any;
   const sub = data?.subscription;
   const isStub = data?.stripeStubMode ?? true;
 
@@ -42,13 +42,14 @@ export default function SubscriptionPage() {
 
   const handleSubscribe = async () => {
     const res = await checkout.mutateAsync({ data: {} });
-    setPendingSession(res.data.sessionId);
+    const resData = res.data as any;
+    setPendingSession(resData.sessionId);
     if (isStub) {
-      await confirm.mutateAsync({ data: { sessionId: res.data.sessionId } });
+      await confirm.mutateAsync({ data: { sessionId: resData.sessionId } });
       setPendingSession(null);
       refetchAll();
-    } else if (res.data.checkoutUrl) {
-      window.location.href = res.data.checkoutUrl;
+    } else if (resData.checkoutUrl) {
+      window.location.href = resData.checkoutUrl;
     }
   };
 
@@ -138,20 +139,20 @@ export default function SubscriptionPage() {
             <div className="flex gap-6">
               <div>
                 <div className="text-2xl font-semibold" data-testid="usage-month">
-                  {usageData?.totalThisMonth ?? 0}
+                  {(usageData as any)?.totalThisMonth ?? 0}
                 </div>
                 <div className="text-xs text-muted-foreground">this month</div>
               </div>
               <div>
                 <div className="text-2xl font-semibold" data-testid="usage-total">
-                  {usageData?.totalAllTime ?? 0}
+                  {(usageData as any)?.totalAllTime ?? 0}
                 </div>
                 <div className="text-xs text-muted-foreground">all time</div>
               </div>
             </div>
-            {usageData?.perSkill.length ? (
+            {(usageData as any)?.perSkill?.length ? (
               <ul className="divide-y rounded border">
-                {usageData.perSkill.map((s) => (
+                {(usageData as any).perSkill.map((s: any) => (
                   <li
                     key={s.skillId}
                     className="flex justify-between px-3 py-2"

@@ -51,7 +51,8 @@ import {
 } from "@/components/ui/select";
 import { ErrorBanner } from "@/components/operator/error-banner";
 import { EmptyState } from "@/components/operator/empty-state";
-import type { QueuedTask, QueuedTaskPriority } from "@workspace/api-client-react";
+type QueuedTask = any;
+type QueuedTaskPriority = "high" | "normal" | "low";
 
 const PRIORITY_LABEL: Record<QueuedTaskPriority, string> = {
   high: "High",
@@ -91,7 +92,7 @@ export default function QueuePage() {
   const [priority, setPriorityInput] = useState<QueuedTaskPriority>("normal");
   const [requiredFiles, setRequiredFiles] = useState("");
 
-  const data = snapshot.data?.data;
+  const data = snapshot.data?.data as any;
   const refresh = () =>
     qc.invalidateQueries({ queryKey: getGetQueueSnapshotQueryKey() });
 
@@ -369,7 +370,7 @@ function TaskSection({
                     {t.status}
                   </Badge>
                   <Badge variant="secondary" className="w-fit text-[10px]">
-                    {PRIORITY_LABEL[t.priority]}
+                    {PRIORITY_LABEL[t.priority as QueuedTaskPriority]}
                   </Badge>
                 </div>
                 <div className="min-w-0 flex-1">

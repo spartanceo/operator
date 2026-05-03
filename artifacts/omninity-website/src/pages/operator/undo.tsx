@@ -98,7 +98,7 @@ export default function UndoPage() {
               />
             ) : (
               <ul className="space-y-2">
-                {items.map((a) => {
+                {items.map((a: any) => {
                   const meta = STATUS_STYLE[a.status] ?? STATUS_STYLE.available;
                   const Icon = meta.icon;
                   const isIrreversible =

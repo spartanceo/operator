@@ -134,7 +134,7 @@ function SettingsCard() {
             </div>
             <Switch
               data-testid={`toggle-${def.key}`}
-              checked={settings ? settings[def.key] : false}
+              checked={settings ? (settings as any)[def.key] : false}
               disabled={!settings || update.isPending}
               onCheckedChange={(checked) =>
                 update.mutate({ data: { [def.key]: checked } })
@@ -192,7 +192,7 @@ function InventoryCard() {
               </div>
             </div>
             <ul className="divide-y divide-border text-sm">
-              {inv.categories.map((c) => (
+              {inv.categories.map((c: any) => (
                 <li
                   key={c.key}
                   className="flex items-center justify-between py-2"
@@ -222,8 +222,8 @@ function InventoryCard() {
 function NetworkCallsCard() {
   const summaryQ = useGetNetworkCallsSummary();
   const callsQ = useListNetworkCalls({ limit: 50 });
-  const summary = summaryQ.data?.data;
-  const calls = callsQ.data?.data.items ?? [];
+  const summary = summaryQ.data?.data as any;
+  const calls = (((callsQ.data?.data as any)?.items ?? []) as any[]);
 
   return (
     <Card data-testid="card-network-calls">
@@ -281,7 +281,7 @@ function NetworkCallsCard() {
               Top domains
             </p>
             <ul className="space-y-1">
-              {summary.byDomain.slice(0, 8).map((d) => (
+              {summary.byDomain.slice(0, 8).map((d: any) => (
                 <li
                   key={d.domain}
                   className="flex items-center justify-between rounded-md border px-2 py-1 text-xs"
@@ -307,7 +307,7 @@ function NetworkCallsCard() {
           />
         ) : (
           <ul className="divide-y divide-border text-xs">
-            {calls.map((c) => (
+            {calls.map((c: any) => (
               <li
                 key={c.id}
                 className="grid grid-cols-[1fr_auto] gap-2 py-2"
@@ -421,8 +421,8 @@ function DataRightsCard() {
   const [email, setEmail] = useState("");
   const [reason, setReason] = useState("");
 
-  const categories = categoriesQ.data?.data.items ?? [];
-  const erasures = erasuresQ.data?.data.items ?? [];
+  const categories = (((categoriesQ.data?.data as any)?.items ?? []) as any[]);
+  const erasures = (((erasuresQ.data?.data as any)?.items ?? []) as any[]);
 
   const onExport = async () => {
     setExportBusy(true);
@@ -578,7 +578,7 @@ function DataRightsCard() {
 
           {erasures.length > 0 ? (
             <ul className="mt-3 space-y-1 text-xs">
-              {erasures.map((r) => (
+              {erasures.map((r: any) => (
                 <li
                   key={r.id}
                   className="flex items-center justify-between rounded-md border px-2 py-1"
@@ -716,7 +716,7 @@ function EventLogCard() {
 
 export default function PrivacyPage() {
   const meterQ = useGetPrivacyMeter();
-  const meter = meterQ.data?.data;
+  const meter = meterQ.data?.data as any;
 
   return (
     <OperatorLayout

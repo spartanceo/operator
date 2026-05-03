@@ -21278,7 +21278,7 @@ components:
 
     Skill:
       type: object
-      required: [id, slug, name, description, author, version, createdAt, updatedAt]
+      required: [id, slug, name, description, author, version, createdAt, updatedAt, content, triggers, installCount, isInstalled, modelTags]
       properties:
         id: { type: string }
         slug: { type: string }
@@ -21290,6 +21290,23 @@ components:
         category: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        content: { type: string }
+        triggers:
+          type: array
+          items: { type: string }
+        installCount: { type: integer }
+        isInstalled: { type: boolean }
+        modelTags:
+          type: array
+          items: { type: string }
+        installedVersion: { type: string, nullable: true }
+        latestVersion: { type: string, nullable: true }
+        minOpVersion: { type: string, nullable: true }
+        unmaintained: { type: boolean, nullable: true }
+        opIncompatible: { type: boolean, nullable: true }
+        hasUpdate: { type: boolean, nullable: true }
+        breakingChange: { type: boolean, nullable: true }
+        autoUpdate: { type: boolean, nullable: true }
 
     SkillResponse:
       type: object
@@ -22068,6 +22085,525 @@ components:
 
 
 
+    IntegrationProvider:
+      type: string
+    InventoryCategory:
+      type: string
+    QueuedTaskStatus:
+      type: string
+    AcquisitionChannelResponse:
+      type: object
+      additionalProperties: true
+    AdminBoolResponse:
+      type: object
+      additionalProperties: true
+    ApplySkillUpdateRequest:
+      type: object
+      additionalProperties: true
+    AttributeReferralRequest:
+      type: object
+      additionalProperties: true
+    BetaAccessResponse:
+      type: object
+      additionalProperties: true
+    BuildTaskShareCardRequest:
+      type: object
+      additionalProperties: true
+    CreateDraftFromPasteRequest:
+      type: object
+      additionalProperties: true
+    CreateDraftFromUploadRequest:
+      type: object
+      additionalProperties: true
+    CreateEnterpriseTrialInviteRequest:
+      type: object
+      additionalProperties: true
+    CreateScheduleRequest:
+      type: object
+      additionalProperties: true
+    CreateSkillRequest:
+      type: object
+      additionalProperties: true
+    CreateTaskTemplateCategoryRequest:
+      type: object
+      additionalProperties: true
+    CreateTaskTemplateRequest:
+      type: object
+      additionalProperties: true
+    CreateWaitlistSignupRequest:
+      type: object
+      additionalProperties: true
+    CreateWebhookSubscriptionRequest:
+      type: object
+      additionalProperties: true
+    CreatorAgreementResponse:
+      type: object
+      additionalProperties: true
+    CreatorAgreementStateResponse:
+      type: object
+      additionalProperties: true
+    CreatorBadgeResponse:
+      type: object
+      additionalProperties: true
+    CreatorEarningsRequest:
+      type: object
+      additionalProperties: true
+    CreatorEarningsResponse:
+      type: object
+      additionalProperties: true
+    CreatorLeaderboardResponse:
+      type: object
+      additionalProperties: true
+    CreatorMilestoneListResponse:
+      type: object
+      additionalProperties: true
+    CreatorMilestoneResponse:
+      type: object
+      additionalProperties: true
+    CreatorProfileResponse:
+      type: object
+      additionalProperties: true
+    DeleteScheduleResponse:
+      type: object
+      additionalProperties: true
+    DmcaCounterNoticeRequest:
+      type: object
+      additionalProperties: true
+    DmcaCounterNoticeResponse:
+      type: object
+      additionalProperties: true
+    DmcaDecideRequest:
+      type: object
+      additionalProperties: true
+    DmcaTakedownListResponse:
+      type: object
+      additionalProperties: true
+    DmcaTakedownRequest:
+      type: object
+      additionalProperties: true
+    DmcaTakedownResponse:
+      type: object
+      additionalProperties: true
+    EnterpriseTrialInviteListResponse:
+      type: object
+      additionalProperties: true
+    EnterpriseTrialInviteResponse:
+      type: object
+      additionalProperties: true
+    ErasureRequestListResponse:
+      type: object
+      additionalProperties: true
+    ErasureRequestResponse:
+      type: object
+      additionalProperties: true
+    FlagReviewRequest:
+      type: object
+      additionalProperties: true
+    HelpfulVoteRequest:
+      type: object
+      additionalProperties: true
+    ImportTaskTemplateRequest:
+      type: object
+      additionalProperties: true
+    ImportWorkspaceRequest:
+      type: object
+      additionalProperties: true
+    ModerateReviewRequest:
+      type: object
+      additionalProperties: true
+    ModerationQueuePageResponse:
+      type: object
+      additionalProperties: true
+    NetworkCallListResponse:
+      type: object
+      additionalProperties: true
+    NetworkCallSummaryResponse:
+      type: object
+      additionalProperties: true
+    OpEventListResponse:
+      type: object
+      additionalProperties: true
+    PauseScheduleRequest:
+      type: object
+      additionalProperties: true
+    PinTaskTemplateRequest:
+      type: object
+      additionalProperties: true
+    PluginInvokeRequest:
+      type: object
+      additionalProperties: true
+    PluginInvokeResponse:
+      type: object
+      additionalProperties: true
+    PluginToolDeleteResponse:
+      type: object
+      additionalProperties: true
+    PluginToolListResponse:
+      type: object
+      additionalProperties: true
+    PluginToolResponse:
+      type: object
+      additionalProperties: true
+    PreviewScheduleRequest:
+      type: object
+      additionalProperties: true
+    PreviewScheduleResponse:
+      type: object
+      additionalProperties: true
+    PrivacyExportResponse:
+      type: object
+      additionalProperties: true
+    PrivacyMeterResponse:
+      type: object
+      additionalProperties: true
+    PrivacySettingsResponse:
+      type: object
+      additionalProperties: true
+    PublicCreatorProfileResponse:
+      type: object
+      additionalProperties: true
+    PublishSkillVersionRequest:
+      type: object
+      additionalProperties: true
+    PublishStoreSkillRequest:
+      type: object
+      additionalProperties: true
+    QueueClearRequest:
+      type: object
+      additionalProperties: true
+    QueueClearResponse:
+      type: object
+      additionalProperties: true
+    QueuedTaskListResponse:
+      type: object
+      additionalProperties: true
+    QueuedTaskResponse:
+      type: object
+      additionalProperties: true
+    QueueEnqueueRequest:
+      type: object
+      additionalProperties: true
+    QueueSetPriorityRequest:
+      type: object
+      additionalProperties: true
+    QueueSnapshotResponse:
+      type: object
+      additionalProperties: true
+    RecordSatisfactionRequest:
+      type: object
+      additionalProperties: true
+    RecordShareEventRequest:
+      type: object
+      additionalProperties: true
+    RecordSkillUsageRequest:
+      type: object
+      additionalProperties: true
+    RecordSkillUsageResponse:
+      type: object
+      additionalProperties: true
+    ReferralCodeResponse:
+      type: object
+      additionalProperties: true
+    ReferralDashboardResponse:
+      type: object
+      additionalProperties: true
+    ReferralLookupResponse:
+      type: object
+      additionalProperties: true
+    ReferralResponse:
+      type: object
+      additionalProperties: true
+    ReferralRewardListResponse:
+      type: object
+      additionalProperties: true
+    RegisterPluginToolRequest:
+      type: object
+      additionalProperties: true
+    ReviewResponseRequest:
+      type: object
+      additionalProperties: true
+    RollbackSkillRequest:
+      type: object
+      additionalProperties: true
+    RunTaskTemplateRequest:
+      type: object
+      additionalProperties: true
+    RunTaskTemplateResponse:
+      type: object
+      additionalProperties: true
+    ScheduledTaskListResponse:
+      type: object
+      additionalProperties: true
+    ScheduledTaskResponse:
+      type: object
+      additionalProperties: true
+    ScheduledTaskRunListResponse:
+      type: object
+      additionalProperties: true
+    ScheduledTaskRunResponse:
+      type: object
+      additionalProperties: true
+    ScheduleSettingsResponse:
+      type: object
+      additionalProperties: true
+    SetAcquisitionChannelRequest:
+      type: object
+      additionalProperties: true
+    SetSkillTrustFlagsRequest:
+      type: object
+      additionalProperties: true
+    ShareEventListResponse:
+      type: object
+      additionalProperties: true
+    ShareEventResponse:
+      type: object
+      additionalProperties: true
+    SignCreatorAgreementRequest:
+      type: object
+      additionalProperties: true
+    SimilarSkillsResponse:
+      type: object
+      additionalProperties: true
+    SkillAdoptionResponse:
+      type: object
+      additionalProperties: true
+    SkillAutoUpdateRequest:
+      type: object
+      additionalProperties: true
+    SkillBadgesResponse:
+      type: object
+      additionalProperties: true
+    SkillConfigImportRequest:
+      type: object
+      additionalProperties: true
+    SkillConfigImportResponse:
+      type: object
+      additionalProperties: true
+    SkillConfigResponse:
+      type: object
+      additionalProperties: true
+    SkillConfigStatusResponse:
+      type: object
+      additionalProperties: true
+    SkillConfigUpdateRequest:
+      type: object
+      additionalProperties: true
+    SkillDeleteResponse:
+      type: object
+      additionalProperties: true
+    SkillDraftDeleteResponse:
+      type: object
+      additionalProperties: true
+    SkillDraftInterviewAnswerRequest:
+      type: object
+      additionalProperties: true
+    SkillDraftInterviewQuestionsResponse:
+      type: object
+      additionalProperties: true
+    SkillDraftListResponse:
+      type: object
+      additionalProperties: true
+    SkillDraftResponse:
+      type: object
+      additionalProperties: true
+    SkillDraftTestRequest:
+      type: object
+      additionalProperties: true
+    SkillDraftTestResponse:
+      type: object
+      additionalProperties: true
+    SkillExportResponse:
+      type: object
+      additionalProperties: true
+    SkillImportRequest:
+      type: object
+      additionalProperties: true
+    SkillInvokeRequest:
+      type: object
+      additionalProperties: true
+    SkillRatingListResponse:
+      type: object
+      additionalProperties: true
+    SkillRatingResponse:
+      type: object
+      additionalProperties: true
+    SkillRatingSummaryResponse:
+      type: object
+      additionalProperties: true
+    SkillReviewFlagListResponse:
+      type: object
+      additionalProperties: true
+    SkillReviewFlagResponse:
+      type: object
+      additionalProperties: true
+    SkillReviewResponseResponse:
+      type: object
+      additionalProperties: true
+    SkillShareLinksResponse:
+      type: object
+      additionalProperties: true
+    SkillSocialCardResponse:
+      type: object
+      additionalProperties: true
+    SkillUpdatesResponse:
+      type: object
+      additionalProperties: true
+    SkillVersionListResponse:
+      type: object
+      additionalProperties: true
+    StoreCreatorDashboardRequest:
+      type: object
+      additionalProperties: true
+    StoreCreatorDashboardResponse:
+      type: object
+      additionalProperties: true
+    StoreCreatorListResponse:
+      type: object
+      additionalProperties: true
+    StoreCreatorResponse:
+      type: object
+      additionalProperties: true
+    StoreCreatorSignupRequest:
+      type: object
+      additionalProperties: true
+    StoreCreatorSignupResponse:
+      type: object
+      additionalProperties: true
+    StoreSkillDetailResponse:
+      type: object
+      additionalProperties: true
+    StoreSkillInstallResponse:
+      type: object
+      additionalProperties: true
+    StoreSkillListResponse:
+      type: object
+      additionalProperties: true
+    StoreSkillResponse:
+      type: object
+      additionalProperties: true
+    StoreSkillUpdatesResponse:
+      type: object
+      additionalProperties: true
+    SubmitCreatorTaxFormRequest:
+      type: object
+      additionalProperties: true
+    SubmitSkillRatingRequest:
+      type: object
+      additionalProperties: true
+    SubscriptionCheckoutRequest:
+      type: object
+      additionalProperties: true
+    SubscriptionCheckoutResponse:
+      type: object
+      additionalProperties: true
+    SubscriptionConfirmRequest:
+      type: object
+      additionalProperties: true
+    SubscriptionStatusResponse:
+      type: object
+      additionalProperties: true
+    SubscriptionUsageResponse:
+      type: object
+      additionalProperties: true
+    SubscriptionWebhookRequest:
+      type: object
+      additionalProperties: true
+    SubscriptionWebhookResponse:
+      type: object
+      additionalProperties: true
+    SuperAdminOverviewResponse:
+      type: object
+      additionalProperties: true
+    SuperAdminRevenueResponse:
+      type: object
+      additionalProperties: true
+    SuperAdminSkillAnalyticsResponse:
+      type: object
+      additionalProperties: true
+    TaskSatisfactionListResponse:
+      type: object
+      additionalProperties: true
+    TaskSatisfactionResponse:
+      type: object
+      additionalProperties: true
+    TaskShareCardResponse:
+      type: object
+      additionalProperties: true
+    TaskTemplateCategoryListResponse:
+      type: object
+      additionalProperties: true
+    TaskTemplateCategoryResponse:
+      type: object
+      additionalProperties: true
+    TaskTemplateCollectionResponse:
+      type: object
+      additionalProperties: true
+    TaskTemplateDeleteResponse:
+      type: object
+      additionalProperties: true
+    TaskTemplateExportResponse:
+      type: object
+      additionalProperties: true
+    TaskTemplateListResponse:
+      type: object
+      additionalProperties: true
+    TaskTemplateResponse:
+      type: object
+      additionalProperties: true
+    TrendingSkillsResponse:
+      type: object
+      additionalProperties: true
+    UpdatePluginToolRequest:
+      type: object
+      additionalProperties: true
+    UpdateScheduleRequest:
+      type: object
+      additionalProperties: true
+    UpdateScheduleSettingsRequest:
+      type: object
+      additionalProperties: true
+    UpdateSkillDraftRequest:
+      type: object
+      additionalProperties: true
+    UpdateSkillRequest:
+      type: object
+      additionalProperties: true
+    UpdateTaskTemplateRequest:
+      type: object
+      additionalProperties: true
+    UpdateWebhookSubscriptionRequest:
+      type: object
+      additionalProperties: true
+    UpsertCreatorProfileRequest:
+      type: object
+      additionalProperties: true
+    WaitlistSignupListResponse:
+      type: object
+      additionalProperties: true
+    WaitlistSignupResponse:
+      type: object
+      additionalProperties: true
+    WaitlistStatsResponse:
+      type: object
+      additionalProperties: true
+    WebhookSubscriptionDeleteResponse:
+      type: object
+      additionalProperties: true
+    WebhookSubscriptionListResponse:
+      type: object
+      additionalProperties: true
+    WebhookSubscriptionResponse:
+      type: object
+      additionalProperties: true
+    WorkspaceDeleteResponse:
+      type: object
+      additionalProperties: true
+    WorkspaceOverviewResponse:
+      type: object
+      additionalProperties: true
+    WorkspaceTemplateResponse:
+      type: object
+      additionalProperties: true
   responses: {}
   requestBodies: {}
   headers: {}

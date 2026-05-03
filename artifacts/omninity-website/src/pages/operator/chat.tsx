@@ -315,7 +315,7 @@ export default function ChatPage() {
 
   const transcribeMut = useTranscribeAudio({
     mutation: {
-      onSuccess: (resp) => {
+      onSuccess: (resp: any) => {
         const transcript = resp.data.transcript.trim();
         if (!transcript) return;
         if (autoSendOnNextTranscriptRef.current) {

@@ -471,7 +471,7 @@ export default function SettingsPage() {
                       {draft.voiceName} (loading…)
                     </SelectItem>
                   ) : (
-                    (voicesQuery.data?.data.items ?? []).map((v) => (
+                    (voicesQuery.data?.data.items ?? []).map((v: any) => (
                       <SelectItem key={v.id} value={v.id}>
                         {v.label}
                       </SelectItem>

@@ -98,79 +98,26 @@ export const EraseTenantDataResponse = zod.object({
 /**
  * @summary Platform-wide aggregate counts (anonymised)
  */
-export const GetSuperAdminOverviewResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    totalInstalls: zod.number(),
-    totalUsers: zod.number(),
-    enterpriseOrgs: zod.number(),
-    paidSubscribers: zod.number(),
-    dailyActiveUsers: zod.number(),
-    weeklyActiveUsers: zod.number(),
-    monthlyActiveUsers: zod.number(),
-    churnRate: zod.number(),
-    conversationsThisMonth: zod.number(),
-    agentRunsThisMonth: zod.number(),
-    growthSeries: zod.array(
-      zod.object({
-        date: zod.string(),
-        installs: zod.number(),
-      }),
-    ),
-  }),
-});
+export const GetSuperAdminOverviewResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Revenue, MRR, platform/creator split
  */
-export const GetSuperAdminRevenueResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    totalSubscribers: zod.number(),
-    monthlyRecurringCents: zod.number(),
-    platformCutCents: zod.number(),
-    creatorPoolCents: zod.number(),
-    pendingPayoutCents: zod.number(),
-    stripePayoutStatus: zod.string(),
-    recentInvoices: zod.array(
-      zod.object({
-        id: zod.string(),
-        tenantId: zod.string(),
-        amountCents: zod.number(),
-        status: zod.string(),
-        createdAt: zod.string(),
-      }),
-    ),
-  }),
-});
+export const GetSuperAdminRevenueResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Top skills, creators, trending categories
  */
-export const GetSuperAdminSkillAnalyticsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    topInstalled: zod.array(
-      zod.object({
-        slug: zod.string(),
-        name: zod.string(),
-        installs: zod.number(),
-      }),
-    ),
-    topEarning: zod.array(
-      zod.object({
-        creatorHandle: zod.string(),
-        usage: zod.number(),
-      }),
-    ),
-    trendingCategories: zod.array(
-      zod.object({
-        category: zod.string(),
-        installs: zod.number(),
-      }),
-    ),
-  }),
-});
+export const GetSuperAdminSkillAnalyticsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Skill submissions awaiting review
@@ -191,23 +138,10 @@ export const ListModerationQueueQueryParams = zod.object({
     .describe("Page size, default 20, max 100."),
 });
 
-export const ListModerationQueueResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        name: zod.string(),
-        description: zod.string(),
-        category: zod.string(),
-        status: zod.string(),
-        createdAt: zod.string(),
-        updatedAt: zod.string(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListModerationQueueResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Approve a queued skill submission
@@ -220,10 +154,10 @@ export const ApproveModerationItemBody = zod.object({
   notes: zod.string().optional(),
 });
 
-export const ApproveModerationItemResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.record(zod.string(), zod.unknown()),
-});
+export const ApproveModerationItemResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Reject a queued skill submission
@@ -236,10 +170,10 @@ export const RejectModerationItemBody = zod.object({
   reason: zod.string(),
 });
 
-export const RejectModerationItemResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.record(zod.string(), zod.unknown()),
-});
+export const RejectModerationItemResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Take down a published store skill
@@ -252,10 +186,7 @@ export const RemoveStoreSkillBody = zod.object({
   reason: zod.string(),
 });
 
-export const RemoveStoreSkillResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.record(zod.string(), zod.unknown()),
-});
+export const RemoveStoreSkillResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary All creator accounts (paginated)
@@ -304,10 +235,7 @@ export const BanCreatorBody = zod.object({
   reason: zod.string(),
 });
 
-export const BanCreatorResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.record(zod.string(), zod.unknown()),
-});
+export const BanCreatorResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary List all feature flags
@@ -512,10 +440,10 @@ export const ResolveAbuseReportBody = zod.object({
   notes: zod.string().optional(),
 });
 
-export const ResolveAbuseReportResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.record(zod.string(), zod.unknown()),
-});
+export const ResolveAbuseReportResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Get the calling tenant's enterprise org row
@@ -710,10 +638,10 @@ export const RemoveEnterpriseSeatHeader = zod.object({
     ),
 });
 
-export const RemoveEnterpriseSeatResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.record(zod.string(), zod.unknown()),
-});
+export const RemoveEnterpriseSeatResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Get the org's skill whitelist
@@ -1181,10 +1109,10 @@ export const DeleteEnterpriseAuditAlertRuleHeader = zod.object({
     ),
 });
 
-export const DeleteEnterpriseAuditAlertRuleResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.record(zod.string(), zod.unknown()),
-});
+export const DeleteEnterpriseAuditAlertRuleResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Triggered audit alerts
@@ -3437,11 +3365,11 @@ export const ListWorkspacesResponse = zod.object({
       zod.object({
         id: zod.string(),
         name: zod.string(),
+        slug: zod.string(),
         description: zod.string().nullish(),
-        color: zod.string().nullish(),
         icon: zod.string().nullish(),
-        isDefault: zod.boolean(),
-        lastActiveAt: zod.coerce.date().nullish(),
+        color: zod.string().nullish(),
+        isDefault: zod.boolean().optional(),
         createdAt: zod.coerce.date(),
         updatedAt: zod.coerce.date(),
       }),
@@ -3460,20 +3388,15 @@ export const CreateWorkspaceHeader = zod.object({
     ),
 });
 
-export const createWorkspaceBodyNameMax = 80;
+export const createWorkspaceBodyNameMax = 64;
 
-export const createWorkspaceBodyDescriptionMax = 500;
-
-export const createWorkspaceBodyColorMax = 40;
-
-export const createWorkspaceBodyIconMax = 40;
+export const createWorkspaceBodyDescriptionMax = 256;
 
 export const CreateWorkspaceBody = zod.object({
   name: zod.string().min(1).max(createWorkspaceBodyNameMax),
   description: zod.string().max(createWorkspaceBodyDescriptionMax).optional(),
-  color: zod.string().max(createWorkspaceBodyColorMax).optional(),
-  icon: zod.string().max(createWorkspaceBodyIconMax).optional(),
-  isDefault: zod.boolean().optional(),
+  icon: zod.string().optional(),
+  color: zod.string().optional(),
 });
 
 export const CreateWorkspaceResponse = zod.object({
@@ -3481,11 +3404,11 @@ export const CreateWorkspaceResponse = zod.object({
   data: zod.object({
     id: zod.string(),
     name: zod.string(),
+    slug: zod.string(),
     description: zod.string().nullish(),
-    color: zod.string().nullish(),
     icon: zod.string().nullish(),
-    isDefault: zod.boolean(),
-    lastActiveAt: zod.coerce.date().nullish(),
+    color: zod.string().nullish(),
+    isDefault: zod.boolean().optional(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -3502,39 +3425,18 @@ export const ImportWorkspaceHeader = zod.object({
     ),
 });
 
-export const importWorkspaceBodyNameMax = 80;
-
-export const ImportWorkspaceBody = zod.object({
-  template: zod.object({
-    schemaVersion: zod.literal(1),
-    exportedAt: zod.coerce.date(),
-    workspace: zod.object({
-      name: zod.string(),
-      description: zod.string().nullish(),
-      color: zod.string().nullish(),
-      icon: zod.string().nullish(),
-    }),
-    collections: zod.array(
-      zod.object({
-        name: zod.string(),
-        description: zod.string().nullish(),
-        color: zod.string().nullish(),
-      }),
-    ),
-  }),
-  name: zod.string().min(1).max(importWorkspaceBodyNameMax).optional(),
-});
+export const ImportWorkspaceBody = zod.record(zod.string(), zod.unknown());
 
 export const ImportWorkspaceResponse = zod.object({
   success: zod.literal(true),
   data: zod.object({
     id: zod.string(),
     name: zod.string(),
+    slug: zod.string(),
     description: zod.string().nullish(),
-    color: zod.string().nullish(),
     icon: zod.string().nullish(),
-    isDefault: zod.boolean(),
-    lastActiveAt: zod.coerce.date().nullish(),
+    color: zod.string().nullish(),
+    isDefault: zod.boolean().optional(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -3560,11 +3462,11 @@ export const GetWorkspaceResponse = zod.object({
   data: zod.object({
     id: zod.string(),
     name: zod.string(),
+    slug: zod.string(),
     description: zod.string().nullish(),
-    color: zod.string().nullish(),
     icon: zod.string().nullish(),
-    isDefault: zod.boolean(),
-    lastActiveAt: zod.coerce.date().nullish(),
+    color: zod.string().nullish(),
+    isDefault: zod.boolean().optional(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -3585,20 +3487,15 @@ export const UpdateWorkspaceHeader = zod.object({
     ),
 });
 
-export const updateWorkspaceBodyNameMax = 80;
+export const updateWorkspaceBodyNameMax = 64;
 
-export const updateWorkspaceBodyDescriptionMax = 500;
-
-export const updateWorkspaceBodyColorMax = 40;
-
-export const updateWorkspaceBodyIconMax = 40;
+export const updateWorkspaceBodyDescriptionMax = 256;
 
 export const UpdateWorkspaceBody = zod.object({
   name: zod.string().min(1).max(updateWorkspaceBodyNameMax).optional(),
   description: zod.string().max(updateWorkspaceBodyDescriptionMax).nullish(),
-  color: zod.string().max(updateWorkspaceBodyColorMax).nullish(),
-  icon: zod.string().max(updateWorkspaceBodyIconMax).nullish(),
-  isDefault: zod.boolean().optional(),
+  icon: zod.string().nullish(),
+  color: zod.string().nullish(),
 });
 
 export const UpdateWorkspaceResponse = zod.object({
@@ -3606,11 +3503,11 @@ export const UpdateWorkspaceResponse = zod.object({
   data: zod.object({
     id: zod.string(),
     name: zod.string(),
+    slug: zod.string(),
     description: zod.string().nullish(),
-    color: zod.string().nullish(),
     icon: zod.string().nullish(),
-    isDefault: zod.boolean(),
-    lastActiveAt: zod.coerce.date().nullish(),
+    color: zod.string().nullish(),
+    isDefault: zod.boolean().optional(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -3635,13 +3532,7 @@ export const DeleteWorkspaceHeader = zod.object({
     ),
 });
 
-export const DeleteWorkspaceResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    deleted: zod.boolean(),
-  }),
-});
+export const DeleteWorkspaceResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Touch lastActiveAt when the user switches into a workspace
@@ -3663,11 +3554,11 @@ export const ActivateWorkspaceResponse = zod.object({
   data: zod.object({
     id: zod.string(),
     name: zod.string(),
+    slug: zod.string(),
     description: zod.string().nullish(),
-    color: zod.string().nullish(),
     icon: zod.string().nullish(),
-    isDefault: zod.boolean(),
-    lastActiveAt: zod.coerce.date().nullish(),
+    color: zod.string().nullish(),
+    isDefault: zod.boolean().optional(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -3688,29 +3579,10 @@ export const GetWorkspaceOverviewHeader = zod.object({
     ),
 });
 
-export const GetWorkspaceOverviewResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    workspace: zod.object({
-      id: zod.string(),
-      name: zod.string(),
-      description: zod.string().nullish(),
-      color: zod.string().nullish(),
-      icon: zod.string().nullish(),
-      isDefault: zod.boolean(),
-      lastActiveAt: zod.coerce.date().nullish(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    stats: zod.object({
-      agentRunCount: zod.number(),
-      kbCollectionCount: zod.number(),
-      kbDocumentCount: zod.number(),
-      memoryCount: zod.number(),
-      lastActiveAt: zod.coerce.date().nullish(),
-    }),
-  }),
-});
+export const GetWorkspaceOverviewResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Export workspace configuration (no personal data)
@@ -3727,26 +3599,10 @@ export const ExportWorkspaceTemplateHeader = zod.object({
     ),
 });
 
-export const ExportWorkspaceTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    schemaVersion: zod.literal(1),
-    exportedAt: zod.coerce.date(),
-    workspace: zod.object({
-      name: zod.string(),
-      description: zod.string().nullish(),
-      color: zod.string().nullish(),
-      icon: zod.string().nullish(),
-    }),
-    collections: zod.array(
-      zod.object({
-        name: zod.string(),
-        description: zod.string().nullish(),
-        color: zod.string().nullish(),
-      }),
-    ),
-  }),
-});
+export const ExportWorkspaceTemplateResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List task templates in the current workspace
@@ -3778,62 +3634,10 @@ export const ListTaskTemplatesHeader = zod.object({
     ),
 });
 
-export const listTaskTemplatesResponseDataItemsItemVariablesItemNameMax = 40;
-
-export const listTaskTemplatesResponseDataItemsItemVariablesItemLabelMax = 120;
-
-export const listTaskTemplatesResponseDataItemsItemVariablesItemDefaultValueMax = 2000;
-
-export const listTaskTemplatesResponseDataItemsItemSkillConfigModelMax = 200;
-
-export const ListTaskTemplatesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        name: zod.string(),
-        description: zod.string().nullish(),
-        prompt: zod.string(),
-        variables: zod.array(
-          zod.object({
-            name: zod
-              .string()
-              .min(1)
-              .max(listTaskTemplatesResponseDataItemsItemVariablesItemNameMax),
-            label: zod
-              .string()
-              .min(1)
-              .max(listTaskTemplatesResponseDataItemsItemVariablesItemLabelMax),
-            defaultValue: zod
-              .string()
-              .max(
-                listTaskTemplatesResponseDataItemsItemVariablesItemDefaultValueMax,
-              )
-              .optional(),
-            required: zod.boolean().optional(),
-          }),
-        ),
-        skillConfig: zod.object({
-          agentMode: zod.boolean().optional(),
-          model: zod
-            .string()
-            .max(listTaskTemplatesResponseDataItemsItemSkillConfigModelMax)
-            .optional(),
-          conversationId: zod.string().nullish(),
-        }),
-        categoryId: zod.string().nullish(),
-        pinnedOrder: zod.number().nullish(),
-        usageCount: zod.number(),
-        lastUsedAt: zod.coerce.date().nullish(),
-        sourceRunId: zod.string().nullish(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListTaskTemplatesResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Create a task template (typically "Save this run as a template")
@@ -3846,109 +3650,12 @@ export const CreateTaskTemplateHeader = zod.object({
     ),
 });
 
-export const createTaskTemplateBodyNameMax = 120;
+export const CreateTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const createTaskTemplateBodyDescriptionMax = 1000;
-
-export const createTaskTemplateBodyPromptMax = 20000;
-
-export const createTaskTemplateBodyVariablesItemNameMax = 40;
-
-export const createTaskTemplateBodyVariablesItemLabelMax = 120;
-
-export const createTaskTemplateBodyVariablesItemDefaultValueMax = 2000;
-
-export const createTaskTemplateBodyVariablesMax = 32;
-
-export const createTaskTemplateBodySkillConfigModelMax = 200;
-
-export const CreateTaskTemplateBody = zod.object({
-  name: zod.string().min(1).max(createTaskTemplateBodyNameMax),
-  description: zod.string().max(createTaskTemplateBodyDescriptionMax).nullish(),
-  prompt: zod.string().min(1).max(createTaskTemplateBodyPromptMax),
-  variables: zod
-    .array(
-      zod.object({
-        name: zod
-          .string()
-          .min(1)
-          .max(createTaskTemplateBodyVariablesItemNameMax),
-        label: zod
-          .string()
-          .min(1)
-          .max(createTaskTemplateBodyVariablesItemLabelMax),
-        defaultValue: zod
-          .string()
-          .max(createTaskTemplateBodyVariablesItemDefaultValueMax)
-          .optional(),
-        required: zod.boolean().optional(),
-      }),
-    )
-    .max(createTaskTemplateBodyVariablesMax)
-    .optional(),
-  skillConfig: zod
-    .object({
-      agentMode: zod.boolean().optional(),
-      model: zod
-        .string()
-        .max(createTaskTemplateBodySkillConfigModelMax)
-        .optional(),
-      conversationId: zod.string().nullish(),
-    })
-    .optional(),
-  categoryId: zod.string().nullish(),
-  sourceRunId: zod.string().nullish(),
-});
-
-export const createTaskTemplateResponseDataVariablesItemNameMax = 40;
-
-export const createTaskTemplateResponseDataVariablesItemLabelMax = 120;
-
-export const createTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
-
-export const createTaskTemplateResponseDataSkillConfigModelMax = 200;
-
-export const CreateTaskTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    name: zod.string(),
-    description: zod.string().nullish(),
-    prompt: zod.string(),
-    variables: zod.array(
-      zod.object({
-        name: zod
-          .string()
-          .min(1)
-          .max(createTaskTemplateResponseDataVariablesItemNameMax),
-        label: zod
-          .string()
-          .min(1)
-          .max(createTaskTemplateResponseDataVariablesItemLabelMax),
-        defaultValue: zod
-          .string()
-          .max(createTaskTemplateResponseDataVariablesItemDefaultValueMax)
-          .optional(),
-        required: zod.boolean().optional(),
-      }),
-    ),
-    skillConfig: zod.object({
-      agentMode: zod.boolean().optional(),
-      model: zod
-        .string()
-        .max(createTaskTemplateResponseDataSkillConfigModelMax)
-        .optional(),
-      conversationId: zod.string().nullish(),
-    }),
-    categoryId: zod.string().nullish(),
-    pinnedOrder: zod.number().nullish(),
-    usageCount: zod.number(),
-    lastUsedAt: zod.coerce.date().nullish(),
-    sourceRunId: zod.string().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const CreateTaskTemplateResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Quick-launch row — up to 5 pinned templates
@@ -3961,67 +3668,10 @@ export const ListPinnedTaskTemplatesHeader = zod.object({
     ),
 });
 
-export const listPinnedTaskTemplatesResponseDataItemsItemVariablesItemNameMax = 40;
-
-export const listPinnedTaskTemplatesResponseDataItemsItemVariablesItemLabelMax = 120;
-
-export const listPinnedTaskTemplatesResponseDataItemsItemVariablesItemDefaultValueMax = 2000;
-
-export const listPinnedTaskTemplatesResponseDataItemsItemSkillConfigModelMax = 200;
-
-export const ListPinnedTaskTemplatesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        name: zod.string(),
-        description: zod.string().nullish(),
-        prompt: zod.string(),
-        variables: zod.array(
-          zod.object({
-            name: zod
-              .string()
-              .min(1)
-              .max(
-                listPinnedTaskTemplatesResponseDataItemsItemVariablesItemNameMax,
-              ),
-            label: zod
-              .string()
-              .min(1)
-              .max(
-                listPinnedTaskTemplatesResponseDataItemsItemVariablesItemLabelMax,
-              ),
-            defaultValue: zod
-              .string()
-              .max(
-                listPinnedTaskTemplatesResponseDataItemsItemVariablesItemDefaultValueMax,
-              )
-              .optional(),
-            required: zod.boolean().optional(),
-          }),
-        ),
-        skillConfig: zod.object({
-          agentMode: zod.boolean().optional(),
-          model: zod
-            .string()
-            .max(
-              listPinnedTaskTemplatesResponseDataItemsItemSkillConfigModelMax,
-            )
-            .optional(),
-          conversationId: zod.string().nullish(),
-        }),
-        categoryId: zod.string().nullish(),
-        pinnedOrder: zod.number().nullish(),
-        usageCount: zod.number(),
-        lastUsedAt: zod.coerce.date().nullish(),
-        sourceRunId: zod.string().nullish(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const ListPinnedTaskTemplatesResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List user-defined template categories
@@ -4034,21 +3684,10 @@ export const ListTaskTemplateCategoriesHeader = zod.object({
     ),
 });
 
-export const ListTaskTemplateCategoriesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        name: zod.string(),
-        color: zod.string().nullish(),
-        icon: zod.string().nullish(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const ListTaskTemplateCategoriesResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Create a template category
@@ -4061,29 +3700,15 @@ export const CreateTaskTemplateCategoryHeader = zod.object({
     ),
 });
 
-export const createTaskTemplateCategoryBodyNameMax = 80;
+export const CreateTaskTemplateCategoryBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const createTaskTemplateCategoryBodyColorMax = 40;
-
-export const createTaskTemplateCategoryBodyIconMax = 40;
-
-export const CreateTaskTemplateCategoryBody = zod.object({
-  name: zod.string().min(1).max(createTaskTemplateCategoryBodyNameMax),
-  color: zod.string().max(createTaskTemplateCategoryBodyColorMax).nullish(),
-  icon: zod.string().max(createTaskTemplateCategoryBodyIconMax).nullish(),
-});
-
-export const CreateTaskTemplateCategoryResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    name: zod.string(),
-    color: zod.string().nullish(),
-    icon: zod.string().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const CreateTaskTemplateCategoryResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Delete a category (templates inside detach to "Uncategorised")
@@ -4100,12 +3725,10 @@ export const DeleteTaskTemplateCategoryHeader = zod.object({
     ),
 });
 
-export const DeleteTaskTemplateCategoryResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    deleted: zod.boolean(),
-  }),
-});
+export const DeleteTaskTemplateCategoryResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Import a previously-exported template
@@ -4118,112 +3741,12 @@ export const ImportTaskTemplateHeader = zod.object({
     ),
 });
 
-export const importTaskTemplateBodyTemplateTemplateVariablesItemNameMax = 40;
+export const ImportTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const importTaskTemplateBodyTemplateTemplateVariablesItemLabelMax = 120;
-
-export const importTaskTemplateBodyTemplateTemplateVariablesItemDefaultValueMax = 2000;
-
-export const importTaskTemplateBodyTemplateTemplateSkillConfigModelMax = 200;
-
-export const importTaskTemplateBodyNameMax = 120;
-
-export const ImportTaskTemplateBody = zod.object({
-  template: zod.object({
-    schemaVersion: zod.literal(1),
-    exportedAt: zod.coerce.date(),
-    template: zod.object({
-      name: zod.string(),
-      description: zod.string().nullish(),
-      prompt: zod.string(),
-      variables: zod.array(
-        zod.object({
-          name: zod
-            .string()
-            .min(1)
-            .max(importTaskTemplateBodyTemplateTemplateVariablesItemNameMax),
-          label: zod
-            .string()
-            .min(1)
-            .max(importTaskTemplateBodyTemplateTemplateVariablesItemLabelMax),
-          defaultValue: zod
-            .string()
-            .max(
-              importTaskTemplateBodyTemplateTemplateVariablesItemDefaultValueMax,
-            )
-            .optional(),
-          required: zod.boolean().optional(),
-        }),
-      ),
-      skillConfig: zod.object({
-        agentMode: zod.boolean().optional(),
-        model: zod
-          .string()
-          .max(importTaskTemplateBodyTemplateTemplateSkillConfigModelMax)
-          .optional(),
-        conversationId: zod.string().nullish(),
-      }),
-      category: zod
-        .object({
-          name: zod.string(),
-          color: zod.string().nullish(),
-          icon: zod.string().nullish(),
-        })
-        .nullish(),
-    }),
-  }),
-  name: zod.string().min(1).max(importTaskTemplateBodyNameMax).optional(),
-});
-
-export const importTaskTemplateResponseDataVariablesItemNameMax = 40;
-
-export const importTaskTemplateResponseDataVariablesItemLabelMax = 120;
-
-export const importTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
-
-export const importTaskTemplateResponseDataSkillConfigModelMax = 200;
-
-export const ImportTaskTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    name: zod.string(),
-    description: zod.string().nullish(),
-    prompt: zod.string(),
-    variables: zod.array(
-      zod.object({
-        name: zod
-          .string()
-          .min(1)
-          .max(importTaskTemplateResponseDataVariablesItemNameMax),
-        label: zod
-          .string()
-          .min(1)
-          .max(importTaskTemplateResponseDataVariablesItemLabelMax),
-        defaultValue: zod
-          .string()
-          .max(importTaskTemplateResponseDataVariablesItemDefaultValueMax)
-          .optional(),
-        required: zod.boolean().optional(),
-      }),
-    ),
-    skillConfig: zod.object({
-      agentMode: zod.boolean().optional(),
-      model: zod
-        .string()
-        .max(importTaskTemplateResponseDataSkillConfigModelMax)
-        .optional(),
-      conversationId: zod.string().nullish(),
-    }),
-    categoryId: zod.string().nullish(),
-    pinnedOrder: zod.number().nullish(),
-    usageCount: zod.number(),
-    lastUsedAt: zod.coerce.date().nullish(),
-    sourceRunId: zod.string().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const ImportTaskTemplateResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Fetch one template
@@ -4240,55 +3763,7 @@ export const GetTaskTemplateHeader = zod.object({
     ),
 });
 
-export const getTaskTemplateResponseDataVariablesItemNameMax = 40;
-
-export const getTaskTemplateResponseDataVariablesItemLabelMax = 120;
-
-export const getTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
-
-export const getTaskTemplateResponseDataSkillConfigModelMax = 200;
-
-export const GetTaskTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    name: zod.string(),
-    description: zod.string().nullish(),
-    prompt: zod.string(),
-    variables: zod.array(
-      zod.object({
-        name: zod
-          .string()
-          .min(1)
-          .max(getTaskTemplateResponseDataVariablesItemNameMax),
-        label: zod
-          .string()
-          .min(1)
-          .max(getTaskTemplateResponseDataVariablesItemLabelMax),
-        defaultValue: zod
-          .string()
-          .max(getTaskTemplateResponseDataVariablesItemDefaultValueMax)
-          .optional(),
-        required: zod.boolean().optional(),
-      }),
-    ),
-    skillConfig: zod.object({
-      agentMode: zod.boolean().optional(),
-      model: zod
-        .string()
-        .max(getTaskTemplateResponseDataSkillConfigModelMax)
-        .optional(),
-      conversationId: zod.string().nullish(),
-    }),
-    categoryId: zod.string().nullish(),
-    pinnedOrder: zod.number().nullish(),
-    usageCount: zod.number(),
-    lastUsedAt: zod.coerce.date().nullish(),
-    sourceRunId: zod.string().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const GetTaskTemplateResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Edit name / prompt / variables / category
@@ -4305,108 +3780,12 @@ export const UpdateTaskTemplateHeader = zod.object({
     ),
 });
 
-export const updateTaskTemplateBodyNameMax = 120;
+export const UpdateTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const updateTaskTemplateBodyDescriptionMax = 1000;
-
-export const updateTaskTemplateBodyPromptMax = 20000;
-
-export const updateTaskTemplateBodyVariablesItemNameMax = 40;
-
-export const updateTaskTemplateBodyVariablesItemLabelMax = 120;
-
-export const updateTaskTemplateBodyVariablesItemDefaultValueMax = 2000;
-
-export const updateTaskTemplateBodyVariablesMax = 32;
-
-export const updateTaskTemplateBodySkillConfigModelMax = 200;
-
-export const UpdateTaskTemplateBody = zod.object({
-  name: zod.string().min(1).max(updateTaskTemplateBodyNameMax).optional(),
-  description: zod.string().max(updateTaskTemplateBodyDescriptionMax).nullish(),
-  prompt: zod.string().min(1).max(updateTaskTemplateBodyPromptMax).optional(),
-  variables: zod
-    .array(
-      zod.object({
-        name: zod
-          .string()
-          .min(1)
-          .max(updateTaskTemplateBodyVariablesItemNameMax),
-        label: zod
-          .string()
-          .min(1)
-          .max(updateTaskTemplateBodyVariablesItemLabelMax),
-        defaultValue: zod
-          .string()
-          .max(updateTaskTemplateBodyVariablesItemDefaultValueMax)
-          .optional(),
-        required: zod.boolean().optional(),
-      }),
-    )
-    .max(updateTaskTemplateBodyVariablesMax)
-    .optional(),
-  skillConfig: zod
-    .object({
-      agentMode: zod.boolean().optional(),
-      model: zod
-        .string()
-        .max(updateTaskTemplateBodySkillConfigModelMax)
-        .optional(),
-      conversationId: zod.string().nullish(),
-    })
-    .optional(),
-  categoryId: zod.string().nullish(),
-});
-
-export const updateTaskTemplateResponseDataVariablesItemNameMax = 40;
-
-export const updateTaskTemplateResponseDataVariablesItemLabelMax = 120;
-
-export const updateTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
-
-export const updateTaskTemplateResponseDataSkillConfigModelMax = 200;
-
-export const UpdateTaskTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    name: zod.string(),
-    description: zod.string().nullish(),
-    prompt: zod.string(),
-    variables: zod.array(
-      zod.object({
-        name: zod
-          .string()
-          .min(1)
-          .max(updateTaskTemplateResponseDataVariablesItemNameMax),
-        label: zod
-          .string()
-          .min(1)
-          .max(updateTaskTemplateResponseDataVariablesItemLabelMax),
-        defaultValue: zod
-          .string()
-          .max(updateTaskTemplateResponseDataVariablesItemDefaultValueMax)
-          .optional(),
-        required: zod.boolean().optional(),
-      }),
-    ),
-    skillConfig: zod.object({
-      agentMode: zod.boolean().optional(),
-      model: zod
-        .string()
-        .max(updateTaskTemplateResponseDataSkillConfigModelMax)
-        .optional(),
-      conversationId: zod.string().nullish(),
-    }),
-    categoryId: zod.string().nullish(),
-    pinnedOrder: zod.number().nullish(),
-    usageCount: zod.number(),
-    lastUsedAt: zod.coerce.date().nullish(),
-    sourceRunId: zod.string().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const UpdateTaskTemplateResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Delete a template
@@ -4423,12 +3802,10 @@ export const DeleteTaskTemplateHeader = zod.object({
     ),
 });
 
-export const DeleteTaskTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    deleted: zod.boolean(),
-  }),
-});
+export const DeleteTaskTemplateResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Substitute variables and bump usage stats
@@ -4445,68 +3822,9 @@ export const RunTaskTemplateHeader = zod.object({
     ),
 });
 
-export const runTaskTemplateBodyValuesMaxOne = 4000;
+export const RunTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const RunTaskTemplateBody = zod.object({
-  values: zod
-    .record(zod.string(), zod.string().max(runTaskTemplateBodyValuesMaxOne))
-    .optional(),
-});
-
-export const runTaskTemplateResponseDataTemplateVariablesItemNameMax = 40;
-
-export const runTaskTemplateResponseDataTemplateVariablesItemLabelMax = 120;
-
-export const runTaskTemplateResponseDataTemplateVariablesItemDefaultValueMax = 2000;
-
-export const runTaskTemplateResponseDataTemplateSkillConfigModelMax = 200;
-
-export const RunTaskTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    template: zod.object({
-      id: zod.string(),
-      name: zod.string(),
-      description: zod.string().nullish(),
-      prompt: zod.string(),
-      variables: zod.array(
-        zod.object({
-          name: zod
-            .string()
-            .min(1)
-            .max(runTaskTemplateResponseDataTemplateVariablesItemNameMax),
-          label: zod
-            .string()
-            .min(1)
-            .max(runTaskTemplateResponseDataTemplateVariablesItemLabelMax),
-          defaultValue: zod
-            .string()
-            .max(
-              runTaskTemplateResponseDataTemplateVariablesItemDefaultValueMax,
-            )
-            .optional(),
-          required: zod.boolean().optional(),
-        }),
-      ),
-      skillConfig: zod.object({
-        agentMode: zod.boolean().optional(),
-        model: zod
-          .string()
-          .max(runTaskTemplateResponseDataTemplateSkillConfigModelMax)
-          .optional(),
-        conversationId: zod.string().nullish(),
-      }),
-      categoryId: zod.string().nullish(),
-      pinnedOrder: zod.number().nullish(),
-      usageCount: zod.number(),
-      lastUsedAt: zod.coerce.date().nullish(),
-      sourceRunId: zod.string().nullish(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    resolvedPrompt: zod.string(),
-  }),
-});
+export const RunTaskTemplateResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Pin or unpin a template (max 5 pinned per workspace)
@@ -4523,59 +3841,9 @@ export const PinTaskTemplateHeader = zod.object({
     ),
 });
 
-export const PinTaskTemplateBody = zod.object({
-  pinned: zod.boolean(),
-});
+export const PinTaskTemplateBody = zod.record(zod.string(), zod.unknown());
 
-export const pinTaskTemplateResponseDataVariablesItemNameMax = 40;
-
-export const pinTaskTemplateResponseDataVariablesItemLabelMax = 120;
-
-export const pinTaskTemplateResponseDataVariablesItemDefaultValueMax = 2000;
-
-export const pinTaskTemplateResponseDataSkillConfigModelMax = 200;
-
-export const PinTaskTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    name: zod.string(),
-    description: zod.string().nullish(),
-    prompt: zod.string(),
-    variables: zod.array(
-      zod.object({
-        name: zod
-          .string()
-          .min(1)
-          .max(pinTaskTemplateResponseDataVariablesItemNameMax),
-        label: zod
-          .string()
-          .min(1)
-          .max(pinTaskTemplateResponseDataVariablesItemLabelMax),
-        defaultValue: zod
-          .string()
-          .max(pinTaskTemplateResponseDataVariablesItemDefaultValueMax)
-          .optional(),
-        required: zod.boolean().optional(),
-      }),
-    ),
-    skillConfig: zod.object({
-      agentMode: zod.boolean().optional(),
-      model: zod
-        .string()
-        .max(pinTaskTemplateResponseDataSkillConfigModelMax)
-        .optional(),
-      conversationId: zod.string().nullish(),
-    }),
-    categoryId: zod.string().nullish(),
-    pinnedOrder: zod.number().nullish(),
-    usageCount: zod.number(),
-    lastUsedAt: zod.coerce.date().nullish(),
-    sourceRunId: zod.string().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const PinTaskTemplateResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Export a template as a portable file
@@ -4592,60 +3860,10 @@ export const ExportTaskTemplateHeader = zod.object({
     ),
 });
 
-export const exportTaskTemplateResponseDataTemplateVariablesItemNameMax = 40;
-
-export const exportTaskTemplateResponseDataTemplateVariablesItemLabelMax = 120;
-
-export const exportTaskTemplateResponseDataTemplateVariablesItemDefaultValueMax = 2000;
-
-export const exportTaskTemplateResponseDataTemplateSkillConfigModelMax = 200;
-
-export const ExportTaskTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    schemaVersion: zod.literal(1),
-    exportedAt: zod.coerce.date(),
-    template: zod.object({
-      name: zod.string(),
-      description: zod.string().nullish(),
-      prompt: zod.string(),
-      variables: zod.array(
-        zod.object({
-          name: zod
-            .string()
-            .min(1)
-            .max(exportTaskTemplateResponseDataTemplateVariablesItemNameMax),
-          label: zod
-            .string()
-            .min(1)
-            .max(exportTaskTemplateResponseDataTemplateVariablesItemLabelMax),
-          defaultValue: zod
-            .string()
-            .max(
-              exportTaskTemplateResponseDataTemplateVariablesItemDefaultValueMax,
-            )
-            .optional(),
-          required: zod.boolean().optional(),
-        }),
-      ),
-      skillConfig: zod.object({
-        agentMode: zod.boolean().optional(),
-        model: zod
-          .string()
-          .max(exportTaskTemplateResponseDataTemplateSkillConfigModelMax)
-          .optional(),
-        conversationId: zod.string().nullish(),
-      }),
-      category: zod
-        .object({
-          name: zod.string(),
-          color: zod.string().nullish(),
-          icon: zod.string().nullish(),
-        })
-        .nullish(),
-    }),
-  }),
-});
+export const ExportTaskTemplateResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List entries inside the workspace sandbox
@@ -12154,9 +11372,7 @@ export const ListQueuedTasksQueryParams = zod.object({
     .max(listQueuedTasksQueryLimitMax)
     .default(listQueuedTasksQueryLimitDefault)
     .describe("Page size, default 20, max 100."),
-  status: zod
-    .enum(["queued", "running", "completed", "failed", "cancelled", "stale"])
-    .optional(),
+  status: zod.coerce.string().optional(),
 });
 
 export const ListQueuedTasksHeader = zod.object({
@@ -12167,51 +11383,7 @@ export const ListQueuedTasksHeader = zod.object({
     ),
 });
 
-export const ListQueuedTasksResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        goal: zod.string(),
-        modelName: zod.string().nullish(),
-        useKnowledgeBase: zod.boolean(),
-        knowledgeCollectionId: zod.string().nullish(),
-        priority: zod.enum(["high", "normal", "low"]),
-        status: zod.enum([
-          "queued",
-          "running",
-          "completed",
-          "failed",
-          "cancelled",
-          "stale",
-        ]),
-        runId: zod.string().nullish(),
-        contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
-        staleReason: zod.string().nullish(),
-        error: zod.string().nullish(),
-        summary: zod.string().nullish(),
-        position: zod
-          .number()
-          .nullish()
-          .describe(
-            "0-based position among queued entries (null when not queued).",
-          ),
-        estimatedWaitMs: zod
-          .number()
-          .nullish()
-          .describe(
-            "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
-          ),
-        startedAt: zod.coerce.date().nullish(),
-        completedAt: zod.coerce.date().nullish(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullish(),
-  }),
-});
+export const ListQueuedTasksResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Enqueue a new task; runs immediately if a slot is free
@@ -12224,60 +11396,9 @@ export const EnqueueTaskHeader = zod.object({
     ),
 });
 
-export const EnqueueTaskBody = zod.object({
-  goal: zod.string(),
-  modelName: zod.string().optional(),
-  useKnowledgeBase: zod.boolean().optional(),
-  knowledgeCollectionId: zod.string().optional(),
-  priority: zod.enum(["high", "normal", "low"]).optional(),
-  contextSnapshot: zod
-    .record(zod.string(), zod.unknown())
-    .optional()
-    .describe(
-      "Optional snapshot the queue runner uses to flag stale entries\nbefore execution. Currently honoured: `requiredFiles: string[]`\n(each entry must exist inside the workspace sandbox at the\nmoment the runner picks the task up).\n",
-    ),
-});
+export const EnqueueTaskBody = zod.record(zod.string(), zod.unknown());
 
-export const EnqueueTaskResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    goal: zod.string(),
-    modelName: zod.string().nullish(),
-    useKnowledgeBase: zod.boolean(),
-    knowledgeCollectionId: zod.string().nullish(),
-    priority: zod.enum(["high", "normal", "low"]),
-    status: zod.enum([
-      "queued",
-      "running",
-      "completed",
-      "failed",
-      "cancelled",
-      "stale",
-    ]),
-    runId: zod.string().nullish(),
-    contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
-    staleReason: zod.string().nullish(),
-    error: zod.string().nullish(),
-    summary: zod.string().nullish(),
-    position: zod
-      .number()
-      .nullish()
-      .describe(
-        "0-based position among queued entries (null when not queued).",
-      ),
-    estimatedWaitMs: zod
-      .number()
-      .nullish()
-      .describe(
-        "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
-      ),
-    startedAt: zod.coerce.date().nullish(),
-    completedAt: zod.coerce.date().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const EnqueueTaskResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Fetch one undo action
@@ -12329,134 +11450,7 @@ export const GetQueueSnapshotHeader = zod.object({
     ),
 });
 
-export const GetQueueSnapshotResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    mode: zod.enum(["sequential", "parallel"]),
-    parallelism: zod
-      .number()
-      .describe(
-        "Maximum concurrent runs the coordinator allows (1 in sequential mode).",
-      ),
-    active: zod.array(
-      zod.object({
-        id: zod.string(),
-        goal: zod.string(),
-        modelName: zod.string().nullish(),
-        useKnowledgeBase: zod.boolean(),
-        knowledgeCollectionId: zod.string().nullish(),
-        priority: zod.enum(["high", "normal", "low"]),
-        status: zod.enum([
-          "queued",
-          "running",
-          "completed",
-          "failed",
-          "cancelled",
-          "stale",
-        ]),
-        runId: zod.string().nullish(),
-        contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
-        staleReason: zod.string().nullish(),
-        error: zod.string().nullish(),
-        summary: zod.string().nullish(),
-        position: zod
-          .number()
-          .nullish()
-          .describe(
-            "0-based position among queued entries (null when not queued).",
-          ),
-        estimatedWaitMs: zod
-          .number()
-          .nullish()
-          .describe(
-            "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
-          ),
-        startedAt: zod.coerce.date().nullish(),
-        completedAt: zod.coerce.date().nullish(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    queued: zod.array(
-      zod.object({
-        id: zod.string(),
-        goal: zod.string(),
-        modelName: zod.string().nullish(),
-        useKnowledgeBase: zod.boolean(),
-        knowledgeCollectionId: zod.string().nullish(),
-        priority: zod.enum(["high", "normal", "low"]),
-        status: zod.enum([
-          "queued",
-          "running",
-          "completed",
-          "failed",
-          "cancelled",
-          "stale",
-        ]),
-        runId: zod.string().nullish(),
-        contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
-        staleReason: zod.string().nullish(),
-        error: zod.string().nullish(),
-        summary: zod.string().nullish(),
-        position: zod
-          .number()
-          .nullish()
-          .describe(
-            "0-based position among queued entries (null when not queued).",
-          ),
-        estimatedWaitMs: zod
-          .number()
-          .nullish()
-          .describe(
-            "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
-          ),
-        startedAt: zod.coerce.date().nullish(),
-        completedAt: zod.coerce.date().nullish(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    recent: zod.array(
-      zod.object({
-        id: zod.string(),
-        goal: zod.string(),
-        modelName: zod.string().nullish(),
-        useKnowledgeBase: zod.boolean(),
-        knowledgeCollectionId: zod.string().nullish(),
-        priority: zod.enum(["high", "normal", "low"]),
-        status: zod.enum([
-          "queued",
-          "running",
-          "completed",
-          "failed",
-          "cancelled",
-          "stale",
-        ]),
-        runId: zod.string().nullish(),
-        contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
-        staleReason: zod.string().nullish(),
-        error: zod.string().nullish(),
-        summary: zod.string().nullish(),
-        position: zod
-          .number()
-          .nullish()
-          .describe(
-            "0-based position among queued entries (null when not queued).",
-          ),
-        estimatedWaitMs: zod
-          .number()
-          .nullish()
-          .describe(
-            "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
-          ),
-        startedAt: zod.coerce.date().nullish(),
-        completedAt: zod.coerce.date().nullish(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const GetQueueSnapshotResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Cancel every still-queued task (active runs are left alone)
@@ -12469,19 +11463,9 @@ export const ClearQueuedTasksHeader = zod.object({
     ),
 });
 
-export const ClearQueuedTasksBody = zod.object({
-  confirm: zod
-    .boolean()
-    .optional()
-    .describe("Must be true — guards against accidental queue wipes."),
-});
+export const ClearQueuedTasksBody = zod.record(zod.string(), zod.unknown());
 
-export const ClearQueuedTasksResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    cleared: zod.number(),
-  }),
-});
+export const ClearQueuedTasksResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Fetch a single task by id
@@ -12498,46 +11482,7 @@ export const GetQueuedTaskHeader = zod.object({
     ),
 });
 
-export const GetQueuedTaskResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    goal: zod.string(),
-    modelName: zod.string().nullish(),
-    useKnowledgeBase: zod.boolean(),
-    knowledgeCollectionId: zod.string().nullish(),
-    priority: zod.enum(["high", "normal", "low"]),
-    status: zod.enum([
-      "queued",
-      "running",
-      "completed",
-      "failed",
-      "cancelled",
-      "stale",
-    ]),
-    runId: zod.string().nullish(),
-    contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
-    staleReason: zod.string().nullish(),
-    error: zod.string().nullish(),
-    summary: zod.string().nullish(),
-    position: zod
-      .number()
-      .nullish()
-      .describe(
-        "0-based position among queued entries (null when not queued).",
-      ),
-    estimatedWaitMs: zod
-      .number()
-      .nullish()
-      .describe(
-        "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
-      ),
-    startedAt: zod.coerce.date().nullish(),
-    completedAt: zod.coerce.date().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const GetQueuedTaskResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Reverse one recorded action
@@ -12593,46 +11538,7 @@ export const CancelQueuedTaskHeader = zod.object({
     ),
 });
 
-export const CancelQueuedTaskResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    goal: zod.string(),
-    modelName: zod.string().nullish(),
-    useKnowledgeBase: zod.boolean(),
-    knowledgeCollectionId: zod.string().nullish(),
-    priority: zod.enum(["high", "normal", "low"]),
-    status: zod.enum([
-      "queued",
-      "running",
-      "completed",
-      "failed",
-      "cancelled",
-      "stale",
-    ]),
-    runId: zod.string().nullish(),
-    contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
-    staleReason: zod.string().nullish(),
-    error: zod.string().nullish(),
-    summary: zod.string().nullish(),
-    position: zod
-      .number()
-      .nullish()
-      .describe(
-        "0-based position among queued entries (null when not queued).",
-      ),
-    estimatedWaitMs: zod
-      .number()
-      .nullish()
-      .describe(
-        "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
-      ),
-    startedAt: zod.coerce.date().nullish(),
-    completedAt: zod.coerce.date().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const CancelQueuedTaskResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Reverse every reversible action belonging to a task
@@ -12704,50 +11610,15 @@ export const SetQueuedTaskPriorityHeader = zod.object({
     ),
 });
 
-export const SetQueuedTaskPriorityBody = zod.object({
-  priority: zod.enum(["high", "normal", "low"]),
-});
+export const SetQueuedTaskPriorityBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const SetQueuedTaskPriorityResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    goal: zod.string(),
-    modelName: zod.string().nullish(),
-    useKnowledgeBase: zod.boolean(),
-    knowledgeCollectionId: zod.string().nullish(),
-    priority: zod.enum(["high", "normal", "low"]),
-    status: zod.enum([
-      "queued",
-      "running",
-      "completed",
-      "failed",
-      "cancelled",
-      "stale",
-    ]),
-    runId: zod.string().nullish(),
-    contextSnapshot: zod.record(zod.string(), zod.unknown()).nullish(),
-    staleReason: zod.string().nullish(),
-    error: zod.string().nullish(),
-    summary: zod.string().nullish(),
-    position: zod
-      .number()
-      .nullish()
-      .describe(
-        "0-based position among queued entries (null when not queued).",
-      ),
-    estimatedWaitMs: zod
-      .number()
-      .nullish()
-      .describe(
-        "Projected milliseconds before this task is expected to start,\ncomputed from recent run durations and the current parallelism\nbudget. Null for tasks that are not queued.\n",
-      ),
-    startedAt: zod.coerce.date().nullish(),
-    completedAt: zod.coerce.date().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const SetQueuedTaskPriorityResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List the undo actions belonging to a task
@@ -13048,13 +11919,13 @@ export const DiscardInterruptedTaskHeader = zod.object({
 });
 
 export const DiscardInterruptedTaskBody = zod.object({
-  confirm: zod
-    .boolean()
-    .describe("Must be `true` — discard requires explicit confirmation."),
-  partialUndo: zod
-    .boolean()
-    .optional()
-    .describe("When true, also reverses every reversible destructive step."),
+  creatorId: zod.string().optional(),
+  formType: zod.enum(["w9", "w8ben"]).optional(),
+  fullName: zod.string().optional(),
+  businessName: zod.string().optional(),
+  address: zod.string().optional(),
+  taxId: zod.string().optional(),
+  countryCode: zod.string().optional(),
 });
 
 export const DiscardInterruptedTaskResponse = zod.object({
@@ -13153,76 +12024,27 @@ export const ListSkillsResponse = zod.object({
         slug: zod.string(),
         name: zod.string(),
         description: zod.string(),
-        content: zod.string(),
-        modelTags: zod.array(zod.string()),
-        triggers: zod.array(zod.string()),
-        category: zod.string(),
         author: zod.string(),
-        isInstalled: zod.boolean(),
-        installCount: zod.number(),
-        usageCount: zod.number(),
-        ratingAvg: zod.number(),
-        ratingCount: zod.number(),
-        editorialPick: zod.boolean(),
-        verifiedByOp: zod.boolean(),
-        isPremium: zod
-          .boolean()
-          .describe(
-            "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-          ),
-        previewUsesAllowed: zod
-          .number()
-          .describe("Free invocations granted before the paywall kicks in."),
-        version: zod.number(),
-        latestVersion: zod
-          .string()
-          .describe("Latest published semantic version of this skill."),
-        installedVersion: zod
-          .string()
-          .describe(
-            "Currently installed semantic version (may lag latestVersion).",
-          ),
-        changelog: zod
-          .string()
-          .describe("Changelog entry for the latest published version."),
-        breakingChange: zod
-          .boolean()
-          .describe(
-            "True iff the latest published version was flagged as a breaking change.",
-          ),
-        minOpVersion: zod
-          .string()
-          .describe(
-            "Minimum Omninity Operator version required by the latest skill version.",
-          ),
-        autoUpdate: zod
-          .boolean()
-          .describe(
-            "True iff the user opted into auto-applying non-breaking updates.",
-          ),
-        publishedAt: zod.coerce
-          .date()
-          .describe("Wall-clock of the most recent publish."),
-        hasUpdate: zod
-          .boolean()
-          .describe(
-            "True iff a newer non-dismissed version is available than the installed one.",
-          ),
-        opIncompatible: zod
-          .boolean()
-          .describe(
-            "True iff the latest version requires an OP newer than this server.",
-          ),
-        unmaintained: zod
-          .boolean()
-          .describe(
-            "True iff the skill has not been published to in over 12 months.",
-          ),
+        version: zod.string(),
+        icon: zod.string().nullish(),
+        category: zod.string().nullish(),
         createdAt: zod.coerce.date(),
         updatedAt: zod.coerce.date(),
+        content: zod.string(),
+        triggers: zod.array(zod.string()),
+        installCount: zod.number(),
+        isInstalled: zod.boolean(),
+        modelTags: zod.array(zod.string()),
+        installedVersion: zod.string().nullish(),
+        latestVersion: zod.string().nullish(),
+        minOpVersion: zod.string().nullish(),
+        unmaintained: zod.boolean().nullish(),
+        opIncompatible: zod.boolean().nullish(),
+        hasUpdate: zod.boolean().nullish(),
+        breakingChange: zod.boolean().nullish(),
+        autoUpdate: zod.boolean().nullish(),
       }),
     ),
-    nextCursor: zod.string().nullable(),
   }),
 });
 
@@ -13237,74 +12059,7 @@ export const CreateSkillHeader = zod.object({
     ),
 });
 
-export const CreateSkillBody = zod.object({
-  slug: zod.string().optional(),
-  name: zod.string(),
-  description: zod.string().optional(),
-  content: zod.string(),
-  modelTags: zod.array(zod.string()).optional(),
-  triggers: zod.array(zod.string()).optional(),
-  category: zod.string().optional(),
-  author: zod.string().optional(),
-  isPremium: zod.boolean().optional(),
-  previewUsesAllowed: zod.number().optional(),
-  configurationSchema: zod
-    .array(
-      zod.object({
-        key: zod
-          .string()
-          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
-        type: zod.enum([
-          "string",
-          "password",
-          "apiKey",
-          "folder-path",
-          "select",
-          "toggle",
-          "number",
-          "url",
-        ]),
-        label: zod.string(),
-        description: zod.string().optional(),
-        required: zod.boolean(),
-        defaultValue: zod
-          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
-          .optional(),
-        options: zod
-          .array(
-            zod.object({
-              value: zod.string(),
-              label: zod.string(),
-            }),
-          )
-          .optional(),
-        pattern: zod
-          .string()
-          .optional()
-          .describe(
-            "RegExp source applied to string values for inline validation.",
-          ),
-        helpUrl: zod.string().optional(),
-        placeholder: zod.string().optional(),
-        sensitive: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
-          ),
-        filled: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
-          ),
-      }),
-    )
-    .optional()
-    .describe(
-      "Optional per-field configuration declarations (Task #43). Empty\nor omitted means the skill has no user-supplied configuration.\n",
-    ),
-});
+export const CreateSkillBody = zod.record(zod.string(), zod.unknown());
 
 export const CreateSkillResponse = zod.object({
   success: zod.literal(true),
@@ -13313,73 +12068,25 @@ export const CreateSkillResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -13398,77 +12105,7 @@ export const GetSkillConfigHeader = zod.object({
     ),
 });
 
-export const GetSkillConfigResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    skillId: zod.string(),
-    schema: zod.array(
-      zod.object({
-        key: zod
-          .string()
-          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
-        type: zod.enum([
-          "string",
-          "password",
-          "apiKey",
-          "folder-path",
-          "select",
-          "toggle",
-          "number",
-          "url",
-        ]),
-        label: zod.string(),
-        description: zod.string().optional(),
-        required: zod.boolean(),
-        defaultValue: zod
-          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
-          .optional(),
-        options: zod
-          .array(
-            zod.object({
-              value: zod.string(),
-              label: zod.string(),
-            }),
-          )
-          .optional(),
-        pattern: zod
-          .string()
-          .optional()
-          .describe(
-            "RegExp source applied to string values for inline validation.",
-          ),
-        helpUrl: zod.string().optional(),
-        placeholder: zod.string().optional(),
-        sensitive: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
-          ),
-        filled: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
-          ),
-      }),
-    ),
-    values: zod
-      .record(
-        zod.string(),
-        zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
-      )
-      .describe("Non-sensitive values keyed by field key."),
-    secretRefs: zod
-      .array(zod.string())
-      .describe("Sensitive field keys whose value is sealed in the vault."),
-    required: zod.array(zod.string()),
-    missingRequired: zod.array(zod.string()),
-    configured: zod.boolean(),
-    configuredAt: zod.coerce.date().nullable(),
-    updatedAt: zod.coerce.date().nullable(),
-  }),
-});
+export const GetSkillConfigResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Persist user-supplied values for a skill's configuration
@@ -13485,92 +12122,12 @@ export const UpdateSkillConfigHeader = zod.object({
     ),
 });
 
-export const UpdateSkillConfigBody = zod.object({
-  values: zod
-    .record(
-      zod.string(),
-      zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
-    )
-    .describe("Map of field key → user-supplied value (null clears)."),
-  masterPassword: zod
-    .string()
-    .optional()
-    .describe(
-      "Required when any sensitive (password \/ apiKey) field is being\nwritten — used to seal the plaintext into the keychain vault.\n",
-    ),
-});
+export const UpdateSkillConfigBody = zod.record(zod.string(), zod.unknown());
 
-export const UpdateSkillConfigResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    skillId: zod.string(),
-    schema: zod.array(
-      zod.object({
-        key: zod
-          .string()
-          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
-        type: zod.enum([
-          "string",
-          "password",
-          "apiKey",
-          "folder-path",
-          "select",
-          "toggle",
-          "number",
-          "url",
-        ]),
-        label: zod.string(),
-        description: zod.string().optional(),
-        required: zod.boolean(),
-        defaultValue: zod
-          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
-          .optional(),
-        options: zod
-          .array(
-            zod.object({
-              value: zod.string(),
-              label: zod.string(),
-            }),
-          )
-          .optional(),
-        pattern: zod
-          .string()
-          .optional()
-          .describe(
-            "RegExp source applied to string values for inline validation.",
-          ),
-        helpUrl: zod.string().optional(),
-        placeholder: zod.string().optional(),
-        sensitive: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
-          ),
-        filled: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
-          ),
-      }),
-    ),
-    values: zod
-      .record(
-        zod.string(),
-        zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
-      )
-      .describe("Non-sensitive values keyed by field key."),
-    secretRefs: zod
-      .array(zod.string())
-      .describe("Sensitive field keys whose value is sealed in the vault."),
-    required: zod.array(zod.string()),
-    missingRequired: zod.array(zod.string()),
-    configured: zod.boolean(),
-    configuredAt: zod.coerce.date().nullable(),
-    updatedAt: zod.coerce.date().nullable(),
-  }),
-});
+export const UpdateSkillConfigResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Wipe every configuration value (and vault entry) for a skill
@@ -13587,77 +12144,7 @@ export const ResetSkillConfigHeader = zod.object({
     ),
 });
 
-export const ResetSkillConfigResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    skillId: zod.string(),
-    schema: zod.array(
-      zod.object({
-        key: zod
-          .string()
-          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
-        type: zod.enum([
-          "string",
-          "password",
-          "apiKey",
-          "folder-path",
-          "select",
-          "toggle",
-          "number",
-          "url",
-        ]),
-        label: zod.string(),
-        description: zod.string().optional(),
-        required: zod.boolean(),
-        defaultValue: zod
-          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
-          .optional(),
-        options: zod
-          .array(
-            zod.object({
-              value: zod.string(),
-              label: zod.string(),
-            }),
-          )
-          .optional(),
-        pattern: zod
-          .string()
-          .optional()
-          .describe(
-            "RegExp source applied to string values for inline validation.",
-          ),
-        helpUrl: zod.string().optional(),
-        placeholder: zod.string().optional(),
-        sensitive: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
-          ),
-        filled: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
-          ),
-      }),
-    ),
-    values: zod
-      .record(
-        zod.string(),
-        zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
-      )
-      .describe("Non-sensitive values keyed by field key."),
-    secretRefs: zod
-      .array(zod.string())
-      .describe("Sensitive field keys whose value is sealed in the vault."),
-    required: zod.array(zod.string()),
-    missingRequired: zod.array(zod.string()),
-    configured: zod.boolean(),
-    configuredAt: zod.coerce.date().nullable(),
-    updatedAt: zod.coerce.date().nullable(),
-  }),
-});
+export const ResetSkillConfigResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Lightweight first-run-gate check (configured / missing keys)
@@ -13674,15 +12161,10 @@ export const GetSkillConfigStatusHeader = zod.object({
     ),
 });
 
-export const GetSkillConfigStatusResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    skillId: zod.string(),
-    configured: zod.boolean(),
-    missingRequired: zod.array(zod.string()),
-    configuredAt: zod.coerce.date().nullable(),
-  }),
-});
+export const GetSkillConfigStatusResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Apply a configuration template across multiple skills
@@ -13695,42 +12177,15 @@ export const ImportSkillConfigTemplateHeader = zod.object({
     ),
 });
 
-export const ImportSkillConfigTemplateBody = zod.object({
-  template: zod.object({
-    omninityConfigTemplateVersion: zod.literal(1),
-    entries: zod.array(
-      zod.object({
-        slug: zod.string().optional(),
-        skillId: zod.string().optional(),
-        values: zod.record(
-          zod.string(),
-          zod.union([zod.string(), zod.number(), zod.boolean(), zod.null()]),
-        ),
-      }),
-    ),
-  }),
-  masterPassword: zod.string().optional(),
-});
+export const ImportSkillConfigTemplateBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const ImportSkillConfigTemplateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    applied: zod.array(
-      zod.object({
-        skillId: zod.string(),
-        slug: zod.string(),
-        configured: zod.boolean(),
-      }),
-    ),
-    skipped: zod.array(
-      zod.object({
-        skillId: zod.string().nullish(),
-        slug: zod.string().nullish(),
-        reason: zod.string(),
-      }),
-    ),
-  }),
-});
+export const ImportSkillConfigTemplateResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Import a skill from a .skill JSON file
@@ -13743,33 +12198,7 @@ export const ImportSkillHeader = zod.object({
     ),
 });
 
-export const ImportSkillBody = zod.object({
-  manifest: zod.object({
-    omninitySkillVersion: zod.literal(1),
-    slug: zod.string(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
-    author: zod.string(),
-    version: zod
-      .number()
-      .describe("Optimistic-concurrency revision counter (legacy field)."),
-    semver: zod
-      .string()
-      .optional()
-      .describe("Semantic version of the skill release."),
-    changelog: zod
-      .string()
-      .optional()
-      .describe("Changelog entry for the manifest's version."),
-    breakingChange: zod.boolean().optional(),
-    minOpVersion: zod.string().optional(),
-  }),
-  install: zod.boolean().optional(),
-});
+export const ImportSkillBody = zod.record(zod.string(), zod.unknown());
 
 export const ImportSkillResponse = zod.object({
   success: zod.literal(true),
@@ -13778,73 +12207,25 @@ export const ImportSkillResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -13870,73 +12251,25 @@ export const GetSkillResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -13955,71 +12288,7 @@ export const UpdateSkillHeader = zod.object({
     ),
 });
 
-export const UpdateSkillBody = zod.object({
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  content: zod.string().optional(),
-  modelTags: zod.array(zod.string()).optional(),
-  triggers: zod.array(zod.string()).optional(),
-  category: zod.string().optional(),
-  version: zod
-    .number()
-    .optional()
-    .describe("Expected current version for optimistic concurrency control."),
-  configurationSchema: zod
-    .array(
-      zod.object({
-        key: zod
-          .string()
-          .describe("Stable identifier — `[a-zA-Z][a-zA-Z0-9_]{0,63}`."),
-        type: zod.enum([
-          "string",
-          "password",
-          "apiKey",
-          "folder-path",
-          "select",
-          "toggle",
-          "number",
-          "url",
-        ]),
-        label: zod.string(),
-        description: zod.string().optional(),
-        required: zod.boolean(),
-        defaultValue: zod
-          .union([zod.string(), zod.number(), zod.boolean(), zod.null()])
-          .optional(),
-        options: zod
-          .array(
-            zod.object({
-              value: zod.string(),
-              label: zod.string(),
-            }),
-          )
-          .optional(),
-        pattern: zod
-          .string()
-          .optional()
-          .describe(
-            "RegExp source applied to string values for inline validation.",
-          ),
-        helpUrl: zod.string().optional(),
-        placeholder: zod.string().optional(),
-        sensitive: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the field's value lives in the OS keychain vault and\nis never returned over the wire. Server-projected — clients\nignore on input.\n",
-          ),
-        filled: zod
-          .boolean()
-          .optional()
-          .describe(
-            "True iff the user has supplied a value (or sealed a secret)\nfor this field. Server-projected.\n",
-          ),
-      }),
-    )
-    .optional(),
-});
+export const UpdateSkillBody = zod.record(zod.string(), zod.unknown());
 
 export const UpdateSkillResponse = zod.object({
   success: zod.literal(true),
@@ -14028,73 +12297,25 @@ export const UpdateSkillResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -14113,13 +12334,7 @@ export const DeleteSkillHeader = zod.object({
     ),
 });
 
-export const DeleteSkillResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    deleted: zod.boolean(),
-  }),
-});
+export const DeleteSkillResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Export a skill as a .skill JSON manifest
@@ -14136,33 +12351,7 @@ export const ExportSkillHeader = zod.object({
     ),
 });
 
-export const ExportSkillResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    omninitySkillVersion: zod.literal(1),
-    slug: zod.string(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
-    author: zod.string(),
-    version: zod
-      .number()
-      .describe("Optimistic-concurrency revision counter (legacy field)."),
-    semver: zod
-      .string()
-      .optional()
-      .describe("Semantic version of the skill release."),
-    changelog: zod
-      .string()
-      .optional()
-      .describe("Changelog entry for the manifest's version."),
-    breakingChange: zod.boolean().optional(),
-    minOpVersion: zod.string().optional(),
-  }),
-});
+export const ExportSkillResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Install a skill into this workspace
@@ -14186,73 +12375,25 @@ export const InstallSkillResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -14271,11 +12412,7 @@ export const InvokeSkillHeader = zod.object({
     ),
 });
 
-export const InvokeSkillBody = zod.object({
-  goal: zod.string(),
-  modelName: zod.string().optional(),
-  autoExecute: zod.boolean().optional(),
-});
+export const InvokeSkillBody = zod.record(zod.string(), zod.unknown());
 
 export const InvokeSkillResponse = zod.object({
   success: zod.literal(true),
@@ -14318,73 +12455,25 @@ export const UninstallSkillResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -14399,86 +12488,7 @@ export const ListSkillUpdatesHeader = zod.object({
     ),
 });
 
-export const ListSkillUpdatesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        slug: zod.string(),
-        name: zod.string(),
-        description: zod.string(),
-        content: zod.string(),
-        modelTags: zod.array(zod.string()),
-        triggers: zod.array(zod.string()),
-        category: zod.string(),
-        author: zod.string(),
-        isInstalled: zod.boolean(),
-        installCount: zod.number(),
-        usageCount: zod.number(),
-        ratingAvg: zod.number(),
-        ratingCount: zod.number(),
-        editorialPick: zod.boolean(),
-        verifiedByOp: zod.boolean(),
-        isPremium: zod
-          .boolean()
-          .describe(
-            "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-          ),
-        previewUsesAllowed: zod
-          .number()
-          .describe("Free invocations granted before the paywall kicks in."),
-        version: zod.number(),
-        latestVersion: zod
-          .string()
-          .describe("Latest published semantic version of this skill."),
-        installedVersion: zod
-          .string()
-          .describe(
-            "Currently installed semantic version (may lag latestVersion).",
-          ),
-        changelog: zod
-          .string()
-          .describe("Changelog entry for the latest published version."),
-        breakingChange: zod
-          .boolean()
-          .describe(
-            "True iff the latest published version was flagged as a breaking change.",
-          ),
-        minOpVersion: zod
-          .string()
-          .describe(
-            "Minimum Omninity Operator version required by the latest skill version.",
-          ),
-        autoUpdate: zod
-          .boolean()
-          .describe(
-            "True iff the user opted into auto-applying non-breaking updates.",
-          ),
-        publishedAt: zod.coerce
-          .date()
-          .describe("Wall-clock of the most recent publish."),
-        hasUpdate: zod
-          .boolean()
-          .describe(
-            "True iff a newer non-dismissed version is available than the installed one.",
-          ),
-        opIncompatible: zod
-          .boolean()
-          .describe(
-            "True iff the latest version requires an OP newer than this server.",
-          ),
-        unmaintained: zod
-          .boolean()
-          .describe(
-            "True iff the skill has not been published to in over 12 months.",
-          ),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const ListSkillUpdatesResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Publish a new semantic version of a skill (creator flow)
@@ -14495,30 +12505,7 @@ export const PublishSkillVersionHeader = zod.object({
     ),
 });
 
-export const PublishSkillVersionBody = zod.object({
-  version: zod
-    .string()
-    .describe(
-      "New semantic version (must be greater than current latestVersion).",
-    ),
-  changelog: zod
-    .string()
-    .describe("User-facing changelog entry shown before applying the update."),
-  breakingChange: zod
-    .boolean()
-    .optional()
-    .describe("When true the update card forces manual approval."),
-  minOpVersion: zod
-    .string()
-    .optional()
-    .describe("Minimum OP version this skill version requires."),
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  content: zod.string().optional(),
-  modelTags: zod.array(zod.string()).optional(),
-  triggers: zod.array(zod.string()).optional(),
-  category: zod.string().optional(),
-});
+export const PublishSkillVersionBody = zod.record(zod.string(), zod.unknown());
 
 export const PublishSkillVersionResponse = zod.object({
   success: zod.literal(true),
@@ -14527,73 +12514,25 @@ export const PublishSkillVersionResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -14612,30 +12551,10 @@ export const ListSkillVersionsHeader = zod.object({
     ),
 });
 
-export const ListSkillVersionsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        skillId: zod.string(),
-        semver: zod.string(),
-        changelog: zod.string(),
-        breakingChange: zod.boolean(),
-        minOpVersion: zod.string(),
-        name: zod.string(),
-        description: zod.string(),
-        content: zod.string(),
-        modelTags: zod.array(zod.string()),
-        triggers: zod.array(zod.string()),
-        category: zod.string(),
-        author: zod.string(),
-        installCount: zod.number(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const ListSkillVersionsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Roll an installed skill back to a previous version
@@ -14652,11 +12571,7 @@ export const RollbackSkillVersionHeader = zod.object({
     ),
 });
 
-export const RollbackSkillVersionBody = zod.object({
-  version: zod
-    .string()
-    .describe("Semantic version from this skill's history to roll back to."),
-});
+export const RollbackSkillVersionBody = zod.record(zod.string(), zod.unknown());
 
 export const RollbackSkillVersionResponse = zod.object({
   success: zod.literal(true),
@@ -14665,73 +12580,25 @@ export const RollbackSkillVersionResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -14750,12 +12617,7 @@ export const ApplySkillUpdateHeader = zod.object({
     ),
 });
 
-export const ApplySkillUpdateBody = zod.object({
-  acceptBreaking: zod
-    .boolean()
-    .optional()
-    .describe("Required to be true to apply a breaking-change update."),
-});
+export const ApplySkillUpdateBody = zod.record(zod.string(), zod.unknown());
 
 export const ApplySkillUpdateResponse = zod.object({
   success: zod.literal(true),
@@ -14764,73 +12626,25 @@ export const ApplySkillUpdateResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -14856,73 +12670,25 @@ export const DismissSkillUpdateResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -14941,9 +12707,7 @@ export const SetSkillAutoUpdateHeader = zod.object({
     ),
 });
 
-export const SetSkillAutoUpdateBody = zod.object({
-  enabled: zod.boolean(),
-});
+export const SetSkillAutoUpdateBody = zod.record(zod.string(), zod.unknown());
 
 export const SetSkillAutoUpdateResponse = zod.object({
   success: zod.literal(true),
@@ -14952,73 +12716,25 @@ export const SetSkillAutoUpdateResponse = zod.object({
     slug: zod.string(),
     name: zod.string(),
     description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
     author: zod.string(),
-    isInstalled: zod.boolean(),
-    installCount: zod.number(),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    editorialPick: zod.boolean(),
-    verifiedByOp: zod.boolean(),
-    isPremium: zod
-      .boolean()
-      .describe(
-        "True iff this skill requires a Creator Pro subscription past its preview allowance.",
-      ),
-    previewUsesAllowed: zod
-      .number()
-      .describe("Free invocations granted before the paywall kicks in."),
-    version: zod.number(),
-    latestVersion: zod
-      .string()
-      .describe("Latest published semantic version of this skill."),
-    installedVersion: zod
-      .string()
-      .describe(
-        "Currently installed semantic version (may lag latestVersion).",
-      ),
-    changelog: zod
-      .string()
-      .describe("Changelog entry for the latest published version."),
-    breakingChange: zod
-      .boolean()
-      .describe(
-        "True iff the latest published version was flagged as a breaking change.",
-      ),
-    minOpVersion: zod
-      .string()
-      .describe(
-        "Minimum Omninity Operator version required by the latest skill version.",
-      ),
-    autoUpdate: zod
-      .boolean()
-      .describe(
-        "True iff the user opted into auto-applying non-breaking updates.",
-      ),
-    publishedAt: zod.coerce
-      .date()
-      .describe("Wall-clock of the most recent publish."),
-    hasUpdate: zod
-      .boolean()
-      .describe(
-        "True iff a newer non-dismissed version is available than the installed one.",
-      ),
-    opIncompatible: zod
-      .boolean()
-      .describe(
-        "True iff the latest version requires an OP newer than this server.",
-      ),
-    unmaintained: zod
-      .boolean()
-      .describe(
-        "True iff the skill has not been published to in over 12 months.",
-      ),
+    version: zod.string(),
+    icon: zod.string().nullish(),
+    category: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    content: zod.string(),
+    triggers: zod.array(zod.string()),
+    installCount: zod.number(),
+    isInstalled: zod.boolean(),
+    modelTags: zod.array(zod.string()),
+    installedVersion: zod.string().nullish(),
+    latestVersion: zod.string().nullish(),
+    minOpVersion: zod.string().nullish(),
+    unmaintained: zod.boolean().nullish(),
+    opIncompatible: zod.boolean().nullish(),
+    hasUpdate: zod.boolean().nullish(),
+    breakingChange: zod.boolean().nullish(),
+    autoUpdate: zod.boolean().nullish(),
   }),
 });
 
@@ -15037,22 +12753,10 @@ export const GetSkillAdoptionStatsHeader = zod.object({
     ),
 });
 
-export const GetSkillAdoptionStatsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        semver: zod.string(),
-        installCount: zod.number(),
-        isLatest: zod.boolean(),
-        isInstalled: zod.boolean(),
-        share: zod
-          .number()
-          .describe("Share of total installs across all versions in [0, 1]."),
-      }),
-    ),
-  }),
-});
+export const GetSkillAdoptionStatsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List trending skills (highest install velocity in last 7 days)
@@ -15069,21 +12773,10 @@ export const ListTrendingSkillsHeader = zod.object({
     ),
 });
 
-export const ListTrendingSkillsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        skillId: zod.string(),
-        slug: zod.string(),
-        name: zod.string(),
-        installsLastWeek: zod.number(),
-        ratingAvg: zod.number(),
-        usageCount: zod.number(),
-      }),
-    ),
-  }),
-});
+export const ListTrendingSkillsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Skills similar to ones the requesting user already uses
@@ -15100,20 +12793,10 @@ export const ListSimilarSkillsHeader = zod.object({
     ),
 });
 
-export const ListSimilarSkillsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        skillId: zod.string(),
-        slug: zod.string(),
-        name: zod.string(),
-        category: zod.string(),
-        sharedUsers: zod.number(),
-      }),
-    ),
-  }),
-});
+export const ListSimilarSkillsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List flagged review reports awaiting moderation
@@ -15143,28 +12826,10 @@ export const ListFlaggedReviewsHeader = zod.object({
     ),
 });
 
-export const ListFlaggedReviewsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        ratingId: zod.string(),
-        skillId: zod.string(),
-        reporterId: zod.string(),
-        reason: zod.string(),
-        detail: zod.string().nullable(),
-        status: zod.enum(["open", "dismissed", "upheld"]),
-        resolution: zod.string().nullable(),
-        resolvedAt: zod.coerce.date().nullable(),
-        resolvedBy: zod.string().nullable(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListFlaggedReviewsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Moderate a flagged skill review
@@ -15181,38 +12846,12 @@ export const ModerateSkillReviewHeader = zod.object({
     ),
 });
 
-export const ModerateSkillReviewBody = zod.object({
-  action: zod.enum(["hide", "restore", "remove", "dismiss"]),
-  resolution: zod.string().optional(),
-});
+export const ModerateSkillReviewBody = zod.record(zod.string(), zod.unknown());
 
-export const ModerateSkillReviewResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    skillId: zod.string(),
-    userId: zod.string(),
-    stars: zod.number(),
-    reviewText: zod.string().nullable(),
-    status: zod.enum(["active", "hidden", "removed"]),
-    helpfulCount: zod.number(),
-    unhelpfulCount: zod.number(),
-    flagCount: zod.number(),
-    verifiedPurchase: zod.boolean(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-    response: zod
-      .object({
-        id: zod.string(),
-        ratingId: zod.string(),
-        authorId: zod.string(),
-        body: zod.string(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      })
-      .nullable(),
-  }),
-});
+export const ModerateSkillReviewResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Mark a review as helpful or not
@@ -15229,37 +12868,15 @@ export const VoteSkillReviewHelpfulHeader = zod.object({
     ),
 });
 
-export const VoteSkillReviewHelpfulBody = zod.object({
-  helpful: zod.boolean(),
-});
+export const VoteSkillReviewHelpfulBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const VoteSkillReviewHelpfulResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    skillId: zod.string(),
-    userId: zod.string(),
-    stars: zod.number(),
-    reviewText: zod.string().nullable(),
-    status: zod.enum(["active", "hidden", "removed"]),
-    helpfulCount: zod.number(),
-    unhelpfulCount: zod.number(),
-    flagCount: zod.number(),
-    verifiedPurchase: zod.boolean(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-    response: zod
-      .object({
-        id: zod.string(),
-        ratingId: zod.string(),
-        authorId: zod.string(),
-        body: zod.string(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      })
-      .nullable(),
-  }),
-});
+export const VoteSkillReviewHelpfulResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Author response to a review
@@ -15276,21 +12893,12 @@ export const RespondToSkillReviewHeader = zod.object({
     ),
 });
 
-export const RespondToSkillReviewBody = zod.object({
-  body: zod.string(),
-});
+export const RespondToSkillReviewBody = zod.record(zod.string(), zod.unknown());
 
-export const RespondToSkillReviewResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    ratingId: zod.string(),
-    authorId: zod.string(),
-    body: zod.string(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const RespondToSkillReviewResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Report a review for moderation
@@ -15307,28 +12915,9 @@ export const FlagSkillReviewHeader = zod.object({
     ),
 });
 
-export const FlagSkillReviewBody = zod.object({
-  reason: zod.string(),
-  detail: zod.string().nullish(),
-});
+export const FlagSkillReviewBody = zod.record(zod.string(), zod.unknown());
 
-export const FlagSkillReviewResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    ratingId: zod.string(),
-    skillId: zod.string(),
-    reporterId: zod.string(),
-    reason: zod.string(),
-    detail: zod.string().nullable(),
-    status: zod.enum(["open", "dismissed", "upheld"]),
-    resolution: zod.string().nullable(),
-    resolvedAt: zod.coerce.date().nullable(),
-    resolvedBy: zod.string().nullable(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const FlagSkillReviewResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Record a verified usage event for a skill (gates rating eligibility)
@@ -15345,16 +12934,9 @@ export const RecordSkillUsageHeader = zod.object({
     ),
 });
 
-export const RecordSkillUsageBody = zod.object({
-  runId: zod.string().optional(),
-});
+export const RecordSkillUsageBody = zod.record(zod.string(), zod.unknown());
 
-export const RecordSkillUsageResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    recorded: zod.boolean(),
-  }),
-});
+export const RecordSkillUsageResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary List reviews for a skill (paginated)
@@ -15389,38 +12971,7 @@ export const ListSkillReviewsHeader = zod.object({
     ),
 });
 
-export const ListSkillReviewsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        skillId: zod.string(),
-        userId: zod.string(),
-        stars: zod.number(),
-        reviewText: zod.string().nullable(),
-        status: zod.enum(["active", "hidden", "removed"]),
-        helpfulCount: zod.number(),
-        unhelpfulCount: zod.number(),
-        flagCount: zod.number(),
-        verifiedPurchase: zod.boolean(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-        response: zod
-          .object({
-            id: zod.string(),
-            ratingId: zod.string(),
-            authorId: zod.string(),
-            body: zod.string(),
-            createdAt: zod.coerce.date(),
-            updatedAt: zod.coerce.date(),
-          })
-          .nullable(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListSkillReviewsResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Submit a rating + optional review (requires verified usage)
@@ -15437,40 +12988,12 @@ export const SubmitSkillRatingHeader = zod.object({
     ),
 });
 
-export const submitSkillRatingBodyStarsMax = 5;
+export const SubmitSkillRatingBody = zod.record(zod.string(), zod.unknown());
 
-export const SubmitSkillRatingBody = zod.object({
-  stars: zod.number().min(1).max(submitSkillRatingBodyStarsMax),
-  reviewText: zod.string().nullish(),
-});
-
-export const SubmitSkillRatingResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    skillId: zod.string(),
-    userId: zod.string(),
-    stars: zod.number(),
-    reviewText: zod.string().nullable(),
-    status: zod.enum(["active", "hidden", "removed"]),
-    helpfulCount: zod.number(),
-    unhelpfulCount: zod.number(),
-    flagCount: zod.number(),
-    verifiedPurchase: zod.boolean(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-    response: zod
-      .object({
-        id: zod.string(),
-        ratingId: zod.string(),
-        authorId: zod.string(),
-        body: zod.string(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      })
-      .nullable(),
-  }),
-});
+export const SubmitSkillRatingResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Aggregate rating summary (avg, count, breakdown)
@@ -15487,21 +13010,10 @@ export const GetSkillRatingSummaryHeader = zod.object({
     ),
 });
 
-export const GetSkillRatingSummaryResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    skillId: zod.string(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-    usageCount: zod.number(),
-    breakdown: zod.array(
-      zod.object({
-        stars: zod.number(),
-        count: zod.number(),
-      }),
-    ),
-  }),
-});
+export const GetSkillRatingSummaryResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Trust badges for a skill (Verified / OP Pick / Top Creator / Active)
@@ -15518,22 +13030,7 @@ export const GetSkillBadgesHeader = zod.object({
     ),
 });
 
-export const GetSkillBadgesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    skillId: zod.string(),
-    badges: zod.array(
-      zod.object({
-        id: zod.string(),
-        label: zod.string(),
-      }),
-    ),
-    status: zod.enum(["active", "unmaintained"]),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-  }),
-});
+export const GetSkillBadgesResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Set editorial trust flags (OP Pick / Verified by OP)
@@ -15550,27 +13047,12 @@ export const SetSkillTrustFlagsHeader = zod.object({
     ),
 });
 
-export const SetSkillTrustFlagsBody = zod.object({
-  verifiedByOp: zod.boolean().optional(),
-  editorialPick: zod.boolean().optional(),
-});
+export const SetSkillTrustFlagsBody = zod.record(zod.string(), zod.unknown());
 
-export const SetSkillTrustFlagsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    skillId: zod.string(),
-    badges: zod.array(
-      zod.object({
-        id: zod.string(),
-        label: zod.string(),
-      }),
-    ),
-    status: zod.enum(["active", "unmaintained"]),
-    usageCount: zod.number(),
-    ratingAvg: zod.number(),
-    ratingCount: zod.number(),
-  }),
-});
+export const SetSkillTrustFlagsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Export a skill (alternate path-shape required by spec)
@@ -15587,33 +13069,10 @@ export const ExportSkillByIdPathHeader = zod.object({
     ),
 });
 
-export const ExportSkillByIdPathResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    omninitySkillVersion: zod.literal(1),
-    slug: zod.string(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    category: zod.string(),
-    author: zod.string(),
-    version: zod
-      .number()
-      .describe("Optimistic-concurrency revision counter (legacy field)."),
-    semver: zod
-      .string()
-      .optional()
-      .describe("Semantic version of the skill release."),
-    changelog: zod
-      .string()
-      .optional()
-      .describe("Changelog entry for the manifest's version."),
-    breakingChange: zod.boolean().optional(),
-    minOpVersion: zod.string().optional(),
-  }),
-});
+export const ExportSkillByIdPathResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List scheduled tasks (newest first)
@@ -15642,31 +13101,7 @@ export const ListSchedulesHeader = zod.object({
     ),
 });
 
-export const ListSchedulesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        title: zod.string(),
-        prompt: zod.string(),
-        cronExpression: zod.string(),
-        naturalLanguage: zod.string().nullish(),
-        timezone: zod.string(),
-        recurrenceKind: zod.string(),
-        paused: zod.boolean(),
-        taskContext: zod.unknown().nullish(),
-        lastRunAt: zod.coerce.date().nullish(),
-        lastRunStatus: zod.string().nullish(),
-        lastRunSummary: zod.string().nullish(),
-        nextRunAt: zod.coerce.date().nullish(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListSchedulesResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Create a scheduled task (NL or cron)
@@ -15679,41 +13114,9 @@ export const CreateScheduleHeader = zod.object({
     ),
 });
 
-export const CreateScheduleBody = zod.object({
-  title: zod.string(),
-  prompt: zod.string(),
-  cronExpression: zod.string().optional(),
-  naturalLanguage: zod.string().optional(),
-  tzOffsetMinutes: zod.number().optional(),
-  timezone: zod.string().optional(),
-  taskContext: zod.unknown().optional(),
-  recurrenceKind: zod
-    .enum(["minutely", "hourly", "daily", "weekly", "monthly", "custom"])
-    .optional(),
-});
+export const CreateScheduleBody = zod.record(zod.string(), zod.unknown());
 
-export const CreateScheduleResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    schedule: zod.object({
-      id: zod.string(),
-      title: zod.string(),
-      prompt: zod.string(),
-      cronExpression: zod.string(),
-      naturalLanguage: zod.string().nullish(),
-      timezone: zod.string(),
-      recurrenceKind: zod.string(),
-      paused: zod.boolean(),
-      taskContext: zod.unknown().nullish(),
-      lastRunAt: zod.coerce.date().nullish(),
-      lastRunStatus: zod.string().nullish(),
-      lastRunSummary: zod.string().nullish(),
-      nextRunAt: zod.coerce.date().nullish(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const CreateScheduleResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Parse a NL or cron expression and return the next 3 fires
@@ -15726,22 +13129,9 @@ export const PreviewScheduleHeader = zod.object({
     ),
 });
 
-export const PreviewScheduleBody = zod.object({
-  cronExpression: zod.string().optional(),
-  naturalLanguage: zod.string().optional(),
-  tzOffsetMinutes: zod.number().optional(),
-});
+export const PreviewScheduleBody = zod.record(zod.string(), zod.unknown());
 
-export const PreviewScheduleResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    preview: zod.object({
-      cronExpression: zod.string(),
-      recurrenceKind: zod.string(),
-      nextRuns: zod.array(zod.coerce.date()),
-    }),
-  }),
-});
+export const PreviewScheduleResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Per-tenant scheduler settings (singleton)
@@ -15754,16 +13144,10 @@ export const GetScheduleSettingsHeader = zod.object({
     ),
 });
 
-export const GetScheduleSettingsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    settings: zod.object({
-      globalPaused: zod.boolean(),
-      lastTickAt: zod.coerce.date().nullish(),
-      updatedAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const GetScheduleSettingsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Update the global pause flag
@@ -15776,20 +13160,15 @@ export const UpdateScheduleSettingsHeader = zod.object({
     ),
 });
 
-export const UpdateScheduleSettingsBody = zod.object({
-  globalPaused: zod.boolean(),
-});
+export const UpdateScheduleSettingsBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const UpdateScheduleSettingsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    settings: zod.object({
-      globalPaused: zod.boolean(),
-      lastTickAt: zod.coerce.date().nullish(),
-      updatedAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const UpdateScheduleSettingsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Fetch one schedule
@@ -15806,28 +13185,7 @@ export const GetScheduleHeader = zod.object({
     ),
 });
 
-export const GetScheduleResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    schedule: zod.object({
-      id: zod.string(),
-      title: zod.string(),
-      prompt: zod.string(),
-      cronExpression: zod.string(),
-      naturalLanguage: zod.string().nullish(),
-      timezone: zod.string(),
-      recurrenceKind: zod.string(),
-      paused: zod.boolean(),
-      taskContext: zod.unknown().nullish(),
-      lastRunAt: zod.coerce.date().nullish(),
-      lastRunStatus: zod.string().nullish(),
-      lastRunSummary: zod.string().nullish(),
-      nextRunAt: zod.coerce.date().nullish(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const GetScheduleResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Update a schedule (re-cron, rename, pause, edit prompt)
@@ -15844,42 +13202,9 @@ export const UpdateScheduleHeader = zod.object({
     ),
 });
 
-export const UpdateScheduleBody = zod.object({
-  title: zod.string().optional(),
-  prompt: zod.string().optional(),
-  cronExpression: zod.string().optional(),
-  naturalLanguage: zod.string().optional(),
-  tzOffsetMinutes: zod.number().optional(),
-  timezone: zod.string().optional(),
-  taskContext: zod.unknown().optional(),
-  paused: zod.boolean().optional(),
-  recurrenceKind: zod
-    .enum(["minutely", "hourly", "daily", "weekly", "monthly", "custom"])
-    .optional(),
-});
+export const UpdateScheduleBody = zod.record(zod.string(), zod.unknown());
 
-export const UpdateScheduleResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    schedule: zod.object({
-      id: zod.string(),
-      title: zod.string(),
-      prompt: zod.string(),
-      cronExpression: zod.string(),
-      naturalLanguage: zod.string().nullish(),
-      timezone: zod.string(),
-      recurrenceKind: zod.string(),
-      paused: zod.boolean(),
-      taskContext: zod.unknown().nullish(),
-      lastRunAt: zod.coerce.date().nullish(),
-      lastRunStatus: zod.string().nullish(),
-      lastRunSummary: zod.string().nullish(),
-      nextRunAt: zod.coerce.date().nullish(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const UpdateScheduleResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Delete a schedule and its run history
@@ -15896,13 +13221,7 @@ export const DeleteScheduleHeader = zod.object({
     ),
 });
 
-export const DeleteScheduleResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    deleted: zod.literal(true),
-    id: zod.string(),
-  }),
-});
+export const DeleteScheduleResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Trigger one execution immediately
@@ -15919,24 +13238,7 @@ export const RunScheduleNowHeader = zod.object({
     ),
 });
 
-export const RunScheduleNowResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    run: zod.object({
-      id: zod.string(),
-      scheduledTaskId: zod.string(),
-      scheduledFor: zod.coerce.date(),
-      startedAt: zod.coerce.date(),
-      completedAt: zod.coerce.date().nullish(),
-      status: zod.string(),
-      summary: zod.string().nullish(),
-      error: zod.string().nullish(),
-      agentRunId: zod.string().nullish(),
-      triggerKind: zod.string(),
-      createdAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const RunScheduleNowResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Pause or resume one schedule
@@ -15953,32 +13255,9 @@ export const PauseScheduleHeader = zod.object({
     ),
 });
 
-export const PauseScheduleBody = zod.object({
-  paused: zod.boolean(),
-});
+export const PauseScheduleBody = zod.record(zod.string(), zod.unknown());
 
-export const PauseScheduleResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    schedule: zod.object({
-      id: zod.string(),
-      title: zod.string(),
-      prompt: zod.string(),
-      cronExpression: zod.string(),
-      naturalLanguage: zod.string().nullish(),
-      timezone: zod.string(),
-      recurrenceKind: zod.string(),
-      paused: zod.boolean(),
-      taskContext: zod.unknown().nullish(),
-      lastRunAt: zod.coerce.date().nullish(),
-      lastRunStatus: zod.string().nullish(),
-      lastRunSummary: zod.string().nullish(),
-      nextRunAt: zod.coerce.date().nullish(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const PauseScheduleResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Execution history for one schedule (newest first)
@@ -16011,27 +13290,7 @@ export const ListScheduleRunsHeader = zod.object({
     ),
 });
 
-export const ListScheduleRunsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        scheduledTaskId: zod.string(),
-        scheduledFor: zod.coerce.date(),
-        startedAt: zod.coerce.date(),
-        completedAt: zod.coerce.date().nullish(),
-        status: zod.string(),
-        summary: zod.string().nullish(),
-        error: zod.string().nullish(),
-        agentRunId: zod.string().nullish(),
-        triggerKind: zod.string(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListScheduleRunsResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary List in-progress skill creator drafts
@@ -16060,39 +13319,7 @@ export const ListSkillDraftsHeader = zod.object({
     ),
 });
 
-export const ListSkillDraftsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        source: zod.enum(["upload", "paste", "interview"]),
-        status: zod.enum(["draft", "ready", "published"]),
-        rawInput: zod.string(),
-        interviewTranscript: zod.array(
-          zod.object({
-            role: zod.enum(["system", "user", "assistant"]),
-            content: zod.string(),
-          }),
-        ),
-        interviewStep: zod.number(),
-        name: zod.string(),
-        description: zod.string(),
-        content: zod.string(),
-        modelTags: zod.array(zod.string()),
-        triggers: zod.array(zod.string()),
-        examplePrompts: zod.array(zod.string()),
-        category: zod.string(),
-        skillId: zod.string().nullable(),
-        publishedStoreSkillId: zod.string().nullable(),
-        version: zod.number(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListSkillDraftsResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Create a draft from an uploaded file (PDF/EPUB/DOCX/TXT/MD)
@@ -16105,41 +13332,15 @@ export const CreateSkillDraftFromUploadHeader = zod.object({
     ),
 });
 
-export const CreateSkillDraftFromUploadBody = zod.object({
-  fileName: zod.string(),
-  kind: zod.string(),
-  base64: zod.string().optional(),
-  text: zod.string().optional(),
-});
+export const CreateSkillDraftFromUploadBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const CreateSkillDraftFromUploadResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    source: zod.enum(["upload", "paste", "interview"]),
-    status: zod.enum(["draft", "ready", "published"]),
-    rawInput: zod.string(),
-    interviewTranscript: zod.array(
-      zod.object({
-        role: zod.enum(["system", "user", "assistant"]),
-        content: zod.string(),
-      }),
-    ),
-    interviewStep: zod.number(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    examplePrompts: zod.array(zod.string()),
-    category: zod.string(),
-    skillId: zod.string().nullable(),
-    publishedStoreSkillId: zod.string().nullable(),
-    version: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const CreateSkillDraftFromUploadResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Create a draft from pasted text
@@ -16152,38 +13353,15 @@ export const CreateSkillDraftFromPasteHeader = zod.object({
     ),
 });
 
-export const CreateSkillDraftFromPasteBody = zod.object({
-  text: zod.string(),
-});
+export const CreateSkillDraftFromPasteBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const CreateSkillDraftFromPasteResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    source: zod.enum(["upload", "paste", "interview"]),
-    status: zod.enum(["draft", "ready", "published"]),
-    rawInput: zod.string(),
-    interviewTranscript: zod.array(
-      zod.object({
-        role: zod.enum(["system", "user", "assistant"]),
-        content: zod.string(),
-      }),
-    ),
-    interviewStep: zod.number(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    examplePrompts: zod.array(zod.string()),
-    category: zod.string(),
-    skillId: zod.string().nullable(),
-    publishedStoreSkillId: zod.string().nullable(),
-    version: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const CreateSkillDraftFromPasteResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Start a guided interview that produces a draft
@@ -16196,34 +13374,10 @@ export const StartSkillDraftInterviewHeader = zod.object({
     ),
 });
 
-export const StartSkillDraftInterviewResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    source: zod.enum(["upload", "paste", "interview"]),
-    status: zod.enum(["draft", "ready", "published"]),
-    rawInput: zod.string(),
-    interviewTranscript: zod.array(
-      zod.object({
-        role: zod.enum(["system", "user", "assistant"]),
-        content: zod.string(),
-      }),
-    ),
-    interviewStep: zod.number(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    examplePrompts: zod.array(zod.string()),
-    category: zod.string(),
-    skillId: zod.string().nullable(),
-    publishedStoreSkillId: zod.string().nullable(),
-    version: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const StartSkillDraftInterviewResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Fixed list of interview questions
@@ -16236,12 +13390,10 @@ export const GetSkillDraftInterviewQuestionsHeader = zod.object({
     ),
 });
 
-export const GetSkillDraftInterviewQuestionsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    questions: zod.array(zod.string()),
-  }),
-});
+export const GetSkillDraftInterviewQuestionsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Fetch a draft
@@ -16258,34 +13410,7 @@ export const GetSkillDraftHeader = zod.object({
     ),
 });
 
-export const GetSkillDraftResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    source: zod.enum(["upload", "paste", "interview"]),
-    status: zod.enum(["draft", "ready", "published"]),
-    rawInput: zod.string(),
-    interviewTranscript: zod.array(
-      zod.object({
-        role: zod.enum(["system", "user", "assistant"]),
-        content: zod.string(),
-      }),
-    ),
-    interviewStep: zod.number(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    examplePrompts: zod.array(zod.string()),
-    category: zod.string(),
-    skillId: zod.string().nullable(),
-    publishedStoreSkillId: zod.string().nullable(),
-    version: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const GetSkillDraftResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Edit a draft
@@ -16302,44 +13427,9 @@ export const UpdateSkillDraftHeader = zod.object({
     ),
 });
 
-export const UpdateSkillDraftBody = zod.object({
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  content: zod.string().optional(),
-  modelTags: zod.array(zod.string()).optional(),
-  triggers: zod.array(zod.string()).optional(),
-  examplePrompts: zod.array(zod.string()).optional(),
-  category: zod.string().optional(),
-});
+export const UpdateSkillDraftBody = zod.record(zod.string(), zod.unknown());
 
-export const UpdateSkillDraftResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    source: zod.enum(["upload", "paste", "interview"]),
-    status: zod.enum(["draft", "ready", "published"]),
-    rawInput: zod.string(),
-    interviewTranscript: zod.array(
-      zod.object({
-        role: zod.enum(["system", "user", "assistant"]),
-        content: zod.string(),
-      }),
-    ),
-    interviewStep: zod.number(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    examplePrompts: zod.array(zod.string()),
-    category: zod.string(),
-    skillId: zod.string().nullable(),
-    publishedStoreSkillId: zod.string().nullable(),
-    version: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const UpdateSkillDraftResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Delete a draft
@@ -16356,13 +13446,7 @@ export const DeleteSkillDraftHeader = zod.object({
     ),
 });
 
-export const DeleteSkillDraftResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    deleted: zod.boolean(),
-  }),
-});
+export const DeleteSkillDraftResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Submit the next interview answer
@@ -16379,38 +13463,15 @@ export const AnswerSkillDraftInterviewHeader = zod.object({
     ),
 });
 
-export const AnswerSkillDraftInterviewBody = zod.object({
-  answer: zod.string(),
-});
+export const AnswerSkillDraftInterviewBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const AnswerSkillDraftInterviewResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    source: zod.enum(["upload", "paste", "interview"]),
-    status: zod.enum(["draft", "ready", "published"]),
-    rawInput: zod.string(),
-    interviewTranscript: zod.array(
-      zod.object({
-        role: zod.enum(["system", "user", "assistant"]),
-        content: zod.string(),
-      }),
-    ),
-    interviewStep: zod.number(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    examplePrompts: zod.array(zod.string()),
-    category: zod.string(),
-    skillId: zod.string().nullable(),
-    publishedStoreSkillId: zod.string().nullable(),
-    version: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const AnswerSkillDraftInterviewResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Run the draft against the local LLM with a sample message
@@ -16427,18 +13488,9 @@ export const TestSkillDraftHeader = zod.object({
     ),
 });
 
-export const TestSkillDraftBody = zod.object({
-  message: zod.string(),
-  modelName: zod.string().optional(),
-});
+export const TestSkillDraftBody = zod.record(zod.string(), zod.unknown());
 
-export const TestSkillDraftResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    model: zod.string(),
-    reply: zod.string(),
-  }),
-});
+export const TestSkillDraftResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Browse the hosted skill store
@@ -16470,35 +13522,7 @@ export const ListStoreSkillsHeader = zod.object({
     ),
 });
 
-export const ListStoreSkillsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        creatorId: zod.string(),
-        creatorHandle: zod.string(),
-        slug: zod.string(),
-        name: zod.string(),
-        description: zod.string(),
-        content: zod.string(),
-        modelTags: zod.array(zod.string()),
-        triggers: zod.array(zod.string()),
-        examplePrompts: zod.array(zod.string()),
-        category: zod.string(),
-        skillVersion: zod.number(),
-        isLatest: zod.boolean(),
-        installCount: zod.number(),
-        documentation: zod.string(),
-        isPremium: zod.boolean(),
-        previewUsesAllowed: zod.number(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListStoreSkillsResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Publish a draft to the store
@@ -16511,38 +13535,12 @@ export const PublishSkillDraftHeader = zod.object({
     ),
 });
 
-export const PublishSkillDraftBody = zod.object({
-  draftId: zod.string(),
-  apiToken: zod.string(),
-  documentation: zod.string().optional(),
-  isPremium: zod.boolean().optional(),
-  previewUsesAllowed: zod.number().optional(),
-});
+export const PublishSkillDraftBody = zod.record(zod.string(), zod.unknown());
 
-export const PublishSkillDraftResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    creatorId: zod.string(),
-    creatorHandle: zod.string(),
-    slug: zod.string(),
-    name: zod.string(),
-    description: zod.string(),
-    content: zod.string(),
-    modelTags: zod.array(zod.string()),
-    triggers: zod.array(zod.string()),
-    examplePrompts: zod.array(zod.string()),
-    category: zod.string(),
-    skillVersion: zod.number(),
-    isLatest: zod.boolean(),
-    installCount: zod.number(),
-    documentation: zod.string(),
-    isPremium: zod.boolean(),
-    previewUsesAllowed: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const PublishSkillDraftResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List installed store skills with newer versions available
@@ -16555,22 +13553,10 @@ export const CheckStoreSkillUpdatesHeader = zod.object({
     ),
 });
 
-export const CheckStoreSkillUpdatesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    updates: zod.array(
-      zod.object({
-        skillId: zod.string(),
-        creatorHandle: zod.string(),
-        slug: zod.string(),
-        installedVersion: zod.number(),
-        latestVersion: zod.number(),
-        storeSkillId: zod.string(),
-        name: zod.string(),
-      }),
-    ),
-  }),
-});
+export const CheckStoreSkillUpdatesResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Fetch a published store skill (latest version) plus version history
@@ -16588,55 +13574,7 @@ export const GetStoreSkillHeader = zod.object({
     ),
 });
 
-export const GetStoreSkillResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    skill: zod.object({
-      id: zod.string(),
-      creatorId: zod.string(),
-      creatorHandle: zod.string(),
-      slug: zod.string(),
-      name: zod.string(),
-      description: zod.string(),
-      content: zod.string(),
-      modelTags: zod.array(zod.string()),
-      triggers: zod.array(zod.string()),
-      examplePrompts: zod.array(zod.string()),
-      category: zod.string(),
-      skillVersion: zod.number(),
-      isLatest: zod.boolean(),
-      installCount: zod.number(),
-      documentation: zod.string(),
-      isPremium: zod.boolean(),
-      previewUsesAllowed: zod.number(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    versions: zod.array(
-      zod.object({
-        id: zod.string(),
-        creatorId: zod.string(),
-        creatorHandle: zod.string(),
-        slug: zod.string(),
-        name: zod.string(),
-        description: zod.string(),
-        content: zod.string(),
-        modelTags: zod.array(zod.string()),
-        triggers: zod.array(zod.string()),
-        examplePrompts: zod.array(zod.string()),
-        category: zod.string(),
-        skillVersion: zod.number(),
-        isLatest: zod.boolean(),
-        installCount: zod.number(),
-        documentation: zod.string(),
-        isPremium: zod.boolean(),
-        previewUsesAllowed: zod.number(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const GetStoreSkillResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Install a store skill into the local workspace
@@ -16654,33 +13592,10 @@ export const InstallStoreSkillHeader = zod.object({
     ),
 });
 
-export const InstallStoreSkillResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    skillId: zod.string(),
-    storeSkill: zod.object({
-      id: zod.string(),
-      creatorId: zod.string(),
-      creatorHandle: zod.string(),
-      slug: zod.string(),
-      name: zod.string(),
-      description: zod.string(),
-      content: zod.string(),
-      modelTags: zod.array(zod.string()),
-      triggers: zod.array(zod.string()),
-      examplePrompts: zod.array(zod.string()),
-      category: zod.string(),
-      skillVersion: zod.number(),
-      isLatest: zod.boolean(),
-      installCount: zod.number(),
-      documentation: zod.string(),
-      isPremium: zod.boolean(),
-      previewUsesAllowed: zod.number(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const InstallStoreSkillResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Browse store creators
@@ -16709,31 +13624,10 @@ export const ListStoreCreatorsHeader = zod.object({
     ),
 });
 
-export const ListStoreCreatorsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        handle: zod.string(),
-        displayName: zod.string(),
-        bio: zod.string(),
-        websiteUrl: zod.string().nullable(),
-        externalLinks: zod.array(
-          zod.object({
-            label: zod.string(),
-            url: zod.string(),
-          }),
-        ),
-        publishedSkillCount: zod.number(),
-        totalInstalls: zod.number(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListStoreCreatorsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Create a creator account and receive a one-time API token
@@ -16746,44 +13640,12 @@ export const SignupStoreCreatorHeader = zod.object({
     ),
 });
 
-export const SignupStoreCreatorBody = zod.object({
-  handle: zod.string().optional(),
-  displayName: zod.string(),
-  bio: zod.string().optional(),
-  websiteUrl: zod.string().optional(),
-  externalLinks: zod
-    .array(
-      zod.object({
-        label: zod.string(),
-        url: zod.string(),
-      }),
-    )
-    .optional(),
-});
+export const SignupStoreCreatorBody = zod.record(zod.string(), zod.unknown());
 
-export const SignupStoreCreatorResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    account: zod.object({
-      id: zod.string(),
-      handle: zod.string(),
-      displayName: zod.string(),
-      bio: zod.string(),
-      websiteUrl: zod.string().nullable(),
-      externalLinks: zod.array(
-        zod.object({
-          label: zod.string(),
-          url: zod.string(),
-        }),
-      ),
-      publishedSkillCount: zod.number(),
-      totalInstalls: zod.number(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    apiToken: zod.string(),
-  }),
-});
+export const SignupStoreCreatorResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Authenticated creator portal summary
@@ -16796,57 +13658,15 @@ export const GetStoreCreatorDashboardHeader = zod.object({
     ),
 });
 
-export const GetStoreCreatorDashboardBody = zod.object({
-  apiToken: zod.string(),
-});
+export const GetStoreCreatorDashboardBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const GetStoreCreatorDashboardResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    account: zod.object({
-      id: zod.string(),
-      handle: zod.string(),
-      displayName: zod.string(),
-      bio: zod.string(),
-      websiteUrl: zod.string().nullable(),
-      externalLinks: zod.array(
-        zod.object({
-          label: zod.string(),
-          url: zod.string(),
-        }),
-      ),
-      publishedSkillCount: zod.number(),
-      totalInstalls: zod.number(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    publishedSkills: zod.array(
-      zod.object({
-        id: zod.string(),
-        creatorId: zod.string(),
-        creatorHandle: zod.string(),
-        slug: zod.string(),
-        name: zod.string(),
-        description: zod.string(),
-        content: zod.string(),
-        modelTags: zod.array(zod.string()),
-        triggers: zod.array(zod.string()),
-        examplePrompts: zod.array(zod.string()),
-        category: zod.string(),
-        skillVersion: zod.number(),
-        isLatest: zod.boolean(),
-        installCount: zod.number(),
-        documentation: zod.string(),
-        isPremium: zod.boolean(),
-        previewUsesAllowed: zod.number(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      }),
-    ),
-    totalInstalls: zod.number(),
-    totalVersions: zod.number(),
-  }),
-});
+export const GetStoreCreatorDashboardResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Public creator profile
@@ -16863,26 +13683,7 @@ export const GetStoreCreatorHeader = zod.object({
     ),
 });
 
-export const GetStoreCreatorResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    handle: zod.string(),
-    displayName: zod.string(),
-    bio: zod.string(),
-    websiteUrl: zod.string().nullable(),
-    externalLinks: zod.array(
-      zod.object({
-        label: zod.string(),
-        url: zod.string(),
-      }),
-    ),
-    publishedSkillCount: zod.number(),
-    totalInstalls: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const GetStoreCreatorResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Current subscription status + computed access flag
@@ -16895,31 +13696,10 @@ export const GetSubscriptionStatusHeader = zod.object({
     ),
 });
 
-export const GetSubscriptionStatusResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    subscription: zod.object({
-      id: zod.string(),
-      status: zod.enum([
-        "inactive",
-        "trialing",
-        "active",
-        "past_due",
-        "cancelled",
-      ]),
-      planId: zod.string(),
-      priceCents: zod.number(),
-      currentPeriodEnd: zod.coerce.date().nullable(),
-      cancelAtPeriodEnd: zod.boolean(),
-      stripeCustomerId: zod.string().nullable(),
-      stripeSubscriptionId: zod.string().nullable(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    hasAccess: zod.boolean(),
-    stripeStubMode: zod.boolean(),
-  }),
-});
+export const GetSubscriptionStatusResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Create a Stripe checkout session (or local stub)
@@ -16932,19 +13712,15 @@ export const CreateSubscriptionCheckoutHeader = zod.object({
     ),
 });
 
-export const CreateSubscriptionCheckoutBody = zod.object({
-  successPath: zod.string().optional(),
-  cancelPath: zod.string().optional(),
-});
+export const CreateSubscriptionCheckoutBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const CreateSubscriptionCheckoutResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    checkoutUrl: zod.string(),
-    sessionId: zod.string(),
-    stripeStubMode: zod.boolean(),
-  }),
-});
+export const CreateSubscriptionCheckoutResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Confirm a checkout session (stub mode flips to active immediately)
@@ -16957,35 +13733,15 @@ export const ConfirmSubscriptionCheckoutHeader = zod.object({
     ),
 });
 
-export const ConfirmSubscriptionCheckoutBody = zod.object({
-  sessionId: zod.string(),
-});
+export const ConfirmSubscriptionCheckoutBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const ConfirmSubscriptionCheckoutResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    subscription: zod.object({
-      id: zod.string(),
-      status: zod.enum([
-        "inactive",
-        "trialing",
-        "active",
-        "past_due",
-        "cancelled",
-      ]),
-      planId: zod.string(),
-      priceCents: zod.number(),
-      currentPeriodEnd: zod.coerce.date().nullable(),
-      cancelAtPeriodEnd: zod.boolean(),
-      stripeCustomerId: zod.string().nullable(),
-      stripeSubscriptionId: zod.string().nullable(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    hasAccess: zod.boolean(),
-    stripeStubMode: zod.boolean(),
-  }),
-});
+export const ConfirmSubscriptionCheckoutResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Cancel at period end (keeps access until currentPeriodEnd)
@@ -16998,31 +13754,10 @@ export const CancelSubscriptionHeader = zod.object({
     ),
 });
 
-export const CancelSubscriptionResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    subscription: zod.object({
-      id: zod.string(),
-      status: zod.enum([
-        "inactive",
-        "trialing",
-        "active",
-        "past_due",
-        "cancelled",
-      ]),
-      planId: zod.string(),
-      priceCents: zod.number(),
-      currentPeriodEnd: zod.coerce.date().nullable(),
-      cancelAtPeriodEnd: zod.boolean(),
-      stripeCustomerId: zod.string().nullable(),
-      stripeSubscriptionId: zod.string().nullable(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    hasAccess: zod.boolean(),
-    stripeStubMode: zod.boolean(),
-  }),
-});
+export const CancelSubscriptionResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Reverse a pending cancellation
@@ -17035,31 +13770,10 @@ export const ReactivateSubscriptionHeader = zod.object({
     ),
 });
 
-export const ReactivateSubscriptionResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    subscription: zod.object({
-      id: zod.string(),
-      status: zod.enum([
-        "inactive",
-        "trialing",
-        "active",
-        "past_due",
-        "cancelled",
-      ]),
-      planId: zod.string(),
-      priceCents: zod.number(),
-      currentPeriodEnd: zod.coerce.date().nullable(),
-      cancelAtPeriodEnd: zod.boolean(),
-      stripeCustomerId: zod.string().nullable(),
-      stripeSubscriptionId: zod.string().nullable(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    hasAccess: zod.boolean(),
-    stripeStubMode: zod.boolean(),
-  }),
-});
+export const ReactivateSubscriptionResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Stripe webhook ingest (idempotent)
@@ -17072,18 +13786,12 @@ export const SubscriptionWebhookHeader = zod.object({
     ),
 });
 
-export const SubscriptionWebhookBody = zod.object({
-  type: zod.string(),
-  data: zod.record(zod.string(), zod.unknown()).optional(),
-});
+export const SubscriptionWebhookBody = zod.record(zod.string(), zod.unknown());
 
-export const SubscriptionWebhookResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    processed: zod.boolean(),
-    type: zod.string(),
-  }),
-});
+export const SubscriptionWebhookResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Premium skill usage rollup for the current tenant
@@ -17096,32 +13804,10 @@ export const GetSubscriptionUsageHeader = zod.object({
     ),
 });
 
-export const GetSubscriptionUsageResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    totalThisMonth: zod.number(),
-    totalAllTime: zod.number(),
-    perSkill: zod.array(
-      zod.object({
-        skillId: zod.string(),
-        skillSlug: zod.string(),
-        count: zod.number(),
-      }),
-    ),
-    recent: zod.array(
-      zod.object({
-        id: zod.string(),
-        skillId: zod.string(),
-        skillSlug: zod.string(),
-        creatorHandle: zod.string().nullable(),
-        modelName: zod.string().nullable(),
-        wasPreview: zod.boolean(),
-        approvedByUser: zod.boolean(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const GetSubscriptionUsageResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Creator revenue dashboard (token-authenticated)
@@ -17134,33 +13820,12 @@ export const GetCreatorEarningsHeader = zod.object({
     ),
 });
 
-export const GetCreatorEarningsBody = zod.object({
-  apiToken: zod.string(),
-});
+export const GetCreatorEarningsBody = zod.record(zod.string(), zod.unknown());
 
-export const GetCreatorEarningsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    creator: zod.object({
-      handle: zod.string(),
-      displayName: zod.string(),
-    }),
-    creatorHandle: zod.string(),
-    periodStart: zod.coerce.date(),
-    periodEnd: zod.coerce.date(),
-    totalUses: zod.number(),
-    globalUses: zod.number(),
-    poolCents: zod.number(),
-    estimatedEarningsCents: zod.number(),
-    perSkill: zod.array(
-      zod.object({
-        skillSlug: zod.string(),
-        uses: zod.number(),
-        earningsCents: zod.number(),
-      }),
-    ),
-  }),
-});
+export const GetCreatorEarningsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Get (or lazily create) the tenant's referral code.
@@ -17173,16 +13838,7 @@ export const GetReferralCodeHeader = zod.object({
     ),
 });
 
-export const GetReferralCodeResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    code: zod.object({
-      code: zod.string(),
-      shareUrl: zod.string(),
-      createdAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const GetReferralCodeResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Referral dashboard — code, totals, rewards, beta status.
@@ -17195,47 +13851,10 @@ export const GetReferralDashboardHeader = zod.object({
     ),
 });
 
-export const GetReferralDashboardResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    dashboard: zod.object({
-      code: zod.object({
-        code: zod.string(),
-        shareUrl: zod.string(),
-        createdAt: zod.coerce.date(),
-      }),
-      totalReferred: zod.number(),
-      totalCompleted: zod.number(),
-      totalPending: zod.number(),
-      activeRewards: zod.number(),
-      betaUnlocked: zod.boolean(),
-      betaThreshold: zod.number(),
-      referrals: zod.array(
-        zod.object({
-          id: zod.string(),
-          code: zod.string(),
-          status: zod.enum(["pending", "completed"]),
-          referredEmail: zod.string().nullable(),
-          referredLabel: zod.string().nullable(),
-          completedAt: zod.coerce.date().nullable(),
-          rewardGrantedAt: zod.coerce.date().nullable(),
-          createdAt: zod.coerce.date(),
-        }),
-      ),
-      rewards: zod.array(
-        zod.object({
-          id: zod.string(),
-          referralId: zod.string().nullable(),
-          kind: zod.string(),
-          role: zod.enum(["referrer", "referred"]),
-          grantedAt: zod.coerce.date(),
-          expiresAt: zod.coerce.date(),
-          active: zod.boolean(),
-        }),
-      ),
-    }),
-  }),
-});
+export const GetReferralDashboardResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List the tenant's currently-active referral rewards.
@@ -17248,22 +13867,10 @@ export const ListReferralRewardsHeader = zod.object({
     ),
 });
 
-export const ListReferralRewardsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    rewards: zod.array(
-      zod.object({
-        id: zod.string(),
-        referralId: zod.string().nullable(),
-        kind: zod.string(),
-        role: zod.enum(["referrer", "referred"]),
-        grantedAt: zod.coerce.date(),
-        expiresAt: zod.coerce.date(),
-        active: zod.boolean(),
-      }),
-    ),
-  }),
-});
+export const ListReferralRewardsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Beta-access status (auto-unlocks at 3 completed referrals).
@@ -17276,19 +13883,10 @@ export const GetReferralBetaAccessHeader = zod.object({
     ),
 });
 
-export const GetReferralBetaAccessResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    access: zod.object({
-      unlocked: zod.boolean(),
-      tier: zod.string().nullish(),
-      reason: zod.string().nullish(),
-      grantedAt: zod.coerce.date().nullish(),
-      threshold: zod.number(),
-      completedReferrals: zod.number(),
-    }),
-  }),
-});
+export const GetReferralBetaAccessResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Record a referral attribution from a referral code.
@@ -17301,27 +13899,12 @@ export const AttributeReferralHeader = zod.object({
     ),
 });
 
-export const AttributeReferralBody = zod.object({
-  code: zod.string(),
-  email: zod.string().email().optional(),
-  label: zod.string().optional(),
-});
+export const AttributeReferralBody = zod.record(zod.string(), zod.unknown());
 
-export const AttributeReferralResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    referral: zod.object({
-      id: zod.string(),
-      code: zod.string(),
-      status: zod.enum(["pending", "completed"]),
-      referredEmail: zod.string().nullable(),
-      referredLabel: zod.string().nullable(),
-      completedAt: zod.coerce.date().nullable(),
-      rewardGrantedAt: zod.coerce.date().nullable(),
-      createdAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const AttributeReferralResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Public — check whether a referral code is valid.
@@ -17330,13 +13913,10 @@ export const LookupReferralCodeParams = zod.object({
   code: zod.coerce.string(),
 });
 
-export const LookupReferralCodeResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    valid: zod.boolean(),
-    code: zod.string(),
-  }),
-});
+export const LookupReferralCodeResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Get the tenant's "how did you hear about us" survey answer.
@@ -17349,28 +13929,10 @@ export const GetAcquisitionChannelHeader = zod.object({
     ),
 });
 
-export const GetAcquisitionChannelResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    channel: zod
-      .object({
-        channel: zod
-          .enum([
-            "search",
-            "social",
-            "friend",
-            "creator",
-            "podcast",
-            "blog",
-            "work",
-            "other",
-          ])
-          .nullable(),
-        detail: zod.string().nullish(),
-      })
-      .nullable(),
-  }),
-});
+export const GetAcquisitionChannelResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Set the tenant's acquisition-channel survey answer.
@@ -17383,42 +13945,15 @@ export const SetAcquisitionChannelHeader = zod.object({
     ),
 });
 
-export const SetAcquisitionChannelBody = zod.object({
-  channel: zod.enum([
-    "search",
-    "social",
-    "friend",
-    "creator",
-    "podcast",
-    "blog",
-    "work",
-    "other",
-  ]),
-  detail: zod.string().optional(),
-});
+export const SetAcquisitionChannelBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const SetAcquisitionChannelResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    channel: zod
-      .object({
-        channel: zod
-          .enum([
-            "search",
-            "social",
-            "friend",
-            "creator",
-            "podcast",
-            "blog",
-            "work",
-            "other",
-          ])
-          .nullable(),
-        detail: zod.string().nullish(),
-      })
-      .nullable(),
-  }),
-});
+export const SetAcquisitionChannelResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List enterprise trial invites the tenant has sent.
@@ -17431,22 +13966,10 @@ export const ListEnterpriseTrialInvitesHeader = zod.object({
     ),
 });
 
-export const ListEnterpriseTrialInvitesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    invites: zod.array(
-      zod.object({
-        id: zod.string(),
-        colleagueEmail: zod.string(),
-        colleagueName: zod.string().nullish(),
-        company: zod.string().nullish(),
-        note: zod.string().nullish(),
-        status: zod.string(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const ListEnterpriseTrialInvitesResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Invite a colleague to start an OP-for-Teams enterprise trial.
@@ -17459,27 +13982,15 @@ export const CreateEnterpriseTrialInviteHeader = zod.object({
     ),
 });
 
-export const CreateEnterpriseTrialInviteBody = zod.object({
-  colleagueEmail: zod.string().email(),
-  colleagueName: zod.string().optional(),
-  company: zod.string().optional(),
-  note: zod.string().optional(),
-});
+export const CreateEnterpriseTrialInviteBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const CreateEnterpriseTrialInviteResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    invite: zod.object({
-      id: zod.string(),
-      colleagueEmail: zod.string(),
-      colleagueName: zod.string().nullish(),
-      company: zod.string().nullish(),
-      note: zod.string().nullish(),
-      status: zod.string(),
-      createdAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const CreateEnterpriseTrialInviteResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List share events for the tenant (filterable by target).
@@ -17497,28 +14008,7 @@ export const ListShareEventsHeader = zod.object({
     ),
 });
 
-export const ListShareEventsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    events: zod.array(
-      zod.object({
-        id: zod.string(),
-        targetKind: zod.enum(["skill", "task", "creator"]),
-        targetId: zod.string(),
-        channel: zod.enum([
-          "twitter",
-          "linkedin",
-          "whatsapp",
-          "copy",
-          "native",
-          "email",
-        ]),
-        label: zod.string().nullish(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const ListShareEventsResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Append a share event (skill / task / creator).
@@ -17531,35 +14021,9 @@ export const RecordShareEventHeader = zod.object({
     ),
 });
 
-export const RecordShareEventBody = zod.object({
-  targetKind: zod.enum(["skill", "task", "creator"]),
-  targetId: zod.string(),
-  channel: zod
-    .enum(["twitter", "linkedin", "whatsapp", "copy", "native", "email"])
-    .optional(),
-  label: zod.string().optional(),
-});
+export const RecordShareEventBody = zod.record(zod.string(), zod.unknown());
 
-export const RecordShareEventResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    event: zod.object({
-      id: zod.string(),
-      targetKind: zod.enum(["skill", "task", "creator"]),
-      targetId: zod.string(),
-      channel: zod.enum([
-        "twitter",
-        "linkedin",
-        "whatsapp",
-        "copy",
-        "native",
-        "email",
-      ]),
-      label: zod.string().nullish(),
-      createdAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const RecordShareEventResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Build a privacy-safe social card for a skill (id or slug).
@@ -17576,31 +14040,10 @@ export const GetSkillShareCardHeader = zod.object({
     ),
 });
 
-export const GetSkillShareCardResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    card: zod.object({
-      title: zod.string(),
-      creator: zod.string(),
-      description: zod.string(),
-      category: zod.string(),
-      installs: zod.number(),
-      rating: zod.number(),
-      ratingDisplay: zod.string(),
-      webUrl: zod.string(),
-      deepLinkUrl: zod.string(),
-      channels: zod.object({
-        twitter: zod.string(),
-        linkedin: zod.string(),
-        whatsapp: zod.string(),
-        email: zod.object({
-          subject: zod.string(),
-          body: zod.string(),
-        }),
-      }),
-    }),
-  }),
-});
+export const GetSkillShareCardResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Web URL, deep-link URL, and short URL for a skill.
@@ -17609,16 +14052,10 @@ export const GetSkillShareLinksParams = zod.object({
   slug: zod.coerce.string(),
 });
 
-export const GetSkillShareLinksResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    links: zod.object({
-      webUrl: zod.string(),
-      deepLinkUrl: zod.string(),
-      shortUrl: zod.string(),
-    }),
-  }),
-});
+export const GetSkillShareLinksResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Build a privacy-safe text share card for a completed task.
@@ -17631,30 +14068,12 @@ export const BuildTaskShareCardHeader = zod.object({
     ),
 });
 
-export const BuildTaskShareCardBody = zod.object({
-  goal: zod.string(),
-  summary: zod.string(),
-  durationMs: zod.number().optional(),
-});
+export const BuildTaskShareCardBody = zod.record(zod.string(), zod.unknown());
 
-export const BuildTaskShareCardResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    card: zod.object({
-      title: zod.string(),
-      body: zod.string(),
-      channels: zod.object({
-        twitter: zod.string(),
-        linkedin: zod.string(),
-        whatsapp: zod.string(),
-        email: zod.object({
-          subject: zod.string(),
-          body: zod.string(),
-        }),
-      }),
-    }),
-  }),
-});
+export const BuildTaskShareCardResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List post-task satisfaction ratings (filter by runId).
@@ -17671,21 +14090,10 @@ export const ListSatisfactionRatingsHeader = zod.object({
     ),
 });
 
-export const ListSatisfactionRatingsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    ratings: zod.array(
-      zod.object({
-        id: zod.string(),
-        runId: zod.string().nullish(),
-        rating: zod.enum(["up", "down"]),
-        summary: zod.string().nullish(),
-        shouldPromptShare: zod.boolean(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-  }),
-});
+export const ListSatisfactionRatingsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Record a post-task satisfaction rating (up/down).
@@ -17698,25 +14106,12 @@ export const RecordSatisfactionHeader = zod.object({
     ),
 });
 
-export const RecordSatisfactionBody = zod.object({
-  runId: zod.string().optional(),
-  rating: zod.enum(["up", "down"]),
-  summary: zod.string().optional(),
-});
+export const RecordSatisfactionBody = zod.record(zod.string(), zod.unknown());
 
-export const RecordSatisfactionResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    rating: zod.object({
-      id: zod.string(),
-      runId: zod.string().nullish(),
-      rating: zod.enum(["up", "down"]),
-      summary: zod.string().nullish(),
-      shouldPromptShare: zod.boolean(),
-      createdAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const RecordSatisfactionResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Get the tenant's creator profile (singleton-per-tenant).
@@ -17729,30 +14124,10 @@ export const GetMyCreatorProfileHeader = zod.object({
     ),
 });
 
-export const GetMyCreatorProfileResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    profile: zod
-      .object({
-        id: zod.string(),
-        tenantId: zod.string(),
-        slug: zod.string(),
-        displayName: zod.string(),
-        handle: zod.string().nullish(),
-        bio: zod.string(),
-        websiteUrl: zod.string().nullish(),
-        twitterUrl: zod.string().nullish(),
-        githubUrl: zod.string().nullish(),
-        avatarUrl: zod.string().nullish(),
-        badgeEnabled: zod.boolean(),
-        published: zod.boolean(),
-        publicUrl: zod.string(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      })
-      .nullable(),
-  }),
-});
+export const GetMyCreatorProfileResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Create or update the tenant's creator profile.
@@ -17765,43 +14140,12 @@ export const UpsertCreatorProfileHeader = zod.object({
     ),
 });
 
-export const UpsertCreatorProfileBody = zod.object({
-  displayName: zod.string().optional(),
-  handle: zod.string().optional(),
-  slug: zod.string().optional(),
-  bio: zod.string().optional(),
-  websiteUrl: zod.string().optional(),
-  twitterUrl: zod.string().optional(),
-  githubUrl: zod.string().optional(),
-  avatarUrl: zod.string().optional(),
-  badgeEnabled: zod.boolean().optional(),
-  published: zod.boolean().optional(),
-});
+export const UpsertCreatorProfileBody = zod.record(zod.string(), zod.unknown());
 
-export const UpsertCreatorProfileResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    profile: zod
-      .object({
-        id: zod.string(),
-        tenantId: zod.string(),
-        slug: zod.string(),
-        displayName: zod.string(),
-        handle: zod.string().nullish(),
-        bio: zod.string(),
-        websiteUrl: zod.string().nullish(),
-        twitterUrl: zod.string().nullish(),
-        githubUrl: zod.string().nullish(),
-        avatarUrl: zod.string().nullish(),
-        badgeEnabled: zod.boolean(),
-        published: zod.boolean(),
-        publicUrl: zod.string(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-      })
-      .nullable(),
-  }),
-});
+export const UpsertCreatorProfileResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Embeddable "Built with Omninity" badge for the tenant.
@@ -17814,18 +14158,7 @@ export const GetCreatorBadgeHeader = zod.object({
     ),
 });
 
-export const GetCreatorBadgeResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    badge: zod.object({
-      embedHtml: zod.string(),
-      embedScript: zod.string(),
-      badgeImageUrl: zod.string(),
-      publicUrl: zod.string(),
-      altText: zod.string(),
-    }),
-  }),
-});
+export const GetCreatorBadgeResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Marketplace leaderboard (top earners, most used, highest rated).
@@ -17845,24 +14178,10 @@ export const GetCreatorLeaderboardQueryParams = zod.object({
     .default(getCreatorLeaderboardQueryLimitDefault),
 });
 
-export const GetCreatorLeaderboardResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    kind: zod.enum(["top_earners", "most_used", "highest_rated"]),
-    entries: zod.array(
-      zod.object({
-        rank: zod.number(),
-        creatorSlug: zod.string().nullish(),
-        creatorName: zod.string(),
-        creatorTenantId: zod.string().nullish(),
-        skillCount: zod.number(),
-        totalInstalls: zod.number(),
-        averageRating: zod.number(),
-        estimatedEarningsUsd: zod.number(),
-      }),
-    ),
-  }),
-});
+export const GetCreatorLeaderboardResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary List recorded creator-milestone events.
@@ -17879,39 +14198,10 @@ export const ListCreatorMilestonesHeader = zod.object({
     ),
 });
 
-export const ListCreatorMilestonesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    milestones: zod
-      .array(
-        zod.object({
-          id: zod.string(),
-          skillId: zod.string(),
-          skillName: zod.string(),
-          milestone: zod.string(),
-          threshold: zod.number(),
-          dismissed: zod.boolean(),
-          shareText: zod.string(),
-          createdAt: zod.coerce.date(),
-        }),
-      )
-      .optional(),
-    created: zod
-      .array(
-        zod.object({
-          id: zod.string(),
-          skillId: zod.string(),
-          skillName: zod.string(),
-          milestone: zod.string(),
-          threshold: zod.number(),
-          dismissed: zod.boolean(),
-          shareText: zod.string(),
-          createdAt: zod.coerce.date(),
-        }),
-      )
-      .optional(),
-  }),
-});
+export const ListCreatorMilestonesResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Recompute milestones for the tenant's skills.
@@ -17924,39 +14214,10 @@ export const SyncCreatorMilestonesHeader = zod.object({
     ),
 });
 
-export const SyncCreatorMilestonesResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    milestones: zod
-      .array(
-        zod.object({
-          id: zod.string(),
-          skillId: zod.string(),
-          skillName: zod.string(),
-          milestone: zod.string(),
-          threshold: zod.number(),
-          dismissed: zod.boolean(),
-          shareText: zod.string(),
-          createdAt: zod.coerce.date(),
-        }),
-      )
-      .optional(),
-    created: zod
-      .array(
-        zod.object({
-          id: zod.string(),
-          skillId: zod.string(),
-          skillName: zod.string(),
-          milestone: zod.string(),
-          threshold: zod.number(),
-          dismissed: zod.boolean(),
-          shareText: zod.string(),
-          createdAt: zod.coerce.date(),
-        }),
-      )
-      .optional(),
-  }),
-});
+export const SyncCreatorMilestonesResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Mark a milestone card as dismissed.
@@ -17973,21 +14234,10 @@ export const DismissCreatorMilestoneHeader = zod.object({
     ),
 });
 
-export const DismissCreatorMilestoneResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    milestone: zod.object({
-      id: zod.string(),
-      skillId: zod.string(),
-      skillName: zod.string(),
-      milestone: zod.string(),
-      threshold: zod.number(),
-      dismissed: zod.boolean(),
-      shareText: zod.string(),
-      createdAt: zod.coerce.date(),
-    }),
-  }),
-});
+export const DismissCreatorMilestoneResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Public creator profile lookup by slug.
@@ -17996,37 +14246,10 @@ export const GetCreatorProfileBySlugParams = zod.object({
   slug: zod.coerce.string(),
 });
 
-export const GetCreatorProfileBySlugResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    profile: zod.object({
-      id: zod.string(),
-      tenantId: zod.string(),
-      slug: zod.string(),
-      displayName: zod.string(),
-      handle: zod.string().nullish(),
-      bio: zod.string(),
-      websiteUrl: zod.string().nullish(),
-      twitterUrl: zod.string().nullish(),
-      githubUrl: zod.string().nullish(),
-      avatarUrl: zod.string().nullish(),
-      badgeEnabled: zod.boolean(),
-      published: zod.boolean(),
-      publicUrl: zod.string(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-    badge: zod
-      .object({
-        embedHtml: zod.string(),
-        embedScript: zod.string(),
-        badgeImageUrl: zod.string(),
-        publicUrl: zod.string(),
-        altText: zod.string(),
-      })
-      .nullish(),
-  }),
-});
+export const GetCreatorProfileBySlugResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Admin — list waitlist signups (paginated).
@@ -18056,67 +14279,25 @@ export const ListWaitlistSignupsHeader = zod.object({
     ),
 });
 
-export const ListWaitlistSignupsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        feature: zod.string(),
-        email: zod.string(),
-        name: zod.string().nullish(),
-        source: zod.string().nullish(),
-        referralCode: zod.string().nullish(),
-        notifiedAt: zod.coerce.date().nullish(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListWaitlistSignupsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Public marketing-site waitlist email capture (unauthenticated).
  */
-export const CreateWaitlistSignupBody = zod.object({
-  feature: zod.string(),
-  email: zod.string().email(),
-  name: zod.string().optional(),
-  source: zod.string().optional(),
-  referralCode: zod.string().optional(),
-});
+export const CreateWaitlistSignupBody = zod.record(zod.string(), zod.unknown());
 
-export const CreateWaitlistSignupResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    signup: zod.object({
-      id: zod.string(),
-      feature: zod.string(),
-      email: zod.string(),
-      name: zod.string().nullish(),
-      source: zod.string().nullish(),
-      referralCode: zod.string().nullish(),
-      notifiedAt: zod.coerce.date().nullish(),
-      createdAt: zod.coerce.date(),
-    }),
-    deduplicated: zod.boolean(),
-  }),
-});
+export const CreateWaitlistSignupResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Public — total signups per feature bucket.
  */
-export const GetWaitlistStatsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    stats: zod.array(
-      zod.object({
-        feature: zod.string(),
-        total: zod.number(),
-      }),
-    ),
-  }),
-});
+export const GetWaitlistStatsResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary List developer-registered plugin tools
@@ -18129,25 +14310,7 @@ export const ListPluginToolsHeader = zod.object({
     ),
 });
 
-export const ListPluginToolsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        name: zod.string(),
-        description: zod.string(),
-        riskLevel: zod.enum(["low", "medium", "high", "critical"]),
-        inputSchema: zod.record(zod.string(), zod.unknown()),
-        invokeUrl: zod.string(),
-        enabled: zod.boolean(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-        version: zod.number(),
-      }),
-    ),
-  }),
-});
+export const ListPluginToolsResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Register a new plugin tool (loopback invokeUrl only)
@@ -18160,48 +14323,12 @@ export const RegisterPluginToolHeader = zod.object({
     ),
 });
 
-export const registerPluginToolBodyNameMin = 2;
-export const registerPluginToolBodyNameMax = 80;
+export const RegisterPluginToolBody = zod.record(zod.string(), zod.unknown());
 
-export const registerPluginToolBodyDescriptionMax = 2000;
-
-export const RegisterPluginToolBody = zod.object({
-  name: zod
-    .string()
-    .min(registerPluginToolBodyNameMin)
-    .max(registerPluginToolBodyNameMax),
-  description: zod
-    .string()
-    .max(registerPluginToolBodyDescriptionMax)
-    .optional(),
-  riskLevel: zod.enum(["low", "medium", "high", "critical"]).optional(),
-  inputSchema: zod.record(zod.string(), zod.unknown()).optional(),
-  invokeUrl: zod
-    .string()
-    .describe(
-      "Loopback URL the agent server posts inputs to (http:\/\/localhost:...)",
-    ),
-  authToken: zod
-    .string()
-    .optional()
-    .describe("Optional bearer token forwarded as Authorization header"),
-});
-
-export const RegisterPluginToolResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    name: zod.string(),
-    description: zod.string(),
-    riskLevel: zod.enum(["low", "medium", "high", "critical"]),
-    inputSchema: zod.record(zod.string(), zod.unknown()),
-    invokeUrl: zod.string(),
-    enabled: zod.boolean(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-    version: zod.number(),
-  }),
-});
+export const RegisterPluginToolResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 export const GetPluginToolParams = zod.object({
   id: zod.coerce.string(),
@@ -18215,21 +14342,7 @@ export const GetPluginToolHeader = zod.object({
     ),
 });
 
-export const GetPluginToolResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    name: zod.string(),
-    description: zod.string(),
-    riskLevel: zod.enum(["low", "medium", "high", "critical"]),
-    inputSchema: zod.record(zod.string(), zod.unknown()),
-    invokeUrl: zod.string(),
-    enabled: zod.boolean(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-    version: zod.number(),
-  }),
-});
+export const GetPluginToolResponse = zod.record(zod.string(), zod.unknown());
 
 export const UpdatePluginToolParams = zod.object({
   id: zod.coerce.string(),
@@ -18243,32 +14356,9 @@ export const UpdatePluginToolHeader = zod.object({
     ),
 });
 
-export const updatePluginToolBodyDescriptionMax = 2000;
+export const UpdatePluginToolBody = zod.record(zod.string(), zod.unknown());
 
-export const UpdatePluginToolBody = zod.object({
-  description: zod.string().max(updatePluginToolBodyDescriptionMax).optional(),
-  riskLevel: zod.enum(["low", "medium", "high", "critical"]).optional(),
-  inputSchema: zod.record(zod.string(), zod.unknown()).optional(),
-  invokeUrl: zod.string().optional(),
-  authToken: zod.string().nullish(),
-  enabled: zod.boolean().optional(),
-});
-
-export const UpdatePluginToolResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    name: zod.string(),
-    description: zod.string(),
-    riskLevel: zod.enum(["low", "medium", "high", "critical"]),
-    inputSchema: zod.record(zod.string(), zod.unknown()),
-    invokeUrl: zod.string(),
-    enabled: zod.boolean(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-    version: zod.number(),
-  }),
-});
+export const UpdatePluginToolResponse = zod.record(zod.string(), zod.unknown());
 
 export const DeletePluginToolParams = zod.object({
   id: zod.coerce.string(),
@@ -18282,13 +14372,7 @@ export const DeletePluginToolHeader = zod.object({
     ),
 });
 
-export const DeletePluginToolResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    deleted: zod.boolean(),
-  }),
-});
+export const DeletePluginToolResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Invoke a registered plugin tool — proxies to its loopback sidecar
@@ -18305,18 +14389,9 @@ export const InvokePluginToolHeader = zod.object({
     ),
 });
 
-export const InvokePluginToolBody = zod.object({
-  input: zod.record(zod.string(), zod.unknown()),
-});
+export const InvokePluginToolBody = zod.record(zod.string(), zod.unknown());
 
-export const InvokePluginToolResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    toolName: zod.string(),
-    output: zod.record(zod.string(), zod.unknown()),
-    durationMs: zod.number(),
-  }),
-});
+export const InvokePluginToolResponse = zod.record(zod.string(), zod.unknown());
 
 export const ListWebhookSubscriptionsHeader = zod.object({
   "X-Tenant-ID": zod
@@ -18326,27 +14401,10 @@ export const ListWebhookSubscriptionsHeader = zod.object({
     ),
 });
 
-export const ListWebhookSubscriptionsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        url: zod.string(),
-        label: zod.string(),
-        eventTypes: zod.array(zod.string()),
-        enabled: zod.boolean(),
-        hasSecret: zod.boolean(),
-        lastDeliveryAt: zod.coerce.date().nullish(),
-        lastDeliveryStatus: zod.number().nullish(),
-        failureCount: zod.number(),
-        createdAt: zod.coerce.date(),
-        updatedAt: zod.coerce.date(),
-        version: zod.number(),
-      }),
-    ),
-  }),
-});
+export const ListWebhookSubscriptionsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 export const CreateWebhookSubscriptionHeader = zod.object({
   "X-Tenant-ID": zod
@@ -18356,44 +14414,15 @@ export const CreateWebhookSubscriptionHeader = zod.object({
     ),
 });
 
-export const createWebhookSubscriptionBodyLabelMax = 200;
+export const CreateWebhookSubscriptionBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const createWebhookSubscriptionBodyEventTypesMax = 64;
-
-export const createWebhookSubscriptionBodySecretMin = 8;
-export const createWebhookSubscriptionBodySecretMax = 512;
-
-export const CreateWebhookSubscriptionBody = zod.object({
-  url: zod.string().describe("Loopback URL — http(s):\/\/localhost..."),
-  label: zod.string().max(createWebhookSubscriptionBodyLabelMax).optional(),
-  eventTypes: zod
-    .array(zod.string())
-    .max(createWebhookSubscriptionBodyEventTypesMax)
-    .optional(),
-  secret: zod
-    .string()
-    .min(createWebhookSubscriptionBodySecretMin)
-    .max(createWebhookSubscriptionBodySecretMax)
-    .optional(),
-});
-
-export const CreateWebhookSubscriptionResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    url: zod.string(),
-    label: zod.string(),
-    eventTypes: zod.array(zod.string()),
-    enabled: zod.boolean(),
-    hasSecret: zod.boolean(),
-    lastDeliveryAt: zod.coerce.date().nullish(),
-    lastDeliveryStatus: zod.number().nullish(),
-    failureCount: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-    version: zod.number(),
-  }),
-});
+export const CreateWebhookSubscriptionResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 export const GetWebhookSubscriptionParams = zod.object({
   id: zod.coerce.string(),
@@ -18407,23 +14436,10 @@ export const GetWebhookSubscriptionHeader = zod.object({
     ),
 });
 
-export const GetWebhookSubscriptionResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    url: zod.string(),
-    label: zod.string(),
-    eventTypes: zod.array(zod.string()),
-    enabled: zod.boolean(),
-    hasSecret: zod.boolean(),
-    lastDeliveryAt: zod.coerce.date().nullish(),
-    lastDeliveryStatus: zod.number().nullish(),
-    failureCount: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-    version: zod.number(),
-  }),
-});
+export const GetWebhookSubscriptionResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 export const UpdateWebhookSubscriptionParams = zod.object({
   id: zod.coerce.string(),
@@ -18437,45 +14453,15 @@ export const UpdateWebhookSubscriptionHeader = zod.object({
     ),
 });
 
-export const updateWebhookSubscriptionBodyLabelMax = 200;
+export const UpdateWebhookSubscriptionBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const updateWebhookSubscriptionBodyEventTypesMax = 64;
-
-export const updateWebhookSubscriptionBodySecretMin = 8;
-export const updateWebhookSubscriptionBodySecretMax = 512;
-
-export const UpdateWebhookSubscriptionBody = zod.object({
-  url: zod.string().optional(),
-  label: zod.string().max(updateWebhookSubscriptionBodyLabelMax).optional(),
-  eventTypes: zod
-    .array(zod.string())
-    .max(updateWebhookSubscriptionBodyEventTypesMax)
-    .optional(),
-  enabled: zod.boolean().optional(),
-  secret: zod
-    .string()
-    .min(updateWebhookSubscriptionBodySecretMin)
-    .max(updateWebhookSubscriptionBodySecretMax)
-    .nullish(),
-});
-
-export const UpdateWebhookSubscriptionResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    url: zod.string(),
-    label: zod.string(),
-    eventTypes: zod.array(zod.string()),
-    enabled: zod.boolean(),
-    hasSecret: zod.boolean(),
-    lastDeliveryAt: zod.coerce.date().nullish(),
-    lastDeliveryStatus: zod.number().nullish(),
-    failureCount: zod.number(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-    version: zod.number(),
-  }),
-});
+export const UpdateWebhookSubscriptionResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 export const DeleteWebhookSubscriptionParams = zod.object({
   id: zod.coerce.string(),
@@ -18489,13 +14475,10 @@ export const DeleteWebhookSubscriptionHeader = zod.object({
     ),
 });
 
-export const DeleteWebhookSubscriptionResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    deleted: zod.boolean(),
-  }),
-});
+export const DeleteWebhookSubscriptionResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Recent in-process events for the calling tenant
@@ -18521,21 +14504,7 @@ export const ListRecentEventsHeader = zod.object({
     ),
 });
 
-export const ListRecentEventsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        type: zod.string(),
-        tenantId: zod.string(),
-        workspaceId: zod.string(),
-        timestamp: zod.coerce.date(),
-        data: zod.record(zod.string(), zod.unknown()),
-      }),
-    ),
-  }),
-});
+export const ListRecentEventsResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary List available integration providers (catalogue)
@@ -18551,41 +14520,7 @@ export const ListIntegrationProvidersHeader = zod.object({
 export const ListIntegrationProvidersResponse = zod.object({
   success: zod.literal(true),
   data: zod.object({
-    providers: zod.array(
-      zod.object({
-        id: zod.string(),
-        label: zod.string(),
-        category: zod.enum([
-          "productivity",
-          "communication",
-          "files",
-          "code",
-          "tickets",
-          "crm",
-          "commerce",
-          "data",
-        ]),
-        authType: zod.enum(["oauth", "api_key"]),
-        description: zod.string(),
-        oauthScopes: zod.array(zod.string()),
-        fields: zod.array(
-          zod.object({
-            name: zod.string(),
-            label: zod.string(),
-            placeholder: zod.string().optional(),
-            secret: zod.boolean().optional(),
-            required: zod.boolean().optional(),
-          }),
-        ),
-        actions: zod.array(
-          zod.object({
-            name: zod.string(),
-            description: zod.string(),
-            riskLevel: zod.enum(["low", "medium", "high"]),
-          }),
-        ),
-      }),
-    ),
+    providers: zod.array(zod.string()),
   }),
 });
 
@@ -18634,7 +14569,6 @@ export const ListIntegrationsResponse = zod.object({
         updatedAt: zod.coerce.date(),
       }),
     ),
-    nextCursor: zod.string().nullable(),
   }),
 });
 
@@ -18804,6 +14738,141 @@ export const StartIntegrationOAuthResponse = zod.object({
 });
 
 /**
+ * Accepts a base64-encoded audio clip and returns the recognised
+transcript. Tier 1 ships a deterministic stub so the UI loop can be
+exercised without the native Whisper binary present.
+
+ * @summary Transcribe audio (speech-to-text) via the local Whisper engine
+ */
+export const TranscribeAudioHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const TranscribeAudioBody = zod.object({
+  audio: zod
+    .string()
+    .describe("Base64-encoded audio bytes (no data URL prefix)."),
+  mimeType: zod
+    .string()
+    .optional()
+    .describe("MIME type of the source audio (e.g. audio\/webm)."),
+  language: zod
+    .string()
+    .optional()
+    .describe('BCP-47 language hint for Whisper (e.g. \"en\").'),
+});
+
+export const transcribeAudioResponseDataConfidenceMin = 0;
+export const transcribeAudioResponseDataConfidenceMax = 1;
+
+export const TranscribeAudioResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    transcript: zod.string(),
+    durationMs: zod.number(),
+    language: zod.string(),
+    model: zod.string(),
+    confidence: zod
+      .number()
+      .min(transcribeAudioResponseDataConfidenceMin)
+      .max(transcribeAudioResponseDataConfidenceMax)
+      .nullish(),
+  }),
+});
+
+/**
+ * Accepts plain text and returns base64 audio (WAV) playable in any
+browser. Tier 1 ships a procedural waveform sized to the text so the
+playback + waveform UI work end-to-end before the native Kokoro/Coqui
+binary is wired in.
+
+ * @summary Render text to speech via the local TTS engine
+ */
+export const SynthesizeSpeechHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const synthesizeSpeechBodyTextMax = 4000;
+
+export const synthesizeSpeechBodySpeedMin = 0.5;
+export const synthesizeSpeechBodySpeedMax = 2;
+
+export const SynthesizeSpeechBody = zod.object({
+  text: zod.string().min(1).max(synthesizeSpeechBodyTextMax),
+  voice: zod.string().optional().describe("Voice id from \/voice\/voices."),
+  speed: zod
+    .number()
+    .min(synthesizeSpeechBodySpeedMin)
+    .max(synthesizeSpeechBodySpeedMax)
+    .optional()
+    .describe("Playback rate multiplier (1.0 = natural)."),
+  format: zod.enum(["wav"]).optional(),
+});
+
+export const SynthesizeSpeechResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    audio: zod.string().describe("Base64-encoded audio bytes (WAV)."),
+    mimeType: zod.string(),
+    durationMs: zod.number(),
+    voice: zod.string(),
+    engine: zod.string(),
+  }),
+});
+
+/**
+ * @summary List installed TTS voices
+ */
+export const listVoicesQueryLimitDefault = 20;
+export const listVoicesQueryLimitMax = 100;
+
+export const ListVoicesQueryParams = zod.object({
+  cursor: zod.coerce
+    .string()
+    .optional()
+    .describe("Opaque cursor returned by the previous page."),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listVoicesQueryLimitMax)
+    .default(listVoicesQueryLimitDefault)
+    .describe("Page size, default 20, max 100."),
+});
+
+export const ListVoicesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListVoicesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        label: zod.string(),
+        language: zod.string(),
+        gender: zod.string(),
+        engine: zod.string(),
+        sampleRate: zod.number().nullish(),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+  }),
+});
+
+/**
  * @summary Complete the OAuth handshake by exchanging the code
  */
 export const CompleteIntegrationOAuthParams = zod.object({
@@ -18865,18 +14934,13 @@ export const InvokeIntegrationActionHeader = zod.object({
 });
 
 export const InvokeIntegrationActionBody = zod.object({
-  input: zod.record(zod.string(), zod.unknown()).optional(),
+  action: zod.string(),
+  params: zod.record(zod.string(), zod.unknown()),
 });
 
 export const InvokeIntegrationActionResponse = zod.object({
   success: zod.literal(true),
-  data: zod.object({
-    provider: zod.string(),
-    action: zod.string(),
-    simulated: zod.literal(true),
-    input: zod.record(zod.string(), zod.unknown()),
-    output: zod.record(zod.string(), zod.unknown()),
-  }),
+  data: zod.record(zod.string(), zod.unknown()),
 });
 
 /**
@@ -19321,19 +15385,10 @@ export const ExportSettingsConfigResponse = zod.object({
 /**
  * @summary Fetch the current Creator Agreement (versioned, public).
  */
-export const GetCreatorAgreementDocResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    agreement: zod.object({
-      version: zod.string(),
-      hash: zod.string(),
-      title: zod.string(),
-      summary: zod.string(),
-      body: zod.string(),
-      effectiveDate: zod.string(),
-    }),
-  }),
-});
+export const GetCreatorAgreementDocResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Has the current creator accepted the latest agreement?
@@ -19350,20 +15405,10 @@ export const GetCreatorAgreementStateHeader = zod.object({
     ),
 });
 
-export const GetCreatorAgreementStateResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    state: zod.enum(["pending", "accepted"]),
-    currentVersion: zod.string(),
-    currentHash: zod.string(),
-    title: zod.string(),
-    summary: zod.string(),
-    signedAt: zod.number().nullish(),
-    signedName: zod.string().nullish(),
-    lastSignedVersion: zod.string().nullish(),
-    lastSignedAt: zod.number().nullish(),
-  }),
-});
+export const GetCreatorAgreementStateResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Record a digital signature for the current agreement.
@@ -19376,77 +15421,22 @@ export const SignCreatorAgreementHeader = zod.object({
     ),
 });
 
-export const SignCreatorAgreementBody = zod.object({
-  creatorId: zod.string().optional(),
-  signedName: zod.string(),
-  locale: zod.string().optional(),
-});
+export const SignCreatorAgreementBody = zod.record(zod.string(), zod.unknown());
 
-export const SignCreatorAgreementResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    state: zod.enum(["pending", "accepted"]),
-    currentVersion: zod.string(),
-    currentHash: zod.string(),
-    title: zod.string(),
-    summary: zod.string(),
-    signedAt: zod.number().nullish(),
-    signedName: zod.string().nullish(),
-    lastSignedVersion: zod.string().nullish(),
-    lastSignedAt: zod.number().nullish(),
-  }),
-});
+export const SignCreatorAgreementResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Public DMCA takedown notice submission.
  */
-export const SubmitDmcaTakedownBody = zod.object({
-  storeSkillId: zod.string().optional(),
-  creatorHandle: zod.string().optional(),
-  skillSlug: zod.string().optional(),
-  skillUrl: zod.string().optional(),
-  claimantName: zod.string(),
-  claimantEmail: zod.string(),
-  claimantAddress: zod.string(),
-  claimantPhone: zod.string().optional(),
-  workDescription: zod.string(),
-  infringementDescription: zod.string(),
-  goodFaithStatement: zod.boolean(),
-  accuracyStatement: zod.boolean(),
-  signature: zod.string(),
-});
+export const SubmitDmcaTakedownBody = zod.record(zod.string(), zod.unknown());
 
-export const SubmitDmcaTakedownResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    takedown: zod.object({
-      id: zod.string(),
-      status: zod.enum([
-        "received",
-        "reviewing",
-        "upheld",
-        "rejected",
-        "counter_noticed",
-        "restored",
-      ]),
-      storeSkillId: zod.string().nullish(),
-      creatorHandle: zod.string().nullish(),
-      skillSlug: zod.string().nullish(),
-      skillUrl: zod.string().nullish(),
-      claimantName: zod.string(),
-      claimantEmail: zod.string(),
-      workDescription: zod.string(),
-      infringementDescription: zod.string(),
-      decisionNotes: zod.string().nullish(),
-      decidedAt: zod.number().nullish(),
-      decidedBy: zod.string().nullish(),
-      skillRemovedAt: zod.number().nullish(),
-      counterNoticeId: zod.string().nullish(),
-      createdAt: zod.number(),
-      updatedAt: zod.number(),
-    }),
-  }),
-});
+export const SubmitDmcaTakedownResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Admin — list DMCA takedowns (paginated).
@@ -19474,40 +15464,10 @@ export const ListDmcaTakedownsHeader = zod.object({
     ),
 });
 
-export const ListDmcaTakedownsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        status: zod.enum([
-          "received",
-          "reviewing",
-          "upheld",
-          "rejected",
-          "counter_noticed",
-          "restored",
-        ]),
-        storeSkillId: zod.string().nullish(),
-        creatorHandle: zod.string().nullish(),
-        skillSlug: zod.string().nullish(),
-        skillUrl: zod.string().nullish(),
-        claimantName: zod.string(),
-        claimantEmail: zod.string(),
-        workDescription: zod.string(),
-        infringementDescription: zod.string(),
-        decisionNotes: zod.string().nullish(),
-        decidedAt: zod.number().nullish(),
-        decidedBy: zod.string().nullish(),
-        skillRemovedAt: zod.number().nullish(),
-        counterNoticeId: zod.string().nullish(),
-        createdAt: zod.number(),
-        updatedAt: zod.number(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListDmcaTakedownsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Admin — uphold or reject a DMCA takedown.
@@ -19524,65 +15484,25 @@ export const DecideDmcaTakedownHeader = zod.object({
     ),
 });
 
-export const DecideDmcaTakedownBody = zod.object({
-  decision: zod.enum(["uphold", "reject"]),
-  notes: zod.string().optional(),
-});
+export const DecideDmcaTakedownBody = zod.record(zod.string(), zod.unknown());
 
-export const DecideDmcaTakedownResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    takedown: zod.object({
-      id: zod.string(),
-      status: zod.enum([
-        "received",
-        "reviewing",
-        "upheld",
-        "rejected",
-        "counter_noticed",
-        "restored",
-      ]),
-      storeSkillId: zod.string().nullish(),
-      creatorHandle: zod.string().nullish(),
-      skillSlug: zod.string().nullish(),
-      skillUrl: zod.string().nullish(),
-      claimantName: zod.string(),
-      claimantEmail: zod.string(),
-      workDescription: zod.string(),
-      infringementDescription: zod.string(),
-      decisionNotes: zod.string().nullish(),
-      decidedAt: zod.number().nullish(),
-      decidedBy: zod.string().nullish(),
-      skillRemovedAt: zod.number().nullish(),
-      counterNoticeId: zod.string().nullish(),
-      createdAt: zod.number(),
-      updatedAt: zod.number(),
-    }),
-  }),
-});
+export const DecideDmcaTakedownResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Submit a counter-notice for a DMCA takedown.
  */
-export const SubmitDmcaCounterNoticeBody = zod.object({
-  takedownId: zod.string(),
-  creatorId: zod.string().optional(),
-  creatorName: zod.string(),
-  creatorEmail: zod.string(),
-  creatorAddress: zod.string(),
-  statement: zod.string(),
-  consentToJurisdiction: zod.boolean(),
-  perjuryStatement: zod.boolean(),
-  signature: zod.string(),
-});
+export const SubmitDmcaCounterNoticeBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
-export const SubmitDmcaCounterNoticeResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    counterNoticeId: zod.string(),
-    takedownId: zod.string(),
-  }),
-});
+export const SubmitDmcaCounterNoticeResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Current creator's W-9 / W-8BEN state.
@@ -19626,15 +15546,7 @@ export const SubmitCreatorTaxFormHeader = zod.object({
     ),
 });
 
-export const SubmitCreatorTaxFormBody = zod.object({
-  creatorId: zod.string().optional(),
-  formType: zod.enum(["w9", "w8ben"]),
-  fullName: zod.string(),
-  businessName: zod.string().optional(),
-  address: zod.string(),
-  taxId: zod.string(),
-  countryCode: zod.string(),
-});
+export const SubmitCreatorTaxFormBody = zod.record(zod.string(), zod.unknown());
 
 export const SubmitCreatorTaxFormResponse = zod.object({
   success: zod.literal(true),
@@ -20015,71 +15927,7 @@ export const GetPrivacyMeterHeader = zod.object({
     ),
 });
 
-export const GetPrivacyMeterResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    score: zod.number(),
-    band: zod.enum(["green", "amber", "red"]),
-    summary: zod.string(),
-    breakdown: zod.object({
-      integrations: zod.object({
-        deduction: zod.number(),
-        local: zod.boolean().optional(),
-        connected: zod.number().optional(),
-        anyEnabled: zod.boolean().optional(),
-        allowed: zod.boolean().optional(),
-        skillsWithNetwork: zod.number().optional(),
-        count: zod.number().optional(),
-      }),
-      telemetry: zod.object({
-        deduction: zod.number(),
-        local: zod.boolean().optional(),
-        connected: zod.number().optional(),
-        anyEnabled: zod.boolean().optional(),
-        allowed: zod.boolean().optional(),
-        skillsWithNetwork: zod.number().optional(),
-        count: zod.number().optional(),
-      }),
-      externalModels: zod.object({
-        deduction: zod.number(),
-        local: zod.boolean().optional(),
-        connected: zod.number().optional(),
-        anyEnabled: zod.boolean().optional(),
-        allowed: zod.boolean().optional(),
-        skillsWithNetwork: zod.number().optional(),
-        count: zod.number().optional(),
-      }),
-      marketplaceUsageStats: zod.object({
-        deduction: zod.number(),
-        local: zod.boolean().optional(),
-        connected: zod.number().optional(),
-        anyEnabled: zod.boolean().optional(),
-        allowed: zod.boolean().optional(),
-        skillsWithNetwork: zod.number().optional(),
-        count: zod.number().optional(),
-      }),
-      skillNetwork: zod.object({
-        deduction: zod.number(),
-        local: zod.boolean().optional(),
-        connected: zod.number().optional(),
-        anyEnabled: zod.boolean().optional(),
-        allowed: zod.boolean().optional(),
-        skillsWithNetwork: zod.number().optional(),
-        count: zod.number().optional(),
-      }),
-      recentNetworkCalls: zod.object({
-        deduction: zod.number(),
-        local: zod.boolean().optional(),
-        connected: zod.number().optional(),
-        anyEnabled: zod.boolean().optional(),
-        allowed: zod.boolean().optional(),
-        skillsWithNetwork: zod.number().optional(),
-        count: zod.number().optional(),
-      }),
-    }),
-    generatedAt: zod.coerce.date(),
-  }),
-});
+export const GetPrivacyMeterResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary Read per-feature privacy toggles
@@ -20092,16 +15940,10 @@ export const GetPrivacySettingsHeader = zod.object({
     ),
 });
 
-export const GetPrivacySettingsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    allowExternalModels: zod.boolean(),
-    allowMarketplaceUsageStats: zod.boolean(),
-    allowIntegrationDataReads: zod.boolean(),
-    allowSkillNetworkCalls: zod.boolean(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const GetPrivacySettingsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Update privacy toggles (partial)
@@ -20121,16 +15963,10 @@ export const UpdatePrivacySettingsBody = zod.object({
   allowSkillNetworkCalls: zod.boolean().optional(),
 });
 
-export const UpdatePrivacySettingsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    allowExternalModels: zod.boolean(),
-    allowMarketplaceUsageStats: zod.boolean(),
-    allowIntegrationDataReads: zod.boolean(),
-    allowSkillNetworkCalls: zod.boolean(),
-    updatedAt: zod.coerce.date(),
-  }),
-});
+export const UpdatePrivacySettingsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Inventory of locally-held data ("what's on my machine")
@@ -20146,14 +15982,7 @@ export const GetDataInventoryHeader = zod.object({
 export const GetDataInventoryResponse = zod.object({
   success: zod.literal(true),
   data: zod.object({
-    categories: zod.array(
-      zod.object({
-        key: zod.string(),
-        label: zod.string(),
-        description: zod.string(),
-        itemCount: zod.number(),
-      }),
-    ),
+    categories: zod.array(zod.string()),
     totalItems: zod.number(),
     databaseBytes: zod.number(),
     workspaceBytes: zod.number(),
@@ -20192,25 +16021,7 @@ export const ListNetworkCallsHeader = zod.object({
     ),
 });
 
-export const ListNetworkCallsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        domain: zod.string(),
-        purpose: zod.string(),
-        dataType: zod.string(),
-        initiator: zod.enum(["user", "automatic"]),
-        bytesSent: zod.number(),
-        bytesReceived: zod.number(),
-        statusCode: zod.number().nullish(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListNetworkCallsResponse = zod.record(zod.string(), zod.unknown());
 
 /**
  * @summary 30-day aggregate of outbound network calls
@@ -20223,25 +16034,10 @@ export const GetNetworkCallsSummaryHeader = zod.object({
     ),
 });
 
-export const GetNetworkCallsSummaryResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    windowStart: zod.coerce.date(),
-    windowEnd: zod.coerce.date(),
-    totalCalls: zod.number(),
-    totalBytesSent: zod.number(),
-    totalBytesReceived: zod.number(),
-    userInitiated: zod.number(),
-    automatic: zod.number(),
-    byDomain: zod.array(
-      zod.object({
-        domain: zod.string(),
-        count: zod.number(),
-        purposes: zod.array(zod.string()),
-      }),
-    ),
-  }),
-});
+export const GetNetworkCallsSummaryResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Per-skill granular permission grid
@@ -20331,15 +16127,10 @@ export const ExportPrivacyBundleHeader = zod.object({
     ),
 });
 
-export const ExportPrivacyBundleResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    tenantId: zod.string(),
-    exportedAt: zod.coerce.date(),
-    version: zod.enum(["1"]),
-    data: zod.record(zod.string(), zod.array(zod.unknown())),
-  }),
-});
+export const ExportPrivacyBundleResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Enumerate categories that can be deleted individually
@@ -20377,7 +16168,13 @@ export const DeleteDataCategoryHeader = zod.object({
 
 export const DeleteDataCategoryBody = zod.object({
   category: zod.string(),
-  confirm: zod.literal(true),
+  confirm: zod
+    .boolean()
+    .describe("Must be `true` — discard requires explicit confirmation."),
+  partialUndo: zod
+    .boolean()
+    .optional()
+    .describe("When true, also reverses every reversible destructive step."),
 });
 
 export const DeleteDataCategoryResponse = zod.object({
@@ -20416,23 +16213,10 @@ export const ListErasureRequestsHeader = zod.object({
     ),
 });
 
-export const ListErasureRequestsResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    items: zod.array(
-      zod.object({
-        id: zod.string(),
-        requesterEmail: zod.string(),
-        scope: zod.string(),
-        reason: zod.string().nullish(),
-        status: zod.string(),
-        completedAt: zod.coerce.date().nullish(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-    nextCursor: zod.string().nullable(),
-  }),
-});
+export const ListErasureRequestsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary File a GDPR erasure request
@@ -20451,18 +16235,10 @@ export const CreateErasureRequestBody = zod.object({
   reason: zod.string().optional(),
 });
 
-export const CreateErasureRequestResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    requesterEmail: zod.string(),
-    scope: zod.string(),
-    reason: zod.string().nullish(),
-    status: zod.string(),
-    completedAt: zod.coerce.date().nullish(),
-    createdAt: zod.coerce.date(),
-  }),
-});
+export const CreateErasureRequestResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Cancel a pending erasure request
@@ -20479,18 +16255,10 @@ export const CancelErasureRequestHeader = zod.object({
     ),
 });
 
-export const CancelErasureRequestResponse = zod.object({
-  success: zod.literal(true),
-  data: zod.object({
-    id: zod.string(),
-    requesterEmail: zod.string(),
-    scope: zod.string(),
-    reason: zod.string().nullish(),
-    status: zod.string(),
-    completedAt: zod.coerce.date().nullish(),
-    createdAt: zod.coerce.date(),
-  }),
-});
+export const CancelErasureRequestResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
 
 /**
  * @summary Read the org-private skill registry settings

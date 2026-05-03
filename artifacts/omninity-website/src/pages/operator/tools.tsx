@@ -106,7 +106,7 @@ export default function ToolsPage() {
             />
           ) : (
             <ul className="space-y-2">
-              {filtered.map((tool) => (
+              {filtered.map((tool: any) => (
                 <li key={tool.name}>
                   <button
                     type="button"

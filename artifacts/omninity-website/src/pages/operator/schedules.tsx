@@ -84,9 +84,9 @@ export default function SchedulesPage() {
   const preview = usePreviewSchedule();
   const updateSettings = useUpdateScheduleSettings();
 
-  const items = list.data?.data.items ?? [];
+  const items = (((list.data?.data as any)?.items ?? []) as any[]);
   const tzOffset = useMemo(() => -new Date().getTimezoneOffset(), []);
-  const globalPaused = settings.data?.data.settings.globalPaused ?? false;
+  const globalPaused = (settings.data?.data as any)?.settings?.globalPaused ?? false;
 
   const invalidate = async () => {
     await qc.invalidateQueries({ queryKey: getListSchedulesQueryKey() });
@@ -179,7 +179,7 @@ export default function SchedulesPage() {
     }
   };
 
-  const previewData = preview.data?.data.preview;
+  const previewData = (preview.data?.data as any)?.preview;
 
   return (
     <OperatorLayout
@@ -295,7 +295,7 @@ export default function SchedulesPage() {
                 <div className="mt-2 text-muted-foreground">
                   Next runs:
                   <ul className="ml-4 list-disc">
-                    {previewData.nextRuns.map((iso) => (
+                    {previewData.nextRuns.map((iso: any) => (
                       <li key={iso}>{formatTime(iso)}</li>
                     ))}
                   </ul>
@@ -344,7 +344,7 @@ export default function SchedulesPage() {
               />
             ) : (
               <ul className="space-y-3">
-                {items.map((s) => {
+                {items.map((s: any) => {
                   const statusKey = s.lastRunStatus ?? "pending";
                   const Icon = STATUS_ICON[statusKey]?.icon ?? Clock;
                   const iconClass =

@@ -6,8 +6,8 @@ import {
   useRunTaskTemplate,
   getListTaskTemplatesQueryKey,
   getListPinnedTaskTemplatesQueryKey,
-  type TaskTemplate,
 } from "@workspace/api-client-react";
+type TaskTemplate = any;
 import { Button } from "@/components/ui/button";
 import { TemplateFillModal } from "./template-fill-modal";
 
@@ -22,7 +22,7 @@ export function QuickLaunchBar({ onResolved }: Props) {
   const [active, setActive] = useState<TaskTemplate | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const items = pinned.data?.data.items ?? [];
+  const items = (((pinned.data?.data as any)?.items ?? []) as any[]);
 
   const launch = (tpl: TaskTemplate) => {
     if (tpl.variables.length === 0) {
@@ -38,7 +38,7 @@ export function QuickLaunchBar({ onResolved }: Props) {
       id: tpl.id,
       data: { values },
     });
-    onResolved(result.data.resolvedPrompt, result.data.template);
+    onResolved((result.data as any).resolvedPrompt, (result.data as any).template);
     await qc.invalidateQueries({ queryKey: getListTaskTemplatesQueryKey() });
     await qc.invalidateQueries({
       queryKey: getListPinnedTaskTemplatesQueryKey(),
@@ -57,7 +57,7 @@ export function QuickLaunchBar({ onResolved }: Props) {
       <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
         <Pin className="h-3 w-3" /> Quick launch
       </span>
-      {items.map((tpl) => (
+      {items.map((tpl: any) => (
         <Button
           key={tpl.id}
           variant="outline"

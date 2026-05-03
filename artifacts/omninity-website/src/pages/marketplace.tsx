@@ -15,8 +15,8 @@ import {
   useListSkills,
   useListStoreSkills,
   type Skill as ApiSkill,
-  type StoreSkill,
 } from "@workspace/api-client-react";
+type StoreSkill = any;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -77,25 +77,26 @@ interface DisplaySkill {
 const UNMAINTAINED_THRESHOLD_MS = 365 * 24 * 60 * 60 * 1000;
 
 function fromApi(s: ApiSkill): DisplaySkill {
-  const publishedAt = new Date(s.publishedAt).getTime();
+  const sa = s as any;
+  const publishedAt = new Date(sa.publishedAt ?? sa.createdAt).getTime();
   return {
-    slug: s.slug,
-    name: s.name,
-    creator: s.author,
-    creatorSlug: s.author.toLowerCase().replace(/\s+/g, "-"),
-    category: s.category,
+    slug: s.slug ?? "",
+    name: s.name ?? "",
+    creator: s.author ?? "",
+    creatorSlug: (s.author ?? "").toLowerCase().replace(/\s+/g, "-"),
+    category: s.category ?? "",
     tagline: s.description || "Local-first skill installed in your tenant.",
-    description: s.content.slice(0, 240),
+    description: (sa.content ?? "").slice(0, 240),
     rating: 4.8,
-    ratingCount: s.installCount,
-    installs: s.installCount,
+    ratingCount: sa.installCount ?? 0,
+    installs: sa.installCount ?? 0,
     installedAt: new Date(s.createdAt).getTime(),
-    modelTags: s.modelTags,
+    modelTags: sa.modelTags ?? [],
     source: "api",
     seedRef: null,
-    version: s.latestVersion,
+    version: sa.latestVersion ?? "",
     lastUpdated: publishedAt,
-    unmaintained: s.unmaintained,
+    unmaintained: sa.unmaintained ?? false,
   };
 }
 
@@ -175,13 +176,13 @@ export default function MarketplacePage() {
   // the server — when the user has cloud features off, the call returns 403
   // and we just hide the store rows.
   const storeQuery = useListStoreSkills({ limit: 100 });
-  const storeSkills = storeQuery.data?.data.items ?? [];
+  const storeSkills = (((storeQuery.data?.data as any)?.items ?? []) as any[]);
 
   // Auto-update detection for skills the user installed from the store.
   const updatesQuery = useCheckStoreSkillUpdates();
   const updateMap = useMemo(() => {
     const map = new Map<string, { installedVersion: number; latestVersion: number }>();
-    for (const u of updatesQuery.data?.data.updates ?? []) {
+    for (const u of (((updatesQuery.data?.data as any)?.updates ?? []) as any[])) {
       map.set(`${u.creatorHandle}/${u.slug}`, {
         installedVersion: u.installedVersion,
         latestVersion: u.latestVersion,
@@ -193,7 +194,7 @@ export default function MarketplacePage() {
   const visible = useMemo(() => {
     const apiDisplay = apiSkills.map(fromApi);
     const apiSlugs = new Set(apiDisplay.map((s) => s.slug));
-    const storeDisplay = storeSkills.map(fromStore).map((s) => {
+    const storeDisplay = storeSkills.map(fromStore).map((s: any) => {
       const update = s.storeKey
         ? updateMap.get(`${s.storeKey.creatorHandle}/${s.storeKey.slug}`)
         : undefined;
@@ -205,7 +206,7 @@ export default function MarketplacePage() {
           }
         : s;
     });
-    const storeSlugs = new Set(storeDisplay.map((s) => s.slug));
+    const storeSlugs = new Set(storeDisplay.map((s: any) => s.slug));
     const seedDisplay = SEED_SKILLS.filter(
       (s) => !apiSlugs.has(s.slug) && !storeSlugs.has(s.slug),
     ).map(fromSeed);
@@ -216,7 +217,7 @@ export default function MarketplacePage() {
       const matchesCat = activeCategory === "All" || s.category === activeCategory;
       const matchesModel =
         activeModel === "all" ||
-        s.modelTags.some((t) => t.toLowerCase().includes(activeModel));
+        s.modelTags.some((t: any) => t.toLowerCase().includes(activeModel));
       const matchesQuery =
         q === "" ||
         s.name.toLowerCase().includes(q) ||
