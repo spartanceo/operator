@@ -40,6 +40,7 @@ import type {
   ApiErrorResponse,
   AppendConversationMessageRequest,
   AppendConversationMessageResponse,
+  ApplySkillUpdateRequest,
   ApprovalBatchDecideRequest,
   ApprovalBatchDecideResponse,
   ApprovalDecisionRequest,
@@ -270,6 +271,7 @@ import type {
   PreviewScheduleResponse,
   PrivacyEventListResponse,
   PrivacyEventResponse,
+  PublishSkillVersionRequest,
   QueueClearRequest,
   QueueClearResponse,
   QueueEnqueueRequest,
@@ -281,6 +283,7 @@ import type {
   RecordTelemetryEventsResponse,
   RecordVoipCallRequest,
   RegisterRequest,
+  RollbackSkillRequest,
   RunTaskTemplateRequest,
   RunTaskTemplateResponse,
   ScanSkillRequest,
@@ -299,12 +302,16 @@ import type {
   SecurityReportResponse,
   SecurityWebhookSecretsListParams,
   SelectModelRequest,
+  SkillAdoptionResponse,
+  SkillAutoUpdateRequest,
   SkillDeleteResponse,
   SkillExportResponse,
   SkillImportRequest,
   SkillInvokeRequest,
   SkillListResponse,
   SkillResponse,
+  SkillUpdatesResponse,
+  SkillVersionListResponse,
   SubmitCrashReportRequest,
   TaskTemplateCategoryListResponse,
   TaskTemplateCategoryResponse,
@@ -22310,6 +22317,689 @@ export const useUninstallSkill = <
 > => {
   return useMutation(getUninstallSkillMutationOptions(options));
 };
+
+/**
+ * @summary List installed skills with available updates
+ */
+export const getListSkillUpdatesUrl = () => {
+  return `/api/skills/updates`;
+};
+
+export const listSkillUpdates = async (
+  options?: RequestInit,
+): Promise<SkillUpdatesResponse> => {
+  return customFetch<SkillUpdatesResponse>(getListSkillUpdatesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSkillUpdatesQueryKey = () => {
+  return [`/api/skills/updates`] as const;
+};
+
+export const getListSkillUpdatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSkillUpdates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillUpdates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSkillUpdatesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSkillUpdates>>
+  > = ({ signal }) => listSkillUpdates({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillUpdates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSkillUpdatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSkillUpdates>>
+>;
+export type ListSkillUpdatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List installed skills with available updates
+ */
+
+export function useListSkillUpdates<
+  TData = Awaited<ReturnType<typeof listSkillUpdates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillUpdates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSkillUpdatesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Publish a new semantic version of a skill (creator flow)
+ */
+export const getPublishSkillVersionUrl = (id: string) => {
+  return `/api/skills/${id}/publish`;
+};
+
+export const publishSkillVersion = async (
+  id: string,
+  publishSkillVersionRequest: PublishSkillVersionRequest,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getPublishSkillVersionUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(publishSkillVersionRequest),
+  });
+};
+
+export const getPublishSkillVersionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishSkillVersion>>,
+    TError,
+    { id: string; data: BodyType<PublishSkillVersionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof publishSkillVersion>>,
+  TError,
+  { id: string; data: BodyType<PublishSkillVersionRequest> },
+  TContext
+> => {
+  const mutationKey = ["publishSkillVersion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof publishSkillVersion>>,
+    { id: string; data: BodyType<PublishSkillVersionRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return publishSkillVersion(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PublishSkillVersionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof publishSkillVersion>>
+>;
+export type PublishSkillVersionMutationBody =
+  BodyType<PublishSkillVersionRequest>;
+export type PublishSkillVersionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Publish a new semantic version of a skill (creator flow)
+ */
+export const usePublishSkillVersion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishSkillVersion>>,
+    TError,
+    { id: string; data: BodyType<PublishSkillVersionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof publishSkillVersion>>,
+  TError,
+  { id: string; data: BodyType<PublishSkillVersionRequest> },
+  TContext
+> => {
+  return useMutation(getPublishSkillVersionMutationOptions(options));
+};
+
+/**
+ * @summary Browse a skill's full version history
+ */
+export const getListSkillVersionsUrl = (id: string) => {
+  return `/api/skills/${id}/versions`;
+};
+
+export const listSkillVersions = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillVersionListResponse> => {
+  return customFetch<SkillVersionListResponse>(getListSkillVersionsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSkillVersionsQueryKey = (id: string) => {
+  return [`/api/skills/${id}/versions`] as const;
+};
+
+export const getListSkillVersionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSkillVersions>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSkillVersions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSkillVersionsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSkillVersions>>
+  > = ({ signal }) => listSkillVersions(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSkillVersions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSkillVersionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSkillVersions>>
+>;
+export type ListSkillVersionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Browse a skill's full version history
+ */
+
+export function useListSkillVersions<
+  TData = Awaited<ReturnType<typeof listSkillVersions>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSkillVersions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSkillVersionsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Roll an installed skill back to a previous version
+ */
+export const getRollbackSkillVersionUrl = (id: string) => {
+  return `/api/skills/${id}/rollback`;
+};
+
+export const rollbackSkillVersion = async (
+  id: string,
+  rollbackSkillRequest: RollbackSkillRequest,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getRollbackSkillVersionUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(rollbackSkillRequest),
+  });
+};
+
+export const getRollbackSkillVersionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rollbackSkillVersion>>,
+    TError,
+    { id: string; data: BodyType<RollbackSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rollbackSkillVersion>>,
+  TError,
+  { id: string; data: BodyType<RollbackSkillRequest> },
+  TContext
+> => {
+  const mutationKey = ["rollbackSkillVersion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rollbackSkillVersion>>,
+    { id: string; data: BodyType<RollbackSkillRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return rollbackSkillVersion(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RollbackSkillVersionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rollbackSkillVersion>>
+>;
+export type RollbackSkillVersionMutationBody = BodyType<RollbackSkillRequest>;
+export type RollbackSkillVersionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Roll an installed skill back to a previous version
+ */
+export const useRollbackSkillVersion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rollbackSkillVersion>>,
+    TError,
+    { id: string; data: BodyType<RollbackSkillRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rollbackSkillVersion>>,
+  TError,
+  { id: string; data: BodyType<RollbackSkillRequest> },
+  TContext
+> => {
+  return useMutation(getRollbackSkillVersionMutationOptions(options));
+};
+
+/**
+ * @summary Move installed version up to latest (manual approval flow)
+ */
+export const getApplySkillUpdateUrl = (id: string) => {
+  return `/api/skills/${id}/apply-update`;
+};
+
+export const applySkillUpdate = async (
+  id: string,
+  applySkillUpdateRequest?: ApplySkillUpdateRequest,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getApplySkillUpdateUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(applySkillUpdateRequest),
+  });
+};
+
+export const getApplySkillUpdateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applySkillUpdate>>,
+    TError,
+    { id: string; data: BodyType<ApplySkillUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applySkillUpdate>>,
+  TError,
+  { id: string; data: BodyType<ApplySkillUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["applySkillUpdate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applySkillUpdate>>,
+    { id: string; data: BodyType<ApplySkillUpdateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return applySkillUpdate(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplySkillUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applySkillUpdate>>
+>;
+export type ApplySkillUpdateMutationBody = BodyType<ApplySkillUpdateRequest>;
+export type ApplySkillUpdateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Move installed version up to latest (manual approval flow)
+ */
+export const useApplySkillUpdate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applySkillUpdate>>,
+    TError,
+    { id: string; data: BodyType<ApplySkillUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof applySkillUpdate>>,
+  TError,
+  { id: string; data: BodyType<ApplySkillUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getApplySkillUpdateMutationOptions(options));
+};
+
+/**
+ * @summary Dismiss the available-update card for the latest version
+ */
+export const getDismissSkillUpdateUrl = (id: string) => {
+  return `/api/skills/${id}/dismiss-update`;
+};
+
+export const dismissSkillUpdate = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getDismissSkillUpdateUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDismissSkillUpdateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof dismissSkillUpdate>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof dismissSkillUpdate>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["dismissSkillUpdate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof dismissSkillUpdate>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return dismissSkillUpdate(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DismissSkillUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof dismissSkillUpdate>>
+>;
+
+export type DismissSkillUpdateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Dismiss the available-update card for the latest version
+ */
+export const useDismissSkillUpdate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof dismissSkillUpdate>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof dismissSkillUpdate>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDismissSkillUpdateMutationOptions(options));
+};
+
+/**
+ * @summary Toggle per-skill auto-update for non-breaking versions
+ */
+export const getSetSkillAutoUpdateUrl = (id: string) => {
+  return `/api/skills/${id}/auto-update`;
+};
+
+export const setSkillAutoUpdate = async (
+  id: string,
+  skillAutoUpdateRequest: SkillAutoUpdateRequest,
+  options?: RequestInit,
+): Promise<SkillResponse> => {
+  return customFetch<SkillResponse>(getSetSkillAutoUpdateUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(skillAutoUpdateRequest),
+  });
+};
+
+export const getSetSkillAutoUpdateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSkillAutoUpdate>>,
+    TError,
+    { id: string; data: BodyType<SkillAutoUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setSkillAutoUpdate>>,
+  TError,
+  { id: string; data: BodyType<SkillAutoUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["setSkillAutoUpdate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setSkillAutoUpdate>>,
+    { id: string; data: BodyType<SkillAutoUpdateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return setSkillAutoUpdate(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetSkillAutoUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setSkillAutoUpdate>>
+>;
+export type SetSkillAutoUpdateMutationBody = BodyType<SkillAutoUpdateRequest>;
+export type SetSkillAutoUpdateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Toggle per-skill auto-update for non-breaking versions
+ */
+export const useSetSkillAutoUpdate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setSkillAutoUpdate>>,
+    TError,
+    { id: string; data: BodyType<SkillAutoUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setSkillAutoUpdate>>,
+  TError,
+  { id: string; data: BodyType<SkillAutoUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getSetSkillAutoUpdateMutationOptions(options));
+};
+
+/**
+ * @summary Per-version adoption stats for the creator dashboard
+ */
+export const getGetSkillAdoptionStatsUrl = (id: string) => {
+  return `/api/skills/${id}/adoption`;
+};
+
+export const getSkillAdoptionStats = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SkillAdoptionResponse> => {
+  return customFetch<SkillAdoptionResponse>(getGetSkillAdoptionStatsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSkillAdoptionStatsQueryKey = (id: string) => {
+  return [`/api/skills/${id}/adoption`] as const;
+};
+
+export const getGetSkillAdoptionStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSkillAdoptionStats>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillAdoptionStats>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSkillAdoptionStatsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSkillAdoptionStats>>
+  > = ({ signal }) => getSkillAdoptionStats(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSkillAdoptionStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSkillAdoptionStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillAdoptionStats>>
+>;
+export type GetSkillAdoptionStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Per-version adoption stats for the creator dashboard
+ */
+
+export function useGetSkillAdoptionStats<
+  TData = Awaited<ReturnType<typeof getSkillAdoptionStats>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSkillAdoptionStats>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSkillAdoptionStatsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Export a skill (alternate path-shape required by spec)

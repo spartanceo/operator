@@ -10183,6 +10183,50 @@ export const ListSkillsResponse = zod.object({
         isInstalled: zod.boolean(),
         installCount: zod.number(),
         version: zod.number(),
+        latestVersion: zod
+          .string()
+          .describe("Latest published semantic version of this skill."),
+        installedVersion: zod
+          .string()
+          .describe(
+            "Currently installed semantic version (may lag latestVersion).",
+          ),
+        changelog: zod
+          .string()
+          .describe("Changelog entry for the latest published version."),
+        breakingChange: zod
+          .boolean()
+          .describe(
+            "True iff the latest published version was flagged as a breaking change.",
+          ),
+        minOpVersion: zod
+          .string()
+          .describe(
+            "Minimum Omninity Operator version required by the latest skill version.",
+          ),
+        autoUpdate: zod
+          .boolean()
+          .describe(
+            "True iff the user opted into auto-applying non-breaking updates.",
+          ),
+        publishedAt: zod.coerce
+          .date()
+          .describe("Wall-clock of the most recent publish."),
+        hasUpdate: zod
+          .boolean()
+          .describe(
+            "True iff a newer non-dismissed version is available than the installed one.",
+          ),
+        opIncompatible: zod
+          .boolean()
+          .describe(
+            "True iff the latest version requires an OP newer than this server.",
+          ),
+        unmaintained: zod
+          .boolean()
+          .describe(
+            "True iff the skill has not been published to in over 12 months.",
+          ),
         createdAt: zod.coerce.date(),
         updatedAt: zod.coerce.date(),
       }),
@@ -10228,6 +10272,50 @@ export const CreateSkillResponse = zod.object({
     isInstalled: zod.boolean(),
     installCount: zod.number(),
     version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -10255,7 +10343,19 @@ export const ImportSkillBody = zod.object({
     triggers: zod.array(zod.string()),
     category: zod.string(),
     author: zod.string(),
-    version: zod.number(),
+    version: zod
+      .number()
+      .describe("Optimistic-concurrency revision counter (legacy field)."),
+    semver: zod
+      .string()
+      .optional()
+      .describe("Semantic version of the skill release."),
+    changelog: zod
+      .string()
+      .optional()
+      .describe("Changelog entry for the manifest's version."),
+    breakingChange: zod.boolean().optional(),
+    minOpVersion: zod.string().optional(),
   }),
   install: zod.boolean().optional(),
 });
@@ -10275,6 +10375,50 @@ export const ImportSkillResponse = zod.object({
     isInstalled: zod.boolean(),
     installCount: zod.number(),
     version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -10310,6 +10454,50 @@ export const GetSkillResponse = zod.object({
     isInstalled: zod.boolean(),
     installCount: zod.number(),
     version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -10358,6 +10546,50 @@ export const UpdateSkillResponse = zod.object({
     isInstalled: zod.boolean(),
     installCount: zod.number(),
     version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -10413,7 +10645,19 @@ export const ExportSkillResponse = zod.object({
     triggers: zod.array(zod.string()),
     category: zod.string(),
     author: zod.string(),
-    version: zod.number(),
+    version: zod
+      .number()
+      .describe("Optimistic-concurrency revision counter (legacy field)."),
+    semver: zod
+      .string()
+      .optional()
+      .describe("Semantic version of the skill release."),
+    changelog: zod
+      .string()
+      .optional()
+      .describe("Changelog entry for the manifest's version."),
+    breakingChange: zod.boolean().optional(),
+    minOpVersion: zod.string().optional(),
   }),
 });
 
@@ -10447,6 +10691,50 @@ export const InstallSkillResponse = zod.object({
     isInstalled: zod.boolean(),
     installCount: zod.number(),
     version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -10522,8 +10810,640 @@ export const UninstallSkillResponse = zod.object({
     isInstalled: zod.boolean(),
     installCount: zod.number(),
     version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary List installed skills with available updates
+ */
+export const ListSkillUpdatesHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSkillUpdatesResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        slug: zod.string(),
+        name: zod.string(),
+        description: zod.string(),
+        content: zod.string(),
+        modelTags: zod.array(zod.string()),
+        triggers: zod.array(zod.string()),
+        category: zod.string(),
+        author: zod.string(),
+        isInstalled: zod.boolean(),
+        installCount: zod.number(),
+        version: zod.number(),
+        latestVersion: zod
+          .string()
+          .describe("Latest published semantic version of this skill."),
+        installedVersion: zod
+          .string()
+          .describe(
+            "Currently installed semantic version (may lag latestVersion).",
+          ),
+        changelog: zod
+          .string()
+          .describe("Changelog entry for the latest published version."),
+        breakingChange: zod
+          .boolean()
+          .describe(
+            "True iff the latest published version was flagged as a breaking change.",
+          ),
+        minOpVersion: zod
+          .string()
+          .describe(
+            "Minimum Omninity Operator version required by the latest skill version.",
+          ),
+        autoUpdate: zod
+          .boolean()
+          .describe(
+            "True iff the user opted into auto-applying non-breaking updates.",
+          ),
+        publishedAt: zod.coerce
+          .date()
+          .describe("Wall-clock of the most recent publish."),
+        hasUpdate: zod
+          .boolean()
+          .describe(
+            "True iff a newer non-dismissed version is available than the installed one.",
+          ),
+        opIncompatible: zod
+          .boolean()
+          .describe(
+            "True iff the latest version requires an OP newer than this server.",
+          ),
+        unmaintained: zod
+          .boolean()
+          .describe(
+            "True iff the skill has not been published to in over 12 months.",
+          ),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Publish a new semantic version of a skill (creator flow)
+ */
+export const PublishSkillVersionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PublishSkillVersionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const PublishSkillVersionBody = zod.object({
+  version: zod
+    .string()
+    .describe(
+      "New semantic version (must be greater than current latestVersion).",
+    ),
+  changelog: zod
+    .string()
+    .describe("User-facing changelog entry shown before applying the update."),
+  breakingChange: zod
+    .boolean()
+    .optional()
+    .describe("When true the update card forces manual approval."),
+  minOpVersion: zod
+    .string()
+    .optional()
+    .describe("Minimum OP version this skill version requires."),
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  content: zod.string().optional(),
+  modelTags: zod.array(zod.string()).optional(),
+  triggers: zod.array(zod.string()).optional(),
+  category: zod.string().optional(),
+});
+
+export const PublishSkillVersionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    slug: zod.string(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    category: zod.string(),
+    author: zod.string(),
+    isInstalled: zod.boolean(),
+    installCount: zod.number(),
+    version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Browse a skill's full version history
+ */
+export const ListSkillVersionsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ListSkillVersionsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ListSkillVersionsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        id: zod.string(),
+        skillId: zod.string(),
+        semver: zod.string(),
+        changelog: zod.string(),
+        breakingChange: zod.boolean(),
+        minOpVersion: zod.string(),
+        name: zod.string(),
+        description: zod.string(),
+        content: zod.string(),
+        modelTags: zod.array(zod.string()),
+        triggers: zod.array(zod.string()),
+        category: zod.string(),
+        author: zod.string(),
+        installCount: zod.number(),
+        createdAt: zod.coerce.date(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Roll an installed skill back to a previous version
+ */
+export const RollbackSkillVersionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RollbackSkillVersionHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const RollbackSkillVersionBody = zod.object({
+  version: zod
+    .string()
+    .describe("Semantic version from this skill's history to roll back to."),
+});
+
+export const RollbackSkillVersionResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    slug: zod.string(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    category: zod.string(),
+    author: zod.string(),
+    isInstalled: zod.boolean(),
+    installCount: zod.number(),
+    version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Move installed version up to latest (manual approval flow)
+ */
+export const ApplySkillUpdateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ApplySkillUpdateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const ApplySkillUpdateBody = zod.object({
+  acceptBreaking: zod
+    .boolean()
+    .optional()
+    .describe("Required to be true to apply a breaking-change update."),
+});
+
+export const ApplySkillUpdateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    slug: zod.string(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    category: zod.string(),
+    author: zod.string(),
+    isInstalled: zod.boolean(),
+    installCount: zod.number(),
+    version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Dismiss the available-update card for the latest version
+ */
+export const DismissSkillUpdateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DismissSkillUpdateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const DismissSkillUpdateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    slug: zod.string(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    category: zod.string(),
+    author: zod.string(),
+    isInstalled: zod.boolean(),
+    installCount: zod.number(),
+    version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Toggle per-skill auto-update for non-breaking versions
+ */
+export const SetSkillAutoUpdateParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SetSkillAutoUpdateHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const SetSkillAutoUpdateBody = zod.object({
+  enabled: zod.boolean(),
+});
+
+export const SetSkillAutoUpdateResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    id: zod.string(),
+    slug: zod.string(),
+    name: zod.string(),
+    description: zod.string(),
+    content: zod.string(),
+    modelTags: zod.array(zod.string()),
+    triggers: zod.array(zod.string()),
+    category: zod.string(),
+    author: zod.string(),
+    isInstalled: zod.boolean(),
+    installCount: zod.number(),
+    version: zod.number(),
+    latestVersion: zod
+      .string()
+      .describe("Latest published semantic version of this skill."),
+    installedVersion: zod
+      .string()
+      .describe(
+        "Currently installed semantic version (may lag latestVersion).",
+      ),
+    changelog: zod
+      .string()
+      .describe("Changelog entry for the latest published version."),
+    breakingChange: zod
+      .boolean()
+      .describe(
+        "True iff the latest published version was flagged as a breaking change.",
+      ),
+    minOpVersion: zod
+      .string()
+      .describe(
+        "Minimum Omninity Operator version required by the latest skill version.",
+      ),
+    autoUpdate: zod
+      .boolean()
+      .describe(
+        "True iff the user opted into auto-applying non-breaking updates.",
+      ),
+    publishedAt: zod.coerce
+      .date()
+      .describe("Wall-clock of the most recent publish."),
+    hasUpdate: zod
+      .boolean()
+      .describe(
+        "True iff a newer non-dismissed version is available than the installed one.",
+      ),
+    opIncompatible: zod
+      .boolean()
+      .describe(
+        "True iff the latest version requires an OP newer than this server.",
+      ),
+    unmaintained: zod
+      .boolean()
+      .describe(
+        "True iff the skill has not been published to in over 12 months.",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Per-version adoption stats for the creator dashboard
+ */
+export const GetSkillAdoptionStatsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetSkillAdoptionStatsHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetSkillAdoptionStatsResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    items: zod.array(
+      zod.object({
+        semver: zod.string(),
+        installCount: zod.number(),
+        isLatest: zod.boolean(),
+        isInstalled: zod.boolean(),
+        share: zod
+          .number()
+          .describe("Share of total installs across all versions in [0, 1]."),
+      }),
+    ),
   }),
 });
 
@@ -10554,7 +11474,19 @@ export const ExportSkillByIdPathResponse = zod.object({
     triggers: zod.array(zod.string()),
     category: zod.string(),
     author: zod.string(),
-    version: zod.number(),
+    version: zod
+      .number()
+      .describe("Optimistic-concurrency revision counter (legacy field)."),
+    semver: zod
+      .string()
+      .optional()
+      .describe("Semantic version of the skill release."),
+    changelog: zod
+      .string()
+      .optional()
+      .describe("Changelog entry for the manifest's version."),
+    breakingChange: zod.boolean().optional(),
+    minOpVersion: zod.string().optional(),
   }),
 });
 

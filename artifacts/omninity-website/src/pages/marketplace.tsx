@@ -54,9 +54,17 @@ interface DisplaySkill {
   modelTags: string[];
   source: "api" | "seed";
   seedRef: SeedSkill | null;
+  version: string;
+  lastUpdated: number;
+  unmaintained: boolean;
 }
 
+// 12 months — matches the server-side UNMAINTAINED_THRESHOLD_MS so the badge
+// is consistent between the operator UI and the public marketplace.
+const UNMAINTAINED_THRESHOLD_MS = 365 * 24 * 60 * 60 * 1000;
+
 function fromApi(s: ApiSkill): DisplaySkill {
+  const publishedAt = new Date(s.publishedAt).getTime();
   return {
     slug: s.slug,
     name: s.name,
@@ -72,10 +80,15 @@ function fromApi(s: ApiSkill): DisplaySkill {
     modelTags: s.modelTags,
     source: "api",
     seedRef: null,
+    version: s.latestVersion,
+    lastUpdated: publishedAt,
+    unmaintained: s.unmaintained,
   };
 }
 
 function fromSeed(s: SeedSkill): DisplaySkill {
+  const lastVersion = s.versions[0];
+  const lastUpdated = new Date(lastVersion?.date ?? "2025-01-01").getTime();
   return {
     slug: s.slug,
     name: s.name,
@@ -87,13 +100,27 @@ function fromSeed(s: SeedSkill): DisplaySkill {
     rating: s.rating,
     ratingCount: s.ratingCount,
     installs: s.installs,
-    installedAt: new Date(s.versions[0]?.date ?? "2025-01-01").getTime(),
+    installedAt: lastUpdated,
     // Seed skills have no model tags; default to a broad set so they survive
     // model-tab filtering in the "All" position.
     modelTags: ["llama3.1", "qwen2.5"],
     source: "seed",
     seedRef: s,
+    version: lastVersion?.version ?? "1.0.0",
+    lastUpdated,
+    unmaintained: Date.now() - lastUpdated > UNMAINTAINED_THRESHOLD_MS,
   };
+}
+
+function formatRelative(ts: number): string {
+  const diff = Date.now() - ts;
+  if (diff < 0) return "just now";
+  const day = 24 * 60 * 60 * 1000;
+  if (diff < day) return "today";
+  if (diff < 7 * day) return `${Math.floor(diff / day)}d ago`;
+  if (diff < 30 * day) return `${Math.floor(diff / (7 * day))}w ago`;
+  if (diff < 365 * day) return `${Math.floor(diff / (30 * day))}mo ago`;
+  return `${Math.floor(diff / (365 * day))}y ago`;
 }
 
 export default function MarketplacePage() {
@@ -258,7 +285,7 @@ export default function MarketplacePage() {
                           <span className="text-xs">({skill.ratingCount})</span>
                         </div>
                       </div>
-                      <div className="mt-5 flex items-center gap-2 text-base font-medium tracking-tight">
+                      <div className="mt-5 flex flex-wrap items-center gap-2 text-base font-medium tracking-tight">
                         {skill.name}
                         {skill.source === "api" ? (
                           <Badge
@@ -268,9 +295,25 @@ export default function MarketplacePage() {
                             <Layers className="mr-1 h-2.5 w-2.5" /> Local
                           </Badge>
                         ) : null}
+                        {skill.unmaintained ? (
+                          <Badge
+                            variant="outline"
+                            className="rounded-full border-amber-500/40 bg-amber-500/10 px-2 py-0 text-[9px] uppercase tracking-wider text-amber-600"
+                            data-testid={`badge-unmaintained-${skill.slug}`}
+                          >
+                            Unmaintained
+                          </Badge>
+                        ) : null}
                       </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        by {skill.creator}
+                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>by {skill.creator}</span>
+                        <span aria-hidden="true">·</span>
+                        <span
+                          className="font-mono"
+                          data-testid={`version-${skill.slug}`}
+                        >
+                          v{skill.version}
+                        </span>
                       </div>
                       <div className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-muted-foreground">
                         {skill.tagline}
@@ -282,9 +325,12 @@ export default function MarketplacePage() {
                         >
                           {skill.category}
                         </Badge>
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                          {skill.installs.toLocaleString()} installs
-                        </span>
+                        <div className="flex items-center gap-3 text-xs tabular-nums text-muted-foreground">
+                          <span data-testid={`last-updated-${skill.slug}`}>
+                            Updated {formatRelative(skill.lastUpdated)}
+                          </span>
+                          <span>{skill.installs.toLocaleString()} installs</span>
+                        </div>
                       </div>
                     </Card>
                   </Link>

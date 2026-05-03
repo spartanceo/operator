@@ -50,6 +50,28 @@ export const skills = sqliteTable(
       .notNull()
       .default(false),
     installCount: integer("install_count").notNull().default(0),
+    /** Latest published semver, e.g. "1.2.0". */
+    latestVersion: text("latest_version").notNull().default("1.0.0"),
+    /** Currently installed semver — may lag latestVersion. */
+    installedVersion: text("installed_version").notNull().default("1.0.0"),
+    /** Changelog entry for the latest published version. */
+    changelog: text("changelog").notNull().default(""),
+    /** True iff the latest version was flagged as a breaking change. */
+    breakingChange: integer("breaking_change", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    /** Minimum OP version required by the latest published version. */
+    minOpVersion: text("min_op_version").notNull().default("0.0.0"),
+    /** When set the user opted into auto-applying non-breaking updates. */
+    autoUpdate: integer("auto_update", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    /** Wall-clock of the last publish — drives "Unmaintained" trust signal. */
+    publishedAt: integer("published_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    /** If the user dismissed an update card the dismissed semver lives here. */
+    updateDismissedVersion: text("update_dismissed_version"),
   },
   (t) => ({
     tenantIdx: index("idx_skills_tenant").on(t.tenantId),

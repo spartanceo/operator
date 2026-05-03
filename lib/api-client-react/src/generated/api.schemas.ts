@@ -4202,8 +4202,113 @@ export interface Skill {
   isInstalled: boolean;
   installCount: number;
   version: number;
+  /** Latest published semantic version of this skill. */
+  latestVersion: string;
+  /** Currently installed semantic version (may lag latestVersion). */
+  installedVersion: string;
+  /** Changelog entry for the latest published version. */
+  changelog: string;
+  /** True iff the latest published version was flagged as a breaking change. */
+  breakingChange: boolean;
+  /** Minimum Omninity Operator version required by the latest skill version. */
+  minOpVersion: string;
+  /** True iff the user opted into auto-applying non-breaking updates. */
+  autoUpdate: boolean;
+  /** Wall-clock of the most recent publish. */
+  publishedAt: string;
+  /** True iff a newer non-dismissed version is available than the installed one. */
+  hasUpdate: boolean;
+  /** True iff the latest version requires an OP newer than this server. */
+  opIncompatible: boolean;
+  /** True iff the skill has not been published to in over 12 months. */
+  unmaintained: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SkillVersion {
+  id: string;
+  skillId: string;
+  semver: string;
+  changelog: string;
+  breakingChange: boolean;
+  minOpVersion: string;
+  name: string;
+  description: string;
+  content: string;
+  modelTags: string[];
+  triggers: string[];
+  category: string;
+  author: string;
+  installCount: number;
+  createdAt: string;
+}
+
+export interface SkillVersionListPage {
+  items: SkillVersion[];
+}
+
+export interface SkillVersionListResponse {
+  success: boolean;
+  data: SkillVersionListPage;
+}
+
+export interface SkillUpdatesPage {
+  items: Skill[];
+}
+
+export interface SkillUpdatesResponse {
+  success: boolean;
+  data: SkillUpdatesPage;
+}
+
+export interface PublishSkillVersionRequest {
+  /** New semantic version (must be greater than current latestVersion). */
+  version: string;
+  /** User-facing changelog entry shown before applying the update. */
+  changelog: string;
+  /** When true the update card forces manual approval. */
+  breakingChange?: boolean;
+  /** Minimum OP version this skill version requires. */
+  minOpVersion?: string;
+  name?: string;
+  description?: string;
+  content?: string;
+  modelTags?: string[];
+  triggers?: string[];
+  category?: string;
+}
+
+export interface RollbackSkillRequest {
+  /** Semantic version from this skill's history to roll back to. */
+  version: string;
+}
+
+export interface ApplySkillUpdateRequest {
+  /** Required to be true to apply a breaking-change update. */
+  acceptBreaking?: boolean;
+}
+
+export interface SkillAutoUpdateRequest {
+  enabled: boolean;
+}
+
+export interface SkillVersionAdoption {
+  semver: string;
+  installCount: number;
+  isLatest: boolean;
+  isInstalled: boolean;
+  /** Share of total installs across all versions in [0, 1]. */
+  share: number;
+}
+
+export interface SkillAdoptionPage {
+  items: SkillVersionAdoption[];
+}
+
+export interface SkillAdoptionResponse {
+  success: boolean;
+  data: SkillAdoptionPage;
 }
 
 export type QueuedTaskPriority =
@@ -4282,7 +4387,14 @@ export interface SkillManifest {
   triggers: string[];
   category: string;
   author: string;
+  /** Optimistic-concurrency revision counter (legacy field). */
   version: number;
+  /** Semantic version of the skill release. */
+  semver?: string;
+  /** Changelog entry for the manifest's version. */
+  changelog?: string;
+  breakingChange?: boolean;
+  minOpVersion?: string;
 }
 
 export interface SkillExportResponse {

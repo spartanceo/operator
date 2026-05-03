@@ -9,6 +9,12 @@ import {
   Search,
   Filter as FilterIcon,
   Pencil,
+  History,
+  GitBranch,
+  RotateCcw,
+  AlertTriangle,
+  CheckCircle2,
+  X,
 } from "lucide-react";
 import {
   useListSkills,
@@ -18,6 +24,13 @@ import {
   useInstallSkill,
   useUninstallSkill,
   useImportSkill,
+  useListSkillUpdates,
+  usePublishSkillVersion,
+  useListSkillVersions,
+  useRollbackSkillVersion,
+  useApplySkillUpdate,
+  useDismissSkillUpdate,
+  useSetSkillAutoUpdate,
   exportSkill,
   type Skill,
   type SkillManifest,
@@ -112,6 +125,9 @@ interface SkillCardProps {
   onExport: (skill: Skill) => void;
   onEdit: (skill: Skill) => void;
   onDelete: (id: string) => void;
+  onPublish: (skill: Skill) => void;
+  onHistory: (skill: Skill) => void;
+  onToggleAutoUpdate: (id: string, enabled: boolean) => void;
   busy: boolean;
 }
 
@@ -122,6 +138,9 @@ function SkillCard({
   onExport,
   onEdit,
   onDelete,
+  onPublish,
+  onHistory,
+  onToggleAutoUpdate,
   busy,
 }: SkillCardProps) {
   return (
@@ -129,7 +148,14 @@ function SkillCard({
       <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
         <div className="min-w-0">
           <CardTitle className="truncate text-sm">{skill.name}</CardTitle>
-          <p className="mt-1 text-xs text-muted-foreground">by {skill.author}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            by {skill.author} · v{skill.installedVersion || skill.latestVersion}
+            {skill.installedVersion &&
+            skill.latestVersion &&
+            skill.installedVersion !== skill.latestVersion
+              ? ` → ${skill.latestVersion}`
+              : ""}
+          </p>
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Star className="h-3.5 w-3.5 text-primary" />
@@ -149,7 +175,53 @@ function SkillCard({
               {t}
             </Badge>
           ))}
+          {skill.unmaintained ? (
+            <Badge
+              variant="outline"
+              className="border-amber-500/40 bg-amber-500/10 text-[10px] uppercase tracking-wider text-amber-600"
+              data-testid={`badge-unmaintained-${skill.id}`}
+            >
+              Unmaintained
+            </Badge>
+          ) : null}
+          {skill.opIncompatible ? (
+            <Badge
+              variant="outline"
+              className="border-destructive/40 bg-destructive/10 text-[10px] uppercase tracking-wider text-destructive"
+              data-testid={`badge-incompatible-${skill.id}`}
+            >
+              Needs OP {skill.minOpVersion}
+            </Badge>
+          ) : null}
+          {skill.hasUpdate ? (
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[10px] uppercase tracking-wider",
+                skill.breakingChange
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-primary/40 bg-primary/10 text-primary",
+              )}
+              data-testid={`badge-update-${skill.id}`}
+            >
+              {skill.breakingChange ? "Breaking update" : "Update available"}
+            </Badge>
+          ) : null}
         </div>
+        {skill.isInstalled ? (
+          <div className="flex items-center justify-between rounded-md border border-border/60 bg-muted/20 px-2 py-1.5">
+            <span className="text-[11px] text-muted-foreground">
+              Auto-update non-breaking
+            </span>
+            <Switch
+              data-testid={`switch-auto-update-${skill.id}`}
+              checked={skill.autoUpdate}
+              disabled={busy}
+              onCheckedChange={(v) => onToggleAutoUpdate(skill.id, v)}
+              aria-label="Auto-update"
+            />
+          </div>
+        ) : null}
         <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-3">
           <div className="flex items-center gap-2">
             <Switch
@@ -166,6 +238,26 @@ function SkillCard({
             </span>
           </div>
           <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid={`button-publish-${skill.id}`}
+              onClick={() => onPublish(skill)}
+              aria-label="Publish version"
+              title="Publish new version"
+            >
+              <GitBranch className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid={`button-history-${skill.id}`}
+              onClick={() => onHistory(skill)}
+              aria-label="Version history"
+              title="Version history"
+            >
+              <History className="h-3.5 w-3.5" />
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -200,6 +292,282 @@ function SkillCard({
   );
 }
 
+interface PublishFormState {
+  version: string;
+  changelog: string;
+  breakingChange: boolean;
+  minOpVersion: string;
+}
+
+function suggestNextVersion(latest: string | undefined): string {
+  if (!latest) return "1.0.0";
+  const parts = latest.split(".").map((n) => parseInt(n, 10));
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return "1.0.0";
+  return `${parts[0]}.${parts[1] + 1}.0`;
+}
+
+interface PublishDialogProps {
+  skill: Skill | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDone: () => void;
+}
+
+function PublishDialog({ skill, open, onOpenChange, onDone }: PublishDialogProps) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState<PublishFormState>({
+    version: "",
+    changelog: "",
+    breakingChange: false,
+    minOpVersion: "",
+  });
+
+  // Re-seed the form whenever a new skill is opened.
+  const lastSkillIdRef = useRef<string | null>(null);
+  if (skill && lastSkillIdRef.current !== skill.id) {
+    lastSkillIdRef.current = skill.id;
+    setForm({
+      version: suggestNextVersion(skill.latestVersion),
+      changelog: "",
+      breakingChange: false,
+      minOpVersion: skill.minOpVersion ?? "",
+    });
+  }
+
+  const publish = usePublishSkillVersion({
+    mutation: {
+      onSuccess: () => {
+        void qc.invalidateQueries();
+        onOpenChange(false);
+        onDone();
+      },
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Publish new version</DialogTitle>
+          <DialogDescription>
+            Bumps {skill?.name ?? "this skill"} from v{skill?.latestVersion ?? "—"}.
+            Auto-update users get non-breaking versions instantly; breaking
+            changes always wait for manual approval.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label
+              htmlFor="publish-version"
+              className="text-xs uppercase tracking-wide text-muted-foreground"
+            >
+              Semver
+            </label>
+            <Input
+              id="publish-version"
+              data-testid="input-publish-version"
+              value={form.version}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, version: e.target.value }))
+              }
+              placeholder="1.1.0"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="publish-changelog"
+              className="text-xs uppercase tracking-wide text-muted-foreground"
+            >
+              Changelog
+            </label>
+            <Textarea
+              id="publish-changelog"
+              data-testid="input-publish-changelog"
+              value={form.changelog}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, changelog: e.target.value }))
+              }
+              className="min-h-[100px] text-xs"
+              placeholder="What changed in this version?"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="publish-min-op"
+              className="text-xs uppercase tracking-wide text-muted-foreground"
+            >
+              Min OP version (optional)
+            </label>
+            <Input
+              id="publish-min-op"
+              data-testid="input-publish-min-op"
+              value={form.minOpVersion}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, minOpVersion: e.target.value }))
+              }
+              placeholder="0.0.0"
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
+            <div>
+              <div className="text-sm font-medium">Breaking change</div>
+              <div className="text-xs text-muted-foreground">
+                Forces every installer to manually approve the upgrade.
+              </div>
+            </div>
+            <Switch
+              data-testid="switch-publish-breaking"
+              checked={form.breakingChange}
+              onCheckedChange={(v) =>
+                setForm((f) => ({ ...f, breakingChange: v }))
+              }
+              aria-label="Breaking change"
+            />
+          </div>
+          <ErrorBanner error={publish.error} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            data-testid="button-confirm-publish"
+            disabled={
+              !skill ||
+              publish.isPending ||
+              !form.version.trim() ||
+              !form.changelog.trim()
+            }
+            onClick={() => {
+              if (!skill) return;
+              publish.mutate({
+                id: skill.id,
+                data: {
+                  version: form.version.trim(),
+                  changelog: form.changelog.trim(),
+                  breakingChange: form.breakingChange,
+                  ...(form.minOpVersion.trim()
+                    ? { minOpVersion: form.minOpVersion.trim() }
+                    : {}),
+                },
+              });
+            }}
+          >
+            {publish.isPending ? "Publishing…" : "Publish"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface VersionsDialogProps {
+  skill: Skill | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+function VersionsDialog({ skill, open, onOpenChange }: VersionsDialogProps) {
+  const qc = useQueryClient();
+  const versionsQuery = useListSkillVersions(skill?.id ?? "", {
+    query: { enabled: Boolean(skill && open) } as never,
+  });
+  const rollback = useRollbackSkillVersion({
+    mutation: { onSuccess: () => void qc.invalidateQueries() },
+  });
+  const versions = versionsQuery.data?.data.items ?? [];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Version history</DialogTitle>
+          <DialogDescription>
+            Every published version of {skill?.name ?? "this skill"}. Roll back
+            to any previous version — installed prompt content is restored
+            exactly as it was at that version.
+          </DialogDescription>
+        </DialogHeader>
+        <ErrorBanner error={versionsQuery.error || rollback.error} />
+        <div className="max-h-[400px] space-y-2 overflow-y-auto">
+          {versions.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              {versionsQuery.isLoading ? "Loading…" : "No version history yet."}
+            </p>
+          ) : (
+            versions.map((v) => {
+              const isInstalled =
+                skill?.isInstalled && skill.installedVersion === v.semver;
+              const isLatest = skill?.latestVersion === v.semver;
+              return (
+                <div
+                  key={v.id}
+                  data-testid={`version-row-${v.semver}`}
+                  className="rounded-md border border-border/60 bg-card/40 p-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono font-semibold">
+                        v{v.semver}
+                      </span>
+                      {isLatest ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          Latest
+                        </Badge>
+                      ) : null}
+                      {isInstalled ? (
+                        <Badge
+                          variant="outline"
+                          className="border-primary/40 bg-primary/10 text-[10px] text-primary"
+                        >
+                          Installed
+                        </Badge>
+                      ) : null}
+                      {v.breakingChange ? (
+                        <Badge
+                          variant="outline"
+                          className="border-destructive/40 bg-destructive/10 text-[10px] text-destructive"
+                        >
+                          Breaking
+                        </Badge>
+                      ) : null}
+                    </div>
+                    {skill && skill.isInstalled && !isInstalled ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        data-testid={`button-rollback-${v.semver}`}
+                        disabled={rollback.isPending}
+                        onClick={() =>
+                          rollback.mutate({
+                            id: skill.id,
+                            data: { version: v.semver },
+                          })
+                        }
+                      >
+                        <RotateCcw className="mr-1 h-3 w-3" />
+                        Roll back
+                      </Button>
+                    ) : null}
+                  </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {v.installCount} install{v.installCount === 1 ? "" : "s"} ·{" "}
+                    {new Date(v.createdAt).toLocaleDateString()}
+                  </p>
+                  {v.changelog ? (
+                    <p className="mt-1.5 whitespace-pre-wrap text-xs">
+                      {v.changelog}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 interface SkillFormState {
   name: string;
   description: string;
@@ -229,6 +597,8 @@ export default function SkillsPage() {
   const [editingVersion, setEditingVersion] = useState<number | null>(null);
   const [form, setForm] = useState<SkillFormState>(EMPTY_FORM);
   const [importOpen, setImportOpen] = useState(false);
+  const [publishSkill, setPublishSkill] = useState<Skill | null>(null);
+  const [historySkill, setHistorySkill] = useState<Skill | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   // Import state
@@ -317,6 +687,17 @@ export default function SkillsPage() {
         void qc.invalidateQueries();
       },
     },
+  });
+  const updatesQuery = useListSkillUpdates();
+  const updateItems = updatesQuery.data?.data.items ?? [];
+  const applyUpdate = useApplySkillUpdate({
+    mutation: { onSuccess: () => void qc.invalidateQueries() },
+  });
+  const dismissUpdate = useDismissSkillUpdate({
+    mutation: { onSuccess: () => void qc.invalidateQueries() },
+  });
+  const setAuto = useSetSkillAutoUpdate({
+    mutation: { onSuccess: () => void qc.invalidateQueries() },
   });
 
   const submitForm = () => {
@@ -657,6 +1038,86 @@ export default function SkillsPage() {
           <ErrorBanner error={remove.error} title="Delete failed" className="mt-4" />
           <ErrorBanner error={importMutation.error} title="Import failed" className="mt-4" />
           <ErrorBanner error={exportError} title="Export failed" className="mt-4" />
+          <ErrorBanner
+            error={applyUpdate.error || dismissUpdate.error || setAuto.error}
+            title="Update failed"
+            className="mt-4"
+          />
+
+          {updateItems.length > 0 ? (
+            <div
+              className="mt-4 space-y-2"
+              data-testid="skill-updates-banner"
+            >
+              {updateItems.map((u) => (
+                <div
+                  key={u.id}
+                  data-testid={`skill-update-${u.id}`}
+                  className={cn(
+                    "flex flex-wrap items-center justify-between gap-3 rounded-md border px-3 py-2",
+                    u.breakingChange
+                      ? "border-destructive/40 bg-destructive/5"
+                      : "border-primary/40 bg-primary/5",
+                  )}
+                >
+                  <div className="flex min-w-0 items-start gap-2">
+                    {u.breakingChange ? (
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                    ) : (
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">
+                        {u.name} · v{u.installedVersion} → v{u.latestVersion}
+                        {u.breakingChange ? (
+                          <Badge
+                            variant="outline"
+                            className="ml-2 border-destructive/40 bg-destructive/10 text-[10px] text-destructive"
+                          >
+                            Breaking
+                          </Badge>
+                        ) : null}
+                      </div>
+                      {u.changelog ? (
+                        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                          {u.changelog}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      data-testid={`button-dismiss-update-${u.id}`}
+                      onClick={() => dismissUpdate.mutate({ id: u.id })}
+                      disabled={dismissUpdate.isPending}
+                    >
+                      <X className="mr-1 h-3 w-3" />
+                      Dismiss
+                    </Button>
+                    <Button
+                      size="sm"
+                      data-testid={`button-apply-update-${u.id}`}
+                      disabled={applyUpdate.isPending || u.opIncompatible}
+                      onClick={() =>
+                        applyUpdate.mutate({
+                          id: u.id,
+                          data: { acceptBreaking: u.breakingChange },
+                        })
+                      }
+                    >
+                      {u.opIncompatible
+                        ? `Needs OP ${u.minOpVersion}`
+                        : u.breakingChange
+                          ? "Approve breaking update"
+                          : "Apply update"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <TabsContent value={tab} className="mt-4">
             {items.length === 0 && !skillsQuery.isLoading ? (
@@ -701,6 +1162,11 @@ export default function SkillsPage() {
                         remove.mutate({ id });
                       }
                     }}
+                    onPublish={setPublishSkill}
+                    onHistory={setHistorySkill}
+                    onToggleAutoUpdate={(id, enabled) =>
+                      setAuto.mutate({ id, data: { enabled } })
+                    }
                   />
                 ))}
               </div>
@@ -749,6 +1215,22 @@ export default function SkillsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PublishDialog
+        skill={publishSkill}
+        open={publishSkill !== null}
+        onOpenChange={(o) => {
+          if (!o) setPublishSkill(null);
+        }}
+        onDone={() => setPublishSkill(null)}
+      />
+      <VersionsDialog
+        skill={historySkill}
+        open={historySkill !== null}
+        onOpenChange={(o) => {
+          if (!o) setHistorySkill(null);
+        }}
+      />
     </OperatorLayout>
   );
 }

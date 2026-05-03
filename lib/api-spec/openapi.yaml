@@ -5581,6 +5581,185 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SkillResponse'
+  /skills/updates:
+    get:
+      operationId: listSkillUpdates
+      tags:
+        - skills
+      summary: List installed skills with available updates
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Skills with updates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillUpdatesResponse'
+  /skills/{id}/publish:
+    post:
+      operationId: publishSkillVersion
+      tags:
+        - skills
+      summary: Publish a new semantic version of a skill (creator flow)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishSkillVersionRequest'
+      responses:
+        '200':
+          description: Version published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillResponse'
+  /skills/{id}/versions:
+    get:
+      operationId: listSkillVersions
+      tags:
+        - skills
+      summary: Browse a skill's full version history
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Version history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillVersionListResponse'
+  /skills/{id}/rollback:
+    post:
+      operationId: rollbackSkillVersion
+      tags:
+        - skills
+      summary: Roll an installed skill back to a previous version
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RollbackSkillRequest'
+      responses:
+        '200':
+          description: Skill rolled back
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillResponse'
+  /skills/{id}/apply-update:
+    post:
+      operationId: applySkillUpdate
+      tags:
+        - skills
+      summary: Move installed version up to latest (manual approval flow)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplySkillUpdateRequest'
+      responses:
+        '200':
+          description: Update applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillResponse'
+  /skills/{id}/dismiss-update:
+    post:
+      operationId: dismissSkillUpdate
+      tags:
+        - skills
+      summary: Dismiss the available-update card for the latest version
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Update dismissed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillResponse'
+  /skills/{id}/auto-update:
+    patch:
+      operationId: setSkillAutoUpdate
+      tags:
+        - skills
+      summary: Toggle per-skill auto-update for non-breaking versions
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillAutoUpdateRequest'
+      responses:
+        '200':
+          description: Auto-update preference updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillResponse'
+  /skills/{id}/adoption:
+    get:
+      operationId: getSkillAdoptionStats
+      tags:
+        - skills
+      summary: Per-version adoption stats for the creator dashboard
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Adoption stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillAdoptionResponse'
   /skills/export/{id}:
     get:
       operationId: exportSkillByIdPath
@@ -13813,6 +13992,16 @@ components:
         - isInstalled
         - installCount
         - version
+        - latestVersion
+        - installedVersion
+        - changelog
+        - breakingChange
+        - minOpVersion
+        - autoUpdate
+        - publishedAt
+        - hasUpdate
+        - opIncompatible
+        - unmaintained
         - createdAt
         - updatedAt
       properties:
@@ -13844,12 +14033,184 @@ components:
           type: integer
         version:
           type: integer
+        latestVersion:
+          type: string
+          description: Latest published semantic version of this skill.
+        installedVersion:
+          type: string
+          description: Currently installed semantic version (may lag latestVersion).
+        changelog:
+          type: string
+          description: Changelog entry for the latest published version.
+        breakingChange:
+          type: boolean
+          description: True iff the latest published version was flagged as a breaking change.
+        minOpVersion:
+          type: string
+          description: Minimum Omninity Operator version required by the latest skill version.
+        autoUpdate:
+          type: boolean
+          description: True iff the user opted into auto-applying non-breaking updates.
+        publishedAt:
+          type: string
+          format: date-time
+          description: Wall-clock of the most recent publish.
+        hasUpdate:
+          type: boolean
+          description: True iff a newer non-dismissed version is available than the installed one.
+        opIncompatible:
+          type: boolean
+          description: True iff the latest version requires an OP newer than this server.
+        unmaintained:
+          type: boolean
+          description: True iff the skill has not been published to in over 12 months.
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+    SkillVersion:
+      type: object
+      required:
+        - id
+        - skillId
+        - semver
+        - changelog
+        - breakingChange
+        - minOpVersion
+        - name
+        - description
+        - content
+        - modelTags
+        - triggers
+        - category
+        - author
+        - installCount
+        - createdAt
+      properties:
+        id: { type: string }
+        skillId: { type: string }
+        semver: { type: string }
+        changelog: { type: string }
+        breakingChange: { type: boolean }
+        minOpVersion: { type: string }
+        name: { type: string }
+        description: { type: string }
+        content: { type: string }
+        modelTags:
+          type: array
+          items: { type: string }
+        triggers:
+          type: array
+          items: { type: string }
+        category: { type: string }
+        author: { type: string }
+        installCount: { type: integer }
+        createdAt:
+          type: string
+          format: date-time
+    SkillVersionListPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillVersion'
+    SkillVersionListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/SkillVersionListPage'
+    SkillUpdatesPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Skill'
+    SkillUpdatesResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/SkillUpdatesPage'
+    PublishSkillVersionRequest:
+      type: object
+      required: [version, changelog]
+      properties:
+        version:
+          type: string
+          description: New semantic version (must be greater than current latestVersion).
+        changelog:
+          type: string
+          description: User-facing changelog entry shown before applying the update.
+        breakingChange:
+          type: boolean
+          description: When true the update card forces manual approval.
+        minOpVersion:
+          type: string
+          description: Minimum OP version this skill version requires.
+        name: { type: string }
+        description: { type: string }
+        content: { type: string }
+        modelTags:
+          type: array
+          items: { type: string }
+        triggers:
+          type: array
+          items: { type: string }
+        category: { type: string }
+    RollbackSkillRequest:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: string
+          description: Semantic version from this skill's history to roll back to.
+    ApplySkillUpdateRequest:
+      type: object
+      properties:
+        acceptBreaking:
+          type: boolean
+          description: Required to be true to apply a breaking-change update.
+    SkillAutoUpdateRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+    SkillVersionAdoption:
+      type: object
+      required: [semver, installCount, isLatest, isInstalled, share]
+      properties:
+        semver: { type: string }
+        installCount: { type: integer }
+        isLatest: { type: boolean }
+        isInstalled: { type: boolean }
+        share:
+          type: number
+          format: float
+          description: Share of total installs across all versions in [0, 1].
+    SkillAdoptionPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillVersionAdoption'
+    SkillAdoptionResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          $ref: '#/components/schemas/SkillAdoptionPage'
     QueuedTaskPriority:
       type: string
       enum: [high, normal, low]
@@ -14043,6 +14404,17 @@ components:
           type: string
         version:
           type: integer
+          description: Optimistic-concurrency revision counter (legacy field).
+        semver:
+          type: string
+          description: Semantic version of the skill release.
+        changelog:
+          type: string
+          description: Changelog entry for the manifest's version.
+        breakingChange:
+          type: boolean
+        minOpVersion:
+          type: string
     SkillResponse:
       type: object
       required:

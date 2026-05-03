@@ -12,13 +12,21 @@ import { requireTenantContext } from "../../lib/tenant-context";
 import { requireTenant } from "../../middlewares/tenant-context";
 import { createAgentRun } from "../../services/agent.service";
 import {
+  applySkillUpdate,
   createSkill,
   deleteSkill,
+  dismissSkillUpdate,
   exportSkill,
+  getAdoptionStats,
   getSkill,
   importSkill,
   installSkill,
   listSkills,
+  listSkillsWithUpdates,
+  listSkillVersions,
+  publishSkillVersion,
+  rollbackSkill,
+  setAutoUpdate,
   SkillNotFoundError,
   SkillValidationError,
   uninstallSkill,
@@ -71,6 +79,10 @@ const ManifestSchema = z.object({
   category: z.string().min(1).max(80),
   author: z.string().min(1).max(120),
   version: z.number().int().min(1).max(1_000_000),
+  semver: z.string().max(40).optional(),
+  changelog: z.string().max(8_000).optional(),
+  breakingChange: z.boolean().optional(),
+  minOpVersion: z.string().max(40).optional(),
 });
 
 const ImportSchema = z.object({
@@ -82,6 +94,52 @@ const InvokeSchema = z.object({
   goal: z.string().min(1).max(4_000),
   modelName: z.string().min(1).max(200).optional(),
 });
+
+const SemverSchema = z
+  .string()
+  .min(1)
+  .max(40)
+  .regex(/^\d{1,5}\.\d{1,5}\.\d{1,5}$/, "Must be a semantic version like 1.2.3");
+
+const PublishSchema = z.object({
+  version: SemverSchema,
+  changelog: z.string().min(1).max(8_000),
+  breakingChange: z.boolean().optional(),
+  minOpVersion: SemverSchema.optional(),
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(2_000).optional(),
+  content: z.string().min(1).max(64_000).optional(),
+  modelTags: StringArray.optional(),
+  triggers: StringArray.optional(),
+  category: z.string().min(1).max(80).optional(),
+});
+
+const RollbackSchema = z.object({
+  version: SemverSchema,
+});
+
+const ApplyUpdateSchema = z.object({
+  acceptBreaking: z.boolean().optional(),
+});
+
+const AutoUpdateSchema = z.object({
+  enabled: z.boolean(),
+});
+
+function handleSkillError(
+  e: unknown,
+  res: import("express").Response,
+): boolean {
+  if (e instanceof SkillNotFoundError) {
+    res.status(404).json(err(e.code, e.message));
+    return true;
+  }
+  if (e instanceof SkillValidationError) {
+    res.status(400).json(err(e.code, e.message));
+    return true;
+  }
+  return false;
+}
 
 router.get("/", requireTenant(), async (req, res, next) => {
   try {
@@ -108,6 +166,16 @@ router.post("/", requireTenant(), async (req, res, next) => {
     }
     const row = await createSkill(ctx, parsed.data);
     res.json(ok(row));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/updates", requireTenant(), async (_req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const items = await listSkillsWithUpdates(ctx);
+    res.json(ok({ items }));
   } catch (e) {
     next(e);
   }
@@ -217,6 +285,103 @@ async function handleExport(req: import("express").Request, res: import("express
     next(e);
   }
 }
+
+router.post("/:id/publish", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = PublishSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid publish payload"));
+      return;
+    }
+    const row = await publishSkillVersion(ctx, String(req.params.id), parsed.data);
+    res.json(ok(row));
+  } catch (e) {
+    if (handleSkillError(e, res)) return;
+    next(e);
+  }
+});
+
+router.get("/:id/versions", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const items = await listSkillVersions(ctx, String(req.params.id));
+    res.json(ok({ items }));
+  } catch (e) {
+    if (handleSkillError(e, res)) return;
+    next(e);
+  }
+});
+
+router.post("/:id/rollback", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = RollbackSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid rollback payload"));
+      return;
+    }
+    const row = await rollbackSkill(ctx, String(req.params.id), parsed.data.version);
+    res.json(ok(row));
+  } catch (e) {
+    if (handleSkillError(e, res)) return;
+    next(e);
+  }
+});
+
+router.post("/:id/apply-update", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = ApplyUpdateSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid apply-update payload"));
+      return;
+    }
+    const row = await applySkillUpdate(ctx, String(req.params.id), parsed.data);
+    res.json(ok(row));
+  } catch (e) {
+    if (handleSkillError(e, res)) return;
+    next(e);
+  }
+});
+
+router.post("/:id/dismiss-update", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const row = await dismissSkillUpdate(ctx, String(req.params.id));
+    res.json(ok(row));
+  } catch (e) {
+    if (handleSkillError(e, res)) return;
+    next(e);
+  }
+});
+
+router.patch("/:id/auto-update", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = AutoUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid auto-update payload"));
+      return;
+    }
+    const row = await setAutoUpdate(ctx, String(req.params.id), parsed.data.enabled);
+    res.json(ok(row));
+  } catch (e) {
+    if (handleSkillError(e, res)) return;
+    next(e);
+  }
+});
+
+router.get("/:id/adoption", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const items = await getAdoptionStats(ctx, String(req.params.id));
+    res.json(ok({ items }));
+  } catch (e) {
+    if (handleSkillError(e, res)) return;
+    next(e);
+  }
+});
 
 router.get("/:id/export", requireTenant(), handleExport);
 // Spec-mandated alternate path shape: GET /api/skills/export/:id
