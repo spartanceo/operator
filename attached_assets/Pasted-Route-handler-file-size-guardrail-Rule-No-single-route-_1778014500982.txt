@@ -1,0 +1,26 @@
+Route/handler file size guardrail
+Rule: No single route/handler file may exceed 800 lines or define more than 15 HTTP handlers. These are hard ceilings, not aspirational targets.
+
+Before writing a new endpoint, you MUST:
+
+Pick the domain folder first, not the file. Endpoints live in server/routes/<domain>.ts where <domain> is the URL prefix (/api/orders → server/routes/orders.ts). If the folder doesn't exist, create it. Never add a new endpoint to a generic routes.ts, index.ts, app.ts, or server.ts.
+Check the target file's size. Run wc -l server/routes/<domain>.ts. If it's over 600 lines or 12 handlers, split it further by sub-resource (orders/checkout.ts, orders/refunds.ts) BEFORE adding the new handler.
+Use the slice convention. Each domain file exports either:
+A factory: export function build<Domain>Router(deps): Router — when handlers close over shared state (Socket.IO, in-memory maps, emitters).
+A singleton: export const <domain>Router = express.Router() — when handlers are pure of shared closure state.
+The top-level entry (server/index.ts or server/routes.ts) does nothing but app.use('/api/<prefix>', router).
+Lift helpers immediately. Any helper used by 2+ handlers belongs in server/services/, server/utils/, or server/repositories/. Helpers do not live next to their first caller. Closure-captured state (Maps, counters) goes in a dedicated module that exports both the state and its accessors.
+One thing per route file. A route file contains: imports, the router declaration, route handlers, and nothing else. Schemas live in shared/schema.ts. Types live next to schemas. Business logic lives in server/services/. Database queries live in server/repositories/. If a route handler is more than ~40 lines, the body belongs in a service.
+Rejected patterns (auto-reject in code review):
+
+Adding app.get/post/put/patch/delete calls to any file that already has 15+ such calls.
+Inline helper functions (>10 lines) defined inside registerRoutes() or any route module — they must be lifted.
+Multiple URL prefixes in one file (/api/orders and /api/products in the same module).
+"I'll split it later" comments. Split now or don't add the endpoint.
+When inheriting a project that already violated this rule:
+
+Do not pile on. Before adding any new endpoint to an oversized file, extract at minimum the slice you need to touch into its own domain module. Net file size of the monolith must shrink with every PR that touches it. Hard rule: a PR that adds a handler to a file already over the ceiling without extracting at least one slice is rejected.
+
+Why this matters (so the agent doesn't argue):
+
+A routes.ts that grows past ~5k lines becomes effectively unmaintainable: tests can't load it without import-cycle pain, IDEs lag, code review can't see context, refactors require multi-day surgical operations (see Task #697 — 26,708-line file requiring incremental Round 1–5 extraction over multiple sessions). Splitting is cheap when the file is 800 lines and prohibitively expensive at 20,000.

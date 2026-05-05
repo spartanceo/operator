@@ -60,12 +60,12 @@ interface ModelChoice {
 /**
  * Maps detected chip class + RAM to the recommended model.
  *
- * Mapping table from the task spec:
- * | Intel Mac          | Any     | llama3.2:3b   |
- * | M1 / M2 (base)     | 8 GB    | llama3.2:3b   |
- * | M1 / M2 / M3 base  | 16-18GB | llama3.2:13b  |
- * | M2 Pro/Max / M3Pro | 32 GB   | llama3.1:32b  |
- * | M3 Max / Ultra     | 64 GB+  | llama3.1:70b  |
+ * Mapping table:
+ * | Intel Mac          | Any     | llama3.2:3b  |
+ * | M1 / M2 (base)     | ≤8 GB   | llama3.2:3b  |
+ * | Any Apple Silicon  | 16-18GB | llama3.1:8b  |
+ * | M2 Pro/Max / M3Pro | 32 GB   | llama3.1:8b  |
+ * | M3 Max / Ultra     | 64 GB+  | llama3.1:70b |
  *
  * Chip class is detected from `cpuModel` (e.g. "Apple M3 Pro").
  * RAM thresholds are applied after chip class for accuracy.
@@ -102,23 +102,23 @@ function pickModel(
     };
   }
 
-  // M2 Pro/Max or M3 Pro: 32 GB (threshold at 28 GB to catch 32/36/48 GB configs)
+  // M2 Pro/Max or M3 Pro: 32 GB — best real model that fits comfortably
   if ((isMaxOrUltra || isPro) && gb >= 28) {
     return {
-      id: "llama3.1:32b",
-      displayName: "Llama 3.1 32B",
+      id: "llama3.1:8b",
+      displayName: "Llama 3.1 8B",
       rationale:
-        "Near GPT-3.5 quality — M2 Pro/Max or M3 Pro at 32 GB.",
+        "Fast and capable — runs perfectly on M2/M3 Pro at 32 GB.",
     };
   }
 
   // Any Apple Silicon with 16–18 GB (threshold at 14 GB to catch 16/18 GB configs)
   if (gb >= 14) {
     return {
-      id: "llama3.2:13b",
-      displayName: "Llama 3.2 13B",
+      id: "llama3.1:8b",
+      displayName: "Llama 3.1 8B",
       rationale:
-        "Apple Silicon bandwidth handles 13B smoothly at 16–18 GB.",
+        "Apple Silicon bandwidth handles 8B smoothly at 16–18 GB.",
     };
   }
 
