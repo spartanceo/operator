@@ -4,12 +4,12 @@ name: E2E — cold start
 # push to main. Enforces the < 2000 ms "ready chat interface" budget from
 # Standard 11 — Performance & Snappiness end-to-end against a production
 # build of the renderer.
+#
+# NOTE: Automatic triggers are disabled until @workspace/e2e is scaffolded.
+# Run manually via workflow_dispatch while the package is being built.
 
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   startup-time:
