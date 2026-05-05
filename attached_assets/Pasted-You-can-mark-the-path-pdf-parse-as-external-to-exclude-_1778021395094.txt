@@ -1,0 +1,54 @@
+You can mark the path "pdf-parse" as external to exclude it from the bundle,
+  which will remove this error and leave the unresolved path in the bundle.
+
+2 errors
+/Users/onursimsek/Desktop/operator/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1467
+  let error = new Error(text);
+              ^
+
+Error: Build failed with 2 errors:
+../api-server/src/routes/conversations/index.ts:20:19: ERROR: Could not resolve "multer"
+../api-server/src/routes/conversations/index.ts:21:21: ERROR: Could not resolve "pdf-parse"
+    at failureErrorWithLog (/Users/onursimsek/Desktop/operator/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/onursimsek/Desktop/operator/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:926:25
+    at /Users/onursimsek/Desktop/operator/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:878:52
+    at buildResponseToResult (/Users/onursimsek/Desktop/operator/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:924:7)
+    at /Users/onursimsek/Desktop/operator/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:951:16
+    at responseCallbacks.<computed> (/Users/onursimsek/Desktop/operator/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:603:9)
+    at handleIncomingPacket (/Users/onursimsek/Desktop/operator/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:658:12)
+    at Socket.readFromStdout (/Users/onursimsek/Desktop/operator/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v22.16.0
+node:internal/errors:983
+  const err = new Error(message);
+              ^
+
+Error: Command failed: node build.mjs
+    at genericNodeError (node:internal/errors:983:15)
+    at wrappedFn (node:internal/errors:537:14)
+    at checkExecSyncError (node:child_process:882:11)
+    at execSync (node:child_process:954:15)
+    at file:///Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/package.mjs:74:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:274:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 96424,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v22.16.0
+/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/omninity-desktop@0.0.1 package:mac: `node package.mjs mac`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
+Mac:operator onursimsek$ open "artifacts/omninity-desktop/release/mac-arm64/Omninity Operator.app"
+Mac:operator onursimsek$ 
