@@ -1,0 +1,42 @@
+0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/0.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["convert","/private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg","-ov","-format","UDZO","-o","/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["convert","/private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/0.dmg","-ov","-format","UDZO","-o","/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/0.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["convert","/private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg","-ov","-format","UDZO","-o","/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["convert","/private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/0.dmg","-ov","-format","UDZO","-o","/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/0.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["convert","/private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg","-ov","-format","UDZO","-o","/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["convert","/private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/0.dmg","-ov","-format","UDZO","-o","/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/0.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["convert","/private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg","-ov","-format","UDZO","-o","/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["convert","/private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/0.dmg","-ov","-format","UDZO","-o","/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/0.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • Above command failed, retrying 5 more times
+  ⨯ unable to execute hdiutil  args=["convert","/private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg","-ov","-format","UDZO","-o","/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg","-imagekey","zlib-level=9","-quiet"] code=undefined error=Exit code: 1. Command failed: hdiutil convert /private/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/t-l411Pf/1.dmg -ov -format UDZO -o /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg -imagekey zlib-level=9 -quiet
+
+  • building block map  blockMapFile=release/Omninity Operator-0.0.1.dmg.blockmap
+  • building block map  blockMapFile=release/Omninity Operator-0.0.1.dmg.blockmap
+→ Restoring better-sqlite3 Node.js ABI binary...
+✓  better-sqlite3 restored (Node.js ABI)
+Mac:operator onursimsek$ ls -lt ~/Desktop/operator/release/ 2>/dev/null && echo "---" && ls -lt ~/Desktop/*/release/ 2>/dev/null | head -10
+Mac:operator onursimsek$ open ~/Desktop/operator/release/
+The file /Users/onursimsek/Desktop/operator/release does not exist.
+Mac:operator onursimsek$ find ~/Desktop -name "*.dmg" 2>/dev/null
+/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/Omninity Operator-0.0.1.dmg
+Mac:operator onursimsek$ open "/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/"
+Mac:operator onursimsek$ open "/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/release/"
+Mac:operator onursimsek$ /Applications/Omninity\ Operator.app/Contents/MacOS/Omninity\ Operator
+
