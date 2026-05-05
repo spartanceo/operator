@@ -31,10 +31,18 @@ asar: true
 # the rest of the monorepo.  package.mjs compensates by backing up the
 # Node.js-ABI binary before running electron-builder and restoring it after.
 npmRebuild: true
+# forceCodeSigning: false keeps electron-builder from aborting when no
+# signing identity is available.  Signing is an opt-in release step (task #218).
 forceCodeSigning: false
 
 mac:
   category: public.app-category.productivity
+  # identity: null is the canonical electron-builder way to explicitly skip
+  # macOS code signing even when a Developer ID certificate exists in Keychain.
+  # Combine with CSC_IDENTITY_AUTO_DISCOVERY=false (set in package.mjs) for a
+  # fully unsigned dev build.  To enable signing for release, remove this line
+  # and set CSC_LINK + CSC_KEY_PASSWORD environment variables.
+  identity: null
   target:
     - target: dmg
       arch:
@@ -43,12 +51,16 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   hardenedRuntime: true
   gatekeeperAssess: false
+  # notarize: false — skip Apple notarisation (requires identity + creds).
   notarize: false
 
 dmg:
   title: "Omninity Operator ${version}"
 
 win:
+  # Windows code signing is disabled by not providing CSC_LINK / WIN_CSC_LINK.
+  # CSC_IDENTITY_AUTO_DISCOVERY=false (set in package.mjs) prevents accidental
+  # cert auto-discovery.  To enable signing, set WIN_CSC_LINK + WIN_CSC_KEY_PASSWORD.
   target:
     - target: nsis
       arch:

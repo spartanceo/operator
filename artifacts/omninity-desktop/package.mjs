@@ -37,12 +37,22 @@ const workspaceRoot = resolve(__dir, "../..");
 //   linux       → --linux dir  (fast, CI-testable unpacked directory)
 //   linux:deb   → --linux deb  (generates .deb installer; needs dpkg-deb)
 //   mac         → --mac dmg    (needs macOS + Xcode)
-//   win         → --win nsis   (needs Windows or Wine)
-const platform = process.argv[2] || "linux";
+//   win         → --win nsis   (needs Windows)
+//
+// When no argument is given, the current OS is auto-detected so that
+// `pnpm run package` produces the native installer on each CI runner:
+//   - Linux   → linux (unpacked dir)
+//   - macOS   → mac   (.dmg)
+//   - Windows → win   (.exe)
+const osPlatform = process.platform; // 'linux' | 'darwin' | 'win32'
+const nativePlatform =
+  osPlatform === "darwin" ? "mac" : osPlatform === "win32" ? "win" : "linux";
+const platform = process.argv[2] || nativePlatform;
 if (!["linux", "linux:deb", "mac", "win"].includes(platform)) {
   console.error(`Unknown platform: ${platform}. Use linux | linux:deb | mac | win.`);
   process.exit(1);
 }
+console.log(`→ Packaging for platform: ${platform} (OS: ${osPlatform})`);
 
 // ── 1. Build web frontend ──────────────────────────────────────────────────
 const PORT = process.env.PORT || "20599";

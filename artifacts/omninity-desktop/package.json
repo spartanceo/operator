@@ -11,7 +11,7 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "concurrently --kill-others-on-fail --names \"web,electron\" \"pnpm --filter @workspace/omninity-website run dev\" \"wait-on http://127.0.0.1:20599 && electron .\"",
-    "build": "node package.mjs linux",
+    "build": "node package.mjs",
     "build:code": "node build.mjs",
     "package:linux": "node package.mjs linux",
     "package:linux:deb": "node package.mjs linux:deb",
