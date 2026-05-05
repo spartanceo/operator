@@ -49,6 +49,9 @@ const external = [
   "bcrypt",
   "canvas",
   "sharp",
+  // Multipart / PDF processing — use dynamic require internals that esbuild cannot bundle
+  "multer",
+  "pdf-parse",
 ];
 
 const alias = {
