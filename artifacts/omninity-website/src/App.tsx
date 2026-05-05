@@ -275,7 +275,7 @@ function OperatorRoutes() {
 }
 
 function Router() {
-  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+  const [path] = useLocation();
   const base = getBaseUrl().replace(/\/$/, "");
   const relativePath = base && path.startsWith(base) ? path.slice(base.length) || "/" : path;
   const isMobile = relativePath === "/mobile" || relativePath.startsWith("/mobile/");
