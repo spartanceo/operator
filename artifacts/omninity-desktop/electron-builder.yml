@@ -55,6 +55,7 @@ nsis:
   deleteAppDataOnUninstall: false
 
 linux:
+  maintainer: "Omninity <support@omninity.app>"
   target:
     - target: dir
     - target: deb

@@ -1,0 +1,52 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.omninity.operator
+productName: Omninity Operator
+copyright: Copyright © 2026 Omninity
+files:
+  - filter:
+      - dist/main.js
+      - dist/preload.js
+      - node_modules/**/*
+      - package.json
+extraResources:
+  - from: ../omninity-website/dist/public
+    to: renderer
+    filter:
+      - '**/*'
+  - from: assets/tray-icon.png
+    to: tray-icon.png
+asar: true
+npmRebuild: true
+forceCodeSigning: false
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  entitlementsInherit: build/entitlements.mac.plist
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  notarize: false
+dmg:
+  title: Omninity Operator ${version}
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: true
+  deleteAppDataOnUninstall: false
+linux:
+  target:
+    - target: dir
+    - target: deb
+  category: Utility
+publish:
+  provider: generic
+  url: https://releases.omninity.app/desktop
+electronVersion: 36.9.5
