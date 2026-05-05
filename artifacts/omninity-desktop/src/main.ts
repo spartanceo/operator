@@ -11,13 +11,36 @@
  */
 import { createServer as createTcpServer } from "node:net";
 import { createServer as createHttpServer, IncomingMessage, ServerResponse } from "node:http";
-import { createReadStream, statSync } from "node:fs";
+import { createReadStream, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { join, extname } from "node:path";
 
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from "electron";
 
 import type { ServerHandle } from "@workspace/api-server/server";
 import { startServer } from "@workspace/api-server/server";
+
+// ─── Crash logger (writes to userData before pino is up) ─────────────────────
+
+function crashLog(msg: string): void {
+  try {
+    const logDir = app.getPath("userData");
+    mkdirSync(logDir, { recursive: true });
+    const logFile = join(logDir, "crash.log");
+    const line = `[${new Date().toISOString()}] ${msg}\n`;
+    writeFileSync(logFile, line, { flag: "a" });
+    process.stderr.write(line);
+  } catch {
+    process.stderr.write(`[omninity-desktop] ${msg}\n`);
+  }
+}
+
+process.on("uncaughtException", (err) => {
+  crashLog(`UncaughtException: ${err?.stack ?? err}`);
+});
+
+process.on("unhandledRejection", (reason) => {
+  crashLog(`UnhandledRejection: ${reason}`);
+});
 
 // ─── Free port discovery ──────────────────────────────────────────────────────
 
@@ -152,21 +175,26 @@ function createWindow(apiPort: number): BrowserWindow {
   if (!app.isPackaged) {
     const devUrl = process.env["RENDERER_DEV_URL"] ?? "http://127.0.0.1:20599/";
     win.loadURL(devUrl).catch(() => {
-      win.loadURL(`http://127.0.0.1:${apiPort}/`);
+      if (!win.isDestroyed()) win.loadURL(`http://127.0.0.1:${apiPort}/`);
     });
   } else {
     const rendererDir = join(process.resourcesPath, "renderer");
     serveStaticDir(rendererDir)
       .then((rPort) => {
-        win.loadURL(`http://127.0.0.1:${rPort}/`);
+        if (!win.isDestroyed()) win.loadURL(`http://127.0.0.1:${rPort}/`);
       })
-      .catch(() => {
-        win.loadFile(join(process.resourcesPath, "renderer", "index.html"));
+      .catch((err: unknown) => {
+        crashLog(`serveStaticDir failed: ${err} — falling back to loadFile`);
+        if (!win.isDestroyed()) {
+          win.loadFile(join(process.resourcesPath, "renderer", "index.html")).catch((e: unknown) => {
+            crashLog(`loadFile fallback also failed: ${e}`);
+          });
+        }
       });
   }
 
   win.once("ready-to-show", () => {
-    win.show();
+    if (!win.isDestroyed()) win.show();
   });
 
   win.on("close", (event) => {
@@ -186,10 +214,12 @@ function buildTrayMenu(): Electron.Menu {
     {
       label: "Show Omninity",
       click() {
-        if (mainWindow) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.show();
           mainWindow.focus();
-          mainWindow.webContents.send("tray-action", "show");
+          if (!mainWindow.webContents.isDestroyed()) {
+            mainWindow.webContents.send("tray-action", "show");
+          }
         }
       },
     },
@@ -210,7 +240,7 @@ function createTray(): Tray {
   t.setContextMenu(buildTrayMenu());
 
   t.on("click", () => {
-    if (!mainWindow) return;
+    if (!mainWindow || mainWindow.isDestroyed()) return;
     if (mainWindow.isVisible()) {
       mainWindow.hide();
     } else {
@@ -224,7 +254,16 @@ function createTray(): Tray {
 
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 
-app.on("ready", () => {
+app.whenReady().then(() => {
+  // Point the DB at the user's writable app-data directory (not the read-only
+  // app bundle) so SQLite can create / open the database in a packaged build.
+  if (app.isPackaged && !process.env["SQLITE_PATH"]) {
+    const userDataDir = app.getPath("userData");
+    mkdirSync(userDataDir, { recursive: true });
+    process.env["SQLITE_PATH"] = join(userDataDir, "omninity.db");
+    crashLog(`Using SQLITE_PATH: ${process.env["SQLITE_PATH"]}`);
+  }
+
   findFreePort()
     .then((apiPort) => startServer(apiPort))
     .then((handle) => {
@@ -233,8 +272,8 @@ app.on("ready", () => {
       tray = createTray();
     })
     .catch((err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`[omninity-desktop] Fatal startup error: ${msg}\n`);
+      const msg = err instanceof Error ? err.stack ?? err.message : String(err);
+      crashLog(`Fatal startup error: ${msg}`);
       app.quit();
     });
 });
@@ -245,7 +284,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show();
     mainWindow.focus();
   }
