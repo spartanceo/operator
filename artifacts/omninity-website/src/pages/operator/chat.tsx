@@ -65,6 +65,7 @@ import {
   useHelp,
 } from "@/components/help";
 import { useSettings } from "@/contexts/settings-context";
+import { getTenantId, getWorkspaceId } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import {
   useVoicePlayer,
@@ -77,6 +78,15 @@ import {
 const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
 // tier-review: bounded — single-element status enum
 const COMPLETED_STATUSES = new Set(["succeeded"]);
+
+function getApiBase(): string {
+  const win = window as Window &
+    typeof globalThis & {
+      electronAPI?: { getApiPort?: () => number | null };
+    };
+  const port = win.electronAPI?.getApiPort?.();
+  return port ? `http://127.0.0.1:${port}` : "";
+}
 
 /**
  * Cold-start ready marker consumed by `e2e/startup-time.spec.ts`.
@@ -102,10 +112,12 @@ export default function ChatPage() {
   const [lastSentPrompt, setLastSentPrompt] = useState<string>("");
   const sparkleFiredFor = useRef<string | null>(null);
   const [skillId, setSkillId] = useState<string>("auto");
-  // The skill that was active when the current run was kicked off — captured
-  // separately so that changing the picker mid-run does not retro-attribute.
   const [activeRunSkillId, setActiveRunSkillId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [streamingContent, setStreamingContent] = useState<string | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const streamAbortRef = useRef<AbortController | null>(null);
 
   const profileQuery = useGetOnboardingProfile();
   const profile = profileQuery.data?.data.profile ?? null;
@@ -246,24 +258,81 @@ export default function ChatPage() {
     return result.data;
   };
 
-  const chatMutation = useChat({
-    mutation: {
-      onSuccess: async (resp, vars) => {
-        const last = vars.data.messages[vars.data.messages.length - 1];
-        const userText = last?.content ?? "";
-        const conversation =
-          activeConversation ?? (await ensureConversation(userText));
+  const chatMutation = useChat({ mutation: {} });
+
+  const streamChatDirect = useCallback(
+    async (text: string, conversationId: string, messages: ChatMessage[]) => {
+      const ctrl = new AbortController();
+      streamAbortRef.current = ctrl;
+      setIsStreaming(true);
+      setStreamingContent("");
+      setStreamError(null);
+      let fullContent = "";
+      try {
         await appendMessage.mutateAsync({
-          id: conversation.id,
-          data: { role: "user", content: userText },
+          id: conversationId,
+          data: { role: "user", content: text },
         });
-        await appendMessage.mutateAsync({
-          id: conversation.id,
-          data: { role: "assistant", content: resp.data.message.content },
+        const res = await fetch(`${getApiBase()}/api/chat/stream`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "X-Tenant-ID": getTenantId(),
+            "X-Workspace-ID": getWorkspaceId(),
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            messages,
+            conversationId,
+            ...(model ? { model } : {}),
+          }),
+          signal: ctrl.signal,
         });
-      },
+        if (!res.ok || !res.body) {
+          throw new Error(`Stream request failed (${res.status})`);
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        outer: while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") break outer;
+            try {
+              const chunk = JSON.parse(data) as { delta?: string; error?: string; done?: boolean };
+              if (chunk.error) throw new Error(chunk.error);
+              fullContent += chunk.delta ?? "";
+              setStreamingContent(fullContent);
+              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            } catch {
+              // skip malformed SSE lines
+            }
+          }
+        }
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") {
+          setStreamError((e as Error).message ?? "Stream error");
+        }
+      } finally {
+        streamAbortRef.current = null;
+        setIsStreaming(false);
+        setStreamingContent(null);
+        if (fullContent) {
+          await appendMessage.mutateAsync({
+            id: conversationId,
+            data: { role: "assistant", content: fullContent },
+          });
+        }
+      }
     },
-  });
+    [appendMessage, messagesEndRef, model],
+  );
 
   const createRun = useCreateAgentRun({
     mutation: {
@@ -473,8 +542,6 @@ export default function ChatPage() {
         setLastSentPrompt(text);
         setInput("");
       } else {
-        // Build the message history from the persisted conversation transcript so
-        // each turn is anchored to one thread.
         const history: ChatMessage[] = conversationMessages
           .filter((m) => m.role === "user" || m.role === "assistant")
           .map((m) => ({
@@ -485,27 +552,17 @@ export default function ChatPage() {
           ...history,
           { role: "user", content: text },
         ];
-        // Hand the conversationId to the server so it can rebuild context
-        // honouring pinned messages, prior summaries, and overflow protection
-        // (Task #51). The server ignores the verbose `messages` history
-        // when conversationId is present.
         const conversation =
           activeConversation ?? (await ensureConversation(text));
-        chatMutation.mutate({
-          data: {
-            messages: newMessages,
-            conversationId: conversation.id,
-            ...(model ? { model } : {}),
-          },
-        });
         setLastSentPrompt(text);
         setInput("");
+        void streamChatDirect(text, conversation.id, newMessages);
       }
     },
     [
       agentMode,
       activeConversation,
-      chatMutation,
+      streamChatDirect,
       conversationMessages,
       createRun,
       ensureConversation,
@@ -694,13 +751,26 @@ export default function ChatPage() {
                   }}
                 />
               )}
+              {streamingContent !== null && (
+                <div className="mx-auto mt-4 max-w-3xl rounded-lg border border-border bg-muted/40 p-4">
+                  <div className="mb-1">
+                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Assistant
+                    </span>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm text-foreground">
+                    {streamingContent}
+                    <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-current" />
+                  </p>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
             <div className="border-t border-border bg-background/95 px-6 py-4">
               <ErrorBanner
                 error={
-                  chatMutation.error ??
+                  (streamError ? new Error(streamError) : null) ??
                   createRun.error ??
                   transcribeMut.error ??
                   synthesize.error ??
@@ -822,7 +892,7 @@ export default function ChatPage() {
                         : "Send a message…"
                   }
                   className="min-h-[72px] max-h-48 resize-none"
-                  disabled={chatMutation.isPending || createRun.isPending}
+                  disabled={isStreaming || createRun.isPending}
                 />
                 <div className="flex flex-col gap-2">
                   <Button
@@ -863,7 +933,7 @@ export default function ChatPage() {
                     onClick={submit}
                     disabled={
                       !input.trim() ||
-                      chatMutation.isPending ||
+                      isStreaming ||
                       createRun.isPending
                     }
                     aria-label="Send"

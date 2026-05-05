@@ -29,6 +29,7 @@ import {
   CloudCredentialMissingError,
   RuntimeUnavailableError,
   chatWithActiveRuntime,
+  streamChatWithActiveRuntime,
 } from "../../services/runtime.service";
 
 const router: IRouter = Router();
@@ -141,6 +142,71 @@ router.post("/", requireTenant(), async (req, res, next) => {
       }
       throw e;
     }
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/stream", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = ChatSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid chat payload"));
+      return;
+    }
+    const confirmed = listConfirmedRuntimeIds(req);
+    let messagesToSend = parsed.data.messages;
+    if (parsed.data.conversationId) {
+      const lastUser = parsed.data.messages[parsed.data.messages.length - 1];
+      const pendingInput = lastUser?.content ?? "";
+      try {
+        const prepared = await prepareChatContext(
+          ctx,
+          parsed.data.conversationId,
+          pendingInput,
+          parsed.data.model ?? null,
+          confirmed,
+        );
+        messagesToSend = prepared.messages;
+      } catch (e) {
+        if (e instanceof OverflowError) {
+          res.status(413).json(err("CONTEXT_OVERFLOW", e.suggestion, { usage: e.usage }));
+          return;
+        }
+        throw e;
+      }
+    }
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+    try {
+      const stream = streamChatWithActiveRuntime(
+        ctx,
+        {
+          model: parsed.data.model ?? "",
+          messages: messagesToSend,
+          ...(parsed.data.temperature !== undefined ? { temperature: parsed.data.temperature } : {}),
+        },
+        confirmed,
+      );
+      for await (const chunk of stream) {
+        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      }
+    } catch (e) {
+      if (e instanceof CloudConsentRequiredError) {
+        res.write(`data: ${JSON.stringify({ error: "CLOUD_CONSENT_REQUIRED" })}\n\n`);
+      } else if (e instanceof CloudCredentialMissingError) {
+        res.write(`data: ${JSON.stringify({ error: "MISSING_CREDENTIALS" })}\n\n`);
+      } else if (e instanceof RuntimeUnavailableError) {
+        res.write(`data: ${JSON.stringify({ error: "RUNTIME_UNAVAILABLE" })}\n\n`);
+      } else {
+        res.write(`data: ${JSON.stringify({ error: "STREAM_ERROR" })}\n\n`);
+      }
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
   } catch (e) {
     next(e);
   }

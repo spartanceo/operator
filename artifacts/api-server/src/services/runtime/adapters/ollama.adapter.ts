@@ -77,7 +77,7 @@ export const ollamaAdapter: ModelRuntime = {
   residency: "local",
   requiresApiKey: false,
   capabilities: {
-    streaming: false,
+    streaming: true,
     toolCalling: false,
     vision: false,
     embeddings: true,
@@ -151,10 +151,69 @@ export const ollamaAdapter: ModelRuntime = {
   },
 
   async *chatStream(ctx, req: RuntimeChatRequest): AsyncIterable<RuntimeChatChunk> {
-    // Tier 1 ships only the batch path; expose a single-chunk async
-    // iterable so callers can consume a unified streaming contract.
-    const r = await this.chat(ctx, req);
-    yield { delta: r.message.content, done: true, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
+    await logPrivacyEvent(ctx, {
+      eventType: "network.ollama",
+      actor: ctx.userId ?? ctx.tenantId,
+      target: `ollama:/api/chat/stream:${req.model}`,
+      severity: "low",
+      detail: "POST",
+    });
+    let res: Response | null = null;
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 180_000);
+      res = await fetch(`${host()}/api/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model: req.model,
+          messages: req.messages,
+          stream: true,
+          options: { temperature: req.temperature ?? 0.2 },
+        }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(t);
+    } catch {
+      const r = await this.chat(ctx, req);
+      yield { delta: r.message.content, done: true, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
+      return;
+    }
+    if (!res || !res.ok || !res.body) {
+      const r = await this.chat(ctx, req);
+      yield { delta: r.message.content, done: true, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
+      return;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() ?? "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const json = JSON.parse(trimmed) as {
+            message?: { content?: string };
+            done?: boolean;
+            prompt_eval_count?: number;
+            eval_count?: number;
+          };
+          yield {
+            delta: json.message?.content ?? "",
+            done: json.done ?? false,
+            tokensIn: json.done ? (json.prompt_eval_count ?? null) : null,
+            tokensOut: json.done ? (json.eval_count ?? null) : null,
+          };
+        } catch {
+          // skip malformed NDJSON lines
+        }
+      }
+    }
   },
 
   async embed(ctx, req: RuntimeEmbedRequest): Promise<RuntimeEmbedResult> {
