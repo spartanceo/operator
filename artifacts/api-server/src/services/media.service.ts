@@ -233,6 +233,99 @@ function toView(row: typeof mediaAssets.$inferSelect): MediaAssetView {
 }
 
 // ---------------------------------------------------------------------------
+// Replicate FLUX renderer — calls the cloud API when REPLICATE_API_TOKEN is set
+// ---------------------------------------------------------------------------
+
+interface ReplicatePrediction {
+  id: string;
+  status: string;
+  output?: string[];
+  error?: string;
+}
+
+async function generateImageWithReplicate(
+  prompt: string,
+  width: number,
+  height: number,
+): Promise<Buffer | null> {
+  const token = process.env["REPLICATE_API_TOKEN"];
+  if (!token) return null;
+
+  // Map pixel dimensions to the nearest supported aspect ratio
+  const ratio = width / height;
+  let aspectRatio = "1:1";
+  if (ratio >= 1.7) aspectRatio = "16:9";
+  else if (ratio >= 1.4) aspectRatio = "3:2";
+  else if (ratio >= 1.1) aspectRatio = "4:3";
+  else if (ratio <= 0.59) aspectRatio = "9:16";
+  else if (ratio <= 0.72) aspectRatio = "2:3";
+
+  // Submit prediction — Prefer: wait asks Replicate to hold the connection
+  // until the result is ready (up to 60 s) to avoid a polling round-trip.
+  const createRes = await fetch(
+    "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt,
+          aspect_ratio: aspectRatio,
+          output_format: "png",
+          output_quality: 90,
+          num_inference_steps: 4,
+        },
+      }),
+    },
+  );
+
+  if (!createRes.ok) {
+    const body = await createRes.text().catch(() => "(unreadable)");
+    console.warn(`[media] Replicate create prediction failed ${createRes.status}: ${body}`);
+    return null;
+  }
+
+  let prediction = (await createRes.json()) as ReplicatePrediction;
+
+  // Poll at 2-second intervals if the synchronous wait didn't resolve it
+  const pollUrl = `https://api.replicate.com/v1/predictions/${prediction.id}`;
+  let attempts = 0;
+  while (
+    prediction.status !== "succeeded" &&
+    prediction.status !== "failed" &&
+    prediction.status !== "canceled" &&
+    attempts < 30
+  ) {
+    await new Promise<void>((r) => setTimeout(r, 2000));
+    const pollRes = await fetch(pollUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    prediction = (await pollRes.json()) as ReplicatePrediction;
+    attempts++;
+  }
+
+  if (prediction.status !== "succeeded" || !prediction.output?.[0]) {
+    console.warn(
+      `[media] Replicate prediction ${prediction.id} ended with status=${prediction.status} error=${prediction.error ?? "none"}`,
+    );
+    return null;
+  }
+
+  // Download the generated image and return its bytes
+  const imageUrl = prediction.output[0]!;
+  const imgRes = await fetch(imageUrl);
+  if (!imgRes.ok) {
+    console.warn(`[media] Failed to download Replicate output image: ${imgRes.status}`);
+    return null;
+  }
+  return Buffer.from(await imgRes.arrayBuffer());
+}
+
+// ---------------------------------------------------------------------------
 // Stub renderers — produce real bytes deterministically from the prompt.
 // ---------------------------------------------------------------------------
 
