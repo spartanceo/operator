@@ -151,17 +151,17 @@ export const ollamaAdapter: ModelRuntime = {
   },
 
   async *chatStream(ctx, req: RuntimeChatRequest): AsyncIterable<RuntimeChatChunk> {
-    await logPrivacyEvent(ctx, {
-      eventType: "network.ollama",
-      actor: ctx.userId ?? ctx.tenantId,
-      target: `ollama:/api/chat/stream:${req.model}`,
-      severity: "low",
-      detail: "POST",
-    });
     let res: Response | null = null;
     try {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 180_000);
+      await logPrivacyEvent(ctx, {
+        eventType: "network.ollama",
+        actor: ctx.userId ?? ctx.tenantId,
+        target: `ollama:/api/chat/stream:${req.model}`,
+        severity: "low",
+        detail: "POST",
+      });
       res = await fetch(`${host()}/api/chat`, {
         method: "POST",
         headers: { "content-type": "application/json" },
