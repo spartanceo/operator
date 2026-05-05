@@ -56,6 +56,8 @@ mac:
 
 dmg:
   title: "Omninity Operator ${version}"
+  # Produces: Omninity Operator-0.0.1.dmg  (no arch suffix for universal DMG)
+  artifactName: "${productName}-${version}.${ext}"
 
 win:
   # Windows code signing is disabled by not providing CSC_LINK / WIN_CSC_LINK.
@@ -69,6 +71,8 @@ win:
 nsis:
   oneClick: true
   deleteAppDataOnUninstall: false
+  # Conventional Windows installer naming: "Omninity Operator Setup 0.0.1.exe"
+  artifactName: "${productName} Setup ${version}.${ext}"
 
 linux:
   maintainer: "Omninity <support@omninity.app>"
