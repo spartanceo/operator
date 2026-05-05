@@ -233,15 +233,12 @@ export default function ChatPage() {
 
   const appendMessage = useAppendConversationMessage({
     mutation: {
-      onSuccess: () => {
-        void qc.invalidateQueries({
-          queryKey: ["/conversations"],
+      onSuccess: (_data, vars) => {
+        void qc.refetchQueries({ queryKey: ["/conversations"], exact: false });
+        void qc.refetchQueries({
+          queryKey: [`/conversations/${vars.id}/messages`],
+          exact: false,
         });
-        if (activeConversation) {
-          void qc.invalidateQueries({
-            queryKey: [`/conversations/${activeConversation.id}/messages`],
-          });
-        }
       },
     },
   });
