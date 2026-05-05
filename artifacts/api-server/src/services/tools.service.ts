@@ -587,6 +587,72 @@ const TOOLS: ToolEntry[] = [
       return { call };
     },
   },
+  // ─── Web search ────────────────────────────────────────────────────────────
+  {
+    name: "web_search",
+    description:
+      "Search the web for up-to-date information. Returns top results with title, URL, and description snippet. Requires BRAVE_SEARCH_API_KEY.",
+    riskLevel: "low",
+    handler: async (ctx, input) => {
+      const query = str(input["query"], "query");
+      const count = Math.max(1, Math.min(10, intOr(input["count"], 5)));
+      const apiKey = process.env["BRAVE_SEARCH_API_KEY"];
+
+      if (!apiKey) {
+        return {
+          results: [],
+          count: 0,
+          query,
+          error: "Web search unavailable — no API key configured (set BRAVE_SEARCH_API_KEY)",
+        };
+      }
+
+      await logPrivacyEvent(ctx, {
+        eventType: "tool.web_search",
+        actor: ctx.userId ?? ctx.tenantId,
+        target: query,
+        severity: "low",
+        detail: `count=${count}`,
+      });
+
+      const searchUrl =
+        `https://api.search.brave.com/res/v1/web/search` +
+        `?q=${encodeURIComponent(query)}&count=${count}`;
+
+      const res = await fetch(searchUrl, {
+        headers: {
+          Accept: "application/json",
+          "Accept-Encoding": "gzip",
+          "X-Subscription-Token": apiKey,
+        },
+      });
+
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        console.warn(`[web_search] Brave API ${res.status}: ${body}`);
+        return {
+          results: [],
+          count: 0,
+          query,
+          error: `Brave Search API error: ${res.status}`,
+        };
+      }
+
+      const data = (await res.json()) as {
+        web?: {
+          results?: Array<{ title: string; url: string; description?: string }>;
+        };
+      };
+
+      const results = (data.web?.results ?? []).slice(0, count).map((r) => ({
+        title: r.title,
+        url: r.url,
+        description: r.description ?? "",
+      }));
+
+      return { results, count: results.length, query };
+    },
+  },
 ];
 
 /**

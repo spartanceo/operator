@@ -383,6 +383,31 @@ function researchAgentFallback(goal: string): string {
   return `Research context for "${goal}": Ollama is unavailable — running in offline mode.`;
 }
 
+/**
+ * Call the web_search tool and format results as a readable research context
+ * string. Returns null when BRAVE_SEARCH_API_KEY is absent or the call fails,
+ * so the caller can fall through to the Ollama / stub path.
+ */
+async function generateWebSearchResearch(
+  ctx: TenantContext,
+  goal: string,
+): Promise<string | null> {
+  if (!process.env["BRAVE_SEARCH_API_KEY"]) return null;
+  try {
+    const result = await invokeTool(ctx, "web_search", { query: goal, count: 5 });
+    const results = result.output["results"] as
+      | Array<{ title: string; url: string; description: string }>
+      | undefined;
+    if (!results || results.length === 0) return null;
+    const snippets = results
+      .map((r, i) => `${i + 1}. **${r.title}** (${r.url})\n   ${r.description}`)
+      .join("\n\n");
+    return `Web search results for "${goal}":\n\n${snippets}`;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Public orchestrator API ─────────────────────────────────────────────────
 
 export async function listAgentRuns(
@@ -516,8 +541,9 @@ export async function createAgentRun(
   }
   const researchSummary =
     route === "research"
-      ? ((await generateAiResearch(ctx, input.goal, input.modelName ?? null)) ??
-        researchAgentFallback(input.goal))
+      ? ((await generateWebSearchResearch(ctx, input.goal)) ??
+         (await generateAiResearch(ctx, input.goal, input.modelName ?? null)) ??
+         researchAgentFallback(input.goal))
       : null;
   const desktopNote = route === "desktop" ? desktopRouterNote(input.goal) : null;
   // RAG: pull top-k snippets from the personal knowledge base unless the
