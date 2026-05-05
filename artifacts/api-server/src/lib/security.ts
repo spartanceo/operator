@@ -23,8 +23,12 @@ export function allowedOrigins(): string[] {
       .map((s) => s.trim())
       .filter(Boolean);
   }
-  // Default development allowlist: Vite dev server + Electron renderer.
+  // Default development allowlist: Vite dev server (any port) + Electron renderer.
+  // The port is dynamic (assigned via PORT env var) so we derive it at runtime.
+  const devPort = process.env["PORT"] ?? "5173";
   return [
+    `http://127.0.0.1:${devPort}`,
+    `http://localhost:${devPort}`,
     "http://127.0.0.1:5173",
     "http://localhost:5173",
     "app://omninity-operator",
