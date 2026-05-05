@@ -5,14 +5,22 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "concurrently --kill-others-on-fail --names \"web,electron\" \"pnpm --filter @workspace/omninity-website run dev\" \"wait-on http://127.0.0.1:20599 && electron .\"",
-    "build": "pnpm --filter @workspace/omninity-website run build && node build.mjs && electron-builder",
+    "build": "pnpm --filter @workspace/omninity-website run build && node build.mjs && electron-builder --publish never && pnpm -w rebuild better-sqlite3",
     "build:code": "node build.mjs",
+    "package:linux": "pnpm --filter @workspace/omninity-website run build && node build.mjs && electron-builder --linux --publish never && pnpm -w rebuild better-sqlite3",
+    "package:mac": "pnpm --filter @workspace/omninity-website run build && node build.mjs && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --publish never && pnpm -w rebuild better-sqlite3",
+    "package:win": "pnpm --filter @workspace/omninity-website run build && node build.mjs && electron-builder --win --publish never && pnpm -w rebuild better-sqlite3",
     "preview": "vite --config vite.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo 'ok'"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0"
+    "better-sqlite3": "^11.10.0",
+    "pino": "^9",
+    "pino-abstract-transport": "^2",
+    "pino-http": "^9",
+    "pino-std-serializers": "^7",
+    "thread-stream": "^3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -21,7 +29,6 @@
     "electron": "^36.3.2",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.27.3",
-    "esbuild-plugin-pino": "^2.3.3",
     "tsx": "catalog:",
     "vite": "catalog:",
     "wait-on": "^8.0.3"

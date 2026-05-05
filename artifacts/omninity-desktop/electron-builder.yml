@@ -4,7 +4,7 @@ copyright: "Copyright © 2026 Omninity"
 
 directories:
   buildResources: build
-  output: dist
+  output: release
 
 files:
   - dist/main.js
@@ -21,6 +21,13 @@ extraResources:
     to: "tray-icon.png"
 
 asar: true
+# npmRebuild rebuilds native modules for the Electron ABI before packaging,
+# which is correct for the packaged app but breaks the shared pnpm store for
+# the rest of the monorepo.  The build scripts compensate by running
+# `pnpm -w rebuild better-sqlite3` immediately after electron-builder to
+# restore the Node.js-ABI binary for the dev server.
+npmRebuild: true
+forceCodeSigning: false
 
 mac:
   category: public.app-category.productivity
@@ -32,6 +39,7 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   hardenedRuntime: true
   gatekeeperAssess: false
+  notarize: false
 
 dmg:
   title: "Omninity Operator ${version}"
@@ -45,6 +53,12 @@ win:
 nsis:
   oneClick: true
   deleteAppDataOnUninstall: false
+
+linux:
+  target:
+    - target: dir
+    - target: deb
+  category: Utility
 
 publish:
   provider: generic

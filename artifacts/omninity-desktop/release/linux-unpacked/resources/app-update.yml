@@ -1,0 +1,3 @@
+provider: generic
+url: https://releases.omninity.app/desktop
+updaterCacheDirName: '@workspaceomninity-desktop-updater'

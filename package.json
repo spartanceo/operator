@@ -14,7 +14,11 @@
     "coverage": "pnpm --filter @workspace/scripts run coverage",
     "coverage:check": "pnpm --filter @workspace/scripts run coverage:check",
     "flaky-detect": "pnpm --filter @workspace/scripts run flaky-detect",
-    "qa": "pnpm --filter @workspace/scripts run qa"
+    "qa": "pnpm --filter @workspace/scripts run qa",
+    "package": "pnpm --filter @workspace/omninity-desktop run build",
+    "package:linux": "pnpm --filter @workspace/omninity-desktop run package:linux",
+    "package:mac": "pnpm --filter @workspace/omninity-desktop run package:mac",
+    "package:win": "pnpm --filter @workspace/omninity-desktop run package:win"
   },
   "private": true,
   "devDependencies": {
