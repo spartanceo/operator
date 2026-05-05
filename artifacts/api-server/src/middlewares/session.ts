@@ -29,6 +29,10 @@ function sessionSecret(): string {
 
 export function sessionMiddleware(): RequestHandler {
   const isProd = process.env["NODE_ENV"] === "production";
+  // The Electron renderer connects over plain HTTP on a dynamic localhost port,
+  // so `secure: true` would silently drop every Set-Cookie header. Force it
+  // off whenever the API server is embedded in the desktop app.
+  const isElectron = process.env["ELECTRON_RUNTIME"] === "1";
   return session({
     name: "omninity.sid",
     secret: sessionSecret(),
@@ -37,7 +41,7 @@ export function sessionMiddleware(): RequestHandler {
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      secure: isProd,
+      secure: isElectron ? false : isProd,
       maxAge: 1000 * 60 * 60 * 12, // 12h, matches the DB session TTL
     },
   });

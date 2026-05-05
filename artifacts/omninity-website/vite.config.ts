@@ -65,7 +65,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8080",
+        target: `http://127.0.0.1:${process.env.API_PORT ?? "8080"}`,
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on("proxyReq", (proxyReq) => {

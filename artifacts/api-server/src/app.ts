@@ -20,7 +20,7 @@ import helmet from "helmet";
 import pinoHttp from "pino-http";
 
 import { logger } from "./lib/logger";
-import { allowedOrigins, cspDirectives } from "./lib/security";
+import { isOriginAllowed, cspDirectives } from "./lib/security";
 import {
   auditEmitter,
   defaultLimiter,
@@ -49,16 +49,11 @@ app.use(
 );
 
 // 2. CORS allowlist — Standard 12 forbids `*` / `true`.
-const origins = allowedOrigins();
+// isOriginAllowed handles both the static list and the Electron dynamic-port case.
 app.use(
   cors({
     origin: (incoming, cb) => {
-      // Same-origin (no Origin header) is always allowed.
-      if (!incoming) {
-        cb(null, true);
-        return;
-      }
-      cb(null, origins.includes(incoming));
+      cb(null, isOriginAllowed(incoming));
     },
     credentials: true,
   }),

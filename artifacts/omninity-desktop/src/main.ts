@@ -264,6 +264,8 @@ app.whenReady().then(() => {
     crashLog(`Using SQLITE_PATH: ${process.env["SQLITE_PATH"]}`);
   }
 
+  process.env["ELECTRON_RUNTIME"] = "1";
+
   findFreePort()
     .then((apiPort) => startServer(apiPort))
     .then((handle) => {

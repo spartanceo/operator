@@ -36,6 +36,22 @@ export function allowedOrigins(): string[] {
 }
 
 /**
+ * Returns true when the incoming request origin should be permitted.
+ *
+ * In addition to the static allowlist, when running inside the Electron
+ * desktop shell (`ELECTRON_RUNTIME=1`) the renderer is served on a
+ * dynamically assigned port, so any `http://127.0.0.1:*` origin is
+ * accepted without requiring it to be listed explicitly.
+ */
+export function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (process.env["ELECTRON_RUNTIME"] === "1") {
+    if (/^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return true;
+  }
+  return allowedOrigins().includes(origin);
+}
+
+/**
  * Bind host. Standard 12 requires `127.0.0.1` — the api-server is the
  * loopback HTTP transport between the renderer and the local backend, never
  * a network-reachable service. Override with `HOST` only for the rare
