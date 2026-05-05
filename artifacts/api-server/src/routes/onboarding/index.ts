@@ -20,6 +20,10 @@ import {
   upsertOnboardingProfile,
 } from "../../services/onboarding.service";
 
+function ollamaHost(): string {
+  return process.env["OLLAMA_HOST"] ?? "http://127.0.0.1:11434";
+}
+
 const router: IRouter = Router();
 
 const HardwareSnapshotSchema = z.object({
@@ -90,6 +94,39 @@ router.get("/starter-tasks", requireTenant(), async (_req, res, next) => {
     const profile = await getOnboardingProfile(ctx);
     const result = generateStarterTasks(profile?.useCase);
     res.json(ok(result));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * GET /api/onboarding/ollama-status
+ *
+ * Pings the local Ollama daemon at `localhost:11434/api/tags` and returns
+ * whether it is reachable. This is what the launch-sequence screen polls
+ * every 2 s when Ollama is not yet installed/running. The route is
+ * tenant-scoped for consistency but performs no tenant-specific work —
+ * the answer is process-wide.
+ *
+ * Returns `{ running: true }` when Ollama responds with any 2xx,
+ * `{ running: false }` when the connection is refused or times out.
+ */
+router.get("/ollama-status", requireTenant(), async (_req, res, next) => {
+  try {
+    let running = false;
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 3000);
+      const r = await fetch(`${ollamaHost()}/api/tags`, {
+        method: "GET",
+        signal: ctrl.signal,
+      });
+      clearTimeout(t);
+      running = r.ok;
+    } catch {
+      running = false;
+    }
+    res.json(ok({ running }));
   } catch (e) {
     next(e);
   }

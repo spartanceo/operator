@@ -206,7 +206,6 @@ function OperatorShell() {
     return (
       <LegalGate>
         <OnboardingPage
-          initialProfile={profile}
           onComplete={() => {
             void qc.invalidateQueries();
           }}

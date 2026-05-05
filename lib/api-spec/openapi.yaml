@@ -3212,6 +3212,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OnboardingStarterTaskResponse'
+  /onboarding/ollama-status:
+    get:
+      operationId: getOnboardingOllamaStatus
+      tags:
+        - onboarding
+      summary: Check whether the local Ollama daemon is reachable
+      description: |
+        Pings the local Ollama daemon (localhost:11434/api/tags) and returns
+        whether it responded. Used by the launch-sequence screen to poll for
+        Ollama availability during first-run onboarding. Returns immediately
+        — the server-side timeout is 3 s so the UI never waits longer than
+        the poll interval (2 s) plus that cap. Safe to call before Ollama
+        is installed; a refused connection returns `{ running: false }`.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Ollama reachability result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OllamaStatusResponse'
   /updates/check:
     get:
       operationId: checkForUpdates
@@ -15089,6 +15111,28 @@ components:
             - true
         data:
           $ref: '#/components/schemas/OnboardingStarterTaskList'
+    OllamaStatus:
+      type: object
+      required:
+        - running
+      properties:
+        running:
+          type: boolean
+          description: >
+            `true` when the local Ollama daemon responded to a
+            GET /api/tags within the 3-second probe window.
+    OllamaStatusResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/OllamaStatus'
     UpdateCheck:
       type: object
       required:

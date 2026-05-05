@@ -4954,6 +4954,35 @@ export const GetOnboardingStarterTasksResponse = zod.object({
 });
 
 /**
+ * Pings the local Ollama daemon (localhost:11434/api/tags) and returns
+whether it responded. Used by the launch-sequence screen to poll for
+Ollama availability during first-run onboarding. Returns immediately
+— the server-side timeout is 3 s so the UI never waits longer than
+the poll interval (2 s) plus that cap. Safe to call before Ollama
+is installed; a refused connection returns `{ running: false }`.
+
+ * @summary Check whether the local Ollama daemon is reachable
+ */
+export const GetOnboardingOllamaStatusHeader = zod.object({
+  "X-Tenant-ID": zod
+    .string()
+    .describe(
+      "Tenant identifier. Replaced by JWT-derived context once full SSO\nships — until then this header is the request's tenant context.\n",
+    ),
+});
+
+export const GetOnboardingOllamaStatusResponse = zod.object({
+  success: zod.literal(true),
+  data: zod.object({
+    running: zod
+      .boolean()
+      .describe(
+        "`true` when the local Ollama daemon responded to a GET \/api\/tags within the 3-second probe window.\n",
+      ),
+  }),
+});
+
+/**
  * Local-first: the desktop shell calls this on launch and the chat
 header polls it. The endpoint is read-only and never blocks user
 work. The latest-version channel is configured via

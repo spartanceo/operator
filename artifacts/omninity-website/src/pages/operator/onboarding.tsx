@@ -1,18 +1,13 @@
-import { SetupWizard } from "@/components/onboarding/setup-wizard";
-import type { OnboardingProfile } from "@workspace/api-client-react";
+import { LaunchSequence } from "@/components/onboarding/launch-sequence";
 
 interface OnboardingPageProps {
-  initialProfile: OnboardingProfile | null;
   onComplete: () => void;
 }
 
-export default function OnboardingPage({
-  initialProfile,
-  onComplete,
-}: OnboardingPageProps) {
+export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
   return (
     <div className="min-h-screen w-full bg-background text-foreground">
-      <SetupWizard initialProfile={initialProfile} onComplete={onComplete} />
+      <LaunchSequence onComplete={onComplete} />
     </div>
   );
 }

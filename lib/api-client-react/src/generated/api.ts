@@ -446,6 +446,7 @@ import type {
   NotificationPreferencesUpdateRequest,
   NotificationResponse,
   NotificationUnreadCountResponse,
+  OllamaStatusResponse,
   OnboardingHardwareResponse,
   OnboardingProfileResponse,
   OnboardingStarterTaskResponse,
@@ -13434,6 +13435,89 @@ export function useGetOnboardingStarterTasks<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetOnboardingStarterTasksQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Pings the local Ollama daemon (localhost:11434/api/tags) and returns
+whether it responded. Used by the launch-sequence screen to poll for
+Ollama availability during first-run onboarding. Returns immediately
+— the server-side timeout is 3 s so the UI never waits longer than
+the poll interval (2 s) plus that cap. Safe to call before Ollama
+is installed; a refused connection returns `{ running: false }`.
+
+ * @summary Check whether the local Ollama daemon is reachable
+ */
+export const getGetOnboardingOllamaStatusUrl = () => {
+  return `/api/onboarding/ollama-status`;
+};
+
+export const getOnboardingOllamaStatus = async (
+  options?: RequestInit,
+): Promise<OllamaStatusResponse> => {
+  return customFetch<OllamaStatusResponse>(getGetOnboardingOllamaStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetOnboardingOllamaStatusQueryKey = () => {
+  return [`/api/onboarding/ollama-status`] as const;
+};
+
+export const getGetOnboardingOllamaStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOnboardingOllamaStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingOllamaStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetOnboardingOllamaStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOnboardingOllamaStatus>>
+  > = ({ signal }) => getOnboardingOllamaStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingOllamaStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOnboardingOllamaStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOnboardingOllamaStatus>>
+>;
+export type GetOnboardingOllamaStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Check whether the local Ollama daemon is reachable
+ */
+
+export function useGetOnboardingOllamaStatus<
+  TData = Awaited<ReturnType<typeof getOnboardingOllamaStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOnboardingOllamaStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOnboardingOllamaStatusQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

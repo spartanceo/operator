@@ -1592,6 +1592,17 @@ export interface OnboardingStarterTaskResponse {
   data: OnboardingStarterTaskList;
 }
 
+export interface OllamaStatus {
+  /** `true` when the local Ollama daemon responded to a GET /api/tags within the 3-second probe window.
+   */
+  running: boolean;
+}
+
+export interface OllamaStatusResponse {
+  success: boolean;
+  data: OllamaStatus;
+}
+
 export type UpdateReleaseManifestChannel =
   (typeof UpdateReleaseManifestChannel)[keyof typeof UpdateReleaseManifestChannel];
 
