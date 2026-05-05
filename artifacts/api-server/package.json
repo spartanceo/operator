@@ -21,7 +21,8 @@
     "test": "tsx ./src/test-runner.ts && tsx ./src/security.test.ts && tsx ./src/services/app-capability.test.ts",
     "test:integration": "tsx ./src/test-runner.ts",
     "test:security": "tsx ./src/security.test.ts",
-    "bench": "tsx ./src/services/app-capability.bench.ts"
+    "bench": "tsx ./src/services/app-capability.bench.ts",
+    "check:routes": "tsx ./scripts/check-route-sizes.ts"
   },
   "dependencies": {
     "@swc/helpers": "^0.5.21",

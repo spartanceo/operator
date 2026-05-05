@@ -20,6 +20,10 @@ author = "agent"
 task = "workflow.run"
 args = "tier-review"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check-route-sizes"
+
 [[workflows.workflow]]
 name = "tier-review"
 author = "agent"
@@ -27,6 +31,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm run tier-review"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check-route-sizes"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter api-server check:routes"
 
 [workflows.workflow.metadata]
 isValidation = true
