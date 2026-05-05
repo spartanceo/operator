@@ -70,6 +70,9 @@ export function Nav() {
         </div>
         <div className="hidden items-center gap-3 md:flex">
           <LanguageSwitcher compact />
+          <Button size="sm" variant="ghost" asChild>
+            <Link href="/login">Sign In</Link>
+          </Button>
           <Button size="sm" asChild className="gap-2">
             <Link href="/download">
               <ArrowDownToLine className="h-4 w-4" aria-hidden="true" />
@@ -108,7 +111,12 @@ export function Nav() {
                 <div className="mt-4 px-1">
                   <LanguageSwitcher />
                 </div>
-                <Button asChild className="mt-4 w-full gap-2">
+                <Button variant="outline" asChild className="mt-4 w-full">
+                  <Link href="/login" onClick={() => setOpen(false)}>
+                    Sign In
+                  </Link>
+                </Button>
+                <Button asChild className="mt-2 w-full gap-2">
                   <Link href="/download" onClick={() => setOpen(false)}>
                     <ArrowDownToLine className="h-4 w-4" aria-hidden="true" />
                     {t("common.download")}
