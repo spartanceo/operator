@@ -14,6 +14,7 @@
     "build": "node package.mjs linux",
     "build:code": "node build.mjs",
     "package:linux": "node package.mjs linux",
+    "package:linux:deb": "node package.mjs linux:deb",
     "package:mac": "node package.mjs mac",
     "package:win": "node package.mjs win",
     "preview": "vite --config vite.config.ts",

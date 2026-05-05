@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Omninity Operator
+Exec="/opt/Omninity Operator/omninity-operator" %U
+Terminal=false
+Type=Application
+Icon=omninity-operator
+StartupWMClass=Omninity Operator
+Comment=Omninity Operator — local-first multi-agent AI desktop app
+Categories=Utility;

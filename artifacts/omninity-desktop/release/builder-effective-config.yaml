@@ -17,6 +17,7 @@ extraResources:
       - '**/*'
   - from: assets/tray-icon.png
     to: tray-icon.png
+artifactName: ${productName}-${version}-${arch}.${ext}
 asar: true
 npmRebuild: true
 forceCodeSigning: false
@@ -42,10 +43,13 @@ nsis:
   oneClick: true
   deleteAppDataOnUninstall: false
 linux:
+  maintainer: Omninity <support@omninity.app>
+  executableName: omninity-operator
   target:
     - target: dir
-    - target: deb
   category: Utility
+deb:
+  packageName: omninity-operator
 publish:
   provider: generic
   url: https://releases.omninity.app/desktop

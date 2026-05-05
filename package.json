@@ -17,6 +17,7 @@
     "qa": "pnpm --filter @workspace/scripts run qa",
     "package": "pnpm --filter @workspace/omninity-desktop run build",
     "package:linux": "pnpm --filter @workspace/omninity-desktop run package:linux",
+    "package:linux:deb": "pnpm --filter @workspace/omninity-desktop run package:linux:deb",
     "package:mac": "pnpm --filter @workspace/omninity-desktop run package:mac",
     "package:win": "pnpm --filter @workspace/omninity-desktop run package:win"
   },

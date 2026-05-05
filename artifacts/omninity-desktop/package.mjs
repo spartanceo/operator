@@ -9,27 +9,38 @@
  *   4. electron-builder  (npmRebuild compiles binary for Electron ABI)
  *   5. better-sqlite3 restore  (copies backup back → Node.js ABI restored)
  *
- * The backup/restore step is necessary because electron-builder's npmRebuild
- * rewrites the shared pnpm-store binary for the Electron ABI.  Restoring the
- * backup does NOT affect the packaged app — the Electron-ABI binary was
- * already bundled into the asar during step 4.
+ * Why backup/restore?
+ *   electron-builder's `npmRebuild: true` rewrites the better-sqlite3 native
+ *   binary for the Electron ABI.  Because pnpm uses a shared content-
+ *   addressable store, this also breaks the binary for the dev API server.
+ *   The restore step copies the pre-packaging binary back.  The packaged app
+ *   is not affected — its Electron-ABI binary was already bundled into the
+ *   asar during step 4 before the restore happens.
+ *
+ * Backup location: /tmp/   (NOT inside node_modules, which would get packed)
  *
  * Usage:
  *   node package.mjs [linux|mac|win]   (defaults to linux)
  */
 
-import { execSync, spawnSync } from "child_process";
-import { copyFileSync, existsSync } from "fs";
+import { execSync } from "child_process";
+import { copyFileSync, existsSync, readdirSync } from "fs";
 import { createRequire } from "module";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import { tmpdir } from "os";
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(__dir, "../..");
 
+// Supported platform tokens:
+//   linux       → --linux dir  (fast, CI-testable unpacked directory)
+//   linux:deb   → --linux deb  (generates .deb installer; needs dpkg-deb)
+//   mac         → --mac dmg    (needs macOS + Xcode)
+//   win         → --win nsis   (needs Windows or Wine)
 const platform = process.argv[2] || "linux";
-if (!["linux", "mac", "win"].includes(platform)) {
-  console.error(`Unknown platform: ${platform}. Use linux | mac | win.`);
+if (!["linux", "linux:deb", "mac", "win"].includes(platform)) {
+  console.error(`Unknown platform: ${platform}. Use linux | linux:deb | mac | win.`);
   process.exit(1);
 }
 
@@ -52,47 +63,88 @@ execSync("pnpm --filter @workspace/omninity-website run build", {
 console.log("→ Building Electron main process...");
 execSync("node build.mjs", { stdio: "inherit", cwd: __dir });
 
-// ── 3. Back up the Node.js ABI binary ─────────────────────────────────────
-const wsRequire = createRequire(resolve(workspaceRoot, "package.json"));
-let binaryPath;
+// ── 3. Locate better-sqlite3 binary and back it up ────────────────────────
+// Resolve from this package's own context — better-sqlite3 is listed as a
+// direct dependency of @workspace/omninity-desktop so import.meta.url-based
+// resolution finds it via pnpm's virtual store symlinks.
+const ownRequire = createRequire(import.meta.url);
+let binaryPath = null;
 try {
-  binaryPath = wsRequire.resolve(
+  binaryPath = ownRequire.resolve(
     "better-sqlite3/build/Release/better_sqlite3.node"
   );
 } catch {
-  binaryPath = resolve(
+  // Fallback: derive path from the known pnpm store structure
+  const bsqRoot = resolve(
     workspaceRoot,
-    "node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+    "node_modules/.pnpm"
   );
+  if (existsSync(bsqRoot)) {
+    const entry = readdirSync(bsqRoot).find((d) =>
+      d.startsWith("better-sqlite3@")
+    );
+    if (entry) {
+      const candidate = resolve(
+        bsqRoot,
+        entry,
+        "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+      );
+      if (existsSync(candidate)) binaryPath = candidate;
+    }
+  }
 }
 
-const backupPath = binaryPath + ".abi-backup";
-if (existsSync(binaryPath)) {
-  console.log("→ Backing up better-sqlite3 Node.js ABI binary...");
+// Store the backup in /tmp so it is never accidentally packed into the asar
+const backupPath = resolve(tmpdir(), "better_sqlite3.node.abi-backup");
+if (binaryPath && existsSync(binaryPath)) {
+  console.log("→ Backing up better-sqlite3 Node.js ABI binary to /tmp ...");
   copyFileSync(binaryPath, backupPath);
+  console.log(`  backed up: ${binaryPath}`);
 } else {
-  console.warn("⚠  better-sqlite3 binary not found — skipping backup");
+  console.warn(
+    `⚠  better-sqlite3 binary not found (binaryPath=${binaryPath}) — ` +
+      "ABI backup skipped; the dev server may need manual rebuild after packaging"
+  );
   binaryPath = null;
 }
 
 // ── 4. Run electron-builder ───────────────────────────────────────────────
-const platformFlags = { linux: "--linux", mac: "--mac", win: "--win" };
+const platformFlags = {
+  linux: "--linux dir",
+  "linux:deb": "--linux deb",
+  mac: "--mac",
+  win: "--win",
+};
 const ebArgs = `${platformFlags[platform]} --publish never`;
 console.log(`→ Running electron-builder ${ebArgs}...`);
 
 const ebEnv = {
   ...process.env,
+  // Disable code signing on all platforms — the developer must configure
+  // CSC_LINK + CSC_KEY_PASSWORD (or APPLE_API_KEY etc.) for signed releases.
   CSC_IDENTITY_AUTO_DISCOVERY: "false",
   NODE_ENV: "production",
 };
 
+let packagingError = null;
 try {
-  execSync(`electron-builder ${ebArgs}`, { stdio: "inherit", env: ebEnv, cwd: __dir });
+  // Use the local electron-builder binary (it is a devDependency of this
+  // package, so it is available at ./node_modules/.bin/electron-builder when
+  // run via `pnpm --filter` or `node package.mjs` from this directory).
+  // Using the full relative path avoids relying on it being in $PATH.
+  execSync(`./node_modules/.bin/electron-builder ${ebArgs}`, { stdio: "inherit", env: ebEnv, cwd: __dir });
+} catch (err) {
+  packagingError = err;
 } finally {
-  // ── 5. Restore Node.js ABI binary ─────────────────────────────────────
+  // ── 5. Restore Node.js ABI binary ───────────────────────────────────────
   if (binaryPath && existsSync(backupPath)) {
     console.log("→ Restoring better-sqlite3 Node.js ABI binary...");
     copyFileSync(backupPath, binaryPath);
-    console.log("✓  better-sqlite3 restored for Node.js (ABI 137)");
+    console.log("✓  better-sqlite3 restored (Node.js ABI)");
   }
+}
+
+if (packagingError) {
+  console.error("\n✗  electron-builder failed:", packagingError.message);
+  process.exit(1);
 }

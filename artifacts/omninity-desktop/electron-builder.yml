@@ -20,12 +20,16 @@ extraResources:
   - from: "assets/tray-icon.png"
     to: "tray-icon.png"
 
+# Output artifact naming — must use ${productName} (not ${name}) to avoid
+# the scoped npm package name (@workspace/omninity-desktop) leaking into the
+# output path and creating invalid subdirectories inside release/.
+artifactName: "${productName}-${version}-${arch}.${ext}"
+
 asar: true
 # npmRebuild rebuilds native modules for the Electron ABI before packaging,
 # which is correct for the packaged app but breaks the shared pnpm store for
-# the rest of the monorepo.  The build scripts compensate by running
-# `pnpm -w rebuild better-sqlite3` immediately after electron-builder to
-# restore the Node.js-ABI binary for the dev server.
+# the rest of the monorepo.  package.mjs compensates by backing up the
+# Node.js-ABI binary before running electron-builder and restoring it after.
 npmRebuild: true
 forceCodeSigning: false
 
@@ -56,10 +60,16 @@ nsis:
 
 linux:
   maintainer: "Omninity <support@omninity.app>"
+  # executableName must be lowercase without spaces for .deb packaging rules
+  executableName: omninity-operator
+  # Default target is `dir` (unpacked directory) — fast and suitable for CI.
+  # To produce a .deb installer run: node package.mjs linux:deb
   target:
     - target: dir
-    - target: deb
   category: Utility
+
+deb:
+  packageName: omninity-operator
 
 publish:
   provider: generic
