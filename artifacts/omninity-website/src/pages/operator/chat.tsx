@@ -28,7 +28,7 @@ import {
   type ContextUsage,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, Square, RefreshCw, Sparkles, Bookmark, Pin, PinOff } from "lucide-react";
+import { Send, Square, RefreshCw, Sparkles, Bookmark, Pin, PinOff, Paperclip, X } from "lucide-react";
 import { OperatorLayout } from "@/components/operator/layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -118,6 +118,10 @@ export default function ChatPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
+  const [attachedPdf, setAttachedPdf] = useState<{ name: string } | null>(null);
+  const [pdfUploading, setPdfUploading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement | null>(null);
 
   const profileQuery = useGetOnboardingProfile();
   const profile = profileQuery.data?.data.profile ?? null;
@@ -222,7 +226,7 @@ export default function ChatPage() {
     mutation: {
       onSuccess: (resp) => {
         setActiveConversation(resp.data);
-        void qc.invalidateQueries({ queryKey: ["/conversations"] });
+        void qc.refetchQueries({ queryKey: ["/conversations"], exact: false });
       },
     },
   });
@@ -257,6 +261,50 @@ export default function ChatPage() {
     });
     return result.data;
   };
+
+  const handlePdfSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!e.target) return;
+      (e.target as HTMLInputElement).value = "";
+      if (!file) return;
+      setPdfError(null);
+      setPdfUploading(true);
+      try {
+        const conversation = await ensureConversation(
+          file.name.replace(/\.pdf$/i, "").slice(0, 80),
+        );
+        const form = new FormData();
+        form.append("file", file);
+        const base = getApiBase();
+        const resp = await fetch(
+          `${base}/api/conversations/${conversation.id}/attachments`,
+          {
+            method: "POST",
+            headers: {
+              "X-Tenant-ID": getTenantId(),
+              "X-Workspace-ID": getWorkspaceId(),
+            },
+            body: form,
+          },
+        );
+        if (!resp.ok) {
+          const body = (await resp.json().catch(() => ({}))) as { error?: { message?: string } };
+          throw new Error(body?.error?.message ?? "Upload failed");
+        }
+        setAttachedPdf({ name: file.name });
+        void qc.refetchQueries({
+          queryKey: [`/conversations/${conversation.id}/messages`],
+          exact: false,
+        });
+      } catch (err_) {
+        setPdfError(err_ instanceof Error ? err_.message : "Upload failed");
+      } finally {
+        setPdfUploading(false);
+      }
+    },
+    [ensureConversation, qc],
+  );
 
   const chatMutation = useChat({ mutation: {} });
 
@@ -630,6 +678,8 @@ export default function ChatPage() {
     setActiveRunId(null);
     setActiveRunSkillId(null);
     setActiveApproval(null);
+    setAttachedPdf(null);
+    setPdfError(null);
   };
 
   const headerActions = (
@@ -878,6 +928,32 @@ export default function ChatPage() {
                   if (tpl.skillConfig?.agentMode) setAgentMode(true);
                 }}
               />
+              {attachedPdf ? (
+                <div className="mb-2 flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-sm">
+                  <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="flex-1 truncate text-muted-foreground">
+                    {attachedPdf.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setAttachedPdf(null); setPdfError(null); }}
+                    className="ml-1 rounded p-0.5 hover:bg-muted"
+                    aria-label="Remove attachment"
+                  >
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </div>
+              ) : null}
+              {pdfError ? (
+                <p className="mb-1 text-xs text-destructive">{pdfError}</p>
+              ) : null}
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={(e) => void handlePdfSelect(e)}
+              />
               <div className="flex items-end gap-2">
                 <Textarea
                   data-testid="input-chat"
@@ -895,6 +971,21 @@ export default function ChatPage() {
                   disabled={isStreaming || createRun.isPending}
                 />
                 <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => pdfInputRef.current?.click()}
+                    disabled={pdfUploading || isStreaming}
+                    aria-label="Attach PDF"
+                    title="Attach PDF"
+                    data-testid="button-attach-pdf"
+                  >
+                    {pdfUploading ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Paperclip className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Button
                     variant="outline"
                     size="icon"

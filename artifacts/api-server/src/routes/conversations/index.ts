@@ -17,6 +17,8 @@
  */
 import { Router, type IRouter } from "express";
 import { z } from "zod";
+import multer from "multer";
+import pdfParse from "pdf-parse";
 
 import { err, ok, pageOk } from "../../lib/api-envelope";
 import { requireTenantContext } from "../../lib/tenant-context";
@@ -32,6 +34,15 @@ import {
   searchConversations,
   updateConversation,
 } from "../../services/conversation.service";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === "application/pdf") cb(null, true);
+    else cb(new Error("Only PDF files are accepted"));
+  },
+});
 import {
   getConversationContextUsage,
   resetConversationContext,
@@ -39,6 +50,55 @@ import {
 } from "../../services/context.service";
 
 const router: IRouter = Router();
+
+// PDF attachment upload — multer processes the multipart body, pdf-parse
+// extracts the text, and we persist it as a system message so the model
+// has the full document in context across reloads.
+router.post(
+  "/:id/attachments",
+  requireTenant(),
+  upload.single("file"),
+  async (req, res, next) => {
+    try {
+      const ctx = requireTenantContext();
+      const conv = await getConversation(ctx, String(req.params.id));
+      if (!conv) {
+        res.status(404).json(err("NOT_FOUND", "Conversation not found"));
+        return;
+      }
+      if (!req.file) {
+        res.status(400).json(err("VALIDATION", "No file uploaded"));
+        return;
+      }
+      let text: string;
+      try {
+        const result = await pdfParse(req.file.buffer);
+        text = result.text.trim();
+      } catch {
+        res.status(422).json(err("PDF_PARSE_FAILED", "Could not extract text from PDF"));
+        return;
+      }
+      if (!text) {
+        res.status(422).json(err("PDF_EMPTY", "PDF contained no extractable text"));
+        return;
+      }
+      const filename = req.file.originalname;
+      await appendMessage(ctx, String(req.params.id), {
+        role: "system",
+        content: `[DOCUMENT: ${filename}]\n\n${text}`,
+      });
+      res.json(
+        ok({
+          filename,
+          characterCount: text.length,
+          wordCount: text.split(/\s+/).filter(Boolean).length,
+        }),
+      );
+    } catch (e) {
+      next(e);
+    }
+  },
+);
 
 const PageSchema = z.object({
   cursor: z.string().min(1).max(2048).optional(),
