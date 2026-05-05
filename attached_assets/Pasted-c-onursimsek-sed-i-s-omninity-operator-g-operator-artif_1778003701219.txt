@@ -1,0 +1,39 @@
+c:~ onursimsek$ sed -i '' 's|"/omninity-operator/"|"/"|g' ~/operator/artifacts/omninity-desktop/package.mjs
+sed: /Users/onursimsek/operator/artifacts/omninity-desktop/package.mjs: No such file or directory
+Mac:~ onursimsek$ ls ~
+Applications
+AVANASS08@GMAIL.COM Creative Cloud Files
+Creative Cloud Files Personal Account onur@atlacarte.com C16236AF62FBCB770A495E5D@AdobeID
+Desktop
+DeviceInfo.json
+Documents
+Downloads
+HMRC
+iCloud Drive (Archive)
+iCloud Drive (Archive) - 1
+Library
+metaninja
+metaninja ar
+Movies
+Music
+Pictures
+Public
+Sites
+Mac:~ onursimsek$ ls ~/Downloads | grep operator
+Mac:~ onursimsek$ find ~ -name "package.mjs" -path "*/omninity-desktop/*" 2>/dev/null
+/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/package.mjs
+sed -i '' 's|"/omninity-operator/"|"/"|g' ~/Desktop/operator/artifacts/omninity-desktop/package.mjs && grep "BASE_PATH" ~/Desktop/operator/artifacts/omninity-desktop/package.mjs
+sed -i '' 's|"/omninity-operator/"|"/"|g' ~/Desktop/operator/artifacts/omninity-desktop/package.mjs && grep "BASE_PATH" ~/Desktop/operator/artifacts/omninity-desktop/package.mjssed -n '55,65p' ~/Desktop/operator/artifacts/omninity-desktop/package.mjs
+Mac:~ onursimsek$ sed -i '' 's|"/omninity-operator/"|"/"|g' ~/Desktop/operator/artifacts/omninity-desktop/package.mjs && grep "BASE_PATH" ~/Desktop/operator/artifacts/omninity-desktop/package.mjs
+ *   1. Web frontend build (injects required PORT + BASE_PATH env vars)
+const BASE_PATH = process.env.BASE_PATH || "/";
+console.log(`→ Building web frontend (PORT=${PORT} BASE_PATH=${BASE_PATH})...`);
+    BASE_PATH,
+Mac:~ onursimsek$ sed -i '' 's|"/omninity-operator/"|"/"|g' ~/Desktop/operator/artifacts/omninity-desktop/package.mjs && grep "BASE_PATH" ~/Desktop/operator/artifacts/omninity-desktop/package.mjssed -n '55,65p' ~/Desktop/operator/artifacts/omninity-desktop/package.mjs
+grep: /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/package.mjssed: No such file or directory
+grep: 55,65p: No such file or directory
+/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/package.mjs:6: *   1. Web frontend build (injects required PORT + BASE_PATH env vars)
+/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/package.mjs:59:const BASE_PATH = process.env.BASE_PATH || "/";
+/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/package.mjs:60:console.log(`→ Building web frontend (PORT=${PORT} BASE_PATH=${BASE_PATH})...`);
+/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/package.mjs:67:    BASE_PATH,
+Mac:~ onursimsek$ 
