@@ -1,0 +1,146 @@
+ip:   0.58 kB
+dist/public/assets/inter-vietnamese-400-normal-DMkecbls.woff2        4.97 kB
+dist/public/assets/inter-vietnamese-600-normal-Cc8MFFhd.woff2        5.10 kB
+dist/public/assets/inter-vietnamese-700-normal-DlLaEgI2.woff2        5.10 kB
+dist/public/assets/inter-vietnamese-500-normal-DOriooB6.woff2        5.11 kB
+dist/public/assets/inter-greek-ext-400-normal-DGGRlc-M.woff2         5.26 kB
+dist/public/assets/inter-greek-ext-500-normal-C4iEst2y.woff2         5.43 kB
+dist/public/assets/inter-greek-ext-600-normal-DRtmH8MT.woff2         5.43 kB
+dist/public/assets/inter-greek-ext-700-normal-qfdV9bQt.woff2         5.44 kB
+dist/public/assets/inter-vietnamese-400-normal-Bbgyi5SW.woff         6.50 kB
+dist/public/assets/inter-vietnamese-500-normal-mJboJaSs.woff         6.60 kB
+dist/public/assets/inter-vietnamese-700-normal-BZaoP0fm.woff         6.63 kB
+dist/public/assets/inter-vietnamese-600-normal-BuLX-rYi.woff         6.64 kB
+dist/public/assets/inter-greek-ext-400-normal-KugGGMne.woff          7.06 kB
+dist/public/assets/inter-greek-ext-500-normal-2j5mBUwD.woff          7.19 kB
+dist/public/assets/inter-greek-ext-600-normal-B8X0CLgF.woff          7.21 kB
+dist/public/assets/inter-greek-ext-700-normal-BoQ6DsYi.woff          7.22 kB
+dist/public/assets/inter-cyrillic-400-normal-obahsSVq.woff2          7.71 kB
+dist/public/assets/inter-greek-400-normal-B4URO6DV.woff2             7.78 kB
+dist/public/assets/inter-cyrillic-500-normal-BasfLYem.woff2          7.90 kB
+dist/public/assets/inter-cyrillic-700-normal-CjBOestx.woff2          7.90 kB
+dist/public/assets/inter-greek-500-normal-BIZE56-Y.woff2             7.92 kB
+dist/public/assets/inter-greek-700-normal-C3JjAnD8.woff2             7.92 kB
+dist/public/assets/inter-greek-600-normal-plRanbMR.woff2             7.94 kB
+dist/public/assets/inter-cyrillic-600-normal-CWCymEST.woff2          7.97 kB
+dist/public/assets/inter-cyrillic-400-normal-HOLc17fK.woff           9.78 kB
+dist/public/assets/inter-cyrillic-700-normal-DrXBdSj3.woff           9.91 kB
+dist/public/assets/inter-greek-400-normal-q2sYcFCs.woff              9.92 kB
+dist/public/assets/inter-cyrillic-600-normal-4D_pXhcN.woff           9.94 kB
+dist/public/assets/inter-cyrillic-500-normal-CxZf_p3X.woff           9.94 kB
+dist/public/assets/inter-greek-500-normal-Xzm54t5V.woff              9.98 kB
+dist/public/assets/inter-greek-700-normal-BUv2fZ6O.woff              9.98 kB
+dist/public/assets/inter-greek-600-normal-BZpKdvQh.woff             10.03 kB
+dist/public/assets/inter-cyrillic-ext-400-normal-BQZuk6qB.woff2     10.23 kB
+dist/public/assets/inter-cyrillic-ext-500-normal-B0yAr1jD.woff2     10.43 kB
+dist/public/assets/inter-cyrillic-ext-600-normal-Dfes3d0z.woff2     10.48 kB
+dist/public/assets/inter-cyrillic-ext-700-normal-BjwYoWNd.woff2     10.50 kB
+dist/public/assets/inter-cyrillic-ext-400-normal-DQukG94-.woff      13.34 kB
+dist/public/assets/inter-cyrillic-ext-700-normal-LO58E6JB.woff      13.41 kB
+dist/public/assets/inter-cyrillic-ext-500-normal-BmqWE9Dz.woff      13.45 kB
+dist/public/assets/inter-cyrillic-ext-600-normal-Bcila6Z-.woff      13.46 kB
+dist/public/assets/inter-latin-400-normal-C38fXH4l.woff2            23.66 kB
+dist/public/assets/inter-latin-500-normal-Cerq10X2.woff2            24.27 kB
+dist/public/assets/inter-latin-700-normal-Yt3aPRUw.woff2            24.36 kB
+dist/public/assets/inter-latin-600-normal-LgqL8muc.woff2            24.45 kB
+dist/public/assets/inter-latin-400-normal-CyCys3Eg.woff             30.70 kB
+dist/public/assets/inter-latin-600-normal-CiBQ2DWP.woff             31.26 kB
+dist/public/assets/inter-latin-500-normal-BL9OpVg8.woff             31.28 kB
+dist/public/assets/inter-latin-700-normal-BLAVimhd.woff             31.32 kB
+dist/public/assets/inter-latin-ext-400-normal-C1nco2VV.woff2        35.00 kB
+dist/public/assets/inter-latin-ext-500-normal-CV4jyFjo.woff2        36.02 kB
+dist/public/assets/inter-latin-ext-700-normal-Ca8adRJv.woff2        36.24 kB
+dist/public/assets/inter-latin-ext-600-normal-D2bJ5OIk.woff2        36.26 kB
+dist/public/assets/inter-latin-ext-400-normal-77YHD8bZ.woff         47.56 kB
+dist/public/assets/inter-latin-ext-500-normal-BxGbmqWO.woff         48.49 kB
+dist/public/assets/inter-latin-ext-700-normal-TidjK2hL.woff         48.63 kB
+dist/public/assets/inter-latin-ext-600-normal-CIVaiw4L.woff         48.67 kB
+dist/public/assets/index-UjUCrOgx.css                              160.39 kB │ gzip:  24.30 kB
+dist/public/assets/arrow-up-C1LJOlh9.js                              0.16 kB │ gzip:   0.16 kB
+dist/public/assets/clock-D0iOqHYL.js                                 0.17 kB │ gzip:   0.17 kB
+dist/public/assets/play-DKEUzEqX.js                                  0.19 kB │ gzip:   0.18 kB
+dist/public/assets/rotate-ccw-DHotAtgy.js                            0.20 kB │ gzip:   0.18 kB
+dist/public/assets/history-CdruJzuU.js                               0.24 kB │ gzip:   0.20 kB
+dist/public/assets/users-4rJqxNti.js                                 0.31 kB │ gzip:   0.23 kB
+dist/public/assets/support-api-BZC1Zv-a.js                           1.59 kB │ gzip:   0.70 kB
+dist/public/assets/creator-ec3MoxvJ.js                               2.99 kB │ gzip:   1.24 kB
+dist/public/assets/undo-DQyaIYpQ.js                                  3.25 kB │ gzip:   1.50 kB
+dist/public/assets/de-DC5D3zPz.js                                    3.35 kB │ gzip:   1.77 kB
+dist/public/assets/es-CTnep2_W.js                                    3.44 kB │ gzip:   1.72 kB
+dist/public/assets/fr-qEvSfpN5.js                                    3.52 kB │ gzip:   1.76 kB
+dist/public/assets/subscription-CgxEXOQi.js                          3.64 kB │ gzip:   1.41 kB
+dist/public/assets/tools-Dh0VW7DC.js                                 3.65 kB │ gzip:   1.56 kB
+dist/public/assets/ja-DXD5GHD5.js                                    4.04 kB │ gzip:   2.09 kB
+dist/public/assets/status-BywhBvnV.js                                4.17 kB │ gzip:   1.54 kB
+dist/public/assets/ar-DVc_7U-j.js                                    4.39 kB │ gzip:   2.03 kB
+dist/public/assets/approvals-ClDWy_M1.js                             4.88 kB │ gzip:   1.86 kB
+dist/public/assets/activity-CM_dvh4u.js                              4.94 kB │ gzip:   2.09 kB
+dist/public/assets/integrations-CeXse3-H.js                          5.38 kB │ gzip:   1.94 kB
+dist/public/assets/feature-requests-Bo0QemFD.js                      5.59 kB │ gzip:   2.11 kB
+dist/public/assets/agents-DyHtn38q.js                                5.99 kB │ gzip:   2.23 kB
+dist/public/assets/queue-xIuh6mZV.js                                 6.91 kB │ gzip:   2.64 kB
+dist/public/assets/support-BmoL-amh.js                               7.38 kB │ gzip:   2.71 kB
+dist/public/assets/schedules-wKPkBXAn.js                             8.36 kB │ gzip:   2.87 kB
+dist/public/assets/templates-CqMgdtNl.js                             9.14 kB │ gzip:   3.18 kB
+dist/public/assets/media-BkuYrHUm.js                                 9.99 kB │ gzip:   3.26 kB
+dist/public/assets/desktop-4FySHN81.js                              10.71 kB │ gzip:   3.57 kB
+dist/public/assets/knowledge-BCJPoe1B.js                            11.51 kB │ gzip:   3.65 kB
+dist/public/assets/super-v5GmHNUv.js                                13.28 kB │ gzip:   3.49 kB
+dist/public/assets/memory-CfPVr8A_.js                               14.09 kB │ gzip:   3.93 kB
+dist/public/assets/privacy-DSU9jVcv.js                              16.46 kB │ gzip:   4.66 kB
+dist/public/assets/communications-BqBOSWl4.js                       19.02 kB │ gzip:   4.53 kB
+dist/public/assets/skills-C9HbjpLT.js                               21.19 kB │ gzip:   5.98 kB
+dist/public/assets/enterprise-DNwsuUNX.js                           22.80 kB │ gzip:   5.83 kB
+dist/public/assets/settings-mRiU4nfR.js                             68.38 kB │ gzip:  22.93 kB
+dist/public/assets/index-HIM3bByL.js                             1,733.02 kB │ gzip: 370.98 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.90s
+→ Building Electron main process...
+
+  dist/preload.js      1.3kb
+  dist/preload.js.map  1.6kb
+
+⚡ Done in 3ms
+
+  dist/main.js      15.7mb ⚠️
+  dist/main.js.map  24.6mb
+
+⚡ Done in 671ms
+→ Backing up better-sqlite3 Node.js ABI binary to /tmp ...
+  backed up: /Users/onursimsek/operator/node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+→ Running electron-builder --mac --publish never...
+  • electron-builder  version=25.1.8 os=25.4.0
+  • loaded configuration  file=/Users/onursimsek/operator/artifacts/omninity-desktop/electron-builder.yml
+  • writing effective config  file=release/builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=36.9.5 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=better-sqlite3 arch=x64
+  • finished        moduleName=better-sqlite3 arch=x64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=x64 electron=36.9.5 appOutDir=release/mac
+  • downloading     url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-x64.zip size=113 MB parts=8
+  • downloaded      url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-x64.zip duration=21.309s
+  • default Electron icon is used  reason=application icon is not set
+  • skipped macOS code signing  reason=identity explicitly is set to null
+  • building        target=DMG arch=x64 file=release/Omninity Operator-0.0.1.dmg
+  • executing @electron/rebuild  electronVersion=36.9.5 arch=arm64 buildFromSource=false appDir=./
+  • Detected arm64 process, HFS+ is unavailable. Creating dmg with APFS - supports Mac OSX 10.12+
+  • installing native dependencies  arch=arm64
+  • preparing       moduleName=better-sqlite3 arch=arm64
+  • finished        moduleName=better-sqlite3 arch=arm64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=arm64 electron=36.9.5 appOutDir=release/mac-arm64
+  • downloading     url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-arm64.zip size=109 MB parts=8
+  • downloaded      url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-arm64.zip duration=6.812s
+  • skipped macOS code signing  reason=identity explicitly is set to null
+  • building        target=DMG arch=arm64 file=release/Omninity Operator-0.0.1.dmg
+  • Detected arm64 process, HFS+ is unavailable. Creating dmg with APFS - supports Mac OSX 10.12+
+  • building block map  blockMapFile=release/Omninity Operator-0.0.1.dmg.blockmap
+  • building block map  blockMapFile=release/Omninity Operator-0.0.1.dmg.blockmap
+→ Restoring better-sqlite3 Node.js ABI binary...
+✓  better-sqlite3 restored (Node.js ABI)
+Mac:operator onursimsek$ 

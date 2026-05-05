@@ -1,0 +1,57 @@
+rno: -13,
+npm error   code: 'EACCES',
+npm error   syscall: 'rename',
+npm error   path: '/usr/local/lib/node_modules/pnpm',
+npm error   dest: '/usr/local/lib/node_modules/.pnpm-LW2coPit'
+npm error }
+npm error
+npm error The operation was rejected by your operating system.
+npm error It is likely you do not have the permissions to access this file as the current user
+npm error
+npm error If you believe this might be a permissions issue, please double-check the
+npm error permissions of the file and its containing directories, or try running
+npm error the command again as root/Administrator.
+npm notice
+npm notice New major version of npm available! 10.9.2 -> 11.13.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.13.0
+npm notice To update run: npm install -g npm@11.13.0
+npm notice
+npm error A complete log of this run can be found in: /Users/onursimsek/.npm/_logs/2026-05-05T17_31_21_818Z-debug-0.log
+Mac:operator onursimsek$ pnpm install
+Scope: all 15 workspace projects
+Lockfile is up to date, resolution step is skipped
+Packages: +911
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+   ╭──────────────────────────────────────────╮
+   │                                          │
+   │   Update available! 10.15.0 → 10.33.3.   │
+   │   Changelog: https://pnpm.io/v/10.33.3   │
+   │     To update, run: pnpm add -g pnpm     │
+   │                                          │
+   ╰──────────────────────────────────────────╯
+
+Downloading 7zip-bin@5.2.0: 5.63 MB/5.63 MB, done
+Downloading react-icons@5.6.0: 22.42 MB/22.42 MB, done
+Downloading app-builder-bin@5.0.0-alpha.10: 72.51 MB/72.51 MB, done
+Progress: resolved 911, reused 343, downloaded 568, added 911, done
+node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild: Running postinstall script...
+node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3: Running install script...
+node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild: Running postinstall script, done in 1.4s
+node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3: Running install script, done in 2.1s0.18.20/node_modules/esbuild: Running postinstall script, done in 1.8s
+
+devDependencies:
++ prettier 3.8.1
++ typescript 5.9.3
+
+╭ Warning ─────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Ignored build scripts: electron.                                           │
+│   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+│   to run scripts.                                                            │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_use…
+└─ Done in 71ms
+Done in 19.6s using pnpm v10.15.0

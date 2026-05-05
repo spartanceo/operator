@@ -1,0 +1,64 @@
+n these commands in your terminal to add Homebrew to your PATH:
+    echo >> /Users/onursimsek/.bash_profile
+    echo 'eval "$(/opt/homebrew/bin/brew shellenv bash)"' >> /Users/onursimsek/.bash_profile
+    eval "$(/opt/homebrew/bin/brew shellenv bash)"
+- Run brew help to get started
+- Further documentation:
+    https://docs.brew.sh
+
+Mac:~ onursimsek$ brew install git-lfs
+==> Fetching downloads for: git-lfs
+✔︎ Bottle Manifest git-lfs (3.7.1)                    Downloaded    7.4KB/  7.4KB
+✔︎ Bottle git-lfs (3.7.1)                             Downloaded    5.1MB/  5.1MB
+==> Pouring git-lfs--3.7.1.arm64_tahoe.bottle.tar.gz
+==> Caveats
+Update your git config to finish installation:
+
+  # Update global git config
+  $ git lfs install
+
+  # Update system git config
+  $ git lfs install --system
+==> Summary
+🍺  /opt/homebrew/Cellar/git-lfs/3.7.1: 82 files, 14MB
+==> Running `brew cleanup git-lfs`...
+Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+==> Caveats
+Bash completion has been installed to:
+  /opt/homebrew/etc/bash_completion.d
+Mac:~ onursimsek$ cd operator
+Mac:operator onursimsek$ git lfs install
+Updated Git hooks.
+Git LFS initialized.
+Mac:operator onursimsek$ git restore --source=HEAD ./npm install -g pnpm
+error: unknown switch `g'
+usage: git restore [<options>] [--source=<branch>] <file>...
+
+    -s, --[no-]source <tree-ish>
+                          which tree-ish to checkout from
+    -S, --[no-]staged     restore the index
+    -W, --[no-]worktree   restore the working tree (default)
+    --[no-]ignore-unmerged
+                          ignore unmerged entries
+    --[no-]overlay        use overlay mode
+    -q, --[no-]quiet      suppress progress reporting
+    --[no-]recurse-submodules[=<checkout>]
+                          control recursive updating of submodules
+    --[no-]progress       force progress reporting
+    -m, --[no-]merge      perform a 3-way merge with the new branch
+    --[no-]conflict <style>
+                          conflict style (merge, diff3, or zdiff3)
+    -2, --ours            checkout our version for unmerged files
+    -3, --theirs          checkout their version for unmerged files
+    -p, --[no-]patch      select hunks interactively
+    --[no-]ignore-skip-worktree-bits
+                          do not limit pathspecs to sparse entries only
+    --[no-]pathspec-from-file <file>
+                          read pathspec from file
+    --[no-]pathspec-file-nul
+                          with --pathspec-from-file, pathspec elements are separated with NUL character
+
+Mac:operator onursimsek$ pnpm install
+pnpm run package:mac ERR_PNPM_NO_PKG_MANIFEST  No package.json found in /Users/onursimsek/operator
+Mac:operator onursimsek$ pnpm run package:mac

@@ -1,0 +1,55 @@
+zip:   5.98 kB
+dist/public/assets/enterprise-DNwsuUNX.js                           22.80 kB │ gzip:   5.83 kB
+dist/public/assets/settings-mRiU4nfR.js                             68.38 kB │ gzip:  22.93 kB
+dist/public/assets/index-HIM3bByL.js                             1,733.02 kB │ gzip: 370.98 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.90s
+→ Building Electron main process...
+
+  dist/preload.js      1.3kb
+  dist/preload.js.map  1.6kb
+
+⚡ Done in 3ms
+
+  dist/main.js      15.7mb ⚠️
+  dist/main.js.map  24.6mb
+
+⚡ Done in 671ms
+→ Backing up better-sqlite3 Node.js ABI binary to /tmp ...
+  backed up: /Users/onursimsek/operator/node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+→ Running electron-builder --mac --publish never...
+  • electron-builder  version=25.1.8 os=25.4.0
+  • loaded configuration  file=/Users/onursimsek/operator/artifacts/omninity-desktop/electron-builder.yml
+  • writing effective config  file=release/builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=36.9.5 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=better-sqlite3 arch=x64
+  • finished        moduleName=better-sqlite3 arch=x64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=x64 electron=36.9.5 appOutDir=release/mac
+  • downloading     url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-x64.zip size=113 MB parts=8
+  • downloaded      url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-x64.zip duration=21.309s
+  • default Electron icon is used  reason=application icon is not set
+  • skipped macOS code signing  reason=identity explicitly is set to null
+  • building        target=DMG arch=x64 file=release/Omninity Operator-0.0.1.dmg
+  • executing @electron/rebuild  electronVersion=36.9.5 arch=arm64 buildFromSource=false appDir=./
+  • Detected arm64 process, HFS+ is unavailable. Creating dmg with APFS - supports Mac OSX 10.12+
+  • installing native dependencies  arch=arm64
+  • preparing       moduleName=better-sqlite3 arch=arm64
+  • finished        moduleName=better-sqlite3 arch=arm64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=arm64 electron=36.9.5 appOutDir=release/mac-arm64
+  • downloading     url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-arm64.zip size=109 MB parts=8
+  • downloaded      url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-arm64.zip duration=6.812s
+  • skipped macOS code signing  reason=identity explicitly is set to null
+  • building        target=DMG arch=arm64 file=release/Omninity Operator-0.0.1.dmg
+  • Detected arm64 process, HFS+ is unavailable. Creating dmg with APFS - supports Mac OSX 10.12+
+  • building block map  blockMapFile=release/Omninity Operator-0.0.1.dmg.blockmap
+  • building block map  blockMapFile=release/Omninity Operator-0.0.1.dmg.blockmap
+→ Restoring better-sqlite3 Node.js ABI binary...
+✓  better-sqlite3 restored (Node.js ABI)
+Mac:operator onursimsek$ /Applications/Omninity\ Operator.app/Contents/MacOS/Omninity\ Operator

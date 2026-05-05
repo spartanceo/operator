@@ -1,0 +1,27 @@
+6:55 Mac MobileDeviceUpdater[8926]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1703
+May  5 18:36:55 Mac AMPDeviceDiscoveryAgent[1666]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1703
+May  5 18:38:34 Mac MobileDeviceUpdater[8926]: Entered:_AMMuxedDeviceDisconnected, mux-device:1704
+May  5 18:38:34 Mac AMPDeviceDiscoveryAgent[1666]: Entered:_AMMuxedDeviceDisconnected, mux-device:1704
+May  5 18:38:34 Mac MobileDeviceUpdater[8926]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1704
+May  5 18:38:34 Mac AMPDeviceDiscoveryAgent[1666]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1704
+May  5 18:38:46 Mac MobileDeviceUpdater[8926]: Entered:_AMMuxedDeviceDisconnected, mux-device:1705
+May  5 18:38:46 Mac AMPDeviceDiscoveryAgent[1666]: Entered:_AMMuxedDeviceDisconnected, mux-device:1705
+May  5 18:38:46 Mac MobileDeviceUpdater[8926]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1705
+May  5 18:38:46 Mac AMPDeviceDiscoveryAgent[1666]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1705
+May  5 18:39:55 Mac AMPDeviceDiscoveryAgent[1666]: Entered:_AMMuxedDeviceDisconnected, mux-device:1706
+May  5 18:39:55 Mac MobileDeviceUpdater[8926]: Entered:_AMMuxedDeviceDisconnected, mux-device:1706
+May  5 18:39:55 Mac MobileDeviceUpdater[8926]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1706
+May  5 18:39:55 Mac AMPDeviceDiscoveryAgent[1666]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1706
+May  5 18:41:26 Mac AMPDeviceDiscoveryAgent[1666]: Entered:_AMMuxedDeviceDisconnected, mux-device:1707
+May  5 18:41:26 Mac MobileDeviceUpdater[8926]: Entered:_AMMuxedDeviceDisconnected, mux-device:1707
+May  5 18:41:26 Mac AMPDeviceDiscoveryAgent[1666]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1707
+May  5 18:41:26 Mac MobileDeviceUpdater[8926]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1707
+May  5 18:41:46 Mac MobileDeviceUpdater[8926]: Entered:_AMMuxedDeviceDisconnected, mux-device:1708
+May  5 18:41:46 Mac AMPDeviceDiscoveryAgent[1666]: Entered:_AMMuxedDeviceDisconnected, mux-device:1708
+May  5 18:41:46 Mac MobileDeviceUpdater[8926]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1708
+May  5 18:41:46 Mac AMPDeviceDiscoveryAgent[1666]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1708
+May  5 18:42:09 Mac MobileDeviceUpdater[8926]: Entered:_AMMuxedDeviceDisconnected, mux-device:1709
+May  5 18:42:09 Mac AMPDeviceDiscoveryAgent[1666]: Entered:_AMMuxedDeviceDisconnected, mux-device:1709
+May  5 18:42:09 Mac AMPDeviceDiscoveryAgent[1666]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1709
+May  5 18:42:09 Mac MobileDeviceUpdater[8926]: Entered:__thr_AMMuxedDeviceDisconnected, mux-device:1709
+May  5 18:42:44 Mac syslogd[557]: ASL Sender Statistics

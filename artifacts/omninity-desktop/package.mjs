@@ -56,7 +56,7 @@ console.log(`→ Packaging for platform: ${platform} (OS: ${osPlatform})`);
 
 // ── 1. Build web frontend ──────────────────────────────────────────────────
 const PORT = process.env.PORT || "20599";
-const BASE_PATH = process.env.BASE_PATH || "/omninity-operator/";
+const BASE_PATH = process.env.BASE_PATH || "/";
 console.log(`→ Building web frontend (PORT=${PORT} BASE_PATH=${BASE_PATH})...`);
 execSync("pnpm --filter @workspace/omninity-website run build", {
   stdio: "inherit",
