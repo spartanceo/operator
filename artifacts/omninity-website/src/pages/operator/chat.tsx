@@ -12,6 +12,9 @@ import {
   useUpsertOnboardingProfile,
   useCreateConversation,
   useListConversationMessages,
+  getListConversationMessagesQueryKey,
+  getListConversationsQueryKey,
+  getGetConversationContextQueryKey,
   useAppendConversationMessage,
   useListSkills,
   useTranscribeAudio,
@@ -187,7 +190,7 @@ export default function ChatPage() {
       onSuccess: () => {
         if (activeConversation) {
           void qc.invalidateQueries({
-            queryKey: [`/conversations/${activeConversation.id}/context`],
+            queryKey: getGetConversationContextQueryKey(activeConversation.id),
           });
         }
       },
@@ -198,10 +201,10 @@ export default function ChatPage() {
       onSuccess: () => {
         if (activeConversation) {
           void qc.invalidateQueries({
-            queryKey: [`/conversations/${activeConversation.id}/messages`],
+            queryKey: getListConversationMessagesQueryKey(activeConversation.id),
           });
           void qc.invalidateQueries({
-            queryKey: [`/conversations/${activeConversation.id}/context`],
+            queryKey: getGetConversationContextQueryKey(activeConversation.id),
           });
         }
       },
@@ -212,10 +215,10 @@ export default function ChatPage() {
       onSuccess: () => {
         if (activeConversation) {
           void qc.invalidateQueries({
-            queryKey: [`/conversations/${activeConversation.id}/messages`],
+            queryKey: getListConversationMessagesQueryKey(activeConversation.id),
           });
           void qc.invalidateQueries({
-            queryKey: [`/conversations/${activeConversation.id}/context`],
+            queryKey: getGetConversationContextQueryKey(activeConversation.id),
           });
         }
       },
@@ -226,7 +229,10 @@ export default function ChatPage() {
     mutation: {
       onSuccess: (resp) => {
         setActiveConversation(resp.data);
-        void qc.refetchQueries({ queryKey: ["/conversations"], exact: false });
+        void qc.refetchQueries({
+          queryKey: getListConversationsQueryKey(),
+          exact: false,
+        });
       },
     },
   });
@@ -234,9 +240,12 @@ export default function ChatPage() {
   const appendMessage = useAppendConversationMessage({
     mutation: {
       onSuccess: (_data, vars) => {
-        void qc.refetchQueries({ queryKey: ["/conversations"], exact: false });
         void qc.refetchQueries({
-          queryKey: [`/conversations/${vars.id}/messages`],
+          queryKey: getListConversationsQueryKey(),
+          exact: false,
+        });
+        void qc.refetchQueries({
+          queryKey: getListConversationMessagesQueryKey(vars.id),
           exact: false,
         });
       },
@@ -291,7 +300,7 @@ export default function ChatPage() {
         }
         setAttachedPdf({ name: file.name });
         void qc.refetchQueries({
-          queryKey: [`/conversations/${conversation.id}/messages`],
+          queryKey: getListConversationMessagesQueryKey(conversation.id),
           exact: false,
         });
       } catch (err_) {
@@ -377,7 +386,7 @@ export default function ChatPage() {
           // disappears between the bubble being removed and the persisted
           // message appearing in the conversation list.
           await qc.refetchQueries({
-            queryKey: [`/conversations/${conversationId}/messages`],
+            queryKey: getListConversationMessagesQueryKey(conversationId),
             exact: false,
           });
         }
