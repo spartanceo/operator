@@ -41,6 +41,7 @@ export * from "./contacts";
 export * from "./interactions";
 export * from "./runtime-settings";
 export * from "./runtime-credentials";
+export * from "./capability-settings";
 export * from "./audit-log-entries";
 export * from "./audit-retention-settings";
 export * from "./audit-alert-rules";

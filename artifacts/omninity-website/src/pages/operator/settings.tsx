@@ -29,6 +29,7 @@ import {
   useSynthesizeSpeech,
 } from "@workspace/api-client-react";
 import { HardwareModelSettings } from "@/components/operator/hardware-model-settings";
+import { CapabilityRuntimeSettings } from "@/components/operator/capability-runtime-settings";
 import { TelemetryCard } from "@/components/operator/telemetry-card";
 import { DiagnosticsPanel } from "@/components/operator/diagnostics-panel";
 import {
@@ -328,6 +329,8 @@ export default function SettingsPage() {
         </Card>
 
         <HardwareModelSettings />
+
+        <CapabilityRuntimeSettings />
 
         <TelemetryCard />
 
