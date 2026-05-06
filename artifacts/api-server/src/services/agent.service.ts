@@ -389,17 +389,15 @@ interface WebSearchResearchResult {
     input: Record<string, unknown>;
     output: Record<string, unknown>;
     durationMs: number;
+    status: "completed" | "failed";
   };
 }
 
 /**
  * Call the web_search tool and format results as a readable research context
- * string. Returns null when BRAVE_SEARCH_API_KEY is absent or the call fails,
- * so the caller can fall through to the Ollama / stub path.
- *
- * Returns both the formatted summary AND the raw tool call data so the caller
- * can persist a tool_calls row (after agent_runs is inserted) to surface the
- * search in the run execution timeline.
+ * string. Returns null only when BRAVE_SEARCH_API_KEY is absent (search was
+ * never attempted). On zero results or API errors a result is still returned
+ * so the caller can always persist a tool_calls timeline row.
  */
 async function generateWebSearchResearch(
   ctx: TenantContext,
@@ -411,20 +409,32 @@ async function generateWebSearchResearch(
     const results = result.output["results"] as
       | Array<{ title: string; url: string; description: string }>
       | undefined;
-    if (!results || results.length === 0) return null;
-    const snippets = results
-      .map((r, i) => `${i + 1}. **${r.title}** (${r.url})\n   ${r.description}`)
-      .join("\n\n");
+    const hits = results ?? [];
+    const summary =
+      hits.length > 0
+        ? `Web search results for "${goal}":\n\n${hits
+            .map((r, i) => `${i + 1}. **${r.title}** (${r.url})\n   ${r.description}`)
+            .join("\n\n")}`
+        : "";
     return {
-      summary: `Web search results for "${goal}":\n\n${snippets}`,
+      summary,
       toolCallData: {
         input: { query: goal, count: 5 },
-        output: { results, count: results.length, query: goal },
+        output: { results: hits, count: hits.length, query: goal },
         durationMs: result.durationMs,
+        status: "completed",
       },
     };
-  } catch {
-    return null;
+  } catch (err) {
+    return {
+      summary: "",
+      toolCallData: {
+        input: { query: goal, count: 5 },
+        output: { error: String(err), count: 0, query: goal },
+        durationMs: 0,
+        status: "failed",
+      },
+    };
   }
 }
 
@@ -565,8 +575,8 @@ export async function createAgentRun(
     route === "research" ? await generateWebSearchResearch(ctx, input.goal) : null;
   const researchSummary =
     route === "research"
-      ? (webSearchResult?.summary ??
-         (await generateAiResearch(ctx, input.goal, input.modelName ?? null)) ??
+      ? (webSearchResult?.summary ||
+         (await generateAiResearch(ctx, input.goal, input.modelName ?? null)) ||
          researchAgentFallback(input.goal))
       : null;
   const desktopNote = route === "desktop" ? desktopRouterNote(input.goal) : null;
@@ -657,7 +667,8 @@ export async function createAgentRun(
   );
 
   // Persist tool_calls row for the research web search (FK requires agentRuns
-  // to exist first). This surfaces the search in the run execution timeline.
+  // to exist first). Always written when a key is present — even zero-result
+  // or failed calls — so every search attempt appears in the execution timeline.
   if (webSearchResult) {
     const wsStartedAt = Date.now() - webSearchResult.toolCallData.durationMs;
     await db.insert(toolCallsTable).values(
@@ -666,7 +677,7 @@ export async function createAgentRun(
         runId: id,
         toolName: "web_search",
         riskLevel: "low",
-        status: "completed",
+        status: webSearchResult.toolCallData.status,
         input: JSON.stringify(webSearchResult.toolCallData.input),
         output: JSON.stringify(webSearchResult.toolCallData.output),
         durationMs: webSearchResult.toolCallData.durationMs,
