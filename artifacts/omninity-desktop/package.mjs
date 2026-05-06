@@ -2,30 +2,33 @@
 /**
  * package.mjs — Electron packaging helper for Omninity Desktop
  *
- * Handles:
- *   1. Web frontend build (injects required PORT + BASE_PATH env vars)
- *   2. Electron main/preload esbuild
- *   3. better-sqlite3 Node.js ABI binary backup  (before electron-builder)
- *   4. electron-builder  (npmRebuild compiles binary for Electron ABI)
- *   5. better-sqlite3 restore  (copies backup back → Node.js ABI restored)
+ * Build pipeline:
+ *   1. Web frontend build  (omninity-website → dist/public)
+ *   2. Electron main/preload esbuild  (→ dist/main.js, dist/preload.js)
+ *   3. pnpm deploy --prod  — materialise a staging dir with a real flat
+ *      node_modules.  pnpm's default layout stores every package as a symlink
+ *      into its virtual store (../../../node_modules/.pnpm/…).  electron-
+ *      builder's asar packer stores those as symlinks inside the archive, but
+ *      the symlink targets do not exist on the end-user's machine, so every
+ *      runtime require() fails.  pnpm deploy resolves ALL transitive deps
+ *      (no symlinks) into an isolated directory that electron-builder can pack
+ *      correctly.
+ *   4. Populate staging dir with build artefacts + config.
+ *   5. electron-builder  — builds the installer from the staging dir.
+ *   6. Clean up staging dir.
  *
- * Why backup/restore?
- *   electron-builder's `npmRebuild: true` rewrites the better-sqlite3 native
- *   binary for the Electron ABI.  Because pnpm uses a shared content-
- *   addressable store, this also breaks the binary for the dev API server.
- *   The restore step copies the pre-packaging binary back.  The packaged app
- *   is not affected — its Electron-ABI binary was already bundled into the
- *   asar during step 4 before the restore happens.
- *
- * Backup location: /tmp/   (NOT inside node_modules, which would get packed)
+ * Why no better-sqlite3 backup/restore?
+ *   With the pnpm-deploy approach, electron-builder operates on an isolated
+ *   COPY of node_modules (not the shared pnpm store).  npmRebuild rewrites
+ *   the binary inside the staging copy only; the dev environment's binary is
+ *   untouched.  The original backup/restore logic is therefore unnecessary.
  *
  * Usage:
- *   node package.mjs [linux|mac|win]   (defaults to linux)
+ *   node package.mjs [linux|linux:deb|mac|win]   (defaults to current OS)
  */
 
 import { execSync } from "child_process";
-import { copyFileSync, existsSync, readdirSync } from "fs";
-import { createRequire } from "module";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { tmpdir } from "os";
@@ -36,14 +39,10 @@ const workspaceRoot = resolve(__dir, "../..");
 // Supported platform tokens:
 //   linux       → --linux dir  (fast, CI-testable unpacked directory)
 //   linux:deb   → --linux deb  (generates .deb installer; needs dpkg-deb)
-//   mac         → --mac dmg    (needs macOS + Xcode)
+//   mac         → --mac dmg    (needs macOS + Xcode CLT)
 //   win         → --win nsis   (needs Windows)
 //
-// When no argument is given, the current OS is auto-detected so that
-// `pnpm run package` produces the native installer on each CI runner:
-//   - Linux   → linux (unpacked dir)
-//   - macOS   → mac   (.dmg)
-//   - Windows → win   (.exe)
+// When no argument is given, the current OS is auto-detected.
 const osPlatform = process.platform; // 'linux' | 'darwin' | 'win32'
 const nativePlatform =
   osPlatform === "darwin" ? "mac" : osPlatform === "win32" ? "win" : "linux";
@@ -73,84 +72,115 @@ execSync("pnpm --filter @workspace/omninity-website run build", {
 console.log("→ Building Electron main process...");
 execSync("node build.mjs", { stdio: "inherit", cwd: __dir });
 
-// ── 3. Locate better-sqlite3 binary and back it up ────────────────────────
-// Resolve from this package's own context — better-sqlite3 is listed as a
-// direct dependency of @workspace/omninity-desktop so import.meta.url-based
-// resolution finds it via pnpm's virtual store symlinks.
-const ownRequire = createRequire(import.meta.url);
-let binaryPath = null;
-try {
-  binaryPath = ownRequire.resolve(
-    "better-sqlite3/build/Release/better_sqlite3.node"
-  );
-} catch {
-  // Fallback: derive path from the known pnpm store structure
-  const bsqRoot = resolve(
-    workspaceRoot,
-    "node_modules/.pnpm"
-  );
-  if (existsSync(bsqRoot)) {
-    const entry = readdirSync(bsqRoot).find((d) =>
-      d.startsWith("better-sqlite3@")
-    );
-    if (entry) {
-      const candidate = resolve(
-        bsqRoot,
-        entry,
-        "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
-      );
-      if (existsSync(candidate)) binaryPath = candidate;
-    }
+// ── 3. pnpm deploy — resolve all production deps into a staging dir ────────
+//
+// pnpm stores every dependency as a symlink into its virtual store:
+//   node_modules/multer → ../../../node_modules/.pnpm/multer@2.1.1/…
+//
+// electron-builder's asar packer preserves these as symlinks.  When the
+// packaged app runs on the user's machine the symlink targets do not exist,
+// so every require() for an external module fails with "Cannot find module".
+//
+// `pnpm deploy --prod` resolves the FULL transitive dependency graph and
+// copies real files (no symlinks) into an isolated directory.
+const deployDir = resolve(tmpdir(), `omninity-desktop-deploy-${process.pid}`);
+console.log(`→ Staging production deployment at ${deployDir} ...`);
+if (existsSync(deployDir)) rmSync(deployDir, { recursive: true, force: true });
+
+execSync(
+  `pnpm --filter @workspace/omninity-desktop deploy --prod "${deployDir}"`,
+  { stdio: "inherit", cwd: workspaceRoot },
+);
+
+// ── 4. Populate staging dir with build artefacts + config ─────────────────
+console.log("→ Copying build artefacts into staging dir...");
+
+// Electron main/preload (pnpm deploy only copies workspace source files, not
+// generated dist/).
+cpSync(resolve(__dir, "dist"), resolve(deployDir, "dist"), {
+  recursive: true,
+  dereference: true,
+});
+
+// electron-builder config — write a modified copy with the renderer path
+// made absolute so it resolves correctly from inside the staging dir.
+const rendererAbsPath = resolve(
+  workspaceRoot,
+  "artifacts/omninity-website/dist/public",
+);
+let ebYml = readFileSync(resolve(__dir, "electron-builder.yml"), "utf8");
+// Replace the workspace-relative renderer path with an absolute path.
+ebYml = ebYml.replace(
+  /from:\s*["']\.\.\/omninity-website\/dist\/public["']/,
+  `from: "${rendererAbsPath}"`,
+);
+writeFileSync(resolve(deployDir, "electron-builder.yml"), ebYml);
+
+// macOS entitlements plist and app icon (referenced by electron-builder.yml).
+for (const subdir of ["build", "assets"]) {
+  const src = resolve(__dir, subdir);
+  if (existsSync(src)) {
+    cpSync(src, resolve(deployDir, subdir), { recursive: true });
   }
 }
 
-// Store the backup in /tmp so it is never accidentally packed into the asar
-const backupPath = resolve(tmpdir(), "better_sqlite3.node.abi-backup");
-if (binaryPath && existsSync(binaryPath)) {
-  console.log("→ Backing up better-sqlite3 Node.js ABI binary to /tmp ...");
-  copyFileSync(binaryPath, backupPath);
-  console.log(`  backed up: ${binaryPath}`);
-} else {
-  console.warn(
-    `⚠  better-sqlite3 binary not found (binaryPath=${binaryPath}) — ` +
-      "ABI backup skipped; the dev server may need manual rebuild after packaging"
+// Stub electron package.json so electron-builder can determine the Electron
+// version for npmRebuild (it reads node_modules/electron/package.json).
+// We only need the version field — the full binary is not required here.
+const electronPkgPath = resolve(__dir, "node_modules/electron/package.json");
+if (existsSync(electronPkgPath)) {
+  const electronPkg = JSON.parse(readFileSync(electronPkgPath, "utf8"));
+  const stubDir = resolve(deployDir, "node_modules/electron");
+  mkdirSync(stubDir, { recursive: true });
+  writeFileSync(
+    resolve(stubDir, "package.json"),
+    JSON.stringify({ name: "electron", version: electronPkg.version }),
   );
-  binaryPath = null;
 }
 
-// ── 4. Run electron-builder ───────────────────────────────────────────────
+// ── 5. Run electron-builder ───────────────────────────────────────────────
 const platformFlags = {
   linux: "--linux dir",
   "linux:deb": "--linux deb",
   mac: "--mac",
   win: "--win",
 };
-const ebArgs = `${platformFlags[platform]} --publish never`;
+
+// Output always goes to __dir/release/ regardless of the staging cwd.
+const releaseDir = resolve(__dir, "release");
+const ebArgs = [
+  platformFlags[platform],
+  "--publish never",
+  `-c.directories.output="${releaseDir}"`,
+].join(" ");
+
 console.log(`→ Running electron-builder ${ebArgs}...`);
 
 const ebEnv = {
   ...process.env,
-  // Disable code signing on all platforms — the developer must configure
-  // CSC_LINK + CSC_KEY_PASSWORD (or APPLE_API_KEY etc.) for signed releases.
+  // Disable code signing — configure CSC_LINK + CSC_KEY_PASSWORD for signed releases.
   CSC_IDENTITY_AUTO_DISCOVERY: "false",
   NODE_ENV: "production",
 };
 
 let packagingError = null;
 try {
-  // Use the local electron-builder binary (it is a devDependency of this
-  // package, so it is available at ./node_modules/.bin/electron-builder when
-  // run via `pnpm --filter` or `node package.mjs` from this directory).
-  // Using the full relative path avoids relying on it being in $PATH.
-  execSync(`./node_modules/.bin/electron-builder ${ebArgs}`, { stdio: "inherit", env: ebEnv, cwd: __dir });
+  // Run electron-builder from the staging dir so it finds the resolved
+  // node_modules.  Use the binary from __dir's devDependencies since the
+  // staging dir (--prod) does not include it.
+  execSync(
+    `"${resolve(__dir, "node_modules/.bin/electron-builder")}" ${ebArgs}`,
+    { stdio: "inherit", env: ebEnv, cwd: deployDir },
+  );
 } catch (err) {
   packagingError = err;
 } finally {
-  // ── 5. Restore Node.js ABI binary ───────────────────────────────────────
-  if (binaryPath && existsSync(backupPath)) {
-    console.log("→ Restoring better-sqlite3 Node.js ABI binary...");
-    copyFileSync(backupPath, binaryPath);
-    console.log("✓  better-sqlite3 restored (Node.js ABI)");
+  // ── 6. Clean up staging dir ─────────────────────────────────────────────
+  try {
+    rmSync(deployDir, { recursive: true, force: true });
+    console.log("→ Staging dir cleaned up.");
+  } catch {
+    console.warn(`⚠  Could not remove staging dir: ${deployDir}`);
   }
 }
 
@@ -158,3 +188,5 @@ if (packagingError) {
   console.error("\n✗  electron-builder failed:", packagingError.message);
   process.exit(1);
 }
+
+console.log(`\n✓  Packaging complete. Output: ${releaseDir}`);
