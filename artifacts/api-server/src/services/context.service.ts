@@ -62,6 +62,7 @@ import {
 import type { TenantContext } from "@workspace/types";
 
 import { logger } from "../lib/logger";
+import { retrieveContext } from "./kb.service";
 import {
   CloudConsentRequiredError,
   CloudCredentialMissingError,
@@ -481,6 +482,30 @@ function buildDeterministicSummary(msgs: ReadonlyArray<ContextMessage>): string 
 }
 
 /**
+ * Silently retrieves relevant knowledge-base snippets for `query` and
+ * returns a system-role ChatTurn to prepend to the prompt. Returns
+ * `null` when the KB is empty, has no relevant hits, or the search
+ * throws — so callers never have to guard against failures here.
+ */
+async function tryGetKbContext(
+  ctx: TenantContext,
+  query: string,
+): Promise<ChatTurn | null> {
+  try {
+    const kb = await retrieveContext(ctx, query, { limit: 4 });
+    if (kb.hits.length === 0) return null;
+    return {
+      role: "system",
+      content:
+        `The following snippets were retrieved from the user's personal knowledge base and are relevant to their message. ` +
+        `Use them to inform your response where appropriate:\n\n${kb.summary}`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Public entry-point used by `/api/chat`. Loads the conversation's
  * active context, applies rolling summarisation if the prompt would
  * trigger the threshold, and returns the messages-to-send envelope.
@@ -505,8 +530,12 @@ export async function prepareChatContext(
         "Your message alone is larger than the model's context window. Switch to a model with a larger window or split the message into smaller pieces.",
       );
     }
+    const kbTurn = await tryGetKbContext(ctx, pendingInput);
+    const messages: ChatTurn[] = [];
+    if (kbTurn) messages.push(kbTurn);
+    messages.push({ role: "user", content: pendingInput });
     return {
-      messages: [{ role: "user", content: pendingInput }],
+      messages,
       usage,
       summarisedThisCall: false,
       compressedMessageCount: 0,
@@ -551,6 +580,12 @@ export async function prepareChatContext(
       role: m.role as ChatTurn["role"],
       content: m.content,
     }));
+
+  // Retrieve relevant knowledge and inject as a leading system message
+  // so the model always sees it before the conversation history.
+  const kbTurn = await tryGetKbContext(ctx, pendingInput);
+  if (kbTurn) turns.unshift(kbTurn);
+
   turns.push({ role: "user", content: pendingInput });
 
   return {
