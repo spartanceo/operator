@@ -97,6 +97,28 @@ execSync(
   { stdio: "inherit", cwd: workspaceRoot },
 );
 
+// ── 3b. Fix pnpm virtual-store self-reference ─────────────────────────────
+//
+// pnpm v10 --legacy deploy creates a .pnpm virtual store inside the staging
+// node_modules and writes a self-referencing entry for the deployed package at:
+//   node_modules/.pnpm/node_modules/@workspace/omninity-desktop
+//
+// @electron/rebuild (invoked by electron-builder's npmRebuild) calls stat()
+// on this path while scanning for native modules.  The directory is referenced
+// in pnpm's internal metadata but never actually created, so stat() throws
+// ENOENT and the entire rebuild step aborts.
+//
+// Fix: materialise a minimal stub so stat() succeeds.  @electron/rebuild does
+// not inspect the contents — it only needs the path to exist.
+const pnpmSelfRef = resolve(
+  deployDir, "node_modules", ".pnpm", "node_modules", "@workspace", "omninity-desktop",
+);
+mkdirSync(pnpmSelfRef, { recursive: true });
+writeFileSync(
+  resolve(pnpmSelfRef, "package.json"),
+  JSON.stringify({ name: "@workspace/omninity-desktop", version: "0.0.1" }),
+);
+
 // ── 4. Populate staging dir with build artefacts + config ─────────────────
 console.log("→ Copying build artefacts into staging dir...");
 

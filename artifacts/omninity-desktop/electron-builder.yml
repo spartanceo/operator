@@ -55,7 +55,11 @@ mac:
   target:
     - target: dmg
       arch:
-        - x64
+        # arm64 only for local dev builds on Apple Silicon.
+        # Cross-compiling x64 on arm64 is slower, requires Rosetta toolchain,
+        # and the dmg.artifactName override (no ${arch} token) would cause both
+        # artefacts to write to the same filename.  Add x64 back here when a
+        # distribution-ready universal build is needed.
         - arm64
   entitlementsInherit: build/entitlements.mac.plist
   hardenedRuntime: true
