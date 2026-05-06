@@ -5,7 +5,7 @@ export default defineConfig({
   base: "/omninity-desktop/",
   server: {
     host: "0.0.0.0",
-    port: Number(process.env["PORT"] ?? 8099),
+    port: Number(process.env["PORT"] || 0),
     strictPort: false,
     allowedHosts: true,
     hmr: false,
