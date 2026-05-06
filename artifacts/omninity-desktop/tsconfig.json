@@ -10,6 +10,6 @@
       "@workspace/types": ["../../lib/types/src/index.ts"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "../api-server/src/vendor.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

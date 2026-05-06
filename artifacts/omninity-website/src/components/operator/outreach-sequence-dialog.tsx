@@ -68,7 +68,7 @@ export function OutreachSequenceDialog() {
     setSteps(steps.filter((s) => s.id !== id));
   };
 
-  const updateStep = (id: string, field: keyof Step, value: any) => {
+  const updateStep = (id: string, field: keyof Step, value: Step[keyof Step]) => {
     setSteps(
       steps.map((s) => (s.id === id ? { ...s, [field]: value } : s))
     );

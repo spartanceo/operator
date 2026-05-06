@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "2RyOY8YsiO5FzyZM-nvLK"
+uri = "file://artifacts/omninity-pitch-deck/public/hero-cover.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "8nmuVdzKR5B5MOcMlqIif"
+uri = "file://artifacts/omninity-pitch-deck/public/ui-desktop-control.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "xRzbVHUb9-MzRoEDanT1V"
+uri = "file://artifacts/omninity-pitch-deck/public/ui-knowledge-base.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "k5RcoTAXvdgWbiqV87l5M"
+uri = "file://artifacts/omninity-pitch-deck/public/ui-communications.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "DvE5dPLtnl_y8HzbVomv_"
+uri = "file://artifacts/omninity-pitch-deck/public/ui-privacy.png"
+type = "image"
+title = "generated_image"

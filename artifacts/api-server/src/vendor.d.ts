@@ -1,7 +1,7 @@
 /** screenshot-desktop — optional runtime dep for real screen capture (desktop only). */
 declare module "screenshot-desktop" {
   function screenshot(options?: { format?: string; screen?: number }): Promise<Buffer>;
-  export = screenshot;
+  export default screenshot;
 }
 
 /** @nut-tree-fork/nut-js — optional runtime dep for real desktop input (desktop only). */

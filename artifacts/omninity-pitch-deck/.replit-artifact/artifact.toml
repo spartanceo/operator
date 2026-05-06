@@ -1,0 +1,31 @@
+kind = "slides"
+previewPath = "/omninity-pitch-deck/"
+title = "Omninity OP Pitch Deck"
+version = "1.0.0"
+id = "artifacts/omninity-pitch-deck"
+router = "path"
+
+[[integratedSkills]]
+name = "slides"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/omninity-pitch-deck/" ]
+localPort = 23405
+
+[services.development]
+run = "pnpm --filter @workspace/omninity-pitch-deck run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/omninity-pitch-deck", "run", "build" ]
+publicDir = "artifacts/omninity-pitch-deck/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23405"
+BASE_PATH = "/omninity-pitch-deck/"

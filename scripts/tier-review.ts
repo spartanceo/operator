@@ -617,6 +617,29 @@ function checkCodegenSync(): CheckResult {
   }
 
   if (dirty.length === 0) {
+    // Check if dist/ declarations are in sync with src/
+    const srcGeneratedDir = path.join(ROOT, "lib", "api-client-react", "src", "generated");
+    const distGeneratedDir = path.join(ROOT, "lib", "api-client-react", "dist", "generated");
+    if (fs.existsSync(srcGeneratedDir) && fs.existsSync(distGeneratedDir)) {
+      const srcFiles = fs.readdirSync(srcGeneratedDir).filter(f => f.endsWith(".ts"));
+      for (const f of srcFiles) {
+        const srcPath = path.join(srcGeneratedDir, f);
+        const dtsName = f.replace(/\.ts$/, ".d.ts");
+        const distPath = path.join(distGeneratedDir, dtsName);
+        if (!fs.existsSync(distPath)) {
+          dirty.push(`STALE: lib/api-client-react/dist/generated/${dtsName} (missing)`);
+          continue;
+        }
+        const srcStat = fs.statSync(srcPath);
+        const distStat = fs.statSync(distPath);
+        if (srcStat.mtimeMs > distStat.mtimeMs) {
+          dirty.push(`STALE: lib/api-client-react/dist/generated/${dtsName} (older than src)`);
+        }
+      }
+    }
+  }
+
+  if (dirty.length === 0) {
     return { name: "OpenAPI codegen in sync", passed: true, message: "Generated files are up to date" };
   }
   return {
