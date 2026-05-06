@@ -951,7 +951,7 @@ export default function ChatPage() {
                 className="hidden"
                 onChange={(e) => void handlePdfSelect(e)}
               />
-              <div className="flex items-end gap-2">
+              <div className="flex flex-col gap-1.5">
                 <Textarea
                   data-testid="input-chat"
                   value={input}
@@ -967,68 +967,75 @@ export default function ChatPage() {
                   className="min-h-[72px] max-h-48 resize-none"
                   disabled={isStreaming || createRun.isPending}
                 />
-                <div className="flex flex-col gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => pdfInputRef.current?.click()}
-                    disabled={pdfUploading || isStreaming}
-                    aria-label="Attach PDF"
-                    title="Attach PDF"
-                    data-testid="button-attach-pdf"
-                  >
-                    {pdfUploading ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Paperclip className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setSaveTemplateOpen(true)}
-                    disabled={!input.trim() && !lastSentPrompt}
-                    aria-label="Save as template"
-                    title="Save as template"
-                    data-testid="button-save-as-template"
-                  >
-                    <Bookmark className="h-4 w-4" />
-                  </Button>
-                  {agentMode &&
-                  activeRunId &&
-                  run &&
-                  !TERMINAL_STATUSES.has(run.status) ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="icon"
-                      onClick={() => cancelRun.mutate({ id: activeRunId })}
-                      disabled={cancelRun.isPending}
-                      aria-label="Cancel run"
-                      data-testid="button-cancel-run"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => pdfInputRef.current?.click()}
+                      disabled={pdfUploading || isStreaming}
+                      aria-label="Attach PDF"
+                      title="Attach PDF"
+                      data-testid="button-attach-pdf"
                     >
-                      <Square className="h-4 w-4" />
+                      {pdfUploading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Paperclip className="h-4 w-4" />
+                      )}
                     </Button>
-                  ) : null}
-                  <MicButton
-                    isRecording={recorder.isRecording}
-                    isBusy={transcribeMut.isPending}
-                    onStart={startVoiceCapture}
-                    onStop={recorder.stop}
-                    onCancel={recorder.cancel}
-                  />
-                  <Button
-                    size="icon"
-                    onClick={submit}
-                    disabled={
-                      !input.trim() ||
-                      isStreaming ||
-                      createRun.isPending
-                    }
-                    aria-label="Send"
-                    data-testid="button-send"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => setSaveTemplateOpen(true)}
+                      disabled={!input.trim() && !lastSentPrompt}
+                      aria-label="Save as template"
+                      title="Save as template"
+                      data-testid="button-save-as-template"
+                    >
+                      <Bookmark className="h-4 w-4" />
+                    </Button>
+                    {agentMode &&
+                    activeRunId &&
+                    run &&
+                    !TERMINAL_STATUSES.has(run.status) ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => cancelRun.mutate({ id: activeRunId })}
+                        disabled={cancelRun.isPending}
+                        aria-label="Cancel run"
+                        data-testid="button-cancel-run"
+                      >
+                        <Square className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MicButton
+                      isRecording={recorder.isRecording}
+                      isBusy={transcribeMut.isPending}
+                      onStart={startVoiceCapture}
+                      onStop={recorder.stop}
+                      onCancel={recorder.cancel}
+                    />
+                    <Button
+                      size="icon"
+                      onClick={submit}
+                      disabled={
+                        !input.trim() ||
+                        isStreaming ||
+                        createRun.isPending
+                      }
+                      aria-label="Send"
+                      data-testid="button-send"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
