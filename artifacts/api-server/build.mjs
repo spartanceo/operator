@@ -100,6 +100,8 @@ async function buildAll() {
       "puppeteer",
       "puppeteer-core",
       "electron",
+      "@nut-tree-fork/nut-js",
+      "screenshot-desktop",
     ],
     sourcemap: "linked",
     plugins: [
