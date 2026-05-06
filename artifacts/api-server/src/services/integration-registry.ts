@@ -47,6 +47,12 @@ export interface ProviderDescriptor {
   readonly oauthScopes: readonly string[];
   readonly fields: readonly ProviderField[];
   readonly actions: readonly ProviderAction[];
+  /**
+   * When true, the UI shows a "Recommended" badge on this provider card.
+   * Use this to highlight the preferred provider within a category when
+   * multiple options cover the same capability (e.g. web search).
+   */
+  readonly recommended?: boolean;
 }
 
 const apiKeyOnly: readonly ProviderField[] = [
@@ -348,6 +354,78 @@ export const PROVIDERS: readonly ProviderDescriptor[] = [
     actions: [
       { name: "selectRows", description: "Select rows from a table", riskLevel: "low" },
       { name: "insertRow", description: "Insert a row", riskLevel: "medium" },
+    ],
+  },
+  // ─── AI / external service providers ────────────────────────────────────────
+  //
+  // PATTERN: Every external AI or data-service feature the agent uses must be
+  // registered here as a provider entry rather than reading a server-level env
+  // var. Tool handlers call `getConnectedProvider(ctx, providerId)` in
+  // integrations.service.ts to resolve per-tenant credentials at runtime.
+  //
+  // Adding a new external service:
+  //   1. Register a ProviderDescriptor here (authType "api_key" for most AI APIs).
+  //   2. Add the required credential fields and the actions it exposes.
+  //   3. In the relevant service (tools.service, media.service, voice.service,
+  //      …) call `getConnectedProvider(ctx, "<your-id>")` to fetch credentials
+  //      and fall back gracefully (stub / clear log warning) when null.
+  //   4. Mark one provider per capability as `recommended: true` so the UI can
+  //      surface a sensible default choice to new customers.
+  //
+  // Never add a new `process.env["SOME_API_KEY"]` lookup in service code —
+  // always use this registry + getConnectedProvider instead.
+  {
+    id: "brave_search",
+    label: "Brave Search",
+    category: "data",
+    authType: "api_key",
+    description: "Privacy-respecting web search via the Brave Search API.",
+    recommended: true,
+    oauthScopes: [],
+    fields: apiKeyOnly,
+    actions: [
+      { name: "search", description: "Search the web for up-to-date information", riskLevel: "low" },
+    ],
+  },
+  {
+    id: "serper",
+    label: "Serper",
+    category: "data",
+    authType: "api_key",
+    description: "Google Search results via the Serper.dev API.",
+    oauthScopes: [],
+    fields: apiKeyOnly,
+    actions: [
+      { name: "search", description: "Search the web for up-to-date information", riskLevel: "low" },
+    ],
+  },
+  {
+    id: "google_cse",
+    label: "Google Custom Search",
+    category: "data",
+    authType: "api_key",
+    description: "Web search via Google Programmable Search Engine.",
+    oauthScopes: [],
+    fields: [
+      { name: "apiKey", label: "API key", secret: true, required: true },
+      { name: "cxId", label: "Search engine ID (cx)", required: true },
+    ],
+    actions: [
+      { name: "search", description: "Search the web for up-to-date information", riskLevel: "low" },
+    ],
+  },
+  {
+    id: "replicate",
+    label: "Replicate",
+    category: "data",
+    authType: "api_key",
+    description: "Cloud AI inference for image generation (FLUX) and speech-to-text (Whisper).",
+    recommended: true,
+    oauthScopes: [],
+    fields: apiKeyOnly,
+    actions: [
+      { name: "imageGenerate", description: "Generate an image from a text prompt via FLUX", riskLevel: "low" },
+      { name: "transcribeAudio", description: "Transcribe speech audio via Whisper", riskLevel: "low" },
     ],
   },
 ];

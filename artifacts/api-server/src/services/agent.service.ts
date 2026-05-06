@@ -395,15 +395,19 @@ interface WebSearchResearchResult {
 
 /**
  * Call the web_search tool and format results as a readable research context
- * string. Returns null only when BRAVE_SEARCH_API_KEY is absent (search was
- * never attempted). On zero results or API errors a result is still returned
- * so the caller can always persist a tool_calls timeline row.
+ * string. Returns null when no search provider is connected or the call fails,
+ * so the caller can fall through to the Ollama / stub path. On zero results or
+ * API errors a result is still returned so the caller can always persist a
+ * tool_calls timeline row.
+ *
+ * Returns both the formatted summary AND the raw tool call data so the caller
+ * can persist a tool_calls row (after agent_runs is inserted) to surface the
+ * search in the run execution timeline.
  */
 async function generateWebSearchResearch(
   ctx: TenantContext,
   goal: string,
 ): Promise<WebSearchResearchResult | null> {
-  if (!process.env["BRAVE_SEARCH_API_KEY"]) return null;
   try {
     const result = await invokeTool(ctx, "web_search", { query: goal, count: 5 });
     const results = result.output["results"] as

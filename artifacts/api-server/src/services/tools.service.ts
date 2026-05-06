@@ -32,7 +32,10 @@ import { placeCall as placeVoipCall } from "./comm/voip.service";
 import * as desktopInputService from "./desktop-input.service";
 import * as filesService from "./files.service";
 import { listProviders } from "./integration-registry";
-import { executeIntegrationAction } from "./integrations.service";
+import {
+  executeIntegrationAction,
+  getConnectedProvider,
+} from "./integrations.service";
 import * as mediaService from "./media.service";
 import * as memoryService from "./memory.service";
 import { logPrivacyEvent } from "./privacy.service";
@@ -591,64 +594,139 @@ const TOOLS: ToolEntry[] = [
   {
     name: "web_search",
     description:
-      "Search the web for up-to-date information. Returns top results with title, URL, and description snippet. Requires BRAVE_SEARCH_API_KEY.",
+      "Search the web for up-to-date information. Returns top results with title, URL, and description snippet. Resolves credentials per-tenant from connected providers (brave_search, serper, google_cse).",
     riskLevel: "low",
     handler: async (ctx, input) => {
       const query = str(input["query"], "query");
       const count = Math.max(1, Math.min(10, intOr(input["count"], 5)));
-      const apiKey = process.env["BRAVE_SEARCH_API_KEY"];
 
-      if (!apiKey) {
-        return {
-          results: [],
-          count: 0,
-          query,
-          error: "Web search unavailable — no API key configured",
-        };
+      type SearchResult = { title: string; url: string; description: string };
+
+      // ── Brave Search ────────────────────────────────────────────────────────
+      const braveCreds = await getConnectedProvider(ctx, "brave_search");
+      if (braveCreds) {
+        const apiKey = braveCreds["apiKey"] as string;
+        const searchUrl =
+          `https://api.search.brave.com/res/v1/web/search` +
+          `?q=${encodeURIComponent(query)}&count=${count}`;
+        await logPrivacyEvent(ctx, {
+          eventType: "tool.web_search",
+          actor: ctx.userId ?? ctx.tenantId,
+          target: query,
+          severity: "low",
+          detail: `provider=brave count=${count}`,
+        });
+        try {
+          const res = await fetch(searchUrl, {
+            headers: {
+              Accept: "application/json",
+              "Accept-Encoding": "gzip",
+              "X-Subscription-Token": apiKey,
+            },
+          });
+          if (!res.ok) {
+            const body = await res.text().catch(() => "");
+            console.warn(`[web_search] Brave API ${res.status}: ${body}`);
+          } else {
+            const data = (await res.json()) as {
+              web?: { results?: Array<{ title: string; url: string; description?: string }> };
+            };
+            const results: SearchResult[] = (data.web?.results ?? []).slice(0, count).map((r) => ({
+              title: r.title,
+              url: r.url,
+              description: r.description ?? "",
+            }));
+            return { results, count: results.length, query, provider: "brave_search" };
+          }
+        } catch (e) {
+          console.warn("[web_search] Brave fetch error:", e);
+        }
       }
 
-      const searchUrl =
-        `https://api.search.brave.com/res/v1/web/search` +
-        `?q=${encodeURIComponent(query)}&count=${count}`;
-      await logPrivacyEvent(ctx, {
-        eventType: "tool.web_search",
-        actor: ctx.userId ?? ctx.tenantId,
-        target: query,
-        severity: "low",
-        detail: `count=${count}`,
-      });
-      const res = await fetch(searchUrl, {
-        headers: {
-          Accept: "application/json",
-          "Accept-Encoding": "gzip",
-          "X-Subscription-Token": apiKey,
-        },
-      });
-
-      if (!res.ok) {
-        const body = await res.text().catch(() => "");
-        console.warn(`[web_search] Brave API ${res.status}: ${body}`);
-        return {
-          results: [],
-          count: 0,
-          query,
-          error: `Brave Search API error: ${res.status}`,
-        };
+      // ── Serper ──────────────────────────────────────────────────────────────
+      const serperCreds = await getConnectedProvider(ctx, "serper");
+      if (serperCreds) {
+        const apiKey = serperCreds["apiKey"] as string;
+        await logPrivacyEvent(ctx, {
+          eventType: "tool.web_search",
+          actor: ctx.userId ?? ctx.tenantId,
+          target: query,
+          severity: "low",
+          detail: `provider=serper count=${count}`,
+        });
+        try {
+          const res = await fetch("https://google.serper.dev/search", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-KEY": apiKey,
+            },
+            body: JSON.stringify({ q: query, num: count }),
+          });
+          if (!res.ok) {
+            const body = await res.text().catch(() => "");
+            console.warn(`[web_search] Serper API ${res.status}: ${body}`);
+          } else {
+            const data = (await res.json()) as {
+              organic?: Array<{ title: string; link: string; snippet?: string }>;
+            };
+            const results: SearchResult[] = (data.organic ?? []).slice(0, count).map((r) => ({
+              title: r.title,
+              url: r.link,
+              description: r.snippet ?? "",
+            }));
+            return { results, count: results.length, query, provider: "serper" };
+          }
+        } catch (e) {
+          console.warn("[web_search] Serper fetch error:", e);
+        }
       }
 
-      const data = (await res.json()) as {
-        web?: {
-          results?: Array<{ title: string; url: string; description?: string }>;
-        };
+      // ── Google Custom Search ─────────────────────────────────────────────────
+      const googleCreds = await getConnectedProvider(ctx, "google_cse");
+      if (googleCreds) {
+        const apiKey = googleCreds["apiKey"] as string;
+        const cxId = googleCreds["cxId"] as string;
+        const searchUrl =
+          `https://www.googleapis.com/customsearch/v1` +
+          `?key=${encodeURIComponent(apiKey)}&cx=${encodeURIComponent(cxId)}` +
+          `&q=${encodeURIComponent(query)}&num=${count}`;
+        await logPrivacyEvent(ctx, {
+          eventType: "tool.web_search",
+          actor: ctx.userId ?? ctx.tenantId,
+          target: query,
+          severity: "low",
+          detail: `provider=google_cse count=${count}`,
+        });
+        try {
+          const res = await fetch(searchUrl);
+          if (!res.ok) {
+            const body = await res.text().catch(() => "");
+            console.warn(`[web_search] Google CSE API ${res.status}: ${body}`);
+          } else {
+            const data = (await res.json()) as {
+              items?: Array<{ title: string; link: string; snippet?: string }>;
+            };
+            const results: SearchResult[] = (data.items ?? []).slice(0, count).map((r) => ({
+              title: r.title,
+              url: r.link,
+              description: r.snippet ?? "",
+            }));
+            return { results, count: results.length, query, provider: "google_cse" };
+          }
+        } catch (e) {
+          console.warn("[web_search] Google CSE fetch error:", e);
+        }
+      }
+
+      // ── No provider connected ────────────────────────────────────────────────
+      console.warn("[web_search] No search provider connected for tenant", ctx.tenantId);
+      return {
+        results: [],
+        count: 0,
+        query,
+        error: "Web search unavailable — connect a search provider (Brave Search, Serper, or Google Custom Search) in the integrations page.",
       };
-
-      const results = (data.web?.results ?? []).slice(0, count).map((r) => ({
-        title: r.title,
-        url: r.url,
-        description: r.description ?? "",
-      }));
-
-      return { results, count: results.length, query };
     },
   },
 ];

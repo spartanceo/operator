@@ -485,6 +485,48 @@ export async function completeOAuthCallback(
 }
 
 /**
+ * Resolve the decrypted credentials for a connected provider, or return null
+ * when the tenant has no active connection for that provider.
+ *
+ * This is the **standard lookup** for all provider-backed tool handlers.
+ * Example usage in a tool handler:
+ *
+ *   const creds = await getConnectedProvider(ctx, "brave_search");
+ *   if (!creds) { return { error: "no search provider connected" }; }
+ *   const apiKey = creds["apiKey"] as string;
+ *
+ * Always prefer this over reading process.env directly — it keeps credentials
+ * per-tenant and avoids leaking a shared server key to all customers.
+ */
+export async function getConnectedProvider(
+  ctx: TenantContext,
+  providerId: string,
+): Promise<Record<string, unknown> | null> {
+  const rows = await db
+    .select()
+    .from(integrations)
+    .where(
+      and(
+        tenantScope(ctx, integrations),
+        eq(integrations.provider, providerId),
+        eq(integrations.connectionStatus, "connected"),
+      ),
+    )
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  try {
+    return decryptCredentials(row.credentialsEncrypted);
+  } catch (e) {
+    logger.warn(
+      { err: e, provider: providerId },
+      "getConnectedProvider: failed to decrypt credentials — treating as disconnected",
+    );
+    return null;
+  }
+}
+
+/**
  * Execute one provider action. Tier 1 returns a deterministic
  * `simulated: true` envelope so agent plans, the audit log, and the UI
  * can be tested without real third-party access.

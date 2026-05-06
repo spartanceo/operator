@@ -25,6 +25,7 @@
  */
 import type { TenantContext } from "@workspace/types";
 
+import { getConnectedProvider } from "./integrations.service";
 import { logPrivacyEvent } from "./privacy.service";
 
 const SAMPLE_RATE = 16_000;
@@ -159,6 +160,109 @@ function pickStubTranscript(audio: Buffer): string {
   return STUB_TRANSCRIPTS[idx]!;
 }
 
+/**
+ * Attempt Whisper transcription via Replicate when the tenant has the
+ * Replicate provider connected. Returns null on any failure so the caller
+ * falls back to the stub transcript.
+ */
+async function transcribeWithReplicate(
+  ctx: TenantContext,
+  audio: Buffer,
+  mimeType: string,
+  language?: string,
+): Promise<{ transcript: string; durationMs: number } | null> {
+  const creds = await getConnectedProvider(ctx, "replicate");
+  if (!creds) return null;
+  const token = creds["apiKey"] as string;
+
+  // Encode as a data URL so Replicate can accept it inline.
+  const b64 = audio.toString("base64");
+  const dataUrl = `data:${mimeType};base64,${b64}`;
+
+  interface WhisperPrediction {
+    id: string;
+    status: string;
+    output?: { transcription?: string; segments?: Array<{ end: number }> };
+    error?: string;
+  }
+
+  try {
+    await logPrivacyEvent(ctx, {
+      eventType: "voice.transcribe.replicate",
+      actor: ctx.userId ?? ctx.tenantId,
+      target: mimeType,
+      severity: "low",
+      detail: `bytes=${audio.length}`,
+    });
+    const createRes = await fetch(
+      "https://api.replicate.com/v1/models/openai/whisper/predictions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Prefer: "wait=60",
+        },
+        body: JSON.stringify({
+          input: {
+            audio: dataUrl,
+            model: "large-v3",
+            ...(language ? { language } : {}),
+          },
+        }),
+      },
+    );
+
+    if (!createRes.ok) {
+      const body = await createRes.text().catch(() => "(unreadable)");
+      console.warn(`[voice] Replicate Whisper create failed ${createRes.status}: ${body}`);
+      return null;
+    }
+
+    let prediction = (await createRes.json()) as WhisperPrediction;
+
+    // Poll if the synchronous wait didn't resolve.
+    const pollUrl = `https://api.replicate.com/v1/predictions/${prediction.id}`;
+    let attempts = 0;
+    while (
+      prediction.status !== "succeeded" &&
+      prediction.status !== "failed" &&
+      prediction.status !== "canceled" &&
+      attempts < 30
+    ) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+      await logPrivacyEvent(ctx, {
+        eventType: "voice.transcribe.replicate.poll",
+        actor: ctx.userId ?? ctx.tenantId,
+        target: prediction.id,
+        severity: "low",
+        detail: `attempt=${attempts}`,
+      });
+      const pollRes = await fetch(pollUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      prediction = (await pollRes.json()) as WhisperPrediction;
+      attempts++;
+    }
+
+    if (prediction.status !== "succeeded" || !prediction.output?.transcription) {
+      console.warn(
+        `[voice] Replicate Whisper prediction ${prediction.id} ended status=${prediction.status} error=${prediction.error ?? "none"}`,
+      );
+      return null;
+    }
+
+    const segments = prediction.output.segments ?? [];
+    const lastEnd = segments.length > 0 ? (segments[segments.length - 1]?.end ?? 0) : 0;
+    const durationMs = Math.max(250, Math.round(lastEnd * 1000));
+
+    return { transcript: prediction.output.transcription, durationMs };
+  } catch (e) {
+    console.warn("[voice] Replicate Whisper fetch error:", e);
+    return null;
+  }
+}
+
 export async function transcribe(
   ctx: TenantContext,
   input: VoiceTranscribeInput,
@@ -166,8 +270,27 @@ export async function transcribe(
   const audio = decodeAudio(input.audio);
   // Approximate the clip length: webm/opus averages ~16 KB/sec at 16 kHz mono.
   const durationMs = Math.max(250, Math.round((audio.length / 16_000) * 1000));
+
+  // Attempt real Whisper transcription via Replicate when connected.
+  const replicateResult = await transcribeWithReplicate(
+    ctx,
+    audio,
+    input.mimeType ?? "audio/webm",
+    input.language,
+  );
+  if (replicateResult) {
+    return {
+      transcript: replicateResult.transcript,
+      durationMs: replicateResult.durationMs,
+      language: input.language ?? "en",
+      model: "openai/whisper-large-v3",
+      confidence: null,
+    };
+  }
+
+  // Fall back to deterministic stub when Replicate is not connected.
   const transcript = pickStubTranscript(audio);
-  // Privacy log adjacent to the (future) external call surface — Standard 13.
+  // Privacy log adjacent to the external call surface — Standard 13.
   await logPrivacyEvent(ctx, {
     eventType: "voice.transcribe",
     actor: ctx.userId ?? ctx.tenantId,

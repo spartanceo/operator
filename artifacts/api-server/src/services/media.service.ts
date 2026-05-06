@@ -36,6 +36,7 @@ import {
 import type { TenantContext } from "@workspace/types";
 
 import { resolveSandboxedPath, workspaceRoot } from "../lib/sandbox";
+import { getConnectedProvider } from "./integrations.service";
 import { logPrivacyEvent } from "./privacy.service";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -249,8 +250,9 @@ async function generateImageWithReplicate(
   width: number,
   height: number,
 ): Promise<Buffer | null> {
-  const token = process.env["REPLICATE_API_TOKEN"];
-  if (!token) return null;
+  const creds = await getConnectedProvider(ctx, "replicate");
+  if (!creds) return null;
+  const token = creds["apiKey"] as string;
 
   // Map pixel dimensions to the nearest supported aspect ratio
   const ratio = width / height;
@@ -308,7 +310,7 @@ async function generateImageWithReplicate(
     prediction.status !== "canceled" &&
     attempts < 30
   ) {
-    await new Promise<void>((r) => setTimeout(r, 2000));
+    await new Promise<void>((resolve) => setTimeout(resolve, 2000));
     await logPrivacyEvent(ctx, {
       eventType: "media.image.generate.replicate.poll",
       actor: ctx.userId ?? ctx.tenantId,
