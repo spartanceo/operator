@@ -26,10 +26,19 @@ extraResources:
 artifactName: "${productName}-${version}-${arch}.${ext}"
 
 asar: true
-# npmRebuild rebuilds native modules (better-sqlite3, @nut-tree-fork/nut-js,
-# etc.) for the Electron ABI before packaging.  package.mjs runs electron-
-# builder from an isolated pnpm-deploy staging directory, so the shared pnpm
-# store is never modified and no backup/restore is needed.
+# Native .node binaries cannot be loaded from inside an asar archive.
+# Listing them here causes electron-builder to place them in app.asar.unpacked/
+# alongside the asar so Node.js can dlopen them normally at runtime.
+# better-sqlite3 is the primary native module; @nut-tree-fork covers the
+# libnut prebuilt binary that nut-js delegates to for keyboard/mouse control.
+asarUnpack:
+  - "node_modules/better-sqlite3/**"
+  - "node_modules/@nut-tree-fork/**"
+# npmRebuild rebuilds native modules (only better-sqlite3 has a binding.gyp;
+# @nut-tree-fork uses prebuilt arch-specific packages that do not need rebuilding)
+# for the Electron ABI before packaging.  package.mjs runs electron-builder
+# from an isolated pnpm-deploy staging directory, so the shared pnpm store
+# is never modified and no backup/restore is needed.
 npmRebuild: true
 # forceCodeSigning: false keeps electron-builder from aborting when no
 # signing identity is available.  Signing is an opt-in release step (task #218).

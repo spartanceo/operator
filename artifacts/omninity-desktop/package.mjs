@@ -87,8 +87,13 @@ const deployDir = resolve(tmpdir(), `omninity-desktop-deploy-${process.pid}`);
 console.log(`→ Staging production deployment at ${deployDir} ...`);
 if (existsSync(deployDir)) rmSync(deployDir, { recursive: true, force: true });
 
+// --legacy: pnpm v10 requires inject-workspace-packages=true by default for
+// deploy.  --legacy restores the pre-v10 behaviour (self-contained flat
+// node_modules, no injection required).  Safe because omninity-desktop has
+// no workspace:* packages in its dependencies (everything from api-server is
+// bundled into dist/main.js by esbuild before this step runs).
 execSync(
-  `pnpm --filter @workspace/omninity-desktop deploy --prod "${deployDir}"`,
+  `pnpm --filter @workspace/omninity-desktop deploy --prod --legacy "${deployDir}"`,
   { stdio: "inherit", cwd: workspaceRoot },
 );
 
