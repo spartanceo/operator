@@ -14,6 +14,7 @@
  * Recording paths are local-only — Section 12 of the project context
  * forbids uploading raw audio to any cloud service.
  */
+import twilio from "twilio";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
@@ -33,6 +34,8 @@ import { logPrivacyEvent } from "../privacy.service";
 import { requireConnectedAccount } from "./accounts.service";
 import { findOrCreateByPhone, getContact } from "./contacts.service";
 import { logInteraction } from "./interactions.service";
+import { getConnectedProvider } from "../integrations.service";
+import { logger } from "../../lib/logger";
 
 export type CallDirection = "inbound" | "outbound";
 export type CallStatus =
@@ -138,8 +141,28 @@ export async function placeCall(
     typeof meta["phoneNumber"] === "string" ? (meta["phoneNumber"] as string) : account.label;
   const contactId = await resolveContactId(ctx, input.contactId, input.toNumber);
   const id = `call_${nanoid()}`;
-  // PROVIDER STUB: real impl POSTs to Twilio API, captures CallSid.
-  const providerCallId = `stub_${nanoid()}`;
+
+  // PROVIDER INTEGRATION: Resolve tokens and call real APIs if available.
+  let providerCallId = `stub_${nanoid()}`;
+  const creds = await getConnectedProvider(ctx, "twilio");
+
+  if (creds && creds["accountSid"] && creds["authToken"]) {
+    try {
+      const client = twilio(creds["accountSid"] as string, creds["authToken"] as string);
+      const call = await client.calls.create({
+        from: (creds["phoneNumber"] as string) || fromNumber,
+        to: input.toNumber,
+        url: "http://demo.twilio.com/docs/voice.xml", // Placeholder TwiML
+      });
+      providerCallId = call.sid;
+    } catch (err) {
+      logger.error(
+        { err, provider: "twilio", toNumber: input.toNumber },
+        "Failed to place call via real provider — falling back to stub",
+      );
+    }
+  }
+
   await db.insert(voipCalls).values(
     withTenantValues(ctx, {
       id,

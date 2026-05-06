@@ -61,6 +61,54 @@ const apiKeyOnly: readonly ProviderField[] = [
 
 export const PROVIDERS: readonly ProviderDescriptor[] = [
   {
+    id: "gmail",
+    label: "Gmail",
+    category: "communication",
+    authType: "oauth",
+    description: "Read, send, and manage Gmail messages.",
+    oauthScopes: ["https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/gmail.send"],
+    fields: [
+      { name: "accessToken", label: "Access token", secret: true, required: true },
+      { name: "refreshToken", label: "Refresh token", secret: true },
+    ],
+    actions: [
+      { name: "listMessages", description: "List Gmail messages", riskLevel: "low" },
+      { name: "sendMessage", description: "Send an email", riskLevel: "medium" },
+    ],
+  },
+  {
+    id: "outlook",
+    label: "Outlook",
+    category: "communication",
+    authType: "oauth",
+    description: "Read, send, and manage Outlook email via Microsoft Graph.",
+    oauthScopes: ["Mail.ReadWrite", "Mail.Send", "User.Read"],
+    fields: [
+      { name: "accessToken", label: "Access token", secret: true, required: true },
+      { name: "refreshToken", label: "Refresh token", secret: true },
+    ],
+    actions: [
+      { name: "listMessages", description: "List Outlook messages", riskLevel: "low" },
+      { name: "sendMessage", description: "Send an email", riskLevel: "medium" },
+    ],
+  },
+  {
+    id: "twilio",
+    label: "Twilio",
+    category: "communication",
+    authType: "api_key",
+    description: "Place VoIP calls and send SMS via Twilio.",
+    oauthScopes: [],
+    fields: [
+      { name: "accountSid", label: "Account SID", required: true },
+      { name: "authToken", label: "Auth token", secret: true, required: true },
+      { name: "phoneNumber", label: "Twilio phone number", required: true },
+    ],
+    actions: [
+      { name: "placeCall", description: "Place an outbound VoIP call", riskLevel: "medium" },
+    ],
+  },
+  {
     id: "notion",
     label: "Notion",
     category: "productivity",

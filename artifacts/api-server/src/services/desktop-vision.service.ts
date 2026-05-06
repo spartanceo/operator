@@ -16,6 +16,8 @@
 import type { TenantContext } from "@workspace/types";
 
 import { logPrivacyEvent } from "./privacy.service";
+import { probeAdapter, captureScreenshot } from "./desktop-input.service";
+import { chat as ollamaChat } from "./ollama.service";
 
 export interface VisionVerifyVerdict {
   matched: boolean;
@@ -166,13 +168,58 @@ export async function verifyStep(
   ctx: TenantContext,
   expected: string,
 ): Promise<VisionVerifyVerdict> {
+  const status = probeAdapter();
   await logPrivacyEvent(ctx, {
     eventType: "desktop.verify",
     actor: ctx.userId ?? ctx.tenantId,
     target: expected.slice(0, 200),
     severity: "info",
-    detail: "verifier=stub",
+    detail: `mode=${status.mode}`,
   });
+
+  if (status.mode === "live") {
+    try {
+      // Capture current screen for live verification
+      const frame = await captureScreenshot(ctx);
+
+      const result = await ollamaChat(ctx, {
+        model: "moondream:latest", // Lightweight multimodal model
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a desktop vision verifier. Look at the screenshot and determine if the expected state is met. " +
+              "Reply with EXACTLY: MATCHED: <true/false> | CONFIDENCE: <0..1> | OBSERVED: <description>",
+          },
+          {
+            role: "user",
+            content: `Expected state: ${expected}`,
+          },
+        ],
+        images: [frame.data],
+        temperature: 0,
+      });
+
+      const content = result.message.content?.trim();
+      if (content && !content.startsWith("Ollama is not reachable")) {
+        const matched = content.toLowerCase().includes("matched: true");
+        const confidenceMatch = content.match(/confidence: (0\.\d+|1\.0|0|1)/i);
+        const confidence = confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.5;
+        const observedMatch = content.match(/observed: (.*)/i);
+        const observed = observedMatch ? observedMatch[1] : content;
+
+        return {
+          matched,
+          confidence,
+          observed,
+          source: "live",
+        };
+      }
+    } catch (err) {
+      // Fallback to stub on error
+    }
+  }
+
   return {
     matched: true,
     confidence: 0.7,

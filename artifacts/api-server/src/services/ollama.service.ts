@@ -41,6 +41,10 @@ export interface OllamaChatRequest {
   messages: OllamaChatMessage[];
   temperature?: number;
   /**
+   * Optional base64-encoded image for multimodal models (e.g. LLaVA).
+   */
+  images?: string[];
+  /**
    * Optional per-call network timeout in milliseconds.
    * Overrides DEFAULT_TIMEOUT_MS when set. Intended for non-blocking
    * background calls (e.g. plan description generation) so they fail fast
@@ -149,6 +153,7 @@ export async function chat(
   const body = {
     model: req.model,
     messages: req.messages,
+    images: req.images,
     stream: false,
     options: {
       temperature: req.temperature ?? 0.2,

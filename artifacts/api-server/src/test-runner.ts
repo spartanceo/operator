@@ -1165,7 +1165,7 @@ const cases: TestCase[] = [
   },
 
   {
-    name: "integrations: provider catalogue lists 18 providers",
+    name: "integrations: provider catalogue lists 25 providers",
     run: async () => {
       const res = await request(app)
         .get("/api/integrations/providers")
@@ -1173,12 +1173,16 @@ const cases: TestCase[] = [
       assert.equal(res.status, 200);
       assert.equal(res.body.success, true);
       const providers = res.body.data.providers;
-      assert.equal(providers.length, 18);
+      assert.equal(providers.length, 25);
       const ids = new Set(providers.map((p: { id: string }) => p.id));
       assert.ok(ids.has("notion"));
       assert.ok(ids.has("slack"));
       assert.ok(ids.has("github"));
       assert.ok(ids.has("s3"));
+      assert.ok(ids.has("brave_search"));
+      assert.ok(ids.has("serper"));
+      assert.ok(ids.has("google_cse"));
+      assert.ok(ids.has("replicate"));
     },
   },
 

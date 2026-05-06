@@ -39,6 +39,7 @@
     "express": "^5",
     "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.1",
+    "googleapis": "^171.4.0",
     "helmet": "^8.1.0",
     "multer": "^2.1.1",
     "nanoid": "^5.1.6",
@@ -46,6 +47,7 @@
     "pdfkit": "^0.18.0",
     "pino": "^9",
     "pino-http": "^10",
+    "twilio": "^6.0.0",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -58,6 +60,7 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/pdfkit": "^0.17.6",
     "@types/supertest": "^6.0.3",
+    "@types/twilio": "^3.19.3",
     "@workspace/scripts": "workspace:*",
     "esbuild": "^0.27.3",
     "esbuild-plugin-pino": "^2.3.3",

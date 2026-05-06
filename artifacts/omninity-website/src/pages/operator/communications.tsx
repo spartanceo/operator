@@ -32,8 +32,12 @@ import {
   useDeleteContact,
   useListOutreachSequences,
   useRunOutreachSteps,
+  useListOutreachEnrolments,
+  useSetOutreachSequenceStatus,
 } from "@workspace/api-client-react";
 import { OperatorLayout } from "@/components/operator/layout";
+import { OutreachSequenceDialog } from "@/components/operator/outreach-sequence-dialog";
+import { EnrolContactDialog } from "@/components/operator/enrol-contact-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -146,7 +150,7 @@ function ConnectAccountDialog() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PROVIDER_OPTIONS.map((opt) => (
+                {PROVIDER_OPTIONS.map((opt: { value: string; label: string }) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
@@ -244,6 +248,20 @@ function AccountsTab() {
   );
 }
 
+function getSuggestedAction(category: string | null | undefined): string | null {
+  if (!category) return null;
+  switch (category.toLowerCase()) {
+    case "prospect":
+      return "Reply within 24h";
+    case "customer":
+      return "Follow up";
+    case "spam":
+      return "Unsubscribe";
+    default:
+      return null;
+  }
+}
+
 function InboxTab() {
   const messagesQuery = useListEmailMessages({ limit: 50 });
   const messages = messagesQuery.data?.data.items ?? [];
@@ -270,6 +288,11 @@ function InboxTab() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-sm">
                   <Badge variant={statusVariant(m.status)}>{m.status}</Badge>
+                  {m.category && (
+                    <Badge variant="outline" className="capitalize">
+                      {m.category}
+                    </Badge>
+                  )}
                   <span className="font-medium truncate">{m.subject}</span>
                 </div>
                 <div className="text-xs text-muted-foreground truncate">
@@ -278,6 +301,11 @@ function InboxTab() {
                 <div className="text-xs text-muted-foreground line-clamp-2">
                   {m.snippet || m.body.slice(0, 200)}
                 </div>
+                {getSuggestedAction(m.category) && (
+                  <div className="mt-1 text-xs font-medium text-primary">
+                    Suggestion: {getSuggestedAction(m.category)}
+                  </div>
+                )}
               </div>
               <div className="text-xs text-muted-foreground whitespace-nowrap">
                 {formatDate(m.receivedAt)}
@@ -894,61 +922,151 @@ function OutreachTab() {
   const qc = useQueryClient();
   const seqQuery = useListOutreachSequences({ limit: 50 });
   const sequences = seqQuery.data?.data.items ?? [];
+  const enrolQuery = useListOutreachEnrolments({ limit: 100 });
+  const enrolments = enrolQuery.data?.data.items ?? [];
+
   const run = useRunOutreachSteps({
     mutation: { onSuccess: () => void qc.invalidateQueries() },
   });
 
+  const setStatus = useSetOutreachSequenceStatus({
+    mutation: { onSuccess: () => void qc.invalidateQueries() },
+  });
+
   return (
-    <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button
-          size="sm"
-          data-testid="button-run-outreach"
-          onClick={() => run.mutate({ data: {} })}
-          disabled={run.isPending}
-        >
-          <Workflow className="mr-1 h-3 w-3" />
-          Run due steps
-        </Button>
-      </div>
-      {run.data ? (
-        <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
-          Scanned {run.data.data.enrolmentsScanned} · Sent{" "}
-          {run.data.data.stepsSent} · Replies {run.data.data.repliesDetected} ·
-          Completed {run.data.data.completed}
-        </div>
-      ) : null}
-      {sequences.length === 0 ? (
-        <EmptyState
-          icon={<Workflow className="h-8 w-8" />}
-          title="No sequences"
-          description="Outreach sequences send drafts on a delay and stop on reply."
-        />
-      ) : (
-        <div className="divide-y rounded-md border">
-          {sequences.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-start gap-3 p-3"
-              data-testid={`sequence-${s.id}`}
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Sequences</h3>
+          <div className="flex gap-2">
+            <OutreachSequenceDialog />
+            <Button
+              size="sm"
+              onClick={() => run.mutate({ data: {} })}
+              disabled={run.isPending}
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-sm">
-                  <Badge variant={statusVariant(s.status)}>{s.status}</Badge>
-                  <span className="font-medium truncate">{s.name}</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {s.steps.length} step{s.steps.length === 1 ? "" : "s"}
-                  {s.description ? ` · ${s.description}` : ""}
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground whitespace-nowrap">
-                {formatDate(s.createdAt)}
-              </div>
-            </div>
-          ))}
+              <Workflow className="mr-1 h-3 w-3" />
+              Run due steps
+            </Button>
+          </div>
         </div>
-      )}
+
+        {run.data ? (
+          <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+            Scanned {run.data.data.enrolmentsScanned} · Sent{" "}
+            {run.data.data.stepsSent} · Replies {run.data.data.repliesDetected} ·
+            Completed {run.data.data.completed}
+          </div>
+        ) : null}
+
+        {sequences.length === 0 ? (
+          <EmptyState
+            icon={<Workflow className="h-8 w-8" />}
+            title="No sequences"
+            description="Outreach sequences send drafts on a delay and stop on reply."
+          />
+        ) : (
+          <div className="divide-y rounded-md border">
+            {sequences.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-start gap-3 p-3"
+                data-testid={`sequence-${s.id}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Badge variant={statusVariant(s.status)}>{s.status}</Badge>
+                    <span className="font-medium truncate">{s.name}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {s.steps.length} step{s.steps.length === 1 ? "" : "s"}
+                    {s.description ? ` · ${s.description}` : ""}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-muted-foreground whitespace-nowrap">
+                    {formatDate(s.createdAt)}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    onClick={() =>
+                      setStatus.mutate({
+                        id: s.id,
+                        data: {
+                          status: s.status === "active" ? "paused" : "active",
+                        },
+                      })
+                    }
+                  >
+                    {s.status === "active" ? "Pause" : "Start"}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 pt-6 border-t">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Active Enrolments</h3>
+          <EnrolContactDialog />
+        </div>
+
+        {enrolments.length === 0 ? (
+          <EmptyState
+            icon={<Users className="h-8 w-8" />}
+            title="No active enrolments"
+            description="Enrol a contact into a sequence to begin automation."
+          />
+        ) : (
+          <div className="rounded-md border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-b">
+                <tr>
+                  <th className="text-left p-3 font-medium">Contact</th>
+                  <th className="text-left p-3 font-medium">Sequence</th>
+                  <th className="text-left p-3 font-medium">Status</th>
+                  <th className="text-left p-3 font-medium">Next Send</th>
+                  <th className="p-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {enrolments.map((e) => (
+                  <tr key={e.id} data-testid={`enrolment-${e.id}`}>
+                    <td className="p-3">
+                      <div className="font-medium text-xs font-mono">{e.contactId}</div>
+                    </td>
+                    <td className="p-3 text-muted-foreground text-xs font-mono">{e.sequenceId}</td>
+                    <td className="p-3">
+                      <Badge variant={statusVariant(e.status)}>{e.status}</Badge>
+                    </td>
+                    <td className="p-3 text-muted-foreground">
+                      {e.status === "active" ? formatDate(e.nextSendAt) : "—"}
+                    </td>
+                    <td className="p-3 text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={async () => {
+                          if (!confirm("Are you sure you want to cancel this enrolment?")) return;
+                          await fetch(`/api/comm/outreach/enrolments/${e.id}`, { method: "DELETE" });
+                          void qc.invalidateQueries();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
