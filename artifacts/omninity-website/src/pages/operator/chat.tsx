@@ -367,16 +367,24 @@ export default function ChatPage() {
       } finally {
         streamAbortRef.current = null;
         setIsStreaming(false);
-        setStreamingContent(null);
         if (fullContent) {
           await appendMessage.mutateAsync({
             id: conversationId,
             data: { role: "assistant", content: fullContent },
           });
+          // Wait for the messages list to refresh before clearing the streaming
+          // bubble — otherwise there is a visible flash where the response
+          // disappears between the bubble being removed and the persisted
+          // message appearing in the conversation list.
+          await qc.refetchQueries({
+            queryKey: [`/conversations/${conversationId}/messages`],
+            exact: false,
+          });
         }
+        setStreamingContent(null);
       }
     },
-    [appendMessage, messagesEndRef, model],
+    [appendMessage, messagesEndRef, model, qc],
   );
 
   const createRun = useCreateAgentRun({
