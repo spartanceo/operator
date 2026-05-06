@@ -68,13 +68,28 @@ const STUB_PNG_BASE64 =
  * has a single source of truth.
  */
 export function probeAdapter(): DesktopAdapterStatus {
-  const liveRequested = process.env.DESKTOP_LIVE === "1";
-  const displayAvailable = process.env.DISPLAY || process.platform !== "linux";
+  const displayAvailable = !!(process.env.DISPLAY || process.platform !== "linux");
 
-  if (liveRequested && displayAvailable) {
+  // Explicit developer override — always honoured when the display is reachable.
+  if (process.env.DESKTOP_LIVE === "1" && displayAvailable) {
     return {
       available: true,
       reason: "Live desktop control enabled via DESKTOP_LIVE=1 and display detected.",
+      mode: "live",
+    };
+  }
+
+  // Packaged Electron app on macOS or Windows: ELECTRON_RUNTIME is set by the
+  // Electron main process at startup (main.ts line 267). On those platforms the
+  // display is always present, so no manual env-var setup is required from the user.
+  const runningInElectron = process.env.ELECTRON_RUNTIME === "1";
+  if (runningInElectron && process.platform !== "linux") {
+    return {
+      available: true,
+      reason:
+        "Live desktop control enabled automatically (Electron packaged app on " +
+        process.platform +
+        ").",
       mode: "live",
     };
   }
@@ -83,8 +98,9 @@ export function probeAdapter(): DesktopAdapterStatus {
     available: false,
     reason:
       "Desktop control is in deterministic stub mode. Real input " +
-      "(nut-js) requires a display server and is enabled by setting " +
-      "DESKTOP_LIVE=1 once the host environment supports it.",
+      "(nut-js) requires a display server. On macOS/Windows this activates " +
+      "automatically when running as the packaged Electron app. In server or " +
+      "CI environments set DESKTOP_LIVE=1 with DISPLAY to enable it explicitly.",
     mode: "stub",
   };
 }
