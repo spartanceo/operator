@@ -28,7 +28,7 @@
  */
 
 import { execSync } from "child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { tmpdir } from "os";
@@ -99,25 +99,52 @@ execSync(
 
 // ── 3b. Fix pnpm virtual-store self-reference ─────────────────────────────
 //
-// pnpm v10 --legacy deploy creates a .pnpm virtual store inside the staging
-// node_modules and writes a self-referencing entry for the deployed package at:
+// pnpm v10 --legacy deploy creates a .pnpm virtual store and registers a
+// self-referencing entry for the deployed package at:
 //   node_modules/.pnpm/node_modules/@workspace/omninity-desktop
 //
-// @electron/rebuild (invoked by electron-builder's npmRebuild) calls stat()
-// on this path while scanning for native modules.  The directory is referenced
-// in pnpm's internal metadata but never actually created, so stat() throws
-// ENOENT and the entire rebuild step aborts.
+// @electron/rebuild stats this path during its native-module scan and aborts
+// if it can't reach it.
 //
-// Fix: materialise a minimal stub so stat() succeeds.  @electron/rebuild does
-// not inspect the contents — it only needs the path to exist.
-const pnpmSelfRef = resolve(
-  deployDir, "node_modules", ".pnpm", "node_modules", "@workspace", "omninity-desktop",
-);
-mkdirSync(pnpmSelfRef, { recursive: true });
-writeFileSync(
-  resolve(pnpmSelfRef, "package.json"),
-  JSON.stringify({ name: "@workspace/omninity-desktop", version: "0.0.1" }),
-);
+// The complication: pnpm may materialise .pnpm/node_modules as a DANGLING
+// SYMLINK (records it in metadata but never creates the symlink target).
+// On macOS, mkdirSync with { recursive: true } calls the underlying
+// binding.mkdir which follows every symlink component; hitting a dangling
+// symlink throws ENOENT even when recursive is set.
+//
+// Fix:
+//   1. Use lstatSync (does not follow symlinks) to check .pnpm/node_modules.
+//   2. If it is a symlink, use statSync (follows symlinks) to test whether
+//      the target exists.  If the target is missing (dangling), unlink the
+//      symlink and replace it with a real empty directory so that subsequent
+//      mkdir calls can traverse the path normally.
+//   3. Create the stub package dir + package.json so stat() succeeds.
+{
+  const pnpmNm = resolve(deployDir, "node_modules", ".pnpm", "node_modules");
+
+  try {
+    const lst = lstatSync(pnpmNm); // does NOT follow symlinks
+    if (lst.isSymbolicLink()) {
+      try {
+        statSync(pnpmNm); // DOES follow symlink — throws if target is missing
+      } catch {
+        // Dangling symlink — remove it and create a real directory in its place
+        rmSync(pnpmNm);
+        mkdirSync(pnpmNm);
+      }
+    }
+  } catch {
+    // pnpmNm does not exist at all — mkdirSync { recursive: true } below
+    // will create the full path without issue
+  }
+
+  const selfRef = resolve(pnpmNm, "@workspace", "omninity-desktop");
+  mkdirSync(selfRef, { recursive: true });
+  writeFileSync(
+    resolve(selfRef, "package.json"),
+    JSON.stringify({ name: "@workspace/omninity-desktop", version: "0.0.1" }),
+  );
+}
 
 // ── 4. Populate staging dir with build artefacts + config ─────────────────
 console.log("→ Copying build artefacts into staging dir...");

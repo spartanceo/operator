@@ -32,8 +32,18 @@ asar: true
 # better-sqlite3 is the primary native module; @nut-tree-fork covers the
 # libnut prebuilt binary that nut-js delegates to for keyboard/mouse control.
 asarUnpack:
+  # Native .node binaries must be outside the asar — dlopen() cannot load
+  # files from inside an asar archive.
   - "node_modules/better-sqlite3/**"
   - "node_modules/@nut-tree-fork/**"
+  # pino uses thread-stream which spawns worker threads via new Worker(filePath).
+  # Node.js worker_threads does NOT support asar-internal file:// paths, so if
+  # these packages are sealed inside the asar the logger's background thread
+  # crashes silently.  Unpacking them gives workers a real filesystem path.
+  - "node_modules/pino/**"
+  - "node_modules/thread-stream/**"
+  - "node_modules/sonic-boom/**"
+  - "node_modules/pino-pretty/**"
 # npmRebuild rebuilds native modules (only better-sqlite3 has a binding.gyp;
 # @nut-tree-fork uses prebuilt arch-specific packages that do not need rebuilding)
 # for the Electron ABI before packaging.  package.mjs runs electron-builder

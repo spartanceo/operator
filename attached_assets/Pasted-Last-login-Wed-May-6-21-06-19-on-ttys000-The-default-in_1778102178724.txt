@@ -1,0 +1,237 @@
+Last login: Wed May  6 21:06:19 on ttys000
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Mac:~ onursimsek$ git fetch origin && git reset --hard origin/main
+fatal: not a git repository (or any of the parent directories): .git
+Mac:~ onursimsek$ pnpm install
+pnpm run package:mac ERR_PNPM_NO_PKG_MANIFEST  No package.json found in /Users/onursimsek
+Mac:~ onursimsek$ pnpm run package:maccd ~/Desktop/operator
+git fetch origin && git reset --hard origin/main
+pnpm install
+pnpm run package:mac ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND  No package.json (or package.yaml, or package.json5) was found in "/Users/onursimsek".
+Mac:~ onursimsek$ git fetch origin && git reset --hard origin/main
+fatal: not a git repository (or any of the parent directories): .git
+Mac:~ onursimsek$ pnpm install
+pnpm run package:mac ERR_PNPM_NO_PKG_MANIFEST  No package.json found in /Users/onursimsek
+Mac:~ onursimsek$ pnpm run package:maccd ~/Desktop/operator
+git fetch origin && git reset --hard origin/main
+pnpm install
+pnpm run package:mac ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND  No package.json (or package.yaml, or package.json5) was found in "/Users/onursimsek".
+Mac:~ onursimsek$ git fetch origin && git reset --hard origin/main
+fatal: not a git repository (or any of the parent directories): .git
+Mac:~ onursimsek$ pnpm install
+pnpm run package:mac ERR_PNPM_NO_PKG_MANIFEST  No package.json found in /Users/onursimsek
+Mac:~ onursimsek$ pnpm run package:maccd ~/Desktop/operator
+ ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND  No package.json (or package.yaml, or package.json5) was found in "/Users/onursimsek".
+Mac:~ onursimsek$ cd ~/Desktop/operator
+Mac:operator onursimsek$ git fetch origin && git reset --hard origin/main && pnpm install && pnpm run package:mac
+remote: Enumerating objects: 22, done.
+remote: Counting objects: 100% (22/22), done.
+remote: Compressing objects: 100% (8/8), done.
+remote: Total 15 (delta 12), reused 10 (delta 7), pack-reused 0 (from 0)
+Unpacking objects: 100% (15/15), 8.36 KiB | 407.00 KiB/s, done.
+From https://github.com/spartanceo/operator
+   20bc5d6..ffcd843  main       -> origin/main
+HEAD is now at ffcd843 Fix application build issues and improve macOS packaging
+Scope: all 16 workspace projects
+Lockfile is up to date, resolution step is skipped
+Already up to date
+. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_use…
+└─ Done in 20ms
+Done in 1.3s using pnpm v10.15.0
+
+> workspace@0.0.0 package:mac /Users/onursimsek/Desktop/operator
+> pnpm --filter @workspace/omninity-desktop run package:mac
+
+
+> @workspace/omninity-desktop@0.0.1 package:mac /Users/onursimsek/Desktop/operator/artifacts/omninity-desktop
+> node package.mjs mac
+
+→ Packaging for platform: mac (OS: darwin)
+→ Building web frontend (PORT=20599 BASE_PATH=/)...
+
+> @workspace/omninity-website@0.0.0 build /Users/onursimsek/Desktop/operator/artifacts/omninity-website
+> vite build --config vite.config.ts
+
+vite v7.3.2 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/label.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/select.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/progress.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/sheet.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+src/components/ui/dropdown-menu.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2399 modules transformed.
+dist/public/index.html                                               1.21 kB │ gzip:   0.57 kB
+dist/public/assets/inter-vietnamese-400-normal-DMkecbls.woff2        4.97 kB
+dist/public/assets/inter-vietnamese-600-normal-Cc8MFFhd.woff2        5.10 kB
+dist/public/assets/inter-vietnamese-700-normal-DlLaEgI2.woff2        5.10 kB
+dist/public/assets/inter-vietnamese-500-normal-DOriooB6.woff2        5.11 kB
+dist/public/assets/inter-greek-ext-400-normal-DGGRlc-M.woff2         5.26 kB
+dist/public/assets/inter-greek-ext-500-normal-C4iEst2y.woff2         5.43 kB
+dist/public/assets/inter-greek-ext-600-normal-DRtmH8MT.woff2         5.43 kB
+dist/public/assets/inter-greek-ext-700-normal-qfdV9bQt.woff2         5.44 kB
+dist/public/assets/inter-vietnamese-400-normal-Bbgyi5SW.woff         6.50 kB
+dist/public/assets/inter-vietnamese-500-normal-mJboJaSs.woff         6.60 kB
+dist/public/assets/inter-vietnamese-700-normal-BZaoP0fm.woff         6.63 kB
+dist/public/assets/inter-vietnamese-600-normal-BuLX-rYi.woff         6.64 kB
+dist/public/assets/inter-greek-ext-400-normal-KugGGMne.woff          7.06 kB
+dist/public/assets/inter-greek-ext-500-normal-2j5mBUwD.woff          7.19 kB
+dist/public/assets/inter-greek-ext-600-normal-B8X0CLgF.woff          7.21 kB
+dist/public/assets/inter-greek-ext-700-normal-BoQ6DsYi.woff          7.22 kB
+dist/public/assets/inter-cyrillic-400-normal-obahsSVq.woff2          7.71 kB
+dist/public/assets/inter-greek-400-normal-B4URO6DV.woff2             7.78 kB
+dist/public/assets/inter-cyrillic-500-normal-BasfLYem.woff2          7.90 kB
+dist/public/assets/inter-cyrillic-700-normal-CjBOestx.woff2          7.90 kB
+dist/public/assets/inter-greek-500-normal-BIZE56-Y.woff2             7.92 kB
+dist/public/assets/inter-greek-700-normal-C3JjAnD8.woff2             7.92 kB
+dist/public/assets/inter-greek-600-normal-plRanbMR.woff2             7.94 kB
+dist/public/assets/inter-cyrillic-600-normal-CWCymEST.woff2          7.97 kB
+dist/public/assets/inter-cyrillic-400-normal-HOLc17fK.woff           9.78 kB
+dist/public/assets/inter-cyrillic-700-normal-DrXBdSj3.woff           9.91 kB
+dist/public/assets/inter-greek-400-normal-q2sYcFCs.woff              9.92 kB
+dist/public/assets/inter-cyrillic-600-normal-4D_pXhcN.woff           9.94 kB
+dist/public/assets/inter-cyrillic-500-normal-CxZf_p3X.woff           9.94 kB
+dist/public/assets/inter-greek-500-normal-Xzm54t5V.woff              9.98 kB
+dist/public/assets/inter-greek-700-normal-BUv2fZ6O.woff              9.98 kB
+dist/public/assets/inter-greek-600-normal-BZpKdvQh.woff             10.03 kB
+dist/public/assets/inter-cyrillic-ext-400-normal-BQZuk6qB.woff2     10.23 kB
+dist/public/assets/inter-cyrillic-ext-500-normal-B0yAr1jD.woff2     10.43 kB
+dist/public/assets/inter-cyrillic-ext-600-normal-Dfes3d0z.woff2     10.48 kB
+dist/public/assets/inter-cyrillic-ext-700-normal-BjwYoWNd.woff2     10.50 kB
+dist/public/assets/inter-cyrillic-ext-400-normal-DQukG94-.woff      13.34 kB
+dist/public/assets/inter-cyrillic-ext-700-normal-LO58E6JB.woff      13.41 kB
+dist/public/assets/inter-cyrillic-ext-500-normal-BmqWE9Dz.woff      13.45 kB
+dist/public/assets/inter-cyrillic-ext-600-normal-Bcila6Z-.woff      13.46 kB
+dist/public/assets/inter-latin-400-normal-C38fXH4l.woff2            23.66 kB
+dist/public/assets/inter-latin-500-normal-Cerq10X2.woff2            24.27 kB
+dist/public/assets/inter-latin-700-normal-Yt3aPRUw.woff2            24.36 kB
+dist/public/assets/inter-latin-600-normal-LgqL8muc.woff2            24.45 kB
+dist/public/assets/inter-latin-400-normal-CyCys3Eg.woff             30.70 kB
+dist/public/assets/inter-latin-600-normal-CiBQ2DWP.woff             31.26 kB
+dist/public/assets/inter-latin-500-normal-BL9OpVg8.woff             31.28 kB
+dist/public/assets/inter-latin-700-normal-BLAVimhd.woff             31.32 kB
+dist/public/assets/inter-latin-ext-400-normal-C1nco2VV.woff2        35.00 kB
+dist/public/assets/inter-latin-ext-500-normal-CV4jyFjo.woff2        36.02 kB
+dist/public/assets/inter-latin-ext-700-normal-Ca8adRJv.woff2        36.24 kB
+dist/public/assets/inter-latin-ext-600-normal-D2bJ5OIk.woff2        36.26 kB
+dist/public/assets/inter-latin-ext-400-normal-77YHD8bZ.woff         47.56 kB
+dist/public/assets/inter-latin-ext-500-normal-BxGbmqWO.woff         48.49 kB
+dist/public/assets/inter-latin-ext-700-normal-TidjK2hL.woff         48.63 kB
+dist/public/assets/inter-latin-ext-600-normal-CIVaiw4L.woff         48.67 kB
+dist/public/assets/index-CDTu4Vv6.css                              160.33 kB │ gzip:  24.39 kB
+dist/public/assets/arrow-up-DLSYGc7S.js                              0.16 kB │ gzip:   0.16 kB
+dist/public/assets/clock-CdcQnJjT.js                                 0.17 kB │ gzip:   0.16 kB
+dist/public/assets/play-DWMMESus.js                                  0.19 kB │ gzip:   0.18 kB
+dist/public/assets/rotate-ccw-CxB-BYKz.js                            0.20 kB │ gzip:   0.18 kB
+dist/public/assets/history-BFW4NWLq.js                               0.24 kB │ gzip:   0.20 kB
+dist/public/assets/users-8nfK4hVO.js                                 0.31 kB │ gzip:   0.23 kB
+dist/public/assets/wand-sparkles-m-017ESM.js                         0.51 kB │ gzip:   0.29 kB
+dist/public/assets/support-api-BYk9fydB.js                           1.59 kB │ gzip:   0.70 kB
+dist/public/assets/creator-Da5Xb3az.js                               2.99 kB │ gzip:   1.24 kB
+dist/public/assets/undo-lsegAjUT.js                                  3.25 kB │ gzip:   1.51 kB
+dist/public/assets/de-DC5D3zPz.js                                    3.35 kB │ gzip:   1.77 kB
+dist/public/assets/es-CTnep2_W.js                                    3.44 kB │ gzip:   1.72 kB
+dist/public/assets/fr-qEvSfpN5.js                                    3.52 kB │ gzip:   1.76 kB
+dist/public/assets/subscription-CCzZPLF1.js                          3.64 kB │ gzip:   1.41 kB
+dist/public/assets/tools-BGJcfUp-.js                                 3.65 kB │ gzip:   1.56 kB
+dist/public/assets/ja-DXD5GHD5.js                                    4.04 kB │ gzip:   2.09 kB
+dist/public/assets/status-D0vWa0gs.js                                4.17 kB │ gzip:   1.54 kB
+dist/public/assets/ar-DVc_7U-j.js                                    4.39 kB │ gzip:   2.03 kB
+dist/public/assets/approvals-BMHaJnDa.js                             4.88 kB │ gzip:   1.85 kB
+dist/public/assets/activity-BOpNAUAp.js                              4.92 kB │ gzip:   2.08 kB
+dist/public/assets/integrations-BajtihFz.js                          5.38 kB │ gzip:   1.95 kB
+dist/public/assets/feature-requests-BJ7Oi-6L.js                      5.59 kB │ gzip:   2.11 kB
+dist/public/assets/agents-DdQn-5Iv.js                                5.99 kB │ gzip:   2.22 kB
+dist/public/assets/queue-Cr__cPxE.js                                 6.91 kB │ gzip:   2.64 kB
+dist/public/assets/support-CisaFyfo.js                               7.38 kB │ gzip:   2.71 kB
+dist/public/assets/schedules-B_NCjded.js                             8.36 kB │ gzip:   2.87 kB
+dist/public/assets/templates-Ldmlkuzg.js                             9.13 kB │ gzip:   3.18 kB
+dist/public/assets/media-DZAH8zGD.js                                10.03 kB │ gzip:   3.28 kB
+dist/public/assets/desktop-DA1fU9pp.js                              10.71 kB │ gzip:   3.56 kB
+dist/public/assets/knowledge-16IsiCHU.js                            11.51 kB │ gzip:   3.65 kB
+dist/public/assets/super-odgdUhXD.js                                13.28 kB │ gzip:   3.49 kB
+dist/public/assets/memory-BjzXxSFh.js                               14.09 kB │ gzip:   3.93 kB
+dist/public/assets/privacy-BI7zwoAN.js                              16.46 kB │ gzip:   4.65 kB
+dist/public/assets/skills-TWsEa0XM.js                               21.19 kB │ gzip:   5.98 kB
+dist/public/assets/enterprise-BhR3g0zU.js                           22.80 kB │ gzip:   5.83 kB
+dist/public/assets/communications-BFhUAasv.js                       28.39 kB │ gzip:   6.49 kB
+dist/public/assets/settings-CkIiMLHI.js                             68.83 kB │ gzip:  23.09 kB
+dist/public/assets/index-B6_loqdK.js                             1,727.73 kB │ gzip: 370.08 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.30s
+→ Building Electron main process...
+
+  dist/preload.js      1.3kb
+  dist/preload.js.map  1.6kb
+
+⚡ Done in 4ms
+
+  dist/main.js      50.6mb ⚠️
+  dist/main.js.map  83.7mb
+
+⚡ Done in 1308ms
+→ Staging production deployment at /var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/omninity-desktop-deploy-16972 ...
+ WARN  Shared workspace lockfile detected but configuration forces legacy deploy implementation.
+Packages are cloned from the content-addressable store to the virtual store.
+  Content-addressable store is at: /Users/onursimsek/Library/pnpm/store/v10
+  Virtual store is at:             ../../../../var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/omninity-desktop-deploy-16972/node_modules/.pnpm
+artifacts/omninity-website               |  WARN  deprecated @types/dompurify@3.2.0
+artifacts/api-server                     |  WARN  deprecated @types/twilio@3.19.3
+ WARN  Skip adding vite to the default catalog because it already exists as ^7.3.2. Please use `pnpm update` to update the catalogs.
+ WARN  Skip adding @types/node to the default catalog because it already exists as ^25.3.3. Please use `pnpm update` to update the catalogs.
+ WARN  Skip adding @replit/vite-plugin-cartographer to the default catalog because it already exists as ^0.5.1. Please use `pnpm update` to update the catalogs.
+ WARN  Skip adding @replit/vite-plugin-runtime-error-modal to the default catalog because it already exists as ^0.0.6. Please use `pnpm update` to update the catalogs.
+ WARN  18 deprecated subdependencies found: @esbuild-kit/core-utils@3.3.2, @esbuild-kit/esm-loader@2.6.5, @npmcli/move-file@2.0.1, are-we-there-yet@3.0.1, boolean@3.2.0, gauge@4.0.4, glob@10.5.0, glob@7.2.3, glob@8.1.0, inflight@1.0.6, node-domexception@1.0.0, npmlog@6.0.2, phin@3.7.1, prebuild-install@7.1.3, rimraf@2.6.3, rimraf@3.0.2, scmp@2.1.0, tar@6.2.1
+Progress: resolved 1180, reused 0, downloaded 0, added 0, done
+ WARN  Issues with peer dependencies found
+artifacts/api-server
+└─┬ esbuild-plugin-pino 2.3.3
+  └── ✕ unmet peer esbuild@">=0.25.0 <=0.25.8": found 0.27.3
+
+artifacts/omninity-desktop
+└─┬ electron-builder 25.1.8
+  ├─┬ dmg-builder 25.1.8
+  │ └─┬ app-builder-lib 25.1.8
+  │   └── ✕ missing peer electron-builder-squirrel-windows@25.1.8
+  └─┬ app-builder-lib 25.1.8
+    └── ✕ missing peer electron-builder-squirrel-windows@25.1.8
+Peer dependencies that should be installed:
+  electron-builder-squirrel-windows@25.1.8
+
+lib/api-client-react
+└─┬ @tanstack/react-query 5.90.21
+  └── ✕ missing peer react@"^18 || ^19"
+Peer dependencies that should be installed:
+  react@"^18 || ^19"
+ WARN  57 other warnings
+.                                        | +214 +++++++++++++++++++++
+. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_use…
+└─ Done in 15ms
+node:fs:1364
+  const result = binding.mkdir(
+                         ^
+
+Error: ENOENT: no such file or directory, mkdir '/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/omninity-desktop-deploy-16972/node_modules/.pnpm/node_modules/@workspace/omninity-desktop'
+    at mkdirSync (node:fs:1364:26)
+    at file:///Users/onursimsek/Desktop/operator/artifacts/omninity-desktop/package.mjs:116:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:274:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/folders/m9/ryyr39t91pj77xzdbz9f825r0000gn/T/omninity-desktop-deploy-16972/node_modules/.pnpm/node_modules/@workspace/omninity-desktop'
+}
+
+Node.js v22.16.0
+/Users/onursimsek/Desktop/operator/artifacts/omninity-desktop:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/omninity-desktop@0.0.1 package:mac: `node package.mjs mac`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
+Mac:operator onursimsek$ 
