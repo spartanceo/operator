@@ -607,6 +607,9 @@ const TOOLS: ToolEntry[] = [
         };
       }
 
+      const searchUrl =
+        `https://api.search.brave.com/res/v1/web/search` +
+        `?q=${encodeURIComponent(query)}&count=${count}`;
       await logPrivacyEvent(ctx, {
         eventType: "tool.web_search",
         actor: ctx.userId ?? ctx.tenantId,
@@ -614,11 +617,6 @@ const TOOLS: ToolEntry[] = [
         severity: "low",
         detail: `count=${count}`,
       });
-
-      const searchUrl =
-        `https://api.search.brave.com/res/v1/web/search` +
-        `?q=${encodeURIComponent(query)}&count=${count}`;
-
       const res = await fetch(searchUrl, {
         headers: {
           Accept: "application/json",

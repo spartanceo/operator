@@ -244,6 +244,7 @@ interface ReplicatePrediction {
 }
 
 async function generateImageWithReplicate(
+  ctx: TenantContext,
   prompt: string,
   width: number,
   height: number,
@@ -262,6 +263,13 @@ async function generateImageWithReplicate(
 
   // Submit prediction — Prefer: wait asks Replicate to hold the connection
   // until the result is ready (up to 60 s) to avoid a polling round-trip.
+  await logPrivacyEvent(ctx, {
+    eventType: "media.image.generate.replicate",
+    actor: ctx.userId ?? ctx.tenantId,
+    target: prompt,
+    severity: "info",
+    detail: `aspect=${aspectRatio} ${width}x${height}`,
+  });
   const createRes = await fetch(
     "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions",
     {
@@ -301,6 +309,13 @@ async function generateImageWithReplicate(
     attempts < 30
   ) {
     await new Promise<void>((r) => setTimeout(r, 2000));
+    await logPrivacyEvent(ctx, {
+      eventType: "media.image.generate.replicate.poll",
+      actor: ctx.userId ?? ctx.tenantId,
+      target: prediction.id,
+      severity: "low",
+      detail: `attempt=${attempts}`,
+    });
     const pollRes = await fetch(pollUrl, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -317,6 +332,13 @@ async function generateImageWithReplicate(
 
   // Download the generated image and return its bytes
   const imageUrl = prediction.output[0]!;
+  await logPrivacyEvent(ctx, {
+    eventType: "media.image.generate.replicate.download",
+    actor: ctx.userId ?? ctx.tenantId,
+    target: prediction.id,
+    severity: "low",
+    detail: `url=${imageUrl.slice(0, 80)}`,
+  });
   const imgRes = await fetch(imageUrl);
   if (!imgRes.ok) {
     console.warn(`[media] Failed to download Replicate output image: ${imgRes.status}`);
