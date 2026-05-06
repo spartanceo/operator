@@ -52,6 +52,16 @@ const external = [
   // Multipart / PDF processing — use dynamic require internals that esbuild cannot bundle
   "multer",
   "pdf-parse",
+  // PDF generation — loads AFM font data files from __dirname-relative paths;
+  // bundling those paths into dist/main.js breaks them.  Kept as a real package
+  // in node_modules (omninity-desktop dependencies).
+  "pdfkit",
+  // Desktop control + screen capture — native bindings dynamically imported at
+  // runtime only in Electron live-mode (probeAdapter → ELECTRON_RUNTIME=1).
+  // Must be external so esbuild does not attempt to bundle them, AND listed in
+  // omninity-desktop dependencies so pnpm deploy --prod includes them.
+  "@nut-tree-fork/nut-js",
+  "screenshot-desktop",
 ];
 
 const alias = {

@@ -22,24 +22,25 @@
     "lint": "echo 'ok'"
   },
   "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6",
     "better-sqlite3": "^11.10.0",
     "multer": "^2.1.1",
     "pdf-parse": "^1.1.4",
+    "pdfkit": "^0.18.0",
     "pino": "^9",
     "pino-abstract-transport": "^2",
     "pino-http": "^10",
     "pino-std-serializers": "^7",
+    "screenshot-desktop": "^1.15.4",
     "thread-stream": "^3"
   },
   "devDependencies": {
-    "@nut-tree-fork/nut-js": "^4.2.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "catalog:",
     "concurrently": "^9.1.2",
     "electron": "^36.3.2",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.27.3",
-    "screenshot-desktop": "^1.15.4",
     "tsx": "catalog:",
     "vite": "catalog:",
     "wait-on": "^8.0.3"

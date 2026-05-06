@@ -26,10 +26,10 @@ extraResources:
 artifactName: "${productName}-${version}-${arch}.${ext}"
 
 asar: true
-# npmRebuild rebuilds native modules for the Electron ABI before packaging,
-# which is correct for the packaged app but breaks the shared pnpm store for
-# the rest of the monorepo.  package.mjs compensates by backing up the
-# Node.js-ABI binary before running electron-builder and restoring it after.
+# npmRebuild rebuilds native modules (better-sqlite3, @nut-tree-fork/nut-js,
+# etc.) for the Electron ABI before packaging.  package.mjs runs electron-
+# builder from an isolated pnpm-deploy staging directory, so the shared pnpm
+# store is never modified and no backup/restore is needed.
 npmRebuild: true
 # forceCodeSigning: false keeps electron-builder from aborting when no
 # signing identity is available.  Signing is an opt-in release step (task #218).

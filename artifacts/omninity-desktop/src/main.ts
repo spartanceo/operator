@@ -14,7 +14,7 @@ import { createServer as createHttpServer, IncomingMessage, ServerResponse } fro
 import { createReadStream, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { join, extname } from "node:path";
 
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, systemPreferences, Tray } from "electron";
 
 import type { ServerHandle } from "@workspace/api-server/server";
 import { startServer } from "@workspace/api-server/server";
@@ -262,6 +262,14 @@ app.whenReady().then(() => {
     mkdirSync(userDataDir, { recursive: true });
     process.env["SQLITE_PATH"] = join(userDataDir, "omninity.db");
     crashLog(`Using SQLITE_PATH: ${process.env["SQLITE_PATH"]}`);
+  }
+
+  // On macOS packaged builds, request Accessibility permission on first launch.
+  // nut-js keyboard/mouse control requires it.  Passing `true` triggers the
+  // macOS permission dialog automatically; subsequent launches skip the prompt
+  // if the user has already granted access.
+  if (process.platform === "darwin" && app.isPackaged) {
+    systemPreferences.isTrustedAccessibilityClient(true);
   }
 
   process.env["ELECTRON_RUNTIME"] = "1";
