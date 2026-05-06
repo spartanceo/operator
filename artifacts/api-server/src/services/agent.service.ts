@@ -383,15 +383,28 @@ function researchAgentFallback(goal: string): string {
   return `Research context for "${goal}": Ollama is unavailable — running in offline mode.`;
 }
 
+interface WebSearchResearchResult {
+  summary: string;
+  toolCallData: {
+    input: Record<string, unknown>;
+    output: Record<string, unknown>;
+    durationMs: number;
+  };
+}
+
 /**
  * Call the web_search tool and format results as a readable research context
  * string. Returns null when BRAVE_SEARCH_API_KEY is absent or the call fails,
  * so the caller can fall through to the Ollama / stub path.
+ *
+ * Returns both the formatted summary AND the raw tool call data so the caller
+ * can persist a tool_calls row (after agent_runs is inserted) to surface the
+ * search in the run execution timeline.
  */
 async function generateWebSearchResearch(
   ctx: TenantContext,
   goal: string,
-): Promise<string | null> {
+): Promise<WebSearchResearchResult | null> {
   if (!process.env["BRAVE_SEARCH_API_KEY"]) return null;
   try {
     const result = await invokeTool(ctx, "web_search", { query: goal, count: 5 });
@@ -402,7 +415,14 @@ async function generateWebSearchResearch(
     const snippets = results
       .map((r, i) => `${i + 1}. **${r.title}** (${r.url})\n   ${r.description}`)
       .join("\n\n");
-    return `Web search results for "${goal}":\n\n${snippets}`;
+    return {
+      summary: `Web search results for "${goal}":\n\n${snippets}`,
+      toolCallData: {
+        input: { query: goal, count: 5 },
+        output: { results, count: results.length, query: goal },
+        durationMs: result.durationMs,
+      },
+    };
   } catch {
     return null;
   }
@@ -539,9 +559,13 @@ export async function createAgentRun(
   } catch {
     // best-effort; ignore
   }
+  // Run web search before creating the run row; we hold the toolCallData so
+  // we can write a tool_calls record (with runId FK) after agentRuns inserts.
+  const webSearchResult =
+    route === "research" ? await generateWebSearchResearch(ctx, input.goal) : null;
   const researchSummary =
     route === "research"
-      ? ((await generateWebSearchResearch(ctx, input.goal)) ??
+      ? (webSearchResult?.summary ??
          (await generateAiResearch(ctx, input.goal, input.modelName ?? null)) ??
          researchAgentFallback(input.goal))
       : null;
@@ -631,6 +655,26 @@ export async function createAgentRun(
       conversationId: input.conversationId ?? null,
     }),
   );
+
+  // Persist tool_calls row for the research web search (FK requires agentRuns
+  // to exist first). This surfaces the search in the run execution timeline.
+  if (webSearchResult) {
+    const wsStartedAt = Date.now() - webSearchResult.toolCallData.durationMs;
+    await db.insert(toolCallsTable).values(
+      withTenantValues(ctx, {
+        id: `tc_${nanoid()}`,
+        runId: id,
+        toolName: "web_search",
+        riskLevel: "low",
+        status: "completed",
+        input: JSON.stringify(webSearchResult.toolCallData.input),
+        output: JSON.stringify(webSearchResult.toolCallData.output),
+        durationMs: webSearchResult.toolCallData.durationMs,
+        startedAt: wsStartedAt,
+        completedAt: Date.now(),
+      }),
+    );
+  }
 
   emitOpEvent(ctx, "task_started", {
     runId: id,

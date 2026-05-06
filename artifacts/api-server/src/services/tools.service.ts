@@ -603,7 +603,7 @@ const TOOLS: ToolEntry[] = [
           results: [],
           count: 0,
           query,
-          error: "Web search unavailable — no API key configured (set BRAVE_SEARCH_API_KEY)",
+          error: "Web search unavailable — no API key configured",
         };
       }
 
