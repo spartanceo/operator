@@ -28,7 +28,7 @@
  */
 
 import { execSync } from "child_process";
-import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { tmpdir } from "os";
@@ -99,45 +99,25 @@ execSync(
 
 // ── 3b. Fix pnpm virtual-store self-reference ─────────────────────────────
 //
-// pnpm v10 --legacy deploy creates a .pnpm virtual store and registers a
-// self-referencing entry for the deployed package at:
+// pnpm v10 --legacy deploy registers a self-referencing entry at:
 //   node_modules/.pnpm/node_modules/@workspace/omninity-desktop
 //
-// @electron/rebuild stats this path during its native-module scan and aborts
-// if it can't reach it.
+// @electron/rebuild stats this path during its native-module scan.  pnpm
+// creates .pnpm/node_modules as a SYMLINK (sometimes dangling, sometimes
+// pointing to the top-level node_modules, sometimes to the workspace root).
+// Whatever the case, the @workspace/omninity-desktop leaf never actually
+// exists, and mkdirSync with { recursive: true } cannot create through a
+// symlink chain that contains a broken or circular component.
 //
-// The complication: pnpm may materialise .pnpm/node_modules as a DANGLING
-// SYMLINK (records it in metadata but never creates the symlink target).
-// On macOS, mkdirSync with { recursive: true } calls the underlying
-// binding.mkdir which follows every symlink component; hitting a dangling
-// symlink throws ENOENT even when recursive is set.
-//
-// Fix:
-//   1. Use lstatSync (does not follow symlinks) to check .pnpm/node_modules.
-//   2. If it is a symlink, use statSync (follows symlinks) to test whether
-//      the target exists.  If the target is missing (dangling), unlink the
-//      symlink and replace it with a real empty directory so that subsequent
-//      mkdir calls can traverse the path normally.
-//   3. Create the stub package dir + package.json so stat() succeeds.
+// Fix: unconditionally nuke .pnpm/node_modules (rmSync with force:true
+// removes it as a symlink without following it, or as a dir recursively),
+// then recreate it as a plain directory and plant a minimal stub package.
+// @electron/rebuild only checks for the path's existence; the stub contents
+// are never executed.
 {
   const pnpmNm = resolve(deployDir, "node_modules", ".pnpm", "node_modules");
-
-  try {
-    const lst = lstatSync(pnpmNm); // does NOT follow symlinks
-    if (lst.isSymbolicLink()) {
-      try {
-        statSync(pnpmNm); // DOES follow symlink — throws if target is missing
-      } catch {
-        // Dangling symlink — remove it and create a real directory in its place
-        rmSync(pnpmNm);
-        mkdirSync(pnpmNm);
-      }
-    }
-  } catch {
-    // pnpmNm does not exist at all — mkdirSync { recursive: true } below
-    // will create the full path without issue
-  }
-
+  rmSync(pnpmNm, { recursive: true, force: true });
+  mkdirSync(pnpmNm);
   const selfRef = resolve(pnpmNm, "@workspace", "omninity-desktop");
   mkdirSync(selfRef, { recursive: true });
   writeFileSync(
