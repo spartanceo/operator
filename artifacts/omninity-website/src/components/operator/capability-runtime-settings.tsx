@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Circle,
+  Clipboard,
   CloudOff,
   Download,
   ExternalLink,
@@ -40,6 +41,7 @@ import {
   Loader2,
   RefreshCw,
   RotateCw,
+  Terminal,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -61,6 +63,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import { useListVoices } from "@workspace/api-client-react";
 import { useSettings } from "@/contexts/settings-context";
 import { getTenantId, getWorkspaceId } from "@/lib/api-config";
@@ -217,8 +220,85 @@ async function postSetActive(
     headers: { "Content-Type": "application/json", ...tenantHeaders() },
     body: JSON.stringify({ backendId }),
   });
-  if (!res.ok) throw new Error(`Failed to set backend: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { message?: string }).message ?? `Failed to set backend: ${res.status}`);
+  }
 }
+
+async function postSaveCredential(
+  capabilityType: CapabilityType,
+  backendId: string,
+  apiKey: string,
+): Promise<void> {
+  const res = await fetch(`${getApiBase()}/capabilities/${capabilityType}/${backendId}/credentials`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...tenantHeaders() },
+    body: JSON.stringify({ apiKey }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { message?: string }).message ?? `Failed to save credential: ${res.status}`);
+  }
+}
+
+async function deleteCredentialFn(
+  capabilityType: CapabilityType,
+  backendId: string,
+): Promise<void> {
+  const res = await fetch(`${getApiBase()}/capabilities/${capabilityType}/${backendId}/credentials`, {
+    method: "DELETE",
+    headers: tenantHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { message?: string }).message ?? `Failed to remove credential: ${res.status}`);
+  }
+}
+
+interface SetupEntry {
+  command: string;
+  docsUrl: string;
+  docsLabel: string;
+}
+
+const SETUP_COMMANDS: Partial<Record<string, SetupEntry>> = {
+  searxng: {
+    command: "docker run -d -p 8080:8080 searxng/searxng",
+    docsUrl: "https://docs.searxng.org/",
+    docsLabel: "SearXNG docs",
+  },
+  comfyui: {
+    command: "git clone https://github.com/comfyanonymous/ComfyUI && cd ComfyUI && pip install -r requirements.txt && python main.py",
+    docsUrl: "https://github.com/comfyanonymous/ComfyUI#installing",
+    docsLabel: "ComfyUI guide",
+  },
+  "piper-tts": {
+    command: "./piper --model en_US-lessac-medium.onnx --output_raw | aplay -r 22050 -f S16_LE -t raw -",
+    docsUrl: "https://github.com/rhasspy/piper/releases",
+    docsLabel: "Piper releases",
+  },
+  "ollama-embed": {
+    command: "ollama pull nomic-embed-text",
+    docsUrl: "https://ollama.ai",
+    docsLabel: "Get Ollama",
+  },
+  qdrant: {
+    command: "docker run -p 6333:6333 qdrant/qdrant",
+    docsUrl: "https://qdrant.tech/documentation/quick-start/",
+    docsLabel: "Qdrant docs",
+  },
+  chromadb: {
+    command: "pip install chromadb && chroma run --port 8000",
+    docsUrl: "https://docs.trychroma.com/getting-started",
+    docsLabel: "ChromaDB docs",
+  },
+  "local-sandbox": {
+    command: "# Install Docker Desktop — then restart Omninity",
+    docsUrl: "https://www.docker.com/get-started/",
+    docsLabel: "Install Docker",
+  },
+};
 
 function ResidencyBadge({ residency }: { residency: CapabilityResidency }) {
   const cfg = RESIDENCY_CONFIG[residency];
@@ -245,29 +325,77 @@ function HealthDot({ status }: { status: CapabilityHealthStatus }) {
   );
 }
 
-const SETUP_GUIDE_URLS: Partial<Record<string, string>> = {
-  comfyui: "https://github.com/comfyanonymous/ComfyUI#installing",
-};
-
 function BackendRow({
   backend,
   active,
   detected,
   onSelect,
   busy,
+  capabilityType,
+  onSaveCredential,
+  onDeleteCredential,
 }: {
   backend: CapabilityDescriptor;
   active: boolean;
   detected: boolean;
   onSelect: () => void;
   busy: boolean;
+  capabilityType: CapabilityType;
+  onSaveCredential: (apiKey: string) => Promise<void>;
+  onDeleteCredential: () => Promise<void>;
 }) {
-  const showGuideLink =
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [credSaving, setCredSaving] = useState(false);
+  const [credDeleting, setCredDeleting] = useState(false);
+  const [credError, setCredError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const setup = SETUP_COMMANDS[backend.id];
+  const showSetupCallout =
+    backend.residency === "local" &&
     backend.health.status === "unreachable" &&
-    SETUP_GUIDE_URLS[backend.id] !== undefined;
+    setup != null;
+  const showKeyForm = active && backend.requiresApiKey;
+
+  const handleSave = async () => {
+    if (!apiKeyInput.trim()) return;
+    setCredSaving(true);
+    setCredError(null);
+    try {
+      await onSaveCredential(apiKeyInput.trim());
+      setApiKeyInput("");
+    } catch (e) {
+      setCredError(e instanceof Error ? e.message : "Failed to save");
+    } finally {
+      setCredSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setCredDeleting(true);
+    setCredError(null);
+    try {
+      await onDeleteCredential();
+    } catch (e) {
+      setCredError(e instanceof Error ? e.message : "Failed to remove");
+    } finally {
+      setCredDeleting(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!setup?.command) return;
+    try {
+      await navigator.clipboard.writeText(setup.command);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore clipboard errors */
+    }
+  };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <button
         type="button"
         onClick={onSelect}
@@ -303,7 +431,7 @@ function BackendRow({
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <ResidencyBadge residency={backend.residency} />
           <HealthDot status={backend.health.status} />
-          {backend.health.detail ? (
+          {backend.health.detail && !showSetupCallout ? (
             <span className="text-[10px] text-muted-foreground">
               {backend.health.detail}
             </span>
@@ -311,17 +439,97 @@ function BackendRow({
         </div>
       </button>
 
-      {showGuideLink ? (
-        <a
-          href={SETUP_GUIDE_URLS[backend.id]}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-1 pl-1 text-[10px] text-primary underline underline-offset-2 hover:text-primary/80"
-          data-testid={`link-cap-setup-guide-${backend.id}`}
-        >
-          <ExternalLink className="h-2.5 w-2.5" />
-          Setup guide — install {backend.displayName}
-        </a>
+      {showSetupCallout ? (
+        <div className="rounded-md border border-border bg-muted/20 p-2.5 space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <Terminal className="h-3 w-3 shrink-0 text-muted-foreground" />
+            <span className="text-[10px] font-medium text-foreground">Setup required</span>
+            <a
+              href={setup!.docsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="ml-auto flex items-center gap-0.5 text-[10px] text-primary underline underline-offset-2 hover:text-primary/80"
+              data-testid={`link-cap-setup-guide-${backend.id}`}
+            >
+              <ExternalLink className="h-2.5 w-2.5" />
+              {setup!.docsLabel}
+            </a>
+          </div>
+          {backend.id === "piper-tts" ? (
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              <strong>Step 1:</strong> download voice model files using the Install buttons below.
+              <br />
+              <strong>Step 2:</strong> install the piper-http binary from the releases page, then start it so it listens on port 5000.
+            </p>
+          ) : (
+            <div className="flex items-start gap-1.5">
+              <code className="flex-1 min-w-0 rounded bg-muted px-2 py-1 text-[10px] font-mono text-foreground break-all">
+                {setup!.command}
+              </code>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); void handleCopy(); }}
+                className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label={copied ? "Copied!" : "Copy command"}
+                title={copied ? "Copied!" : "Copy command"}
+              >
+                {copied ? (
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                ) : (
+                  <Clipboard className="h-3 w-3" />
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {showKeyForm ? (
+        <div className="rounded-md border border-border bg-muted/20 p-2.5 space-y-2">
+          <p className="flex items-center gap-1 text-[10px] font-medium text-foreground">
+            <Key className="h-3 w-3 shrink-0" />
+            {backend.hasCredential
+              ? "API key saved — replace or remove below"
+              : "Enter your API key to activate this backend"}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="password"
+              placeholder={backend.hasCredential ? "Enter new key to replace…" : "Paste API key…"}
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); }}
+              className="h-7 text-xs font-mono"
+              autoComplete="off"
+              data-testid={`input-cap-key-${backend.id}`}
+            />
+            <Button
+              size="sm"
+              onClick={() => void handleSave()}
+              disabled={credSaving || !apiKeyInput.trim()}
+              className="h-7 text-[11px] px-2.5 shrink-0"
+              data-testid={`button-cap-save-key-${backend.id}`}
+            >
+              {credSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+            </Button>
+            {backend.hasCredential ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => void handleDelete()}
+                disabled={credDeleting}
+                className="h-7 text-[11px] px-2 shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                data-testid={`button-cap-del-key-${backend.id}`}
+                title="Remove saved API key"
+              >
+                {credDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+              </Button>
+            ) : null}
+          </div>
+          {credError ? (
+            <p className="text-[10px] text-red-500">{credError}</p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -692,7 +900,10 @@ function ReindexBanner({
 function CapabilityPanel({
   info,
   onSwitch,
+  onSaveCredential,
+  onDeleteCredential,
   busy,
+  switchError,
   pendingReindex,
   reindexing,
   reindexDone,
@@ -701,7 +912,10 @@ function CapabilityPanel({
 }: {
   info: ActiveCapabilityInfo;
   onSwitch: (backendId: string | null) => void;
+  onSaveCredential: (backendId: string, apiKey: string) => Promise<void>;
+  onDeleteCredential: (backendId: string) => Promise<void>;
   busy: boolean;
+  switchError: string | null;
   pendingReindex: boolean;
   reindexing: boolean;
   reindexDone: boolean;
@@ -714,6 +928,13 @@ function CapabilityPanel({
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">{label.description}</p>
+
+      {switchError ? (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-2.5 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          {switchError}
+        </div>
+      ) : null}
 
       {pendingReindex ? (
         <ReindexBanner
@@ -739,6 +960,9 @@ function CapabilityPanel({
               detected={detectedSet.has(b.id)}
               onSelect={() => onSwitch(b.id)}
               busy={busy}
+              capabilityType={info.capabilityType}
+              onSaveCredential={(apiKey) => onSaveCredential(b.id, apiKey)}
+              onDeleteCredential={() => onDeleteCredential(b.id)}
             />
           ))}
         </div>
@@ -776,6 +1000,7 @@ export function CapabilityRuntimeSettings() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [switching, setSwitching] = useState<CapabilityType | null>(null);
+  const [switchError, setSwitchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<CapabilityType>("image-gen");
 
   // Re-index state — keyed by the capability type that was switched.
@@ -802,6 +1027,7 @@ export function CapabilityRuntimeSettings() {
     backendId: string | null,
   ) => {
     setSwitching(capabilityType);
+    setSwitchError(null);
     try {
       await postSetActive(capabilityType, backendId);
       setAllInfo((prev) =>
@@ -826,11 +1052,28 @@ export function CapabilityRuntimeSettings() {
       // Re-probe all capability health after switching so the UI reflects the
       // newly selected backend's live connection state immediately.
       await load();
-    } catch {
-      /* silently reflected in health on next load */
+    } catch (e) {
+      setSwitchError(e instanceof Error ? e.message : "Failed to switch backend");
     } finally {
       setSwitching(null);
     }
+  };
+
+  const handleSaveCredential = async (
+    capabilityType: CapabilityType,
+    backendId: string,
+    apiKey: string,
+  ) => {
+    await postSaveCredential(capabilityType, backendId, apiKey);
+    await load();
+  };
+
+  const handleDeleteCredential = async (
+    capabilityType: CapabilityType,
+    backendId: string,
+  ) => {
+    await deleteCredentialFn(capabilityType, backendId);
+    await load();
   };
 
   const handleReindex = async () => {
@@ -965,8 +1208,10 @@ export function CapabilityRuntimeSettings() {
                     {label.title}
                     {hasPendingReindex ? (
                       <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" title="Re-index required" />
+                    ) : isActive ? (
+                      <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-foreground" title="Selected" />
                     ) : info.activeBackendId ? (
-                      <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
+                      <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-green-500" title="Backend active" />
                     ) : (
                       <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
                     )}
@@ -979,9 +1224,16 @@ export function CapabilityRuntimeSettings() {
               <CapabilityPanel
                 info={activeInfo}
                 onSwitch={(backendId) =>
-                  handleSwitch(activeInfo.capabilityType, backendId)
+                  void handleSwitch(activeInfo.capabilityType, backendId)
+                }
+                onSaveCredential={(backendId, apiKey) =>
+                  handleSaveCredential(activeInfo.capabilityType, backendId, apiKey)
+                }
+                onDeleteCredential={(backendId) =>
+                  handleDeleteCredential(activeInfo.capabilityType, backendId)
                 }
                 busy={switching === activeInfo.capabilityType}
+                switchError={switchError}
                 pendingReindex={pendingReindex.has(activeInfo.capabilityType)}
                 reindexing={reindexing}
                 reindexDone={reindexDone.has(activeInfo.capabilityType)}
