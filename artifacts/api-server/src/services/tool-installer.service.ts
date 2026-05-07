@@ -14,7 +14,7 @@ import { promisify } from "node:util";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
+import { readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 const execAsync = promisify(exec);
@@ -344,47 +344,30 @@ async function installViaDocker(
 }
 
 /**
- * Parse a requirements.txt and return lines that pip can actually resolve.
- * Each package line is tested with `pip3 download --no-deps` into a temp dir.
- * Lines that fail are logged as warnings and excluded from the install.
- * Comments, blank lines, and option flags (e.g. -r, --extra-index-url) are
- * always kept as-is without validation.
+ * Patch a requirements.txt to comment out known-bad packages that are not on
+ * PyPI, then write the result to a temp file. Returns the temp file path.
+ *
+ * The only currently known bad package is `comfy-kitchen` which is a private
+ * ComfyUI meta-package that blocks pip and is safe to skip. We comment it out
+ * rather than delete it so the patch is clearly visible in the temp file.
+ *
+ * This replaces the old `filterResolvablePipLines` approach which ran
+ * `pip3 download --no-deps` for every line sequentially (5–15 min total).
+ * The patched approach takes 2–4 min for a single `pip3 install -r`.
  */
-async function filterResolvablePipLines(reqFile: string): Promise<{
-  filteredLines: string[];
-  skipped: string[];
-}> {
+async function patchComfyRequirements(reqFile: string): Promise<string> {
   const raw = await readFile(reqFile, "utf8");
-  const lines = raw.split("\n");
-  const filteredLines: string[] = [];
-  const skipped: string[] = [];
-  const scratchDir = await mkdtemp(join(tmpdir(), "omninity-pip-"));
-
-  try {
-    for (const line of lines) {
-      const trimmed = line.trim();
-      // Keep blank lines, comments, and pip option flags verbatim
-      if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) {
-        filteredLines.push(line);
-        continue;
-      }
-      // Test whether pip can resolve this package
-      try {
-        await execAsync(
-          `pip3 download --no-deps --quiet --dest "${scratchDir}" "${trimmed}"`,
-          { timeout: 30_000 },
-        );
-        filteredLines.push(line);
-      } catch {
-        console.warn(`[tool-installer] Skipping unresolvable pip package: ${trimmed}`);
-        skipped.push(trimmed);
-      }
-    }
-  } finally {
-    await rm(scratchDir, { recursive: true, force: true }).catch(() => undefined);
-  }
-
-  return { filteredLines, skipped };
+  const patched = raw
+    .split("\n")
+    .map((line) =>
+      /^\s*comfy[-_]kitchen/i.test(line) && !line.trim().startsWith("#")
+        ? `# [omninity-skipped] ${line}`
+        : line,
+    )
+    .join("\n");
+  const tmpPath = join(tmpdir(), `omninity-comfyui-req-${Date.now()}.txt`);
+  await writeFile(tmpPath, patched, "utf8");
+  return tmpPath;
 }
 
 async function installViaPortable(
@@ -426,35 +409,18 @@ async function installViaPortable(
     );
   }
 
-  // 4. Filter requirements to only packages pip can resolve, then install
-  set("downloading", `Checking ${cfg.name} dependencies…`);
+  // 4. Patch requirements.txt (comment out comfy-kitchen) then pip install.
+  // A single pip install -r is 2–4 min vs the old per-package probe (5–15 min).
+  set("downloading", `Installing ${cfg.name} dependencies (pip)…`);
   const reqFile = join(cfg.installDir, "requirements.txt");
-  const { filteredLines, skipped } = await filterResolvablePipLines(reqFile);
-
-  if (skipped.length > 0) {
-    console.warn(
-      `[tool-installer] ComfyUI: skipped ${skipped.length} unresolvable package(s): ${skipped.join(", ")}`,
-    );
-  }
-
-  // Write filtered requirements to a temp file and install from that
-  const filteredReqFile = join(tmpdir(), `omninity-comfyui-req-${Date.now()}.txt`);
-  await writeFile(filteredReqFile, filteredLines.join("\n"), "utf8");
-
-  set(
-    "downloading",
-    skipped.length > 0
-      ? `Installing ${cfg.name} dependencies (skipped ${skipped.length} unavailable package${skipped.length === 1 ? "" : "s"})…`
-      : `Installing ${cfg.name} dependencies (pip)…`,
-  );
-
+  const patchedReqFile = await patchComfyRequirements(reqFile);
   try {
     await execAsync(
-      `pip3 install -q -r "${filteredReqFile}"`,
+      `pip3 install -q -r "${patchedReqFile}" --ignore-requires-python`,
       { timeout: 5 * 60_000, cwd: cfg.installDir },
     );
   } finally {
-    await rm(filteredReqFile, { force: true }).catch(() => undefined);
+    await rm(patchedReqFile, { force: true }).catch(() => undefined);
   }
 
   // 5. Launch ComfyUI in the background
@@ -476,21 +442,32 @@ async function waitForPort(
   set: (phase: InstallPhase, message: string, extras?: Partial<ToolInstallState>) => void,
 ): Promise<void> {
   set("running", `Waiting for ${name} to become reachable on port ${port}…`);
-  const deadline = Date.now() + 45_000;
+  const deadline = Date.now() + 180_000;
   let ready = false;
   while (Date.now() < deadline) {
     ready = await isToolRunning(toolId);
     if (ready) break;
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 3000));
   }
   if (ready) {
     set("ready", `${name} is running — connected.`, {
       completedAt: new Date().toISOString(),
     });
   } else {
+    // Surface the last 25 lines of the ComfyUI log so the user can see why
+    // the process failed (bad PyTorch version, missing dependency, import error).
+    let logTail = "";
+    try {
+      const logContent = await readFile("/tmp/comfyui.log", "utf8");
+      const lines = logContent.trimEnd().split("\n");
+      const tail = lines.slice(-25);
+      logTail = `\n\nLast log lines:\n${tail.join("\n")}`;
+    } catch {
+      /* log file may not exist if the process never started */
+    }
     set(
       "failed",
-      `${name} started but did not become reachable on port ${port} within 45 s. Check the logs for details.`,
+      `${name} started but did not become reachable on port ${port} within 180 s.${logTail}`,
       { errorCode: "TIMEOUT", completedAt: new Date().toISOString() },
     );
   }

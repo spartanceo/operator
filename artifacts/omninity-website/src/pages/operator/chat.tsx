@@ -486,6 +486,7 @@ export default function ChatPage() {
   const player = useVoicePlayer();
   const lastSpokenIdRef = useRef<string | null>(null);
   const autoSendOnNextTranscriptRef = useRef(false);
+  const [stubAudioWarning, setStubAudioWarning] = useState(false);
 
   const synthesize = useSynthesizeSpeech();
 
@@ -500,6 +501,7 @@ export default function ChatPage() {
             speed: settings.voiceSpeed,
           },
         });
+        setStubAudioWarning(resp.data.engine === "stub-tier1");
         await player.play(resp.data.audio, resp.data.mimeType);
       } catch {
         /* surfaced via the mutation error state */
@@ -848,6 +850,15 @@ export default function ChatPage() {
                 }
                 className="mb-3"
               />
+              {stubAudioWarning ? (
+                <div
+                  className="mb-2 flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-700 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+                  data-testid="stub-audio-warning"
+                >
+                  <Volume2 className="h-3 w-3 shrink-0" />
+                  Voice unavailable — using placeholder audio. Check TTS settings.
+                </div>
+              ) : null}
               {recorder.isRecording ||
               transcribeMut.isPending ||
               player.isPlaying ? (

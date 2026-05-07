@@ -362,6 +362,9 @@ function BackendRow({
   const [credError, setCredError] = useState<string | null>(null);
   const [credWarning, setCredWarning] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [preDownloading, setPreDownloading] = useState(false);
+  const [preDownloadDone, setPreDownloadDone] = useState(false);
+  const [preDownloadError, setPreDownloadError] = useState<string | null>(null);
 
   const setup = SETUP_COMMANDS[backend.id];
   const showSetupCallout =
@@ -409,6 +412,26 @@ function BackendRow({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       /* ignore clipboard errors */
+    }
+  };
+
+  const handlePreDownloadModel = async () => {
+    setPreDownloading(true);
+    setPreDownloadError(null);
+    try {
+      const res = await fetch(
+        `${getApiBase()}/voice/piper/models/en_US-lessac-medium/install`,
+        { method: "POST", headers: tenantHeaders() },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(body, `HTTP ${res.status}`));
+      }
+      setPreDownloadDone(true);
+    } catch (e) {
+      setPreDownloadError(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setPreDownloading(false);
     }
   };
 
@@ -498,11 +521,39 @@ function BackendRow({
                 </a>
               </div>
               {backend.id === "piper-tts" ? (
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  <strong>Step 1:</strong> download voice model files using the Install buttons below.
-                  <br />
-                  <strong>Step 2:</strong> install and launch piper-http from the releases page:
-                </p>
+                <>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    <strong>Step 1:</strong> pre-download the default voice model (en_US-lessac-medium):
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); void handlePreDownloadModel(); }}
+                      disabled={preDownloading || preDownloadDone}
+                      className="flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] font-medium text-foreground hover:bg-muted/50 disabled:opacity-50"
+                      data-testid="button-piper-predownload"
+                    >
+                      {preDownloading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : preDownloadDone ? (
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <Download className="h-3 w-3" />
+                      )}
+                      {preDownloading ? "Downloading…" : preDownloadDone ? "Downloaded" : "Download default voice"}
+                    </button>
+                    {preDownloadError ? (
+                      <span className="text-[10px] text-red-500">{preDownloadError}</span>
+                    ) : null}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    <strong>Step 2:</strong> install piper-http — on macOS:{" "}
+                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-[9px]">brew install piper-tts</code>
+                    {" "}or download from the releases page above.
+                    <br />
+                    <strong>Step 3:</strong> start piper-http:
+                  </p>
+                </>
               ) : null}
               <div className="flex items-start gap-1.5">
                 <code className="flex-1 min-w-0 rounded bg-muted px-2 py-1 text-[10px] font-mono text-foreground break-all">
