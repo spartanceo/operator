@@ -38,6 +38,7 @@ import {
   getConnectedProvider,
 } from "./integrations.service";
 import * as mediaService from "./media.service";
+import { MediaCapabilityNotConfiguredError } from "./media.service";
 import * as memoryService from "./memory.service";
 import { logPrivacyEvent } from "./privacy.service";
 import {
@@ -429,15 +430,22 @@ const TOOLS: ToolEntry[] = [
     description: "Generate an image from a text prompt and save it to the media library.",
     riskLevel: "low",
     handler: async (ctx, input) => {
-      const asset = await mediaService.generateImage(ctx, {
-        prompt: str(input["prompt"], "prompt"),
-        style:
-          typeof input["style"] === "string" ? (input["style"] as string) : undefined,
-        width: typeof input["width"] === "number" ? (input["width"] as number) : undefined,
-        height:
-          typeof input["height"] === "number" ? (input["height"] as number) : undefined,
-      });
-      return { ...asset };
+      try {
+        const asset = await mediaService.generateImage(ctx, {
+          prompt: str(input["prompt"], "prompt"),
+          style:
+            typeof input["style"] === "string" ? (input["style"] as string) : undefined,
+          width: typeof input["width"] === "number" ? (input["width"] as number) : undefined,
+          height:
+            typeof input["height"] === "number" ? (input["height"] as number) : undefined,
+        });
+        return { ...asset };
+      } catch (e) {
+        if (e instanceof MediaCapabilityNotConfiguredError) {
+          return { error: e.message };
+        }
+        throw e;
+      }
     },
   },
   {
@@ -446,18 +454,25 @@ const TOOLS: ToolEntry[] = [
       "Generate audio (music / TTS / SFX) from a text prompt and save it to the media library.",
     riskLevel: "low",
     handler: async (ctx, input) => {
-      const asset = await mediaService.generateAudio(ctx, {
-        prompt: str(input["prompt"], "prompt"),
-        kind:
-          typeof input["kind"] === "string"
-            ? (input["kind"] as "music" | "tts" | "sfx")
-            : undefined,
-        durationMs:
-          typeof input["durationMs"] === "number"
-            ? (input["durationMs"] as number)
-            : undefined,
-      });
-      return { ...asset };
+      try {
+        const asset = await mediaService.generateAudio(ctx, {
+          prompt: str(input["prompt"], "prompt"),
+          kind:
+            typeof input["kind"] === "string"
+              ? (input["kind"] as "music" | "tts" | "sfx")
+              : undefined,
+          durationMs:
+            typeof input["durationMs"] === "number"
+              ? (input["durationMs"] as number)
+              : undefined,
+        });
+        return { ...asset };
+      } catch (e) {
+        if (e instanceof MediaCapabilityNotConfiguredError) {
+          return { error: e.message };
+        }
+        throw e;
+      }
     },
   },
   {

@@ -23,6 +23,7 @@ import {
   generateVideo,
   getAsset,
   listAssets,
+  MediaCapabilityNotConfiguredError,
   MediaNotFoundError,
   MediaValidationError,
   probeHardware,
@@ -155,6 +156,10 @@ router.post("/images/generate", requireTenant(), async (req, res, next) => {
     const asset = await generateImage(ctx, parsed.data);
     res.json(ok(asset));
   } catch (e) {
+    if (e instanceof MediaCapabilityNotConfiguredError) {
+      res.status(422).json(err(e.code, e.message));
+      return;
+    }
     if (e instanceof MediaValidationError) {
       res.status(400).json(err(e.code, e.message));
       return;
@@ -174,6 +179,10 @@ router.post("/audio/generate", requireTenant(), async (req, res, next) => {
     const asset = await generateAudio(ctx, parsed.data);
     res.json(ok(asset));
   } catch (e) {
+    if (e instanceof MediaCapabilityNotConfiguredError) {
+      res.status(422).json(err(e.code, e.message));
+      return;
+    }
     if (e instanceof MediaValidationError) {
       res.status(400).json(err(e.code, e.message));
       return;

@@ -702,93 +702,122 @@ const cases: TestCase[] = [
     },
   },
   {
-    name: "media: generate image returns ready asset with bytes on disk",
+    name: "media: generate image returns 422 when no capability backend is configured",
     run: async () => {
+      // Image generation now requires a real capability backend (DALL-E, ComfyUI, etc.).
+      // Without one configured the route returns 422 MEDIA_CAPABILITY_NOT_CONFIGURED.
       const res = await request(app)
         .post("/api/media/images/generate")
         .set("X-Tenant-ID", TENANT)
         .send({ prompt: "test mountain", style: "illustration" });
-      assert.equal(res.status, 200, JSON.stringify(res.body));
-      assert.equal(res.body.success, true);
-      assert.equal(res.body.data.kind, "image");
-      assert.equal(res.body.data.status, "ready");
-      assert.equal(res.body.data.mimeType, "image/svg+xml");
-      assert.ok(res.body.data.sizeBytes > 0, "expected non-empty asset");
+      assert.equal(res.status, 422, JSON.stringify(res.body));
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.error.code, "MEDIA_CAPABILITY_NOT_CONFIGURED");
       assert.ok(
-        res.body.data.fileUrl.startsWith("/api/media/assets/"),
-        `unexpected fileUrl ${res.body.data.fileUrl}`,
-      );
-
-      const stream = await request(app)
-        .get(`/api/media/assets/${res.body.data.id}/file`)
-        .set("X-Tenant-ID", TENANT);
-      assert.equal(stream.status, 200);
-      assert.equal(stream.headers["content-type"], "image/svg+xml");
-      assert.ok(
-        Buffer.isBuffer(stream.body) ? stream.body.length > 0 : stream.text.length > 0,
-        "expected file stream to return bytes",
+        typeof res.body.error.message === "string" && res.body.error.message.length > 0,
+        "expected a user-readable error message",
       );
     },
   },
   {
-    name: "media: generate audio writes a real WAV with RIFF header",
+    name: "media: generate audio returns 422 when no TTS backend is configured",
     run: async () => {
+      // Audio generation now requires a real TTS capability backend (OpenAI TTS, ElevenLabs, etc.).
+      // Without one configured the route returns 422 MEDIA_CAPABILITY_NOT_CONFIGURED.
       const res = await request(app)
         .post("/api/media/audio/generate")
         .set("X-Tenant-ID", TENANT)
         .send({ prompt: "ambient pad", kind: "music", durationMs: 500 });
-      assert.equal(res.status, 200, JSON.stringify(res.body));
-      assert.equal(res.body.data.kind, "audio");
-      assert.equal(res.body.data.mimeType, "audio/wav");
-      assert.ok(res.body.data.sizeBytes > 44, "WAV must be larger than its header");
-
-      const stream = await request(app)
-        .get(`/api/media/assets/${res.body.data.id}/file`)
+      assert.equal(res.status, 422, JSON.stringify(res.body));
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.error.code, "MEDIA_CAPABILITY_NOT_CONFIGURED");
+      assert.ok(
+        typeof res.body.error.message === "string" && res.body.error.message.length > 0,
+        "expected a user-readable error message",
+      );
+    },
+  },
+  {
+    name: "media: OpenAI LLM key unlocks image+audio gen without separate capability setup",
+    run: async () => {
+      // Primary Bug #1 + #3 scenario: a user saves their OpenAI key for chat
+      // (LLM runtime) but has NOT configured any capability backend or saved
+      // a cap:dalle / cap:openai-tts credential separately.
+      //
+      // After the fix, both generators should attempt a real upstream call via
+      // DALL-E / OpenAI TTS — NOT short-circuit with MEDIA_CAPABILITY_NOT_CONFIGURED.
+      // With a fake key the upstream will reject, producing 500 (upstream error),
+      // which proves the routing logic changed correctly.
+      const credRes = await request(app)
+        .post("/api/runtimes/openai/credentials")
         .set("X-Tenant-ID", TENANT)
-        .buffer(true)
-        .parse((res2, cb) => {
-          const chunks: Buffer[] = [];
-          res2.on("data", (c: Buffer) => chunks.push(c));
-          res2.on("end", () => cb(null, Buffer.concat(chunks)));
-        });
-      assert.equal(stream.status, 200);
-      const buf = stream.body as Buffer;
-      assert.equal(buf.subarray(0, 4).toString("ascii"), "RIFF");
-      assert.equal(buf.subarray(8, 12).toString("ascii"), "WAVE");
+        .send({ apiKey: "sk-test-llm-key-only", label: "llm-only" });
+      assert.equal(credRes.status, 200, "prerequisite: LLM credential save failed");
+
+      try {
+        const imgRes = await request(app)
+          .post("/api/media/images/generate")
+          .set("X-Tenant-ID", TENANT)
+          .send({ prompt: "snowy mountain" });
+        // Must NOT be 422 MEDIA_CAPABILITY_NOT_CONFIGURED — the routing should
+        // have reached DALL-E (which rejects the fake key with a 500 upstream error).
+        assert.notEqual(
+          imgRes.body.error?.code,
+          "MEDIA_CAPABILITY_NOT_CONFIGURED",
+          `image gen should not return MEDIA_CAPABILITY_NOT_CONFIGURED with an LLM key present, got: ${JSON.stringify(imgRes.body)}`,
+        );
+
+        const audRes = await request(app)
+          .post("/api/media/audio/generate")
+          .set("X-Tenant-ID", TENANT)
+          .send({ prompt: "calm ambient music" });
+        // Same for audio — must NOT be 422 MEDIA_CAPABILITY_NOT_CONFIGURED.
+        assert.notEqual(
+          audRes.body.error?.code,
+          "MEDIA_CAPABILITY_NOT_CONFIGURED",
+          `audio gen should not return MEDIA_CAPABILITY_NOT_CONFIGURED with an LLM key present, got: ${JSON.stringify(audRes.body)}`,
+        );
+      } finally {
+        await request(app)
+          .delete("/api/runtimes/openai/credentials")
+          .set("X-Tenant-ID", TENANT);
+      }
     },
   },
   {
     name: "media: list filters by kind",
     run: async () => {
-      // Seed one of each kind so the filter has signal.
-      await request(app)
-        .post("/api/media/images/generate")
-        .set("X-Tenant-ID", TENANT)
-        .send({ prompt: "filter test image" });
+      // Seed using video (stub is intentional and always available) so this
+      // test is not coupled to the image-gen or TTS capability backends.
       await request(app)
         .post("/api/media/video/generate")
         .set("X-Tenant-ID", TENANT)
-        .send({ prompt: "filter test video", durationMs: 800 });
+        .send({ prompt: "filter test video A", durationMs: 800 });
+      await request(app)
+        .post("/api/media/video/generate")
+        .set("X-Tenant-ID", TENANT)
+        .send({ prompt: "filter test video B", durationMs: 800 });
 
-      const onlyImages = await request(app)
-        .get("/api/media/assets?kind=image&limit=50")
+      const onlyVideos = await request(app)
+        .get("/api/media/assets?kind=video&limit=50")
         .set("X-Tenant-ID", TENANT);
-      assert.equal(onlyImages.status, 200);
-      const items = onlyImages.body.data.items as Array<{ kind: string }>;
+      assert.equal(onlyVideos.status, 200);
+      const items = onlyVideos.body.data.items as Array<{ kind: string }>;
       assert.ok(items.length > 0);
       assert.ok(
-        items.every((a) => a.kind === "image"),
-        "kind filter must only return images",
+        items.every((a) => a.kind === "video"),
+        "kind filter must only return videos",
       );
     },
   },
   {
     name: "media: tenant isolation — tenant 2 cannot read tenant 1 asset or stream its file",
     run: async () => {
+      // Use video generation (stub always available) to seed a cross-tenant test asset.
       const created = await request(app)
-        .post("/api/media/images/generate")
+        .post("/api/media/video/generate")
         .set("X-Tenant-ID", TENANT)
-        .send({ prompt: "private to tenant 1" });
+        .send({ prompt: "private to tenant 1", durationMs: 500 });
       assert.equal(created.status, 200);
       const id = created.body.data.id;
 
@@ -806,10 +835,11 @@ const cases: TestCase[] = [
   {
     name: "media: delete removes the row (subsequent GET 404s)",
     run: async () => {
+      // Use video generation (stub always available) to seed the asset to delete.
       const created = await request(app)
-        .post("/api/media/images/generate")
+        .post("/api/media/video/generate")
         .set("X-Tenant-ID", TENANT)
-        .send({ prompt: "delete me" });
+        .send({ prompt: "delete me", durationMs: 500 });
       assert.equal(created.status, 200);
       const id = created.body.data.id;
 

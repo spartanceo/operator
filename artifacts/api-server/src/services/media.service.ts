@@ -38,7 +38,7 @@ import type { TenantContext } from "@workspace/types";
 import { resolveSandboxedPath, workspaceRoot } from "../lib/sandbox";
 import { getConnectedProvider } from "./integrations.service";
 import { logPrivacyEvent } from "./privacy.service";
-import { generateImage as capabilityGenerateImage } from "./capability.service";
+import { generateImage as capabilityGenerateImage, getActiveTTSContext } from "./capability.service";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MEDIA_SUBDIR = "media";
@@ -116,6 +116,14 @@ export class MediaNotFoundError extends Error {
 export class MediaValidationError extends Error {
   override readonly name = "MediaValidationError";
   readonly code = "MEDIA_VALIDATION";
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class MediaCapabilityNotConfiguredError extends Error {
+  override readonly name = "MediaCapabilityNotConfiguredError";
+  readonly code = "MEDIA_CAPABILITY_NOT_CONFIGURED";
   constructor(message: string) {
     super(message);
   }
@@ -735,12 +743,12 @@ export async function generateImage(
   const height = Math.max(64, Math.min(2048, input.height ?? 512));
   const id = `med_${nanoid()}`;
 
-  // Try the active capability backend first (ComfyUI, DALL-E 3, Stability AI).
-  // Only fall back to the deterministic SVG stub when no backend is configured
-  // (NO_IMAGE_GEN_BACKEND). Real upstream errors (network, key rejection, etc.)
-  // are propagated so callers receive an explicit failure rather than a silent
-  // placeholder image.
-  let capabilityResult: Awaited<ReturnType<typeof capabilityGenerateImage>> | null = null;
+  // Call the active capability backend (ComfyUI, DALL-E 3, Stability AI, etc.).
+  // Real upstream errors (network, bad key, etc.) are propagated to callers.
+  // When no backend is configured we throw MediaCapabilityNotConfiguredError so
+  // the caller (e.g. the tool handler) can surface a clear message to the user
+  // rather than silently returning a placeholder.
+  let capabilityResult: Awaited<ReturnType<typeof capabilityGenerateImage>>;
   try {
     capabilityResult = await capabilityGenerateImage(ctx, {
       prompt,
@@ -754,61 +762,35 @@ export async function generateImage(
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (!msg.startsWith("NO_IMAGE_GEN_BACKEND")) {
-      throw e;
+    if (msg.startsWith("NO_IMAGE_GEN_BACKEND")) {
+      throw new MediaCapabilityNotConfiguredError(
+        "Image generation is not configured. Go to Settings → Capability Backends to set up DALL-E or ComfyUI.",
+      );
     }
-    // No backend configured — fall through to SVG stub.
+    throw e;
   }
 
-  if (capabilityResult) {
-    const imgBuf = Buffer.from(capabilityResult.imageBase64, "base64");
-    const ext = capabilityResult.mimeType === "image/jpeg" ? "jpg" : "png";
-    await logPrivacyEvent(ctx, {
-      eventType: "media.image.generate",
-      actor: ctx.userId ?? ctx.tenantId,
-      target: id,
-      severity: "info",
-      detail: `backend=${capabilityResult.backendId} ${capabilityResult.width ?? width}x${capabilityResult.height ?? height}`,
-    });
-    const { relPath } = await writeBinary(ctx, id, ext, imgBuf);
-    return persistAsset(ctx, {
-      id,
-      kind: "image",
-      prompt,
-      style,
-      mimeType: capabilityResult.mimeType,
-      sizeBytes: imgBuf.byteLength,
-      width: capabilityResult.width ?? width,
-      height: capabilityResult.height ?? height,
-      durationMs: null,
-      modelUsed: capabilityResult.backendId,
-      sourceAssetId: null,
-      relPath,
-    });
-  }
-
-  const model = pickModel("image");
+  const imgBuf = Buffer.from(capabilityResult.imageBase64, "base64");
+  const ext = capabilityResult.mimeType === "image/jpeg" ? "jpg" : "png";
   await logPrivacyEvent(ctx, {
     eventType: "media.image.generate",
     actor: ctx.userId ?? ctx.tenantId,
     target: id,
     severity: "info",
-    detail: `model=${model} style=${style} ${width}x${height}`,
+    detail: `backend=${capabilityResult.backendId} ${capabilityResult.width ?? width}x${capabilityResult.height ?? height}`,
   });
-
-  const bytes = renderImageSvg(prompt, style, width, height);
-  const { relPath } = await writeBinary(ctx, id, "svg", bytes);
+  const { relPath } = await writeBinary(ctx, id, ext, imgBuf);
   return persistAsset(ctx, {
     id,
     kind: "image",
     prompt,
     style,
-    mimeType: "image/svg+xml",
-    sizeBytes: bytes.byteLength,
-    width,
-    height,
+    mimeType: capabilityResult.mimeType,
+    sizeBytes: imgBuf.byteLength,
+    width: capabilityResult.width ?? width,
+    height: capabilityResult.height ?? height,
     durationMs: null,
-    modelUsed: model,
+    modelUsed: capabilityResult.backendId,
     sourceAssetId: null,
     relPath,
   });
@@ -823,31 +805,48 @@ export async function generateAudio(
     throw new MediaValidationError("Prompt must not be empty");
   }
   const kind = input.kind ?? "music";
-  const durationMs = Math.max(250, Math.min(30000, input.durationMs ?? 2500));
   const id = `med_${nanoid()}`;
-  const model = pickModel("audio");
 
+  // Try the active TTS capability backend first.
+  // Real upstream errors (network, bad key, etc.) are propagated to callers.
+  // When no backend is configured we throw MediaCapabilityNotConfiguredError so
+  // the caller can surface a clear message to the user instead of silently
+  // returning a stub WAV.
+  const { backend: ttsBackend, apiKey: ttsApiKey } = await getActiveTTSContext(ctx);
+
+  if (!ttsBackend) {
+    throw new MediaCapabilityNotConfiguredError(
+      "Audio generation is not configured. Go to Settings → Capability Backends to set up OpenAI TTS or ElevenLabs.",
+    );
+  }
+
+  const ttsResult = await ttsBackend.synthesize(
+    ctx,
+    { text: prompt, voice: undefined, speed: undefined },
+    ttsApiKey,
+  );
+
+  const audioBuf = Buffer.from(ttsResult.audio, "base64");
+  const ext = ttsResult.mimeType === "audio/mpeg" ? "mp3" : "wav";
   await logPrivacyEvent(ctx, {
     eventType: "media.audio.generate",
     actor: ctx.userId ?? ctx.tenantId,
     target: id,
     severity: "info",
-    detail: `model=${model} kind=${kind} duration=${durationMs}ms`,
+    detail: `backend=${ttsResult.engine} kind=${kind} voice=${ttsResult.voice} duration=${ttsResult.durationMs}ms`,
   });
-
-  const bytes = renderWav(prompt, kind, durationMs);
-  const { relPath } = await writeBinary(ctx, id, "wav", bytes);
+  const { relPath } = await writeBinary(ctx, id, ext, audioBuf);
   return persistAsset(ctx, {
     id,
     kind: "audio",
     prompt,
     style: kind,
-    mimeType: "audio/wav",
-    sizeBytes: bytes.byteLength,
+    mimeType: ttsResult.mimeType,
+    sizeBytes: audioBuf.byteLength,
     width: null,
     height: null,
-    durationMs,
-    modelUsed: model,
+    durationMs: ttsResult.durationMs,
+    modelUsed: ttsResult.engine,
     sourceAssetId: null,
     relPath,
   });

@@ -58,9 +58,29 @@ function keychainAccount(ctx: TenantContext, backendId: string): string {
   return `${ctx.tenantId}:cap:${backendId}`;
 }
 
+/**
+ * OpenAI-family capability backends that share the same API key as the
+ * LLM "openai" runtime. When a user saves their OpenAI key for chat, these
+ * backends inherit it automatically — the fallback is never written back to
+ * the credential store and never overwrites an explicitly stored cap key.
+ */
+// tier-review: bounded — static 3-element constant, never mutated
+const OPENAI_FAMILY_BACKENDS: readonly string[] = ["dalle", "openai-tts", "openai-embed"];
+
+/**
+ * Keychain account for a cloud LLM runtime credential.
+ * Mirrors the convention used by runtime.service.ts so both services resolve
+ * the same keychain slot when looking up the "openai" runtime key.
+ */
+function llmKeychainAccount(ctx: TenantContext, runtimeId: string): string {
+  return `${ctx.tenantId}:${runtimeId}`;
+}
+
 async function loadCapabilityCredentialsMap(ctx: TenantContext): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   const kc = await keychainBridge();
+
+  // --- Phase 1: explicit capability keys from OS keychain ---
   if (kc.available) {
     for (const b of ALL_CAPABILITY_BACKENDS) {
       try {
@@ -71,12 +91,25 @@ async function loadCapabilityCredentialsMap(ctx: TenantContext): Promise<Map<str
       }
     }
   }
+
+  // --- Phase 2: explicit capability keys from encrypted SQLite ---
+  // Also collect the LLM "openai" row here so the fallback (Phase 3) can use it.
   const credKeys = ALL_CAPABILITY_BACKENDS.map((b) => credentialKey(b.id));
   const rows = await db
     .select()
     .from(runtimeCredentials)
     .where(tenantScope(ctx, runtimeCredentials));
+
+  let openaiLlmDbKey: string | null = null;
   for (const r of rows) {
+    if (r.runtimeId === "openai") {
+      try {
+        openaiLlmDbKey = decryptApiKey({ encryptedKey: r.encryptedKey, iv: r.iv, authTag: r.authTag });
+      } catch (e) {
+        logger.error({ err: e }, "Failed to decrypt openai LLM credential for capability fallback");
+      }
+      continue;
+    }
     if (!credKeys.includes(r.runtimeId)) continue;
     const backendId = r.runtimeId.replace(/^cap:/, "");
     if (out.has(backendId)) continue;
@@ -89,7 +122,56 @@ async function loadCapabilityCredentialsMap(ctx: TenantContext): Promise<Map<str
       logger.error({ err: e, backendId }, "Failed to decrypt capability credential");
     }
   }
+
+  // --- Phase 3: OpenAI-family fallback (applied AFTER all explicit keys) ---
+  // For any OpenAI-family backend still without a credential, reuse the LLM
+  // "openai" runtime key. This lets a user who saved their key once for chat
+  // immediately use DALL-E / TTS / embeddings without re-entering the key.
+  // The fallback never overwrites an explicitly stored capability key.
+  const needsFallback = OPENAI_FAMILY_BACKENDS.some((id) => !out.has(id));
+  if (needsFallback) {
+    let openaiLlmKey = openaiLlmDbKey;
+    if (openaiLlmKey === null && kc.available) {
+      try {
+        openaiLlmKey = await kc.get(llmKeychainAccount(ctx, "openai"));
+      } catch (e) {
+        logger.warn({ err: e }, "keychain.get failed (openai LLM fallback for capabilities)");
+      }
+    }
+    if (openaiLlmKey) {
+      for (const id of OPENAI_FAMILY_BACKENDS) {
+        if (!out.has(id)) out.set(id, openaiLlmKey);
+      }
+    }
+  }
+
   return out;
+}
+
+/**
+ * Auto-activate a capability backend when it is the first credential saved
+ * for that capability type. This prevents users from having to visit
+ * Settings → Capability Backends to click a separate "Set as active" control.
+ * The auto-activation is logged with a distinct detail string so it is
+ * distinguishable from a manual switch in the privacy audit log.
+ */
+async function autoActivateIfFirstCredential(
+  ctx: TenantContext,
+  capabilityType: CapabilityType,
+  backendId: string,
+): Promise<void> {
+  const currentActive = await getActiveBackendId(ctx, capabilityType);
+  if (currentActive === null) {
+    await upsertActiveBackendId(ctx, capabilityType, backendId);
+    await logPrivacyEvent(ctx, {
+      eventType: "runtime.switched",
+      actor: ctx.userId ?? ctx.tenantId,
+      target: backendId,
+      severity: "info",
+      detail: `capability=${capabilityType} auto-activated-on-first-credential`,
+    });
+    logger.info({ backendId, capabilityType }, "Auto-activated capability backend on first credential save");
+  }
 }
 
 async function getActiveBackendId(
@@ -240,6 +322,7 @@ export async function setCapabilityCredential(
       severity: "high",
       detail: "os-keychain",
     });
+    await autoActivateIfFirstCredential(ctx, backend.capabilityType, backendId);
     return { backendId, hasCredential: true };
   }
 
@@ -291,21 +374,35 @@ export async function setCapabilityCredential(
     severity: "high",
     detail: "encrypted-at-rest",
   });
+  await autoActivateIfFirstCredential(ctx, backend.capabilityType, backendId);
   return { backendId, hasCredential: true };
 }
 
 /**
  * Generate an image via the currently active image-gen backend for the tenant.
  *
- * Resolves the active backend and its stored credential, then delegates to
- * the backend's `generate()` method. Throws if no backend is configured or
- * if the backend does not implement `generate()`.
+ * Resolution order:
+ *   1. Explicitly active backend from capability_settings.
+ *   2. DALL-E ("dalle") when no backend is active but an OpenAI credential is
+ *      available (either via an explicit cap:dalle key or the LLM "openai"
+ *      runtime key fallback). This lets users who saved their OpenAI key for
+ *      chat generate images immediately without a separate settings step.
+ *
+ * Throws "NO_IMAGE_GEN_BACKEND" when no backend resolves.
  */
 export async function generateImage(
   ctx: TenantContext,
   req: ImageGenRequest,
 ): Promise<ImageGenResult> {
-  const activeBackendId = await getActiveBackendId(ctx, "image-gen");
+  const [storedActiveId, creds] = await Promise.all([
+    getActiveBackendId(ctx, "image-gen"),
+    loadCapabilityCredentialsMap(ctx),
+  ]);
+
+  // Derive the active backend: prefer the explicitly stored selection, fall
+  // back to DALL-E when a credential is available via the LLM key fallback.
+  const activeBackendId = storedActiveId ?? (creds.has("dalle") ? "dalle" : null);
+
   if (!activeBackendId) {
     throw new Error("NO_IMAGE_GEN_BACKEND: No image-gen backend is configured. Select one in Settings → Capability Backends.");
   }
@@ -320,9 +417,7 @@ export async function generateImage(
     throw new Error(`Backend "${activeBackendId}" does not implement generate()`);
   }
 
-  const creds = await loadCapabilityCredentialsMap(ctx);
   const apiKey = creds.get(activeBackendId) ?? null;
-
   return imageGenBackend.generate(ctx, req, apiKey);
 }
 
@@ -414,17 +509,32 @@ export async function checkSearXNGStatus(ctx: TenantContext): Promise<boolean> {
 
 /**
  * Returns the active TTS runtime and its stored API key (if any) for the
- * given tenant. Returns null backend when no TTS backend has been selected.
- * Used by voice.service.ts to route synthesize() to the correct engine.
+ * given tenant. Returns null backend when no TTS backend has been selected
+ * and no credential-based fallback is available.
+ *
+ * Resolution order:
+ *   1. Explicitly active backend from capability_settings.
+ *   2. OpenAI TTS ("openai-tts") when no backend is active but an OpenAI
+ *      credential is available (either via an explicit cap:openai-tts key or
+ *      the LLM "openai" runtime key fallback). This lets users who saved their
+ *      OpenAI key for chat generate audio immediately without a separate step.
+ *
+ * Used by voice.service.ts and media.service.ts to route synthesize() to the
+ * correct engine.
  */
 export async function getActiveTTSContext(ctx: TenantContext): Promise<{
   backend: TTSRuntime | null;
   apiKey: string | null;
 }> {
-  const [backendId, creds] = await Promise.all([
+  const [storedBackendId, creds] = await Promise.all([
     getActiveBackendId(ctx, "tts"),
     loadCapabilityCredentialsMap(ctx),
   ]);
+
+  // Derive the active backend: prefer the explicitly stored selection, fall
+  // back to OpenAI TTS when a credential is available via the LLM key fallback.
+  const backendId = storedBackendId ?? (creds.has("openai-tts") ? "openai-tts" : null);
+
   if (!backendId) return { backend: null, apiKey: null };
   const backend = getCapabilityBackend(backendId);
   if (!backend || backend.capabilityType !== "tts") return { backend: null, apiKey: null };
