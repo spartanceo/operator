@@ -84,6 +84,13 @@ const CATALOG: Readonly<Record<string, UserMessage>> = {
     severity: "info",
   },
 
+  /* ---------- Configuration ---------- */
+  RUNTIME_KEY_SECRET_MISSING: {
+    message: "Encryption key not configured — credential storage is unavailable.",
+    action: "Set the RUNTIME_KEY_SECRET environment variable to a 32+ character random value and restart the server.",
+    severity: "error",
+  },
+
   /* ---------- Model / runtime ---------- */
   OLLAMA_UNAVAILABLE: {
     message: "Your local AI isn't running yet.",

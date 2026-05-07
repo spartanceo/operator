@@ -34,6 +34,7 @@ import { logSecurityEvent } from "./security-events.service";
 
 export class VaultError extends Error {
   override readonly name = "VaultError";
+  readonly expose = true;
   constructor(
     message: string,
     readonly code: string,

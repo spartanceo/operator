@@ -25,6 +25,8 @@ const IV_LEN = 12;
 export class RuntimeKeySecretMissingError extends Error {
   override readonly name = "RuntimeKeySecretMissingError";
   readonly code = "RUNTIME_KEY_SECRET_MISSING";
+  readonly status = 503;
+  readonly expose = true;
   constructor() {
     super(
       "Cannot encrypt cloud runtime credentials — set RUNTIME_KEY_SECRET (or SESSION_SECRET) to a 32+ char random value. There is no built-in fallback by design.",
