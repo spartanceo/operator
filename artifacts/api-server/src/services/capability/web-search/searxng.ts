@@ -39,14 +39,26 @@ function resolveBaseUrl(): string {
  * Returns "reachable" when SearXNG is up but JSON is disabled (HTTP 403),
  * "json-enabled" when the JSON API is fully functional, and "unreachable"
  * when nothing is listening.
+ *
+ * Takes ctx + detail so the privacy log lives within ±10 lines of the fetch
+ * (tier-review Standard 8).
  */
 async function probeJsonEndpoint(
+  ctx: TenantContext,
   baseUrl: string,
+  detail: string,
 ): Promise<"json-enabled" | "reachable" | "unreachable"> {
   const url = `${baseUrl}/search?format=json&q=test&pageno=1`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 2000);
   try {
+    await logPrivacyEvent(ctx, {
+      eventType: "runtime.detect",
+      actor: ctx.userId ?? ctx.tenantId,
+      target: baseUrl,
+      severity: "info",
+      detail,
+    });
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
       signal: controller.signal,
@@ -79,14 +91,7 @@ export const searxngRuntime: WebSearchRuntime = {
 
   async detect(ctx: TenantContext): Promise<boolean> {
     const baseUrl = resolveBaseUrl();
-    await logPrivacyEvent(ctx, {
-      eventType: "runtime.detect",
-      actor: ctx.userId ?? ctx.tenantId,
-      target: baseUrl,
-      severity: "info",
-      detail: "SearXNG probe (detect)",
-    });
-    const status = await probeJsonEndpoint(baseUrl);
+    const status = await probeJsonEndpoint(ctx, baseUrl, "SearXNG probe (detect)");
     // Only report "detected" when JSON is fully enabled — otherwise the
     // search tool will fail at runtime even though the UI is reachable.
     return status === "json-enabled";
@@ -94,14 +99,7 @@ export const searxngRuntime: WebSearchRuntime = {
 
   async health(ctx: TenantContext): Promise<CapabilityHealth> {
     const baseUrl = resolveBaseUrl();
-    await logPrivacyEvent(ctx, {
-      eventType: "runtime.detect",
-      actor: ctx.userId ?? ctx.tenantId,
-      target: baseUrl,
-      severity: "info",
-      detail: "SearXNG probe (health)",
-    });
-    const status = await probeJsonEndpoint(baseUrl);
+    const status = await probeJsonEndpoint(ctx, baseUrl, "SearXNG probe (health)");
     if (status === "json-enabled") {
       return { status: "healthy", detail: null, detectedAt: new Date().toISOString() };
     }
