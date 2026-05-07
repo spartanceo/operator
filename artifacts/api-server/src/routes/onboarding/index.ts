@@ -19,6 +19,7 @@ import {
   recommendModel,
   upsertOnboardingProfile,
 } from "../../services/onboarding.service";
+import { checkSearXNGStatus } from "../../services/capability.service";
 
 function ollamaHost(): string {
   return process.env["OLLAMA_HOST"] ?? "http://127.0.0.1:11434";
@@ -127,6 +128,29 @@ router.get("/ollama-status", requireTenant(), async (_req, res, next) => {
       running = false;
     }
     res.json(ok({ running }));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * GET /api/onboarding/web-search-status
+ *
+ * Checks whether SearXNG is reachable at the configured host (default:
+ * http://localhost:8080). Used by the setup wizard to show the web search
+ * onboarding card. Returns:
+ *   { running: true }  — SearXNG is responding on the probe endpoint
+ *   { running: false } — nothing listening at the configured host
+ *
+ * Also returns the Docker one-liner that starts SearXNG so the UI can
+ * display it without hardcoding it in the frontend.
+ */
+router.get("/web-search-status", requireTenant(), async (_req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const running = await checkSearXNGStatus(ctx);
+    const dockerCommand = "docker run -d -p 8080:8080 searxng/searxng";
+    res.json(ok({ running, dockerCommand }));
   } catch (e) {
     next(e);
   }

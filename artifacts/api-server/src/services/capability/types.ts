@@ -51,8 +51,20 @@ export interface ImageGenRuntime extends CapabilityRuntime {
   readonly capabilityType: "image-gen";
 }
 
+export interface WebSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
 export interface WebSearchRuntime extends CapabilityRuntime {
   readonly capabilityType: "web-search";
+  search(
+    ctx: TenantContext,
+    query: string,
+    numResults: number,
+    apiKey?: string | null,
+  ): Promise<WebSearchResult[]>;
 }
 
 export interface TTSRuntime extends CapabilityRuntime {

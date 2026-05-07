@@ -26,6 +26,7 @@ import {
 import type { TenantContext } from "@workspace/types";
 
 import * as browserService from "./browser.service";
+import { webSearchWithActiveBackend } from "./capability.service";
 import { createEvent as createCalendarEvent } from "./comm/calendar.service";
 import { createDraft, sendDraft } from "./comm/email.service";
 import { placeCall as placeVoipCall } from "./comm/voip.service";
@@ -594,15 +595,40 @@ const TOOLS: ToolEntry[] = [
   {
     name: "web_search",
     description:
-      "Search the web for up-to-date information. Returns top results with title, URL, and description snippet. Resolves credentials per-tenant from connected providers (brave_search, serper, google_cse).",
+      "Search the web for up-to-date information. Returns top results with title, URL, and snippet. Routes through the active web-search capability backend (SearXNG, Brave, Serper, Bing). Falls back to integration providers when no capability backend is active.",
     riskLevel: "low",
     handler: async (ctx, input) => {
       const query = str(input["query"], "query");
-      const count = Math.max(1, Math.min(10, intOr(input["count"], 5)));
+      const count = Math.max(1, Math.min(10, intOr(input["count"] ?? input["numResults"], 5)));
 
-      type SearchResult = { title: string; url: string; description: string };
+      type SearchResult = { title: string; url: string; snippet: string };
 
-      // ── Brave Search ────────────────────────────────────────────────────────
+      // ── Capability backend (SearXNG / Brave / Serper / Bing via settings) ──
+      try {
+        const capResult = await webSearchWithActiveBackend(ctx, query, count);
+        if (capResult) {
+          return {
+            results: capResult.results,
+            count: capResult.results.length,
+            query,
+            provider: capResult.provider,
+          };
+        }
+      } catch (e) {
+        // Surface capability backend errors as tool errors so the agent
+        // knows the backend is misconfigured (e.g. missing API key).
+        throw new ToolValidationError(
+          `Web search capability backend error: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+
+      // ── Legacy integration-provider fallback ────────────────────────────────
+      // When no capability backend is active we fall back to credentials
+      // stored via the integrations page (brave_search, serper, google_cse).
+      // This path is kept for backwards compatibility and will be removed in
+      // a future release once all tenants migrate to capability settings.
+
+      // ── Brave Search (integration) ──────────────────────────────────────────
       const braveCreds = await getConnectedProvider(ctx, "brave_search");
       if (braveCreds) {
         const apiKey = braveCreds["apiKey"] as string;
@@ -614,7 +640,7 @@ const TOOLS: ToolEntry[] = [
           actor: ctx.userId ?? ctx.tenantId,
           target: query,
           severity: "low",
-          detail: `provider=brave count=${count}`,
+          detail: `provider=brave_search_integration count=${count}`,
         });
         try {
           const res = await fetch(searchUrl, {
@@ -634,7 +660,7 @@ const TOOLS: ToolEntry[] = [
             const results: SearchResult[] = (data.web?.results ?? []).slice(0, count).map((r) => ({
               title: r.title,
               url: r.url,
-              description: r.description ?? "",
+              snippet: r.description ?? "",
             }));
             return { results, count: results.length, query, provider: "brave_search" };
           }
@@ -643,7 +669,7 @@ const TOOLS: ToolEntry[] = [
         }
       }
 
-      // ── Serper ──────────────────────────────────────────────────────────────
+      // ── Serper (integration) ─────────────────────────────────────────────────
       const serperCreds = await getConnectedProvider(ctx, "serper");
       if (serperCreds) {
         const apiKey = serperCreds["apiKey"] as string;
@@ -652,7 +678,7 @@ const TOOLS: ToolEntry[] = [
           actor: ctx.userId ?? ctx.tenantId,
           target: query,
           severity: "low",
-          detail: `provider=serper count=${count}`,
+          detail: `provider=serper_integration count=${count}`,
         });
         try {
           const res = await fetch("https://google.serper.dev/search", {
@@ -673,7 +699,7 @@ const TOOLS: ToolEntry[] = [
             const results: SearchResult[] = (data.organic ?? []).slice(0, count).map((r) => ({
               title: r.title,
               url: r.link,
-              description: r.snippet ?? "",
+              snippet: r.snippet ?? "",
             }));
             return { results, count: results.length, query, provider: "serper" };
           }
@@ -682,7 +708,7 @@ const TOOLS: ToolEntry[] = [
         }
       }
 
-      // ── Google Custom Search ─────────────────────────────────────────────────
+      // ── Google Custom Search (integration) ──────────────────────────────────
       const googleCreds = await getConnectedProvider(ctx, "google_cse");
       if (googleCreds) {
         const apiKey = googleCreds["apiKey"] as string;
@@ -710,7 +736,7 @@ const TOOLS: ToolEntry[] = [
             const results: SearchResult[] = (data.items ?? []).slice(0, count).map((r) => ({
               title: r.title,
               url: r.link,
-              description: r.snippet ?? "",
+              snippet: r.snippet ?? "",
             }));
             return { results, count: results.length, query, provider: "google_cse" };
           }
@@ -719,13 +745,16 @@ const TOOLS: ToolEntry[] = [
         }
       }
 
-      // ── No provider connected ────────────────────────────────────────────────
-      console.warn("[web_search] No search provider connected for tenant", ctx.tenantId);
+      // ── No backend configured ────────────────────────────────────────────────
+      console.warn("[web_search] No search backend configured for tenant", ctx.tenantId);
       return {
         results: [],
         count: 0,
         query,
-        error: "Web search unavailable — connect a search provider (Brave Search, Serper, or Google Custom Search) in the integrations page.",
+        provider: null,
+        error:
+          "Web search unavailable — configure a web search backend in Settings → Capabilities → Web Search. " +
+          "Free option: run SearXNG locally with: docker run -d -p 8080:8080 searxng/searxng",
       };
     },
   },

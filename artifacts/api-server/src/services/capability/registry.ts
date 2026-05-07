@@ -22,6 +22,10 @@ import type {
   CapabilityType,
   CapabilityHealth,
 } from "./types";
+import { searxngRuntime } from "./web-search/searxng";
+import { braveRuntime } from "./web-search/brave";
+import { serperRuntime } from "./web-search/serper";
+import { bingRuntime } from "./web-search/bing";
 
 function unknownHealth(): CapabilityHealth {
   return { status: "unknown", detail: "Backend not yet implemented", detectedAt: new Date().toISOString() };
@@ -98,9 +102,10 @@ export const ALL_CAPABILITY_BACKENDS: ReadonlyArray<CapabilityRuntime> = [
   stubBackend("dalle", "DALL-E (OpenAI)", "image-gen", "cloud-required", true),
   stubBackend("stability-ai", "Stability AI", "image-gen", "cloud-required", true),
 
-  stubBackend("searxng", "SearXNG (self-hosted)", "web-search", "local", false, 8080),
-  stubBackend("brave-search", "Brave Search API", "web-search", "cloud-assist", true),
-  stubBackend("serper", "Serper (Google wrapper)", "web-search", "cloud-required", true),
+  searxngRuntime,
+  braveRuntime,
+  serperRuntime,
+  bingRuntime,
 
   stubBackend("piper-tts", "Piper TTS (local)", "tts", "local", false, 5000),
   stubBackend("elevenlabs", "ElevenLabs", "tts", "cloud-required", true),

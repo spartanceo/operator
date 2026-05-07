@@ -40,6 +40,8 @@ import type {
   ActiveCapabilityInfo,
   CapabilityDescriptor,
   CapabilityType,
+  WebSearchResult,
+  WebSearchRuntime,
 } from "./capability/types";
 
 export { detectLocalCapabilityBackends };
@@ -324,4 +326,52 @@ export async function deleteCapabilityCredential(
     });
   }
   return { backendId, deleted };
+}
+
+/**
+ * Execute a web search through the active web-search capability backend.
+ *
+ * Resolution order:
+ *   1. Active backend from capability_settings (searxng, brave-search, serper, bing-search)
+ *   2. If no active backend is set, returns null so the caller can fall
+ *      back to integration-provider credentials (legacy path).
+ *
+ * The API key (when required) is read from the capability credentials store.
+ */
+export async function webSearchWithActiveBackend(
+  ctx: TenantContext,
+  query: string,
+  numResults: number,
+): Promise<{ results: WebSearchResult[]; provider: string } | null> {
+  const activeId = await getActiveBackendId(ctx, "web-search");
+  if (!activeId) return null;
+
+  const backend = getCapabilityBackend(activeId);
+  if (!backend || backend.capabilityType !== "web-search") return null;
+
+  const webSearchBackend = backend as WebSearchRuntime;
+
+  let apiKey: string | null = null;
+  if (backend.requiresApiKey) {
+    const creds = await loadCapabilityCredentialsMap(ctx);
+    apiKey = creds.get(activeId) ?? null;
+    if (!apiKey) {
+      throw new Error(
+        `Web search backend "${activeId}" requires an API key — add one in Settings → Capabilities → Web Search.`,
+      );
+    }
+  }
+
+  const results = await webSearchBackend.search(ctx, query, numResults, apiKey);
+  return { results, provider: activeId };
+}
+
+/**
+ * Check whether SearXNG is reachable at the configured host.
+ * Used by the onboarding status endpoint.
+ */
+export async function checkSearXNGStatus(ctx: TenantContext): Promise<boolean> {
+  const backend = getCapabilityBackend("searxng");
+  if (!backend) return false;
+  return backend.detect(ctx);
 }
