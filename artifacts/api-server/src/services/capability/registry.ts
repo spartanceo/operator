@@ -7,6 +7,11 @@
  * health()={ status:"unknown" } — they are listed in the registry so the
  * switcher UI can display them as "coming soon" without code changes later.
  *
+ * TTS backends are fully implemented as real runtimes:
+ *   - PiperTTSRuntime    — local, calls piper-http on port 5000
+ *   - ElevenLabsTTSRuntime — cloud, requires API key
+ *   - OpenAITTSRuntime   — cloud, requires API key
+ *
  * Known default ports probed during auto-detection:
  *   ComfyUI    — 8188  (image-gen)
  *   SearXNG    — 8080  (web-search)
@@ -26,6 +31,9 @@ import { searxngRuntime } from "./web-search/searxng";
 import { braveRuntime } from "./web-search/brave";
 import { serperRuntime } from "./web-search/serper";
 import { bingRuntime } from "./web-search/bing";
+import { PiperTTSRuntime } from "./tts/piper";
+import { ElevenLabsTTSRuntime } from "./tts/elevenlabs";
+import { OpenAITTSRuntime } from "./tts/openai-tts";
 
 function unknownHealth(): CapabilityHealth {
   return { status: "unknown", detail: "Backend not yet implemented", detectedAt: new Date().toISOString() };
@@ -107,9 +115,9 @@ export const ALL_CAPABILITY_BACKENDS: ReadonlyArray<CapabilityRuntime> = [
   serperRuntime,
   bingRuntime,
 
-  stubBackend("piper-tts", "Piper TTS (local)", "tts", "local", false, 5000),
-  stubBackend("elevenlabs", "ElevenLabs", "tts", "cloud-required", true),
-  stubBackend("openai-tts", "OpenAI TTS", "tts", "cloud-required", true),
+  new PiperTTSRuntime(),
+  new ElevenLabsTTSRuntime(),
+  new OpenAITTSRuntime(),
 
   stubBackend("ollama-embed", "Ollama Embeddings (local)", "embeddings", "local", false, 11434),
   stubBackend("qdrant-embed", "Qdrant + Ollama (local)", "embeddings", "local", false, 6333),

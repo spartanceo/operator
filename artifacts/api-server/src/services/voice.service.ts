@@ -1,39 +1,40 @@
 /**
- * Voice service — Tier 1 stubs for STT (Whisper) and TTS (Kokoro/Coqui).
+ * Voice service — STT (Whisper/Replicate) and TTS (Piper / ElevenLabs / OpenAI TTS).
  *
- * The native binaries land with the dedicated Voice runtime task later in
- * the roadmap. For Tier 1 we expose a deterministic API surface so the UI
- * voice loop (mic capture → transcribe → playback → waveform) can be built,
- * tested, and demoed before the on-device models are bundled.
+ * TTS routing (synthesize):
+ *   1. Resolve the tenant's active TTS backend via the capability registry.
+ *   2. Call that backend's synthesize(ctx, input, apiKey) so it can log privacy
+ *      events and access credentials.
+ *   3. Fall back to the procedural stub WAV when no backend is selected or the
+ *      selected backend fails — the voice interface never fully breaks.
  *
- * What's deterministic vs. real here:
- *   - `transcribe()`: returns a fixed, audio-length-derived transcript.
- *     The byte length of the input drives the duration so e2e tests can
- *     assert the round-trip without owning a real Whisper model.
- *   - `synthesize()`: returns a *real* WAV (procedural sine envelope sized
- *     to the text). This means the frontend audio player + waveform
- *     animation work end-to-end without the native voice engine.
- *   - `listVoices()`: returns the static catalogue we plan to ship in Tier
- *     2 so the settings UI can render a stable list today.
+ * Voice catalogue (listVoices):
+ *   Returns the active backend's voice list via getVoices() (which may make a
+ *   live API call for cloud backends to fetch premium/cloned voices), falling
+ *   back to the static catalogue or stub catalogue when needed.
+ *
+ * STT routing (transcribe):
+ *   Attempts Replicate Whisper when the tenant has that integration connected.
+ *   Falls back to a deterministic stub for e2e-testability without a real model.
  *
  * Standards:
- *   - Standard 8: every external/expensive call is bounded — for the stubs
- *     we cap synthesised audio at `MAX_TEXT_CHARS` and transcript bytes at
- *     `MAX_AUDIO_BYTES`.
- *   - Standard 13 (privacy): each call writes a privacy event so the audit
- *     log shows exactly when a microphone capture or speech render happened.
+ *   - Standard 8: every external/expensive call is bounded — MAX_TEXT_CHARS,
+ *     MAX_AUDIO_BYTES, and per-backend 30s timeouts.
+ *   - Standard 13 (privacy): each network call writes a privacy event; the
+ *     actual event is logged inside the backend's synthesize() / health() calls.
  */
 import type { TenantContext } from "@workspace/types";
 
+import { getActiveTTSContext, getActiveTTSVoices } from "./capability.service";
 import { getConnectedProvider } from "./integrations.service";
 import { logPrivacyEvent } from "./privacy.service";
 
 const SAMPLE_RATE = 16_000;
 const STUB_MODEL = "whisper-stub-tier1";
-const STUB_ENGINE = "kokoro-stub-tier1";
+const STUB_ENGINE = "stub-tier1";
 
-export const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // 25 MB upper bound on a single clip.
-export const MAX_TEXT_CHARS = 4_000; // Mirrors the OpenAPI request maxLength.
+export const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
+export const MAX_TEXT_CHARS = 4_000;
 
 export interface VoiceTranscribeInput {
   audio: string;
@@ -82,7 +83,11 @@ export class VoicePayloadError extends Error {
   }
 }
 
-const VOICE_CATALOGUE: ReadonlyArray<VoiceEntry> = [
+/**
+ * Stub voice catalogue — returned when no TTS backend is active. These IDs
+ * map to the procedural WAV generator so the UI never shows an empty list.
+ */
+const STUB_VOICE_CATALOGUE: ReadonlyArray<VoiceEntry> = [
   {
     id: "ember",
     label: "Ember (warm, neutral)",
@@ -117,14 +122,11 @@ const VOICE_CATALOGUE: ReadonlyArray<VoiceEntry> = [
   },
 ];
 
-function defaultVoice(): VoiceEntry {
-  // The catalogue is non-empty by construction.
-  return VOICE_CATALOGUE[0]!;
-}
+// ---------------------------------------------------------------------------
+// Audio helpers
+// ---------------------------------------------------------------------------
 
 function decodeAudio(audio: string): Buffer {
-  // We accept both raw base64 and `data:` URLs so the frontend can use the
-  // most natural API for each browser MediaRecorder output.
   const stripped = audio.startsWith("data:")
     ? audio.slice(audio.indexOf(",") + 1)
     : audio;
@@ -141,12 +143,10 @@ function decodeAudio(audio: string): Buffer {
   return buf;
 }
 
-/**
- * Stub transcript generator — deterministic and length-aware so unit tests
- * can assert against the result without needing a real model. We pick the
- * canned response from a small set keyed on the audio byte length so two
- * callers with different recordings get different transcripts.
- */
+// ---------------------------------------------------------------------------
+// STT stub
+// ---------------------------------------------------------------------------
+
 const STUB_TRANSCRIPTS = [
   "Open the latest privacy report.",
   "Remind me to review the chat agents tomorrow morning.",
@@ -160,11 +160,6 @@ function pickStubTranscript(audio: Buffer): string {
   return STUB_TRANSCRIPTS[idx]!;
 }
 
-/**
- * Attempt Whisper transcription via Replicate when the tenant has the
- * Replicate provider connected. Returns null on any failure so the caller
- * falls back to the stub transcript.
- */
 async function transcribeWithReplicate(
   ctx: TenantContext,
   audio: Buffer,
@@ -175,7 +170,6 @@ async function transcribeWithReplicate(
   if (!creds) return null;
   const token = creds["apiKey"] as string;
 
-  // Encode as a data URL so Replicate can accept it inline.
   const b64 = audio.toString("base64");
   const dataUrl = `data:${mimeType};base64,${b64}`;
 
@@ -221,7 +215,6 @@ async function transcribeWithReplicate(
 
     let prediction = (await createRes.json()) as WhisperPrediction;
 
-    // Poll if the synchronous wait didn't resolve.
     const pollUrl = `https://api.replicate.com/v1/predictions/${prediction.id}`;
     let attempts = 0;
     while (
@@ -268,10 +261,8 @@ export async function transcribe(
   input: VoiceTranscribeInput,
 ): Promise<VoiceTranscribeResult> {
   const audio = decodeAudio(input.audio);
-  // Approximate the clip length: webm/opus averages ~16 KB/sec at 16 kHz mono.
   const durationMs = Math.max(250, Math.round((audio.length / 16_000) * 1000));
 
-  // Attempt real Whisper transcription via Replicate when connected.
   const replicateResult = await transcribeWithReplicate(
     ctx,
     audio,
@@ -288,9 +279,7 @@ export async function transcribe(
     };
   }
 
-  // Fall back to deterministic stub when Replicate is not connected.
   const transcript = pickStubTranscript(audio);
-  // Privacy log adjacent to the external call surface — Standard 13.
   await logPrivacyEvent(ctx, {
     eventType: "voice.transcribe",
     actor: ctx.userId ?? ctx.tenantId,
@@ -307,25 +296,19 @@ export async function transcribe(
   };
 }
 
-/**
- * Build a 16 kHz mono PCM16 WAV in memory whose duration tracks the text.
- *
- * The waveform is a slow sine envelope so the playback UI gets visible
- * variation across the clip without sounding like noise. Real Kokoro/Coqui
- * output replaces this entire function in the runtime task.
- */
-function buildWav(text: string, speed: number): { audio: Buffer; durationMs: number } {
-  // Roughly 14 chars/sec at speed 1.0 — slightly slower than natural so
-  // long replies feel paced. Speed scales linearly between 0.5x and 2x.
+// ---------------------------------------------------------------------------
+// TTS — procedural stub fallback (WAV in memory)
+// ---------------------------------------------------------------------------
+
+function buildStubWav(text: string, speed: number): { audio: Buffer; durationMs: number } {
   const charsPerSec = 14 * Math.max(0.5, Math.min(2, speed));
   const seconds = Math.max(0.6, text.length / charsPerSec);
   const totalSamples = Math.round(seconds * SAMPLE_RATE);
-  const data = Buffer.alloc(totalSamples * 2); // 16-bit PCM
-  // Use a few stacked sines so the waveform isn't a pure tone.
-  const baseHz = 180; // low, voice-like fundamental
+  const data = Buffer.alloc(totalSamples * 2);
+  const baseHz = 180;
   for (let i = 0; i < totalSamples; i++) {
     const t = i / SAMPLE_RATE;
-    const envelope = 0.4 * Math.sin(Math.PI * (t / seconds)); // fade in/out
+    const envelope = 0.4 * Math.sin(Math.PI * (t / seconds));
     const wave =
       Math.sin(2 * Math.PI * baseHz * t) * 0.6 +
       Math.sin(2 * Math.PI * (baseHz * 1.5) * t) * 0.3 +
@@ -339,13 +322,13 @@ function buildWav(text: string, speed: number): { audio: Buffer; durationMs: num
   header.writeUInt32LE(36 + data.length, 4);
   header.write("WAVE", 8);
   header.write("fmt ", 12);
-  header.writeUInt32LE(16, 16); // PCM chunk size
-  header.writeUInt16LE(1, 20); // PCM format
-  header.writeUInt16LE(1, 22); // mono
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
   header.writeUInt32LE(SAMPLE_RATE, 24);
-  header.writeUInt32LE(SAMPLE_RATE * 2, 28); // byte rate
-  header.writeUInt16LE(2, 32); // block align
-  header.writeUInt16LE(16, 34); // bits per sample
+  header.writeUInt32LE(SAMPLE_RATE * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
   header.write("data", 36);
   header.writeUInt32LE(data.length, 40);
 
@@ -354,6 +337,14 @@ function buildWav(text: string, speed: number): { audio: Buffer; durationMs: num
     durationMs: Math.round(seconds * 1000),
   };
 }
+
+function defaultStubVoice(): VoiceEntry {
+  return STUB_VOICE_CATALOGUE[0]!;
+}
+
+// ---------------------------------------------------------------------------
+// TTS — synthesize() — routes to active backend, stubs on fallback
+// ---------------------------------------------------------------------------
 
 export async function synthesize(
   ctx: TenantContext,
@@ -368,25 +359,61 @@ export async function synthesize(
       `Text exceeds the ${MAX_TEXT_CHARS}-char limit`,
     );
   }
-  const voice =
-    VOICE_CATALOGUE.find((v) => v.id === input.voice) ?? defaultVoice();
+
   const speed = input.speed ?? 1.0;
-  const { audio, durationMs } = buildWav(input.text, speed);
+  let backendError: string | null = null;
+
+  // Attempt real synthesis via the configured TTS backend.
+  try {
+    const { backend, apiKey } = await getActiveTTSContext(ctx);
+    if (backend) {
+      // Normalise the requested voice ID to one that the active backend
+      // actually supports. If the persisted voice comes from a different
+      // backend (e.g. the user switched from stub to Piper), fall back to
+      // the first voice in the new backend's catalogue so the switch takes
+      // effect immediately without requiring a manual voice re-selection.
+      const catalogue = backend.voices;
+      const voiceId =
+        input.voice && catalogue.some((v) => v.id === input.voice)
+          ? input.voice
+          : catalogue[0]?.id;
+      const result = await backend.synthesize(
+        ctx,
+        { text: input.text, voice: voiceId, speed },
+        apiKey,
+      );
+      return result;
+    }
+  } catch (e) {
+    // Record the backend failure so it appears in the response metadata.
+    backendError = e instanceof Error ? e.message : String(e);
+    console.warn("[voice] TTS backend error, falling back to stub:", backendError);
+  }
+
+  // Stub fallback — procedural WAV so the UI always gets valid audio.
+  // The engine field reports "stub-tier1" so callers can detect the fallback.
+  const voice =
+    STUB_VOICE_CATALOGUE.find((v) => v.id === input.voice) ?? defaultStubVoice();
+  const { audio, durationMs } = buildStubWav(input.text, speed);
   await logPrivacyEvent(ctx, {
     eventType: "voice.synthesize",
     actor: ctx.userId ?? ctx.tenantId,
     target: voice.id,
     severity: "info",
-    detail: `chars=${input.text.length} ms=${durationMs}`,
+    detail: `engine=stub chars=${input.text.length} ms=${durationMs}${backendError ? ` backend_err=${backendError.slice(0, 80)}` : ""}`,
   });
   return {
     audio: audio.toString("base64"),
     mimeType: "audio/wav",
     durationMs,
     voice: voice.id,
-    engine: voice.engine,
+    engine: STUB_ENGINE,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Voice catalogue — listVoices()
+// ---------------------------------------------------------------------------
 
 export interface VoicePage {
   items: VoiceEntry[];
@@ -394,17 +421,25 @@ export interface VoicePage {
 }
 
 /**
- * Cursor-paginated voice catalogue. The catalogue is small and static so
- * the cursor is just the next index; once we ship the real engine the
- * catalogue becomes dynamic and keyset pagination will replace this.
+ * Returns the voice catalogue for the tenant's active TTS backend, or the
+ * stub catalogue when no backend is configured. For cloud backends with an
+ * API key this calls getVoices() which may fetch premium/cloned voices live.
  */
-export function listVoices(opts: { cursor?: string; limit?: number } = {}): VoicePage {
+export async function listVoices(
+  ctx: TenantContext,
+  opts: { cursor?: string; limit?: number } = {},
+): Promise<VoicePage> {
   const limit = Math.max(1, Math.min(100, opts.limit ?? 25));
   const start = opts.cursor ? Math.max(0, Number(opts.cursor) || 0) : 0;
-  const slice = VOICE_CATALOGUE.slice(start, start + limit);
+
+  const backendVoices = await getActiveTTSVoices(ctx);
+  const catalogue: ReadonlyArray<VoiceEntry> =
+    backendVoices.length > 0 ? backendVoices : STUB_VOICE_CATALOGUE;
+
+  const slice = catalogue.slice(start, start + limit);
   const next = start + slice.length;
   return {
     items: [...slice],
-    nextCursor: next < VOICE_CATALOGUE.length ? String(next) : null,
+    nextCursor: next < catalogue.length ? String(next) : null,
   };
 }

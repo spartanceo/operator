@@ -12,20 +12,28 @@
  * health status, and whether it needs a paid API key — mirroring the
  * privacy-meter pattern from the model runtime switcher.
  *
+ * For the TTS capability type an additional voice-selection dropdown appears
+ * beneath the backend list so users can pick a voice without leaving the panel.
+ * Piper voices include a link to the official Piper releases page for
+ * downloading additional voice models.
+ *
  * Switching a backend immediately POSTs to /api/capabilities/:type/active
  * and invalidates the query cache so dependent UI updates instantly.
  */
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle,
   Circle,
   CloudOff,
+  Download,
+  ExternalLink,
   Globe,
   HardDrive,
   Key,
   Loader2,
   RefreshCw,
+  Trash2,
   XCircle,
 } from "lucide-react";
 
@@ -38,7 +46,17 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useListVoices } from "@workspace/api-client-react";
+import { useSettings } from "@/contexts/settings-context";
+
 function getApiBase(): string {
   const win = window as Window &
     typeof globalThis & {
@@ -98,7 +116,7 @@ const CAPABILITY_LABELS: Record<
   tts: {
     title: "Text-to-Speech",
     description:
-      "Voice-synthesis backends. Piper runs fully local; ElevenLabs and OpenAI TTS are cloud-only.",
+      "Voice-synthesis backends. Piper runs fully local; ElevenLabs and OpenAI TTS are cloud-only and require an API key.",
   },
   embeddings: {
     title: "Embeddings",
@@ -150,6 +168,9 @@ const HEALTH_CONFIG: Record<
   },
   unknown: { icon: Circle, className: "text-muted-foreground", label: "Not yet implemented" },
 };
+
+const PIPER_RELEASES_URL =
+  "https://github.com/rhasspy/piper/releases";
 
 async function fetchCapabilityInfo(): Promise<ActiveCapabilityInfo[]> {
   const res = await fetch(`${getApiBase()}/capabilities`);
@@ -254,6 +275,234 @@ function BackendRow({
   );
 }
 
+interface PiperModelEntry {
+  id: string;
+  label: string;
+  language: string;
+  gender: string;
+  sampleRate: number;
+  installed: boolean;
+  modelsDir: string;
+  releasesUrl: string;
+}
+
+/**
+ * Piper voice model manager — shows install status for each bundled voice
+ * and lets users download model files (.onnx + .onnx.json) from HuggingFace.
+ * Displayed only when the active TTS backend is Piper.
+ */
+function PiperModelManager() {
+  const qc = useQueryClient();
+  const [installing, setInstalling] = useState<Set<string>>(new Set());
+  const [removing, setRemoving] = useState<Set<string>>(new Set());
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
+
+  const modelsQuery = useQuery<{ items: PiperModelEntry[]; releasesUrl: string }>({
+    queryKey: ["piper-models"],
+    queryFn: async () => {
+      const res = await fetch(`${getApiBase()}/voice/piper/models`);
+      if (!res.ok) throw new Error(`Failed to load Piper models: ${res.status}`);
+      const body = await res.json();
+      return body.data as { items: PiperModelEntry[]; releasesUrl: string };
+    },
+    staleTime: 30_000,
+  });
+
+  const models = modelsQuery.data?.items ?? [];
+  const releasesUrl = modelsQuery.data?.releasesUrl ?? PIPER_RELEASES_URL;
+  const modelsDir = models[0]?.modelsDir ?? "~/.omninity/piper-voices";
+
+  const installModel = async (voiceId: string) => {
+    setInstalling((s) => new Set(s).add(voiceId));
+    setActionErrors((e) => { const n = { ...e }; delete n[voiceId]; return n; });
+    try {
+      const res = await fetch(`${getApiBase()}/voice/piper/models/${voiceId}/install`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { message?: string }).message ?? `HTTP ${res.status}`);
+      }
+      await qc.invalidateQueries({ queryKey: ["piper-models"] });
+      await modelsQuery.refetch();
+    } catch (e) {
+      setActionErrors((prev) => ({
+        ...prev,
+        [voiceId]: e instanceof Error ? e.message : "Download failed",
+      }));
+    } finally {
+      setInstalling((s) => { const n = new Set(s); n.delete(voiceId); return n; });
+    }
+  };
+
+  const removeModel = async (voiceId: string) => {
+    setRemoving((s) => new Set(s).add(voiceId));
+    try {
+      await fetch(`${getApiBase()}/voice/piper/models/${voiceId}`, { method: "DELETE" });
+      await modelsQuery.refetch();
+    } finally {
+      setRemoving((s) => { const n = new Set(s); n.delete(voiceId); return n; });
+    }
+  };
+
+  return (
+    <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-foreground">Voice models</p>
+        {modelsQuery.isLoading ? (
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+        ) : (
+          <button
+            type="button"
+            onClick={() => void modelsQuery.refetch()}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Refresh model list"
+          >
+            <RefreshCw className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+
+      {modelsQuery.isError ? (
+        <p className="text-[10px] text-red-500">
+          Could not load model status — is the API server running?
+        </p>
+      ) : models.length === 0 && !modelsQuery.isLoading ? (
+        <p className="text-[10px] text-muted-foreground italic">No models found.</p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {models.map((m) => {
+            const isInstalling = installing.has(m.id);
+            const isRemoving = removing.has(m.id);
+            const errMsg = actionErrors[m.id];
+            return (
+              <li key={m.id} className="flex items-center gap-2 py-1.5 text-[11px]">
+                {m.installed ? (
+                  <CheckCircle className="h-3 w-3 shrink-0 text-green-500" />
+                ) : (
+                  <Circle className="h-3 w-3 shrink-0 text-muted-foreground/40" />
+                )}
+                <span className="flex-1 min-w-0">
+                  <span className="font-medium text-foreground truncate block">{m.label}</span>
+                  {errMsg ? (
+                    <span className="text-red-500 text-[10px]">{errMsg}</span>
+                  ) : (
+                    <span className="text-muted-foreground text-[10px]">
+                      {m.language} · {m.sampleRate.toLocaleString()} Hz
+                      {m.installed ? " · Installed" : " · Not downloaded"}
+                    </span>
+                  )}
+                </span>
+                {m.installed ? (
+                  <button
+                    type="button"
+                    onClick={() => void removeModel(m.id)}
+                    disabled={isRemoving}
+                    className="shrink-0 text-muted-foreground hover:text-red-500 disabled:opacity-40"
+                    aria-label={`Remove ${m.label}`}
+                    title="Remove model files"
+                  >
+                    {isRemoving ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3 w-3" />
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void installModel(m.id)}
+                    disabled={isInstalling}
+                    className="shrink-0 flex items-center gap-0.5 rounded border border-border px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-muted/50 disabled:opacity-40"
+                    aria-label={`Install ${m.label}`}
+                    data-testid={`button-piper-install-${m.id}`}
+                  >
+                    {isInstalling ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Download className="h-3 w-3" />
+                    )}
+                    {isInstalling ? "Downloading…" : "Install"}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <p className="text-[10px] text-muted-foreground">
+        Models stored in{" "}
+        <code className="font-mono text-[9px]">{modelsDir}</code>
+        {" · "}
+        <a
+          href={releasesUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-0.5 underline underline-offset-2 hover:text-foreground"
+        >
+          More voices
+          <ExternalLink className="h-2.5 w-2.5" />
+        </a>
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Voice selection sub-panel — shown only in the TTS tab.
+ * Fetches the voice catalogue for the currently active backend and lets the
+ * user pick a default voice. Changes are saved to operator settings.
+ * For Piper, also shows the model manager with install/remove controls.
+ */
+function TTSVoiceSelector({ activeBackendId }: { activeBackendId: string | null }) {
+  const { settings, update } = useSettings();
+  const voicesQuery = useListVoices();
+  const voices = voicesQuery.data?.data.items ?? [];
+  const isPiper = activeBackendId === "piper-tts";
+
+  return (
+    <div className="space-y-2">
+      <div className="rounded-md border border-border bg-muted/20 p-3 space-y-2">
+        <p className="text-xs font-medium text-foreground">Voice selection</p>
+        {voicesQuery.isLoading ? (
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Loading voices…
+          </p>
+        ) : voices.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">
+            {activeBackendId
+              ? "No voices available — check that the backend is reachable."
+              : "Select a TTS backend above to see available voices."}
+          </p>
+        ) : (
+          <Select
+            value={settings.voiceName}
+            onValueChange={(v) => update({ voiceName: v })}
+          >
+            <SelectTrigger
+              className="h-8 text-xs"
+              aria-label="Default voice"
+              data-testid="select-cap-voice"
+            >
+              <SelectValue placeholder="Pick a voice" />
+            </SelectTrigger>
+            <SelectContent>
+              {voices.map((v: { id: string; label: string; language: string; gender: string }) => (
+                <SelectItem key={v.id} value={v.id} className="text-xs">
+                  {v.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+      {isPiper ? <PiperModelManager /> : null}
+    </div>
+  );
+}
+
 function CapabilityPanel({
   info,
   onSwitch,
@@ -297,6 +546,9 @@ function CapabilityPanel({
         >
           Clear selection
         </button>
+      ) : null}
+      {info.capabilityType === "tts" ? (
+        <TTSVoiceSelector activeBackendId={info.activeBackendId} />
       ) : null}
     </div>
   );

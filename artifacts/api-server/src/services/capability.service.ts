@@ -42,6 +42,7 @@ import type {
   CapabilityType,
   WebSearchResult,
   WebSearchRuntime,
+  TTSRuntime,
 } from "./capability/types";
 
 export { detectLocalCapabilityBackends };
@@ -374,4 +375,45 @@ export async function checkSearXNGStatus(ctx: TenantContext): Promise<boolean> {
   const backend = getCapabilityBackend("searxng");
   if (!backend) return false;
   return backend.detect(ctx);
+}
+
+/**
+ * Returns the active TTS runtime and its stored API key (if any) for the
+ * given tenant. Returns null backend when no TTS backend has been selected.
+ * Used by voice.service.ts to route synthesize() to the correct engine.
+ */
+export async function getActiveTTSContext(ctx: TenantContext): Promise<{
+  backend: TTSRuntime | null;
+  apiKey: string | null;
+}> {
+  const [backendId, creds] = await Promise.all([
+    getActiveBackendId(ctx, "tts"),
+    loadCapabilityCredentialsMap(ctx),
+  ]);
+  if (!backendId) return { backend: null, apiKey: null };
+  const backend = getCapabilityBackend(backendId);
+  if (!backend || backend.capabilityType !== "tts") return { backend: null, apiKey: null };
+  return {
+    backend: backend as TTSRuntime,
+    apiKey: creds.get(backendId) ?? null,
+  };
+}
+
+/**
+ * Returns the voice catalogue for the active TTS backend.
+ * Calls getVoices() on the backend (which may fetch live account voices for
+ * cloud backends like ElevenLabs) and falls back to the static catalogue.
+ * Returns an empty array when no backend is selected.
+ */
+export async function getActiveTTSVoices(ctx: TenantContext) {
+  const { backend, apiKey } = await getActiveTTSContext(ctx);
+  if (!backend) return [];
+  if (backend.getVoices) {
+    try {
+      return await backend.getVoices(ctx, apiKey);
+    } catch {
+      // Fall through to static catalogue on error.
+    }
+  }
+  return backend.voices;
 }

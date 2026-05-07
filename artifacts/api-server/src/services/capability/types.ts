@@ -12,11 +12,6 @@
  *   - "local"          — runs entirely on the user's machine; no egress.
  *   - "cloud-assist"   — cloud, but only on explicit calls with a user-owned key.
  *   - "cloud-required" — always cloud; no local fallback available.
- *
- * Each concrete capability type extends `CapabilityRuntime<TInput, TOutput>`
- * with capability-specific `run()` signatures. Backends that have not yet been
- * implemented leave `detect()` returning `false` and `health()` returning
- * `{ status: "unknown" }`.
  */
 import type { TenantContext } from "@workspace/types";
 
@@ -31,11 +26,6 @@ export interface CapabilityHealth {
   detectedAt: string;
 }
 
-/**
- * Base runtime contract. Every capability backend must implement this so the
- * registry, auto-detector, and switcher UI can treat all capability types
- * uniformly.
- */
 export interface CapabilityRuntime {
   readonly id: string;
   readonly displayName: string;
@@ -67,8 +57,64 @@ export interface WebSearchRuntime extends CapabilityRuntime {
   ): Promise<WebSearchResult[]>;
 }
 
+/**
+ * Shared voice entry shape used by all TTS backends.
+ */
+export interface VoiceEntry {
+  id: string;
+  label: string;
+  language: string;
+  gender: string;
+  engine: string;
+  sampleRate: number | null;
+}
+
+export interface TTSSynthesizeInput {
+  text: string;
+  voice?: string;
+  speed?: number;
+}
+
+export interface TTSSynthesizeResult {
+  audio: string;
+  mimeType: string;
+  durationMs: number;
+  voice: string;
+  engine: string;
+}
+
+/**
+ * TTS runtime interface — extends CapabilityRuntime with synthesis and voice
+ * catalogue. All external network calls inside synthesize() and getVoices()
+ * must log a privacy event (Standard 13).
+ */
 export interface TTSRuntime extends CapabilityRuntime {
   readonly capabilityType: "tts";
+
+  /** Static voice catalogue for this backend (shown when no API key available). */
+  readonly voices: ReadonlyArray<VoiceEntry>;
+
+  /**
+   * Synthesize text to audio.
+   * @param ctx    - tenant context for privacy event logging.
+   * @param input  - text, optional voice id, optional speed (0.5–2.0).
+   * @param apiKey - required for cloud backends; null/undefined for local.
+   * @returns      - base64-encoded audio + metadata.
+   */
+  synthesize(
+    ctx: TenantContext,
+    input: TTSSynthesizeInput,
+    apiKey?: string | null,
+  ): Promise<TTSSynthesizeResult>;
+
+  /**
+   * Optionally fetch live account voices (e.g. ElevenLabs cloned / premium
+   * voices). Returns the static catalogue when not overridden.
+   */
+  getVoices?(
+    ctx: TenantContext,
+    apiKey?: string | null,
+  ): Promise<ReadonlyArray<VoiceEntry>>;
 }
 
 export interface EmbeddingsRuntime extends CapabilityRuntime {
@@ -79,10 +125,6 @@ export interface CodeSandboxRuntime extends CapabilityRuntime {
   readonly capabilityType: "code-sandbox";
 }
 
-/**
- * Descriptor used by routes and UI — a serialisable snapshot of a backend's
- * static properties plus whether a credential is currently stored.
- */
 export interface CapabilityDescriptor {
   id: string;
   displayName: string;
@@ -93,10 +135,6 @@ export interface CapabilityDescriptor {
   health: CapabilityHealth;
 }
 
-/**
- * Active selection for one capability type — returned by the service layer and
- * consumed by the switcher UI.
- */
 export interface ActiveCapabilityInfo {
   capabilityType: CapabilityType;
   activeBackendId: string | null;
