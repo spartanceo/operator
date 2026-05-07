@@ -64,6 +64,7 @@ router.post("/", requireTenant(), async (req, res, next) => {
       let usage = null;
       let summarisedThisCall = false;
       let compressedMessageCount = 0;
+      let kbSources: string[] = [];
       if (parsed.data.conversationId) {
         const lastUser = parsed.data.messages[parsed.data.messages.length - 1];
         const pendingInput = lastUser?.content ?? "";
@@ -78,6 +79,7 @@ router.post("/", requireTenant(), async (req, res, next) => {
         usage = prepared.usage;
         summarisedThisCall = prepared.summarisedThisCall;
         compressedMessageCount = prepared.compressedMessageCount;
+        kbSources = prepared.kbSources;
       }
       const result = await chatWithActiveRuntime(
         ctx,
@@ -100,6 +102,7 @@ router.post("/", requireTenant(), async (req, res, next) => {
                 compressedMessageCount,
               }
             : {}),
+          kbSources,
         }),
       );
     } catch (e) {
@@ -157,6 +160,7 @@ router.post("/stream", requireTenant(), async (req, res, next) => {
     }
     const confirmed = listConfirmedRuntimeIds(req);
     let messagesToSend = parsed.data.messages;
+    let streamKbSources: string[] = [];
     if (parsed.data.conversationId) {
       const lastUser = parsed.data.messages[parsed.data.messages.length - 1];
       const pendingInput = lastUser?.content ?? "";
@@ -169,6 +173,7 @@ router.post("/stream", requireTenant(), async (req, res, next) => {
           confirmed,
         );
         messagesToSend = prepared.messages;
+        streamKbSources = prepared.kbSources;
       } catch (e) {
         if (e instanceof OverflowError) {
           res.status(413).json(err("CONTEXT_OVERFLOW", e.suggestion, { usage: e.usage }));
@@ -204,6 +209,9 @@ router.post("/stream", requireTenant(), async (req, res, next) => {
       } else {
         res.write(`data: ${JSON.stringify({ error: "STREAM_ERROR" })}\n\n`);
       }
+    }
+    if (streamKbSources.length > 0) {
+      res.write(`data: ${JSON.stringify({ kbSources: streamKbSources })}\n\n`);
     }
     res.write("data: [DONE]\n\n");
     res.end();

@@ -313,6 +313,11 @@ export interface PreparedContext {
   summarisedThisCall: boolean;
   /** Number of verbose messages folded into the new summary, if any. */
   compressedMessageCount: number;
+  /**
+   * Document titles retrieved from the knowledge base for this turn.
+   * Empty when no relevant KB content was found.
+   */
+  kbSources: string[];
 }
 
 /**
@@ -490,15 +495,19 @@ function buildDeterministicSummary(msgs: ReadonlyArray<ContextMessage>): string 
 async function tryGetKbContext(
   ctx: TenantContext,
   query: string,
-): Promise<ChatTurn | null> {
+): Promise<{ turn: ChatTurn; titles: string[] } | null> {
   try {
     const kb = await retrieveContext(ctx, query, { limit: 4 });
     if (kb.hits.length === 0) return null;
+    const titles = [...new Set(kb.hits.map((h) => h.documentTitle))];
     return {
-      role: "system",
-      content:
-        `The following snippets were retrieved from the user's personal knowledge base and are relevant to their message. ` +
-        `Use them to inform your response where appropriate:\n\n${kb.summary}`,
+      turn: {
+        role: "system",
+        content:
+          `The following snippets were retrieved from the user's personal knowledge base and are relevant to their message. ` +
+          `Use them to inform your response where appropriate:\n\n${kb.summary}`,
+      },
+      titles,
     };
   } catch {
     return null;
@@ -530,15 +539,16 @@ export async function prepareChatContext(
         "Your message alone is larger than the model's context window. Switch to a model with a larger window or split the message into smaller pieces.",
       );
     }
-    const kbTurn = await tryGetKbContext(ctx, pendingInput);
+    const kbResult = await tryGetKbContext(ctx, pendingInput);
     const messages: ChatTurn[] = [];
-    if (kbTurn) messages.push(kbTurn);
+    if (kbResult) messages.push(kbResult.turn);
     messages.push({ role: "user", content: pendingInput });
     return {
       messages,
       usage,
       summarisedThisCall: false,
       compressedMessageCount: 0,
+      kbSources: kbResult?.titles ?? [],
     };
   }
 
@@ -583,8 +593,8 @@ export async function prepareChatContext(
 
   // Retrieve relevant knowledge and inject as a leading system message
   // so the model always sees it before the conversation history.
-  const kbTurn = await tryGetKbContext(ctx, pendingInput);
-  if (kbTurn) turns.unshift(kbTurn);
+  const kbResult = await tryGetKbContext(ctx, pendingInput);
+  if (kbResult) turns.unshift(kbResult.turn);
 
   turns.push({ role: "user", content: pendingInput });
 
@@ -593,6 +603,7 @@ export async function prepareChatContext(
     usage,
     summarisedThisCall,
     compressedMessageCount: compressed,
+    kbSources: kbResult?.titles ?? [],
   };
 }
 

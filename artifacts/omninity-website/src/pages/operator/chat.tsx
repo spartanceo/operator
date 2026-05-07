@@ -31,7 +31,7 @@ import {
   type ContextUsage,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, Square, RefreshCw, Sparkles, Bookmark, Pin, PinOff, Paperclip, X } from "lucide-react";
+import { Send, Square, RefreshCw, Sparkles, Bookmark, Pin, PinOff, Paperclip, X, BookOpen, ImageIcon, Volume2 } from "lucide-react";
 import { OperatorLayout } from "@/components/operator/layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -322,6 +322,7 @@ export default function ChatPage() {
       setStreamingContent("");
       setStreamError(null);
       let fullContent = "";
+      let capturedKbSources: string[] = [];
       try {
         await appendMessage.mutateAsync({
           id: conversationId,
@@ -359,8 +360,9 @@ export default function ChatPage() {
             const data = line.slice(6).trim();
             if (data === "[DONE]") break outer;
             try {
-              const chunk = JSON.parse(data) as { delta?: string; error?: string; done?: boolean };
+              const chunk = JSON.parse(data) as { delta?: string; error?: string; done?: boolean; kbSources?: string[] };
               if (chunk.error) throw new Error(chunk.error);
+              if (chunk.kbSources) capturedKbSources = chunk.kbSources;
               fullContent += chunk.delta ?? "";
               setStreamingContent(fullContent);
               messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -377,9 +379,13 @@ export default function ChatPage() {
         streamAbortRef.current = null;
         setIsStreaming(false);
         if (fullContent) {
+          const contentToStore =
+            capturedKbSources.length > 0
+              ? `${fullContent}\n<!-- kb:${JSON.stringify(capturedKbSources)} -->`
+              : fullContent;
           await appendMessage.mutateAsync({
             id: conversationId,
-            data: { role: "assistant", content: fullContent },
+            data: { role: "assistant", content: contentToStore },
           });
           // Wait for the messages list to refresh before clearing the streaming
           // bubble — otherwise there is a visible flash where the response
@@ -1163,6 +1169,105 @@ export default function ChatPage() {
   );
 }
 
+// ── Message content helpers ───────────────────────────────────────────────────
+
+const KB_SOURCES_RE = /\n?<!-- kb:([\s\S]+?) -->$/;
+
+function parseMessageContent(raw: string): { text: string; kbSources: string[] } {
+  const match = KB_SOURCES_RE.exec(raw);
+  if (!match) return { text: raw, kbSources: [] };
+  try {
+    const sources = JSON.parse(match[1]!) as string[];
+    return { text: raw.slice(0, raw.length - match[0].length), kbSources: sources };
+  } catch {
+    return { text: raw, kbSources: [] };
+  }
+}
+
+interface MediaAssetSnippet {
+  kind: string;
+  fileUrl: string;
+  prompt?: string;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+}
+
+function tryParseMediaAsset(content: string): MediaAssetSnippet | null {
+  if (!content.trim().startsWith("{")) return null;
+  try {
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    if (typeof parsed.kind === "string" && typeof parsed.fileUrl === "string") {
+      return parsed as unknown as MediaAssetSnippet;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function MediaPreview({ asset }: { asset: MediaAssetSnippet }) {
+  const src = `${getApiBase()}${asset.fileUrl}`;
+  if (asset.kind === "image") {
+    return (
+      <div className="mt-2 overflow-hidden rounded-md border border-border">
+        <img
+          src={src}
+          alt={asset.prompt ?? "Generated image"}
+          className="max-h-80 w-full object-contain"
+          loading="lazy"
+        />
+        {asset.prompt && (
+          <p className="border-t border-border bg-muted/60 px-3 py-1.5 text-[11px] text-muted-foreground">
+            <ImageIcon className="mr-1 inline h-3 w-3" />
+            {asset.prompt}
+            {asset.width && asset.height ? ` · ${asset.width}×${asset.height}` : ""}
+          </p>
+        )}
+      </div>
+    );
+  }
+  if (asset.kind === "audio") {
+    return (
+      <div className="mt-2 rounded-md border border-border bg-muted/40 p-3">
+        <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <Volume2 className="h-3 w-3" />
+          {asset.prompt ?? "Generated audio"}
+        </div>
+        <audio controls src={src} className="w-full" />
+      </div>
+    );
+  }
+  return (
+    <pre className="mt-2 overflow-auto rounded-md bg-muted/60 p-3 text-xs">
+      {JSON.stringify(asset, null, 2)}
+    </pre>
+  );
+}
+
+function KbSources({ titles }: { titles: string[] }) {
+  if (titles.length === 0) return null;
+  return (
+    <details className="mt-3 text-xs">
+      <summary className="flex cursor-pointer select-none items-center gap-1.5 text-muted-foreground hover:text-foreground">
+        <BookOpen className="h-3 w-3" />
+        <span>
+          {titles.length === 1 ? "1 source from your knowledge base" : `${titles.length} sources from your knowledge base`}
+        </span>
+      </summary>
+      <ul className="mt-1.5 space-y-0.5 pl-5">
+        {titles.map((t) => (
+          <li key={t} className="text-muted-foreground">
+            · {t}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function ChatTranscript({
   messages,
   conversationId,
@@ -1257,9 +1362,17 @@ function ChatTranscript({
                 </button>
               ) : null}
             </div>
-            <p className="whitespace-pre-wrap text-sm text-foreground">
-              {m.content}
-            </p>
+            {(() => {
+              const { text, kbSources } = parseMessageContent(m.content);
+              const media = tryParseMediaAsset(m.content);
+              if (media) return <MediaPreview asset={media} />;
+              return (
+                <>
+                  <p className="whitespace-pre-wrap text-sm text-foreground">{text}</p>
+                  {m.role === "assistant" && <KbSources titles={kbSources} />}
+                </>
+              );
+            })()}
           </div>
         );
       })}
@@ -1372,9 +1485,23 @@ function AgentTranscript({
                 </span>
               ) : null}
             </div>
-            <p className="whitespace-pre-wrap text-sm text-foreground">
-              {m.content}
-            </p>
+            {(() => {
+              if (m.role === "tool") {
+                const media = tryParseMediaAsset(m.content);
+                if (media) return <MediaPreview asset={media} />;
+                try {
+                  const parsed = JSON.parse(m.content) as unknown;
+                  return (
+                    <pre className="mt-1 overflow-auto rounded-md bg-muted/60 p-3 text-xs">
+                      {JSON.stringify(parsed, null, 2)}
+                    </pre>
+                  );
+                } catch {
+                  return <p className="whitespace-pre-wrap text-sm text-foreground">{m.content}</p>;
+                }
+              }
+              return <p className="whitespace-pre-wrap text-sm text-foreground">{m.content}</p>;
+            })()}
           </div>
         );
       })}
