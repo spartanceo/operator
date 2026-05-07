@@ -4,9 +4,15 @@
  * Reads PORT from the environment, delegates all startup logic to
  * `startServer()` (which is also called by the Electron main process), and
  * wires the POSIX signal handlers for graceful shutdown.
+ *
+ * Before starting the server we call bootstrapRuntimeSecret() to ensure
+ * RUNTIME_KEY_SECRET is always set on local desktop installs. The function
+ * generates a fresh key on first launch, persists it to ~/.omninity/.runtime-key,
+ * and loads it on all subsequent starts — so users never need to configure it.
  */
 import { getSafeMode } from "@workspace/db";
 
+import { bootstrapRuntimeSecret } from "./lib/bootstrap-secret";
 import { logger } from "./lib/logger";
 import {
   pauseRunningTasksForShutdown,
@@ -14,14 +20,6 @@ import {
 } from "./services/crash-recovery.service";
 import { startServer } from "./server";
 import type { ServerHandle } from "./server";
-
-if (!process.env["RUNTIME_KEY_SECRET"] && !process.env["SESSION_SECRET"]) {
-  console.error(
-    "[STARTUP ERROR] RUNTIME_KEY_SECRET is not set — saving API keys for cloud runtimes and capabilities will fail with a 503 until you set it. " +
-    "Fix: add RUNTIME_KEY_SECRET=<32+ char random value> to your environment secrets. " +
-    "Local-only use (Ollama, SearXNG) is unaffected.",
-  );
-}
 
 const rawPort = process.env["PORT"];
 
@@ -77,7 +75,8 @@ async function gracefulShutdown(signal: string): Promise<void> {
 process.once("SIGINT", () => void gracefulShutdown("SIGINT"));
 process.once("SIGTERM", () => void gracefulShutdown("SIGTERM"));
 
-startServer(port)
+bootstrapRuntimeSecret()
+  .then(() => startServer(port))
   .then((h) => {
     handle = h;
     if (getSafeMode().active) {

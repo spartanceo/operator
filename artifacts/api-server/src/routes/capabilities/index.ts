@@ -140,7 +140,8 @@ router.post("/:type/:id/credentials", requireTenant(), async (req, res, next) =>
     res.json(ok(result));
   } catch (e) {
     if (e instanceof RuntimeKeySecretMissingError) {
-      res.status(503).json(err("SERVICE_UNAVAILABLE", e.message));
+      res.status(503).json(err("RUNTIME_KEY_SECRET_MISSING",
+        "Omninity is still initialising encryption — wait a moment and try again."));
       return;
     }
     next(e);

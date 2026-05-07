@@ -68,7 +68,7 @@ import { useListVoices } from "@workspace/api-client-react";
 import { useSettings } from "@/contexts/settings-context";
 import { getTenantId, getWorkspaceId } from "@/lib/api-config";
 import { ToolInstallerCard } from "@/components/operator/tool-installer-card";
-import { extractApiErrorMessage } from "@/lib/api-helpers";
+import { extractApiErrorCode, extractApiErrorMessage } from "@/lib/api-helpers";
 
 function getApiBase(): string {
   const win = window as Window &
@@ -228,6 +228,13 @@ async function postSetActive(
   }
 }
 
+class EncryptionNotReadyError extends Error {
+  override readonly name = "EncryptionNotReadyError";
+  constructor() {
+    super("Omninity is still initialising encryption — wait a moment and try again.");
+  }
+}
+
 async function postSaveCredential(
   capabilityType: CapabilityType,
   backendId: string,
@@ -240,6 +247,9 @@ async function postSaveCredential(
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    if (extractApiErrorCode(body) === "RUNTIME_KEY_SECRET_MISSING") {
+      throw new EncryptionNotReadyError();
+    }
     throw new Error(extractApiErrorMessage(body, `Failed to save credential: ${res.status}`));
   }
 }
@@ -350,6 +360,7 @@ function BackendRow({
   const [credSaving, setCredSaving] = useState(false);
   const [credDeleting, setCredDeleting] = useState(false);
   const [credError, setCredError] = useState<string | null>(null);
+  const [credWarning, setCredWarning] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const setup = SETUP_COMMANDS[backend.id];
@@ -363,11 +374,16 @@ function BackendRow({
     if (!apiKeyInput.trim()) return;
     setCredSaving(true);
     setCredError(null);
+    setCredWarning(null);
     try {
       await onSaveCredential(apiKeyInput.trim());
       setApiKeyInput("");
     } catch (e) {
-      setCredError(e instanceof Error ? e.message : "Failed to save");
+      if (e instanceof EncryptionNotReadyError) {
+        setCredWarning(e.message);
+      } else {
+        setCredError(e instanceof Error ? e.message : "Failed to save");
+      }
     } finally {
       setCredSaving(false);
     }
@@ -553,6 +569,12 @@ function BackendRow({
               </Button>
             ) : null}
           </div>
+          {credWarning ? (
+            <p className="flex items-center gap-1 text-[10px] text-amber-500">
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              {credWarning}
+            </p>
+          ) : null}
           {credError ? (
             <p className="text-[10px] text-red-500">{credError}</p>
           ) : null}

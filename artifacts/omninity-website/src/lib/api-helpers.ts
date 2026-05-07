@@ -23,3 +23,19 @@ export function extractApiErrorMessage(body: unknown, fallback: string): string 
   }
   return fallback;
 }
+
+/**
+ * Extracts the error code from a raw JSON response body.
+ *
+ * Reads `body.error.code` (the canonical envelope field) and returns null
+ * when the body is absent, malformed, or the code field is missing.
+ */
+export function extractApiErrorCode(body: unknown): string | null {
+  if (body !== null && typeof body === "object") {
+    const b = body as { error?: { code?: unknown } };
+    if (typeof b.error?.code === "string" && b.error.code.length > 0) {
+      return b.error.code;
+    }
+  }
+  return null;
+}
