@@ -69,6 +69,54 @@ The QA stack is split into independent, composable scripts so any single check c
 - **desktop-input.service.ts vendor stubs**: `artifacts/api-server/src/vendor.d.ts` stubs `screenshot-desktop` (using `export default` for bundler-mode compatibility) and `@nut-tree-fork/nut-js` (named exports as `any`). The desktop tsconfig (`artifacts/omninity-desktop/tsconfig.json`) explicitly includes `../api-server/src/vendor.d.ts` so the stubs are visible when the desktop package resolves api-server via path aliases. The call site in `desktop-input.service.ts` uses `screenshotMod.default({...})` to match ESM dynamic-import semantics.
 - **Codegen force-rebuild**: `lib/api-spec/package.json` codegen script uses `tsc -b --force ../api-client-react` to ensure `dist/generated/*.d.ts` timestamps always beat freshly-regenerated `src/generated/*.ts` after orval runs (prevents tier-review's mtime-based staleness check from falsely failing).
 
+# UI/UX Patterns
+
+These four rules apply to every settings panel, status indicator, and backend-switching UI in the codebase. They were established in Task #267 and must be followed by all future agents without deviation.
+
+## 1. Status-LED precedence order
+
+Tab and row indicator dots must always follow this priority (highest wins):
+
+| Priority | Condition | Tailwind class |
+|----------|-----------|----------------|
+| 1 — always wins | `isActive` — tab or row is currently selected | `bg-foreground` (white in dark mode, black in light) |
+| 2 | `hasPendingStatus` — e.g. re-index required | `bg-amber-500` |
+| 3 | `hasActiveBackend` — a backend is configured | `bg-green-500` |
+| 4 — fallback | none of the above | `bg-muted-foreground/40` |
+
+Never let a health-status or pending-operation colour override the selected-state dot. The `isActive` check must be the **first** branch in the conditional, not nested inside a health or pending check.
+
+## 2. Inline credential forms for API-key backends
+
+Any backend row where `requiresApiKey === true` AND `active === true` must render an inline credential sub-card directly beneath the row button — **not** a modal or drawer. The sub-card must contain:
+
+- `<input type="password">` — never `type="text"` for API keys
+- Save button → POST `/api/capabilities/:type/:id/credentials` with tenant headers (`X-Tenant-ID`, `X-Workspace-ID`)
+- Remove button (only when `hasCredential === true`) → DELETE same endpoint
+- Per-row inline error text — never a toast or global banner
+- Reload capability data (`load()`) after both save and remove succeed
+
+## 3. Never swallow async operation errors
+
+Async switch / save / delete handlers must:
+
+1. Catch all thrown errors
+2. Store the message in local React state (e.g. `setSwitchError(msg)`)
+3. Render it as an inline banner (`AlertTriangle` icon + red background) near the action that failed
+4. Clear the error on retry **and** on any context-changing navigation (e.g. tab switch)
+
+The `catch {}` anti-pattern (silent discard) is **not permitted** in any user-visible async handler. The server error message must be surfaced: parse `body.message` from the JSON response before falling back to a generic string.
+
+## 4. Local backend setup callouts
+
+When a backend with `residency === "local"` has `health.status === "unreachable"`, render a compact setup card beneath the row containing:
+
+- A copyable terminal command — `Clipboard` icon button with a 2-second `CheckCircle` "Copied!" confirmation state (managed with `setTimeout`)
+- A docs/releases link with an `ExternalLink` icon
+- For backends that require **both** model files AND a separately running process (e.g. `piper-http`), show explicit two-step prose instructions **before** the copyable launch command
+
+Command and docs URL mappings live in the `SETUP_COMMANDS` constant in `artifacts/omninity-website/src/components/operator/capability-runtime-settings.tsx`. Add a new entry there whenever a new local backend is registered in the capability registry.
+
 # External Dependencies
 
 - **Database**: SQLite (`better-sqlite3`)
