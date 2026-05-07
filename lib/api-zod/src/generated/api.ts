@@ -1797,7 +1797,7 @@ export const AppendConversationMessageHeader = zod.object({
 });
 
 export const AppendConversationMessageBody = zod.object({
-  role: zod.enum(["user", "assistant", "system"]),
+  role: zod.enum(["user", "assistant", "system", "tool"]),
   content: zod.string(),
   runId: zod.string().nullish(),
 });

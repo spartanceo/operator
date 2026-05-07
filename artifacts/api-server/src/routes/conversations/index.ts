@@ -130,7 +130,7 @@ const UpdateSchema = z
   });
 
 const AppendMessageSchema = z.object({
-  role: z.enum(["user", "assistant", "system"]),
+  role: z.enum(["user", "assistant", "system", "tool"]),
   content: z.string().min(1).max(64_000),
   runId: z.string().min(1).max(120).nullable().optional(),
 });

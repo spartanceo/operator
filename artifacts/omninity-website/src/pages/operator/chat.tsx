@@ -323,6 +323,7 @@ export default function ChatPage() {
       setStreamError(null);
       let fullContent = "";
       let capturedKbSources: string[] = [];
+      let capturedToolResult: Record<string, unknown> | null = null;
       try {
         await appendMessage.mutateAsync({
           id: conversationId,
@@ -360,9 +361,18 @@ export default function ChatPage() {
             const data = line.slice(6).trim();
             if (data === "[DONE]") break outer;
             try {
-              const chunk = JSON.parse(data) as { delta?: string; error?: string; done?: boolean; kbSources?: string[] };
+              const chunk = JSON.parse(data) as {
+                delta?: string;
+                error?: string;
+                done?: boolean;
+                kbSources?: string[];
+                toolResult?: { name: string; output: Record<string, unknown> };
+              };
               if (chunk.error) throw new Error(chunk.error);
               if (chunk.kbSources) capturedKbSources = chunk.kbSources;
+              if (chunk.toolResult) {
+                capturedToolResult = chunk.toolResult.output;
+              }
               fullContent += chunk.delta ?? "";
               setStreamingContent(fullContent);
               messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -378,6 +388,16 @@ export default function ChatPage() {
       } finally {
         streamAbortRef.current = null;
         setIsStreaming(false);
+        // If the model dispatched a tool (image/audio/search result), persist
+        // the tool output as a "tool" message so it renders inline in the
+        // transcript (images, audio players, search results), then persist the
+        // assistant's follow-up text as a separate assistant message.
+        if (capturedToolResult) {
+          await appendMessage.mutateAsync({
+            id: conversationId,
+            data: { role: "tool", content: JSON.stringify(capturedToolResult) },
+          });
+        }
         if (fullContent) {
           const contentToStore =
             capturedKbSources.length > 0

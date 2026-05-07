@@ -708,6 +708,7 @@ export const AppendConversationMessageRequestRole = {
   user: "user",
   assistant: "assistant",
   system: "system",
+  tool: "tool",
 } as const;
 
 export interface AppendConversationMessageRequest {

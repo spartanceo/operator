@@ -13632,6 +13632,7 @@ components:
             - user
             - assistant
             - system
+            - tool
         content:
           type: string
         runId:

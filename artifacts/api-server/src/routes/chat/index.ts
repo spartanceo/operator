@@ -12,12 +12,23 @@
  * summaries, and rolling summarisation when the prompt would exceed the
  * model's window. Overflow returns 413 with actionable copy instead of
  * silently truncating.
+ *
+ * Tool dispatch (Task #293): conversation-mode requests (those with a
+ * `conversationId`) receive injected tool-prompt instructions so the model
+ * can call web_search, media.image.generate, and media.audio.generate.
+ * The streaming route accumulates the first response server-side; if a tool
+ * call is detected it dispatches the tool and opens a second stream with the
+ * updated message list. Raw completions (no conversationId) are unaffected.
  */
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 
 import { err, ok } from "../../lib/api-envelope";
 import { listConfirmedRuntimeIds } from "../../lib/cloud-session";
+import {
+  injectToolPrompts,
+  tryParseConversationToolCall,
+} from "../../lib/conversation-tools";
 import { requireTenantContext } from "../../lib/tenant-context";
 import { requireTenant } from "../../middlewares/tenant-context";
 import {
@@ -33,64 +44,6 @@ import {
 } from "../../services/runtime.service";
 import { invokeTool } from "../../services/tools.service";
 import type { RuntimeChatMessage } from "../../services/runtime/types";
-
-/**
- * System message injected into every conversation-mode chat request to
- * enable web_search tool calling via a structured JSON response format.
- *
- * When the model needs to search the web it MUST reply with ONLY the JSON
- * block below (no other text).  The route parses this, dispatches the tool,
- * then calls the model again with the results so it can produce a final
- * answer.
- */
-const WEB_SEARCH_TOOL_MSG =
-  "You have access to a real-time web search tool.\n" +
-  "When the user asks you to search for something, or when you need current\n" +
-  "information to answer accurately, reply with ONLY the following JSON\n" +
-  "(no markdown fences, no other text):\n" +
-  '{"__tool_call__":{"name":"web_search","arguments":{"query":"<your search query>","count":5}}}\n' +
-  "After receiving search results, provide a helpful, concise answer.";
-
-/**
- * Try to parse a web_search tool call from the model's raw response content.
- * Accepts bare JSON or JSON wrapped in a markdown code fence.
- * Returns null if the content is not a tool call.
- */
-function tryParseWebSearchCall(
-  content: string,
-): { query: string; count: number } | null {
-  const trimmed = content.trim();
-
-  function extract(raw: string): { query: string; count: number } | null {
-    try {
-      const parsed = JSON.parse(raw) as {
-        __tool_call__?: { name?: string; arguments?: { query?: string; count?: number } };
-      };
-      if (
-        parsed.__tool_call__?.name === "web_search" &&
-        typeof parsed.__tool_call__.arguments?.query === "string"
-      ) {
-        return {
-          query: parsed.__tool_call__.arguments.query,
-          count: Math.max(1, Math.min(10, parsed.__tool_call__.arguments.count ?? 5)),
-        };
-      }
-    } catch {
-      // not valid JSON
-    }
-    return null;
-  }
-
-  // 1. Bare JSON
-  const bare = extract(trimmed);
-  if (bare) return bare;
-
-  // 2. Wrapped in a markdown code fence (```json … ``` or ``` … ```)
-  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (fenceMatch) return extract(fenceMatch[1].trim());
-
-  return null;
-}
 
 const router: IRouter = Router();
 
@@ -142,23 +95,12 @@ router.post("/", requireTenant(), async (req, res, next) => {
         kbSources = prepared.kbSources;
       }
 
-      // Inject the web_search tool prompt into conversation-mode requests so
-      // the model knows it can call the tool.  For non-conversation requests
-      // (raw completions, agent steps) we leave messages untouched to avoid
-      // confusing the model with unexpected instructions.
+      // Inject tool prompts into conversation-mode requests so the model
+      // knows it can call tools.  For non-conversation requests (raw
+      // completions, agent steps) we leave messages untouched.
       let messagesForChat: RuntimeChatMessage[] = messagesToSend;
       if (parsed.data.conversationId) {
-        if (messagesForChat.length > 0 && messagesForChat[0].role === "system") {
-          messagesForChat = [
-            { role: "system", content: messagesForChat[0].content + "\n\n" + WEB_SEARCH_TOOL_MSG },
-            ...messagesForChat.slice(1),
-          ];
-        } else {
-          messagesForChat = [
-            { role: "system", content: WEB_SEARCH_TOOL_MSG },
-            ...messagesForChat,
-          ];
-        }
+        messagesForChat = injectToolPrompts(messagesToSend);
       }
 
       const chatReq = {
@@ -172,17 +114,14 @@ router.post("/", requireTenant(), async (req, res, next) => {
       let result = await chatWithActiveRuntime(ctx, chatReq, confirmed);
 
       // Tool-call dispatch loop (single round) — only active for conversation
-      // mode.  If the model responds with a web_search JSON call block, we
+      // mode.  If the model responds with a tool-call JSON envelope, we
       // dispatch the tool, append the result, and re-call the model so it can
       // compose a final human-readable answer.
       if (parsed.data.conversationId) {
-        const toolCall = tryParseWebSearchCall(result.message.content);
+        const toolCall = tryParseConversationToolCall(result.message.content);
         if (toolCall) {
           try {
-            const toolResult = await invokeTool(ctx, "web_search", {
-              query: toolCall.query,
-              count: toolCall.count,
-            });
+            const toolResult = await invokeTool(ctx, toolCall.name, toolCall.args);
             const messagesWithResult: RuntimeChatMessage[] = [
               ...messagesForChat,
               result.message,
@@ -197,8 +136,26 @@ router.post("/", requireTenant(), async (req, res, next) => {
               confirmed,
             );
           } catch {
-            // Tool dispatch failed — return the raw model response so the user
-            // sees something rather than an opaque error.
+            // Tool dispatch failed — ask the model to answer from its own
+            // knowledge so the user receives a helpful reply, not raw JSON.
+            const fallbackMessages: RuntimeChatMessage[] = [
+              ...messagesForChat,
+              result.message,
+              {
+                role: "tool",
+                content: JSON.stringify({ error: "Tool unavailable — answer from built-in knowledge." }),
+              },
+            ];
+            try {
+              result = await chatWithActiveRuntime(
+                ctx,
+                { ...chatReq, messages: fallbackMessages },
+                confirmed,
+              );
+            } catch {
+              // If the fallback call also fails, result keeps its last value
+              // (the tool-call envelope). At minimum the user sees a response.
+            }
           }
         }
       }
@@ -293,22 +250,110 @@ router.post("/stream", requireTenant(), async (req, res, next) => {
         throw e;
       }
     }
+
+    // Inject tool prompts for conversation-mode requests only.
+    let messagesForChat: RuntimeChatMessage[] = messagesToSend;
+    if (parsed.data.conversationId) {
+      messagesForChat = injectToolPrompts(messagesToSend);
+    }
+
+    const chatReq = {
+      model: parsed.data.model ?? "",
+      messages: messagesForChat,
+      ...(parsed.data.temperature !== undefined ? { temperature: parsed.data.temperature } : {}),
+    };
+
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
+
     try {
-      const stream = streamChatWithActiveRuntime(
-        ctx,
-        {
-          model: parsed.data.model ?? "",
-          messages: messagesToSend,
-          ...(parsed.data.temperature !== undefined ? { temperature: parsed.data.temperature } : {}),
-        },
-        confirmed,
-      );
-      for await (const chunk of stream) {
-        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      // Phase 1 — Accumulate the first response server-side so we can check
+      // for a tool-call envelope before committing anything to the client.
+      // If no tool call is detected we flush the accumulated chunks immediately
+      // so the client experience is identical to the no-tool path.
+      let firstContent = "";
+      let firstChunks: unknown[] = [];
+
+      if (parsed.data.conversationId) {
+        const stream = streamChatWithActiveRuntime(ctx, chatReq, confirmed);
+        for await (const chunk of stream) {
+          firstChunks.push(chunk);
+          if (chunk.delta) {
+            firstContent += chunk.delta;
+          }
+        }
+
+        // Phase 2 — Check for a tool call in the accumulated content.
+        const toolCall = tryParseConversationToolCall(firstContent);
+        if (toolCall) {
+          // Invoke the tool and open a second stream with results appended.
+          try {
+            const toolResult = await invokeTool(ctx, toolCall.name, toolCall.args);
+            const toolResultContent = JSON.stringify(toolResult.output);
+
+            // Emit the tool result as a special SSE event so the client can
+            // render inline media (images, audio) before the follow-up text
+            // arrives.
+            res.write(
+              `data: ${JSON.stringify({ toolResult: { name: toolCall.name, output: toolResult.output } })}\n\n`,
+            );
+
+            const messagesWithResult: RuntimeChatMessage[] = [
+              ...messagesForChat,
+              { role: "assistant", content: firstContent },
+              { role: "tool", content: toolResultContent },
+            ];
+            const stream2 = streamChatWithActiveRuntime(
+              ctx,
+              { ...chatReq, messages: messagesWithResult },
+              confirmed,
+            );
+            for await (const chunk of stream2) {
+              res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+            }
+          } catch {
+            // Tool dispatch failed — ask the model to answer from its own
+            // knowledge so the user receives a helpful reply, not raw JSON.
+            const fallbackMessages: RuntimeChatMessage[] = [
+              ...messagesForChat,
+              { role: "assistant", content: firstContent },
+              {
+                role: "tool",
+                content: JSON.stringify({ error: "Tool unavailable — answer from built-in knowledge." }),
+              },
+            ];
+            try {
+              const fallbackStream = streamChatWithActiveRuntime(
+                ctx,
+                { ...chatReq, messages: fallbackMessages },
+                confirmed,
+              );
+              for await (const chunk of fallbackStream) {
+                res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+              }
+            } catch {
+              // If the fallback stream also fails, flush the original chunks
+              // so the user sees something rather than a silent hang.
+              for (const chunk of firstChunks) {
+                res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+              }
+            }
+          }
+        } else {
+          // No tool call — flush the already-accumulated first-stream chunks.
+          for (const chunk of firstChunks) {
+            res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+          }
+        }
+      } else {
+        // Raw completion (no conversationId) — stream directly with no tool
+        // prompt injection or tool-call detection.
+        const stream = streamChatWithActiveRuntime(ctx, chatReq, confirmed);
+        for await (const chunk of stream) {
+          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+        }
       }
     } catch (e) {
       if (e instanceof CloudConsentRequiredError) {
@@ -321,6 +366,7 @@ router.post("/stream", requireTenant(), async (req, res, next) => {
         res.write(`data: ${JSON.stringify({ error: "STREAM_ERROR" })}\n\n`);
       }
     }
+
     if (streamKbSources.length > 0) {
       res.write(`data: ${JSON.stringify({ kbSources: streamKbSources })}\n\n`);
     }
