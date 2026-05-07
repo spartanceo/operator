@@ -92,6 +92,13 @@ export interface ToolInstallerCardProps {
   /** Set to true for tools that install via Docker (e.g. SearXNG). When false,
    *  Docker availability is not checked and no Docker-missing banner is shown. */
   requiresDocker?: boolean;
+  /**
+   * When true the tool is reachable (phase==="ready") but misconfigured —
+   * e.g. SearXNG running without JSON format enabled. A "Repair" button is
+   * shown that force-removes and re-installs the container with correct
+   * settings. Passed by the parent from the capability health status.
+   */
+  needsRepair?: boolean;
   onReady?: () => void;
   className?: string;
 }
@@ -105,6 +112,7 @@ export function ToolInstallerCard({
   docsUrl,
   docsLabel,
   requiresDocker = false,
+  needsRepair = false,
   onReady,
   className,
 }: ToolInstallerCardProps) {
@@ -198,6 +206,22 @@ export function ToolInstallerCard({
     await handleInstall();
   };
 
+  const handleRepair = async () => {
+    calledReadyRef.current = false;
+    try {
+      const res = await fetch(`${getApiBase()}/tools/install/${toolId}/repair`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...tenantHeaders() },
+      });
+      if (!res.ok) return;
+      const body = await res.json();
+      setState(body.data as ToolInstallState);
+      startPolling();
+    } catch {
+      /* network error */
+    }
+  };
+
   const phase = state?.phase ?? "idle";
   const isInProgress =
     phase === "checking" || phase === "downloading" || phase === "running";
@@ -242,13 +266,31 @@ export function ToolInstallerCard({
       {phase === "ready" ? (
         <div className="flex items-start gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <div>
+          <div className="flex-1 space-y-2">
             <p className="text-sm font-medium text-foreground">
               {displayName} — connected
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {state?.message ?? `Running on localhost:${port}.`}
             </p>
+            {needsRepair ? (
+              <div className="space-y-1.5">
+                <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                  JSON output is disabled — web search won't work until the
+                  container is repaired.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[11px]"
+                  onClick={() => void handleRepair()}
+                  data-testid={`button-repair-${toolId}`}
+                >
+                  <RefreshCw className="mr-1.5 h-3 w-3" />
+                  Repair Container
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

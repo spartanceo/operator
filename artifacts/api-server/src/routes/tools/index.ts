@@ -17,6 +17,7 @@ import {
   checkDockerAvailable,
   getInstallState,
   isToolRunning,
+  repairContainer,
   resetInstallJob,
   startInstallJob,
   type ToolId,
@@ -166,6 +167,29 @@ router.post("/install/:tool/reset", requireTenant(), async (req, res, next) => {
     assertToolId(toolId);
     const state = resetInstallJob(ctx.tenantId, toolId);
     res.json(ok(state));
+  } catch (e) {
+    if ((e as { code?: string }).code === "UNKNOWN_TOOL") {
+      res.status(400).json(err("UNKNOWN_TOOL", (e as Error).message));
+      return;
+    }
+    next(e);
+  }
+});
+
+// ─── Repair ───────────────────────────────────────────────────────────────────
+//
+// POST /api/tools/install/:tool/repair
+// Force-removes the existing container and re-installs with the correct
+// settings (e.g. JSON format enabled for SearXNG). Returns immediately;
+// the repair runs in the background — clients should poll /status.
+
+router.post("/install/:tool/repair", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const toolId = String(req.params.tool);
+    assertToolId(toolId);
+    const state = repairContainer(ctx.tenantId, toolId);
+    res.status(202).json(ok(state));
   } catch (e) {
     if ((e as { code?: string }).code === "UNKNOWN_TOOL") {
       res.status(400).json(err("UNKNOWN_TOOL", (e as Error).message));

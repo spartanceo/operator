@@ -329,10 +329,13 @@ async function installViaDocker(
   // 4. Pull image
   await execAsync(`${dockerBin()} pull ${cfg.image}`, dockerExecOptions(5 * 60_000));
 
-  // 5. Start container
+  // 5. Start container with JSON format enabled so the /search?format=json
+  //    endpoint is accepted by SearXNG (required for the health probe and
+  //    the web_search tool).  The env var is the idiomatic SearXNG way to
+  //    override settings.yml without building a custom image.
   set("running", `Starting ${cfg.name}…`);
   await execAsync(
-    `${dockerBin()} run -d --name omninity-${toolId} -p ${cfg.port}:${cfg.port} --restart unless-stopped ${cfg.image}`,
+    `${dockerBin()} run -d --name omninity-${toolId} -p ${cfg.port}:${cfg.port} --restart unless-stopped -e "SEARXNG_SETTINGS_SEARCH__FORMATS=[html,json]" ${cfg.image}`,
     dockerExecOptions(30_000),
   );
 
@@ -498,4 +501,54 @@ export function resetInstallJob(tenantId: string, toolId: ToolId): ToolInstallSt
   const state = makeState(toolId, "idle", "Not started");
   STATE.set(stateKey(tenantId, toolId), state);
   return state;
+}
+
+/**
+ * Repair a running container by force-removing it and re-installing with
+ * the correct settings (e.g. JSON format enabled for SearXNG).
+ *
+ * Use this when the tool is "ready" (reachable on port) but health probes
+ * reveal misconfiguration — e.g. SearXNG installed without JSON enabled.
+ * Returns immediately; the repair runs in the background.
+ */
+export function repairContainer(tenantId: string, toolId: ToolId): ToolInstallState {
+  const cfg = TOOL_CONFIGS[toolId];
+  const key = stateKey(tenantId, toolId);
+  const initial = makeState(
+    toolId,
+    "checking",
+    cfg.kind === "docker" ? `Stopping ${cfg.name} for repair…` : "Checking for Python…",
+    { startedAt: new Date().toISOString() },
+  );
+  STATE.set(key, initial);
+
+  const set = (phase: InstallPhase, message: string, extras?: Partial<ToolInstallState>) =>
+    setState(tenantId, toolId, phase, message, extras);
+
+  void (async () => {
+    try {
+      if (cfg.kind === "docker") {
+        // Force-remove the existing container so isToolRunning() returns false
+        // and the subsequent installViaDocker call uses the corrected docker
+        // run command (with JSON format env var).
+        try {
+          await execAsync(
+            `${dockerBin()} rm -f omninity-${toolId}`,
+            dockerExecOptions(15_000),
+          );
+        } catch {
+          // container didn't exist — fine
+        }
+      }
+      await runInstallBackground(tenantId, toolId, cfg);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      set("failed", `Repair failed: ${msg}`, {
+        errorCode: "REPAIR_ERROR",
+        completedAt: new Date().toISOString(),
+      });
+    }
+  })();
+
+  return initial;
 }
