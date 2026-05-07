@@ -1,3 +1,4 @@
 
 data/omninity.db*
 data/*.sqlite*
+logs/
