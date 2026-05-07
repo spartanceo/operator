@@ -2,10 +2,7 @@
  * Image Generation Setup Card — shown during first-run / operator settings
  * when no image-gen backend is configured.
  *
- * Surfaces a clear explanation of the ComfyUI local option plus the paid
- * cloud alternatives, with a "Go to settings" link to the capability
- * switcher and a "Skip for now" dismiss.
- *
+ * Surfaces a one-click ComfyUI installer (via Docker) and cloud alternatives.
  * The card is self-dismissing — once the user selects a backend (detected
  * via the /api/capabilities/image-gen endpoint) it no longer renders.
  */
@@ -14,11 +11,7 @@ import {
   ImageIcon,
   HardDrive,
   Globe,
-  ExternalLink,
   X,
-  ChevronDown,
-  ChevronRight,
-  CheckCircle,
 } from "lucide-react";
 import {
   Card,
@@ -29,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ToolInstallerCard } from "@/components/operator/tool-installer-card";
 import { cn } from "@/lib/utils";
 
 function getApiBase(): string {
@@ -44,22 +38,7 @@ interface ImageGenSetupCardProps {
   onNavigateToSettings?: () => void;
 }
 
-const COMFYUI_GUIDE_URL =
-  "https://github.com/comfyanonymous/ComfyUI#installing";
-
-const RECOMMENDED_CHECKPOINT = "v1-5-pruned-emaonly.safetensors";
-const RECOMMENDED_CHECKPOINT_URL =
-  "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors";
-
-const BACKENDS = [
-  {
-    id: "comfyui",
-    name: "ComfyUI",
-    residency: "local" as const,
-    cost: "Free",
-    description: "Self-hosted Stable Diffusion. Your images never leave your machine.",
-    note: "Requires a separate ComfyUI install.",
-  },
+const CLOUD_BACKENDS = [
   {
     id: "dalle",
     name: "DALL-E 3",
@@ -87,7 +66,6 @@ export function ImageGenSetupCard({ onNavigateToSettings }: ImageGenSetupCardPro
       return false;
     }
   });
-  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,39 +123,62 @@ export function ImageGenSetupCard({ onNavigateToSettings }: ImageGenSetupCardPro
           <CardTitle className="text-sm">Set up image generation</CardTitle>
         </div>
         <CardDescription className="text-xs">
-          No image-generation backend is configured. Agents can generate images
-          once you connect a backend — locally via ComfyUI or via a paid cloud
-          service.
+          No image-generation backend is configured. Install ComfyUI locally
+          (free) or connect a paid cloud service below.
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
+        {/* Local option: ComfyUI with one-click installer */}
+        <div className="rounded-md border border-border bg-background p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <HardDrive className="h-3.5 w-3.5 text-green-600" />
+            <span className="text-xs font-medium text-foreground">ComfyUI</span>
+            <Badge
+              variant="outline"
+              className="text-[9px] uppercase border-green-400 text-green-600"
+            >
+              Local
+            </Badge>
+            <Badge variant="outline" className="text-[9px] uppercase">
+              Free
+            </Badge>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Self-hosted Stable Diffusion. Your images never leave your machine.
+          </p>
+          <ToolInstallerCard
+            toolId="comfyui"
+            displayName="ComfyUI"
+            description="Install ComfyUI locally (Python + git). It will run on localhost:8188 and connects automatically. Requires Python 3.10+."
+            port={8188}
+            manualCommand="git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git && cd ComfyUI && pip3 install -r requirements.txt && python3 main.py --listen 127.0.0.1 --port 8188"
+            docsUrl="https://github.com/comfyanonymous/ComfyUI#installing"
+            docsLabel="ComfyUI guide"
+            onReady={() => {
+              // Scroll to capability settings so user can activate backend
+              const el = document.querySelector("[data-testid='tab-cap-image-gen']");
+              if (el instanceof HTMLElement) el.click();
+            }}
+          />
+        </div>
+
+        {/* Cloud options */}
         <div className="space-y-2">
-          {BACKENDS.map((b) => (
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Or use a cloud API
+          </p>
+          {CLOUD_BACKENDS.map((b) => (
             <div
               key={b.id}
               className="flex items-start gap-2.5 rounded-md border border-border bg-background p-2.5"
             >
-              <div className="mt-0.5 shrink-0">
-                {b.residency === "local" ? (
-                  <HardDrive className="h-3.5 w-3.5 text-green-600" />
-                ) : (
-                  <Globe className="h-3.5 w-3.5 text-orange-600" />
-                )}
-              </div>
+              <Globe className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-600" />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="text-xs font-medium text-foreground">{b.name}</span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[9px] uppercase",
-                      b.residency === "local"
-                        ? "border-green-400 text-green-600"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {b.residency === "local" ? "Local" : "Cloud"}
+                  <Badge variant="outline" className="text-[9px] uppercase text-muted-foreground">
+                    Cloud
                   </Badge>
                   <Badge variant="outline" className="text-[9px] uppercase">
                     {b.cost}
@@ -188,72 +189,6 @@ export function ImageGenSetupCard({ onNavigateToSettings }: ImageGenSetupCardPro
               </div>
             </div>
           ))}
-        </div>
-
-        <div>
-          <button
-            type="button"
-            onClick={() => setGuideOpen((p) => !p)}
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
-            data-testid="button-comfyui-guide-toggle"
-          >
-            {guideOpen ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
-            How to set up ComfyUI (free, local)
-          </button>
-
-          {guideOpen ? (
-            <div className="mt-2 space-y-1.5 rounded-md border border-border bg-background p-3 text-[11px] text-muted-foreground">
-              <div className="flex items-start gap-1.5">
-                <CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-green-500" />
-                <span>
-                  Install ComfyUI from GitHub:{" "}
-                  <a
-                    href={COMFYUI_GUIDE_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary underline underline-offset-2"
-                  >
-                    comfyanonymous/ComfyUI
-                    <ExternalLink className="ml-0.5 inline h-2.5 w-2.5" />
-                  </a>
-                </span>
-              </div>
-              <div className="flex items-start gap-1.5">
-                <CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-green-500" />
-                <span>
-                  Download the recommended checkpoint{" "}
-                  <a
-                    href={RECOMMENDED_CHECKPOINT_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary underline underline-offset-2"
-                  >
-                    {RECOMMENDED_CHECKPOINT}
-                    <ExternalLink className="ml-0.5 inline h-2.5 w-2.5" />
-                  </a>{" "}
-                  and place it in <code className="rounded bg-muted px-1">ComfyUI/models/checkpoints/</code>
-                </span>
-              </div>
-              <div className="flex items-start gap-1.5">
-                <CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-green-500" />
-                <span>
-                  Start ComfyUI. It listens on{" "}
-                  <code className="rounded bg-muted px-1">http://localhost:8188</code> by default.
-                </span>
-              </div>
-              <div className="flex items-start gap-1.5">
-                <CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-green-500" />
-                <span>
-                  Return here and select <strong>ComfyUI (local)</strong> in the
-                  Capability Backends panel below.
-                </span>
-              </div>
-            </div>
-          ) : null}
         </div>
 
         <div className="flex items-center gap-2 pt-1">

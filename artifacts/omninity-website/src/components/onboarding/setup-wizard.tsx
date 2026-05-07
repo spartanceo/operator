@@ -12,10 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   Globe,
-  Terminal,
   CreditCard,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import {
   useGetModelsCatalogue,
@@ -44,6 +41,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ErrorBanner } from "@/components/operator/error-banner";
+import { ToolInstallerCard } from "@/components/operator/tool-installer-card";
 import { cn } from "@/lib/utils";
 
 type UserType = NonNullable<UpsertOnboardingProfileRequest["userType"]>;
@@ -1246,140 +1244,70 @@ function getApiBase(): string {
   return port ? `http://127.0.0.1:${port}/api` : "/api";
 }
 
-type WebSearchStatus = "loading" | "running" | "not-running" | "error";
-
 /**
  * WebSearchStep — shown in the setup wizard after the model selection step.
  *
- * If SearXNG is already running on localhost:8080 the card shows a
- * "connected" confirmation. If it is not running, it explains what
- * SearXNG is, shows the Docker one-liner to start it, and offers a
- * "Use a paid API instead" nudge toward Settings → Capabilities.
+ * Uses ToolInstallerCard to offer a one-click SearXNG install via Docker.
+ * Falls back to manual instructions when Docker is unavailable.
  */
 function WebSearchStep() {
-  const [status, setStatus] = useState<WebSearchStatus>("loading");
-  const [dockerCommand, setDockerCommand] = useState("docker run -d -p 8080:8080 searxng/searxng");
-
-  useEffect(() => {
-    let cancelled = false;
-    async function probe() {
-      try {
-        const res = await fetch(`${getApiBase()}/onboarding/web-search-status`);
-        if (!res.ok) {
-          if (!cancelled) setStatus("error");
-          return;
-        }
-        const json = (await res.json()) as {
-          data?: { running: boolean; dockerCommand: string };
-        };
-        if (cancelled) return;
-        const running = json.data?.running ?? false;
-        const cmd = json.data?.dockerCommand ?? dockerCommand;
-        setDockerCommand(cmd);
-        setStatus(running ? "running" : "not-running");
-      } catch {
-        if (!cancelled) setStatus("error");
-      }
-    }
-    void probe();
-    return () => {
-      cancelled = true;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         Agents can search the web for up-to-date information using the{" "}
         <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">web_search</code>{" "}
-        tool. You can use the free self-hosted option or a paid cloud API.
+        tool. You can use the free self-hosted option (SearXNG) or a paid cloud API.
       </p>
 
-      {/* SearXNG status card */}
-      {status === "loading" ? (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Checking for SearXNG…
+      {/* Free option: SearXNG with one-click installer */}
+      <div className="rounded-md border border-border bg-card p-3 space-y-3">
+        <div className="flex items-center gap-2">
+          <Globe className="h-4 w-4 text-primary" />
+          <p className="text-sm font-medium text-foreground">
+            Free — SearXNG (self-hosted)
+          </p>
         </div>
-      ) : null}
+        <p className="text-xs text-muted-foreground">
+          SearXNG is an open-source metasearch engine that aggregates results
+          from Google, Bing, and DuckDuckGo — no API key and no usage limits.
+        </p>
+        <ToolInstallerCard
+          toolId="searxng"
+          displayName="SearXNG"
+          description="Install SearXNG locally via Docker. It will run on localhost:8080 and is ready for the web_search tool immediately."
+          port={8080}
+          requiresDocker
+          manualCommand="docker run -d -p 8080:8080 --name omninity-searxng --restart unless-stopped searxng/searxng"
+          docsUrl="https://docs.searxng.org/"
+          docsLabel="SearXNG docs"
+        />
+        <p className="text-xs text-muted-foreground">
+          Once connected, go to{" "}
+          <span className="font-medium text-foreground">
+            Settings → Capabilities → Web Search
+          </span>{" "}
+          and select SearXNG as the active backend.
+        </p>
+      </div>
 
-      {status === "running" ? (
-        <div className="flex items-start gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              SearXNG is running
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Web search is ready — agents will route queries through your
-              local SearXNG instance on port 8080.
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Enable it in{" "}
-              <span className="font-medium text-foreground">
-                Settings → Capabilities → Web Search
-              </span>{" "}
-              and set SearXNG as the active backend.
-            </p>
-          </div>
+      {/* Paid option */}
+      <div className="rounded-md border border-border bg-card p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm font-medium text-foreground">
+            Paid — cloud API
+          </p>
         </div>
-      ) : null}
+        <p className="text-xs text-muted-foreground">
+          Alternatively, use a paid search API — Brave Search (from $3/mo),
+          Serper (from $50/mo), or Bing Web Search. Add your key in{" "}
+          <span className="font-medium text-foreground">
+            Settings → Capabilities → Web Search
+          </span>{" "}
+          after completing setup.
+        </p>
+      </div>
 
-      {(status === "not-running" || status === "error") ? (
-        <div className="space-y-3">
-          {/* Free option: SearXNG */}
-          <div className="rounded-md border border-border bg-card p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary" />
-              <p className="text-sm font-medium text-foreground">
-                Free — SearXNG (self-hosted)
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              SearXNG is an open-source metasearch engine that aggregates
-              results from Google, Bing, and DuckDuckGo with no API key and
-              no usage limits. Run it with Docker:
-            </p>
-            <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-2">
-              <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <code className="select-all break-all font-mono text-xs text-foreground">
-                {dockerCommand}
-              </code>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Once it starts, come back to{" "}
-              <span className="font-medium text-foreground">
-                Settings → Capabilities → Web Search
-              </span>{" "}
-              and select SearXNG as the active backend.
-            </p>
-          </div>
-
-          {/* Paid option */}
-          <div className="rounded-md border border-border bg-card p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm font-medium text-foreground">
-                Paid — cloud API
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Alternatively, use a paid search API — Brave Search (from $3/mo),
-              Serper (from $50/mo), or Bing Web Search. Add your key in{" "}
-              <span className="font-medium text-foreground">
-                Settings → Capabilities → Web Search
-              </span>{" "}
-              after completing setup.
-            </p>
-          </div>
-
-          <div className="flex items-start gap-2 text-xs text-muted-foreground">
-            <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            SearXNG not detected on localhost:8080 — you can set it up later.
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

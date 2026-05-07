@@ -67,6 +67,7 @@ import { Input } from "@/components/ui/input";
 import { useListVoices } from "@workspace/api-client-react";
 import { useSettings } from "@/contexts/settings-context";
 import { getTenantId, getWorkspaceId } from "@/lib/api-config";
+import { ToolInstallerCard } from "@/components/operator/tool-installer-card";
 
 function getApiBase(): string {
   const win = window as Window &
@@ -441,45 +442,71 @@ function BackendRow({
 
       {showSetupCallout ? (
         <div className="rounded-md border border-border bg-muted/20 p-2.5 space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <Terminal className="h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-[10px] font-medium text-foreground">Setup required</span>
-            <a
-              href={setup!.docsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="ml-auto flex items-center gap-0.5 text-[10px] text-primary underline underline-offset-2 hover:text-primary/80"
-              data-testid={`link-cap-setup-guide-${backend.id}`}
-            >
-              <ExternalLink className="h-2.5 w-2.5" />
-              {setup!.docsLabel}
-            </a>
-          </div>
-          {backend.id === "piper-tts" ? (
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              <strong>Step 1:</strong> download voice model files using the Install buttons below.
-              <br />
-              <strong>Step 2:</strong> install and launch piper-http from the releases page:
-            </p>
-          ) : null}
-          <div className="flex items-start gap-1.5">
-            <code className="flex-1 min-w-0 rounded bg-muted px-2 py-1 text-[10px] font-mono text-foreground break-all">
-              {setup!.command}
-            </code>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); void handleCopy(); }}
-              className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label={copied ? "Copied!" : "Copy command"}
-              title={copied ? "Copied!" : "Copy command"}
-            >
-              {copied ? (
-                <CheckCircle className="h-3 w-3 text-green-500" />
-              ) : (
-                <Clipboard className="h-3 w-3" />
-              )}
-            </button>
-          </div>
+          {/* For searxng and comfyui: use the one-click installer */}
+          {backend.id === "searxng" ? (
+            <ToolInstallerCard
+              toolId="searxng"
+              displayName="SearXNG"
+              description="Install SearXNG locally via Docker. It will run on localhost:8080."
+              port={8080}
+              requiresDocker
+              manualCommand="docker run -d -p 8080:8080 --name omninity-searxng --restart unless-stopped searxng/searxng"
+              docsUrl="https://docs.searxng.org/"
+              docsLabel="SearXNG docs"
+            />
+          ) : backend.id === "comfyui" ? (
+            <ToolInstallerCard
+              toolId="comfyui"
+              displayName="ComfyUI"
+              description="Install ComfyUI locally (Python + git). It will run on localhost:8188. Requires Python 3.10+."
+              port={8188}
+              manualCommand="git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git && cd ComfyUI && pip3 install -r requirements.txt && python3 main.py --listen 127.0.0.1 --port 8188"
+              docsUrl="https://github.com/comfyanonymous/ComfyUI#installing"
+              docsLabel="ComfyUI guide"
+            />
+          ) : (
+            <>
+              <div className="flex items-center gap-1.5">
+                <Terminal className="h-3 w-3 shrink-0 text-muted-foreground" />
+                <span className="text-[10px] font-medium text-foreground">Setup required</span>
+                <a
+                  href={setup!.docsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ml-auto flex items-center gap-0.5 text-[10px] text-primary underline underline-offset-2 hover:text-primary/80"
+                  data-testid={`link-cap-setup-guide-${backend.id}`}
+                >
+                  <ExternalLink className="h-2.5 w-2.5" />
+                  {setup!.docsLabel}
+                </a>
+              </div>
+              {backend.id === "piper-tts" ? (
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  <strong>Step 1:</strong> download voice model files using the Install buttons below.
+                  <br />
+                  <strong>Step 2:</strong> install and launch piper-http from the releases page:
+                </p>
+              ) : null}
+              <div className="flex items-start gap-1.5">
+                <code className="flex-1 min-w-0 rounded bg-muted px-2 py-1 text-[10px] font-mono text-foreground break-all">
+                  {setup!.command}
+                </code>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); void handleCopy(); }}
+                  className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label={copied ? "Copied!" : "Copy command"}
+                  title={copied ? "Copied!" : "Copy command"}
+                >
+                  {copied ? (
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <Clipboard className="h-3 w-3" />
+                  )}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       ) : null}
 
