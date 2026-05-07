@@ -63,6 +63,13 @@ export interface VoiceSynthesizeResult {
   durationMs: number;
   voice: string;
   engine: string;
+  /**
+   * Set when the configured TTS backend failed and synthesis fell back to the
+   * procedural stub. Null on success. Callers should surface this to the user
+   * (e.g. "Piper TTS is not reachable — using stub voice") rather than
+   * silently delivering stub audio as if the backend had worked.
+   */
+  engineError: string | null;
 }
 
 export interface VoiceEntry {
@@ -382,16 +389,22 @@ export async function synthesize(
         { text: input.text, voice: voiceId, speed },
         apiKey,
       );
-      return result;
+      // Backend succeeded — engineError is null so callers know this is real audio.
+      return { ...result, engineError: null };
     }
   } catch (e) {
-    // Record the backend failure so it appears in the response metadata.
+    // Record the backend failure so it appears in the response metadata AND
+    // is returned to the caller. Returning engineError in the response body
+    // prevents the "silent failure" where the UI receives stub audio with
+    // engine="stub-tier1" and no indication that the configured backend
+    // (e.g. Piper TTS) failed to respond.
     backendError = e instanceof Error ? e.message : String(e);
     console.warn("[voice] TTS backend error, falling back to stub:", backendError);
   }
 
   // Stub fallback — procedural WAV so the UI always gets valid audio.
-  // The engine field reports "stub-tier1" so callers can detect the fallback.
+  // engineError is non-null so callers can surface a warning rather than
+  // treating stub audio as successful Piper/ElevenLabs synthesis.
   const voice =
     STUB_VOICE_CATALOGUE.find((v) => v.id === input.voice) ?? defaultStubVoice();
   const { audio, durationMs } = buildStubWav(input.text, speed);
@@ -408,6 +421,7 @@ export async function synthesize(
     durationMs,
     voice: voice.id,
     engine: STUB_ENGINE,
+    engineError: backendError,
   };
 }
 

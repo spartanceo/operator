@@ -21,6 +21,8 @@ import type { ImageGenRuntime, ImageGenRequest, ImageGenResult, CapabilityHealth
 const DEFAULT_POLL_INTERVAL_MS = 800;
 const MAX_POLL_ATTEMPTS = 90; // ~72 s before giving up
 const DEFAULT_TIMEOUT_MS = 10_000;
+const POLL_FETCH_TIMEOUT_MS = 1_500; // /history is a local call — should respond immediately
+const MAX_CONSECUTIVE_POLL_FAILURES = 5; // bail if ComfyUI becomes unreachable mid-job
 
 export class CapabilityUpstreamError extends Error {
   readonly code = "CAPABILITY_UPSTREAM";
@@ -42,6 +44,7 @@ async function comfyFetch(
   path: string,
   init: RequestInit,
   privacyTarget: string,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<Response | null> {
   await logPrivacyEvent(ctx, {
     eventType: "network.comfyui",
@@ -52,7 +55,7 @@ async function comfyFetch(
   });
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), DEFAULT_TIMEOUT_MS);
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
     const res = await fetch(`${host()}${path}`, { ...init, signal: ctrl.signal });
     clearTimeout(t);
     return res;
@@ -223,11 +226,33 @@ export const comfyuiAdapter: ImageGenRuntime = {
     }
 
     // Poll /history/:id until the job completes or we time out.
+    // Uses a short per-poll fetch timeout (POLL_FETCH_TIMEOUT_MS) because
+    // /history is a local endpoint that responds in milliseconds. The full
+    // DEFAULT_TIMEOUT_MS would allow each failed poll to block for 10 s,
+    // turning a 72 s wall-clock budget into a 16-minute hang when ComfyUI
+    // becomes unreachable mid-job.
     let historyEntry: HistoryEntry | null = null;
+    let consecutiveFailures = 0;
     for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {
       await new Promise<void>((r) => setTimeout(r, DEFAULT_POLL_INTERVAL_MS));
-      const histRes = await comfyFetch(ctx, `/history/${promptId}`, { method: "GET" }, `comfyui:/history/${promptId}`);
-      if (!histRes || !histRes.ok) continue;
+      const histRes = await comfyFetch(
+        ctx,
+        `/history/${promptId}`,
+        { method: "GET" },
+        `comfyui:/history/${promptId}`,
+        POLL_FETCH_TIMEOUT_MS,
+      );
+      if (!histRes || !histRes.ok) {
+        consecutiveFailures++;
+        if (consecutiveFailures >= MAX_CONSECUTIVE_POLL_FAILURES) {
+          throw new CapabilityUpstreamError(
+            "comfyui",
+            `ComfyUI stopped responding during polling (${consecutiveFailures} consecutive failures) — job may have crashed`,
+          );
+        }
+        continue;
+      }
+      consecutiveFailures = 0;
       const histJson = (await histRes.json()) as HistoryResponse;
       const entry = histJson[promptId];
       if (entry?.status?.completed) {
