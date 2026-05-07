@@ -13,6 +13,8 @@
  *  - GET    /stats                        aggregate counts
  *  - GET    /export                       full snapshot
  *  - POST   /import                       restore from snapshot
+ *  - POST   /reindex                      re-embed all chunks with active backend (SSE stream)
+ *  - GET    /reindex/status               check if a re-index job is running
  *
  * Validation lives in Zod here — the OpenAPI schema is the public contract,
  * but inbound bodies must be re-validated at the boundary (Standard 2).
@@ -37,6 +39,10 @@ import {
   search,
   stats,
 } from "../../services/kb.service";
+import {
+  isReindexRunning,
+  reindexKnowledgeBase,
+} from "../../services/kb-reindex.service";
 
 const router: IRouter = Router();
 
@@ -231,8 +237,8 @@ router.post("/search", requireTenant(), async (req, res, next) => {
       res.status(400).json(err("VALIDATION", "Invalid search payload"));
       return;
     }
-    const hits = await search(ctx, parsed.data);
-    res.json(ok({ query: parsed.data.query, hits }));
+    const { hits, fallbackNotice } = await search(ctx, parsed.data);
+    res.json(ok({ query: parsed.data.query, hits, notice: fallbackNotice }));
   } catch (e) {
     next(e);
   }
@@ -274,6 +280,56 @@ router.post("/import", requireTenant(), async (req, res, next) => {
     res.json(ok(result));
   } catch (e) {
     handleError(e, res, next);
+  }
+});
+
+// ─── Re-index ────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/knowledge/reindex/status
+ * Returns whether a re-index job is currently running for this tenant.
+ */
+router.get("/reindex/status", requireTenant(), (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    res.json(ok({ running: isReindexRunning(ctx.tenantId) }));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * POST /api/knowledge/reindex
+ *
+ * Starts a re-index job that re-embeds all knowledge base chunks using the
+ * currently-active embeddings backend and pushes them to the active vector
+ * store. Progress is streamed as newline-delimited JSON (NDJSON) via SSE so
+ * the UI can display a live progress bar without polling.
+ *
+ * If a job is already running for this tenant, responds 409.
+ */
+router.post("/reindex", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+
+    if (isReindexRunning(ctx.tenantId)) {
+      res.status(409).json(err("CONFLICT", "A re-index job is already running"));
+      return;
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
+
+    for await (const progress of reindexKnowledgeBase(ctx)) {
+      const payload = JSON.stringify(progress);
+      res.write(`data: ${payload}\n\n`);
+    }
+
+    res.end();
+  } catch (e) {
+    next(e);
   }
 });
 

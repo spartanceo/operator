@@ -12,12 +12,23 @@
  *   - ElevenLabsTTSRuntime — cloud, requires API key
  *   - OpenAITTSRuntime   — cloud, requires API key
  *
+ * Embeddings capability type:
+ *   Ollama (local, nomic-embed-text)  — port 11434
+ *   OpenAI ada-002 (cloud)
+ *
+ * Vector-store capability type:
+ *   Qdrant (local)     — port 6333
+ *   ChromaDB (local)   — port 8000
+ *   Pinecone (cloud)
+ *   Weaviate Cloud (cloud)
+ *
  * Known default ports probed during auto-detection:
  *   ComfyUI    — 8188  (image-gen)
  *   SearXNG    — 8080  (web-search)
  *   Piper TTS  — 5000  (tts)
- *   Qdrant     — 6333  (embeddings)
- *   Ollama     — 11434 (embeddings — reuses the LLM adapter's embed endpoint)
+ *   Ollama     — 11434 (embeddings)
+ *   Qdrant     — 6333  (vector-store)
+ *   ChromaDB   — 8000  (vector-store)
  *   Sandbox    — 2375  (code-sandbox — Docker socket proxy)
  */
 import type { TenantContext } from "@workspace/types";
@@ -37,6 +48,12 @@ import { OpenAITTSRuntime } from "./tts/openai-tts";
 import { comfyuiAdapter } from "./adapters/comfyui.adapter";
 import { dalle3Adapter } from "./adapters/dalle3.adapter";
 import { stabilityAiAdapter } from "./adapters/stability-ai.adapter";
+import { ollamaEmbeddingsAdapter } from "./embeddings/ollama.adapter";
+import { openAIEmbeddingsAdapter } from "./embeddings/openai.adapter";
+import { qdrantVectorStoreAdapter } from "./vector-store/qdrant.adapter";
+import { chromaDbVectorStoreAdapter } from "./vector-store/chromadb.adapter";
+import { pineconeVectorStoreAdapter } from "./vector-store/pinecone.adapter";
+import { weaviateVectorStoreAdapter } from "./vector-store/weaviate.adapter";
 
 function unknownHealth(): CapabilityHealth {
   return { status: "unknown", detail: "Backend not yet implemented", detectedAt: new Date().toISOString() };
@@ -122,10 +139,17 @@ export const ALL_CAPABILITY_BACKENDS: ReadonlyArray<CapabilityRuntime> = [
   new ElevenLabsTTSRuntime(),
   new OpenAITTSRuntime(),
 
-  stubBackend("ollama-embed", "Ollama Embeddings (local)", "embeddings", "local", false, 11434),
-  stubBackend("qdrant-embed", "Qdrant + Ollama (local)", "embeddings", "local", false, 6333),
-  stubBackend("openai-embed", "OpenAI Embeddings (ada-002)", "embeddings", "cloud-required", true),
+  // ── Embeddings (concrete adapters) ───────────────────────────────────────
+  ollamaEmbeddingsAdapter,   // "ollama-embed" — local, no key needed, port 11434
+  openAIEmbeddingsAdapter,   // "openai-embed" — cloud-required, paid
 
+  // ── Vector store (concrete adapters) ─────────────────────────────────────
+  qdrantVectorStoreAdapter,        // "qdrant"         — local, port 6333
+  chromaDbVectorStoreAdapter,      // "chromadb"        — local, port 8000
+  pineconeVectorStoreAdapter,      // "pinecone"        — cloud-required, paid
+  weaviateVectorStoreAdapter,      // "weaviate-cloud"  — cloud-required, paid
+
+  // ── Code sandbox ─────────────────────────────────────────────────────────
   stubBackend("local-sandbox", "Local Docker Sandbox", "code-sandbox", "local", false, 2375),
   stubBackend("e2b-sandbox", "E2B Cloud Sandbox", "code-sandbox", "cloud-required", true),
   stubBackend("modal-sandbox", "Modal Cloud Sandbox", "code-sandbox", "cloud-required", true),
@@ -153,6 +177,7 @@ export const ALL_CAPABILITY_TYPES: ReadonlyArray<CapabilityType> = [
   "web-search",
   "tts",
   "embeddings",
+  "vector-store",
   "code-sandbox",
 ];
 

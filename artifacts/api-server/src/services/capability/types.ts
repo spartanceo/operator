@@ -5,7 +5,8 @@
  *   - ImageGen     — diffusion / image-generation backends (ComfyUI, DALL-E, etc.)
  *   - WebSearch    — web-search backends (SearXNG, Brave Search, etc.)
  *   - TTS          — text-to-speech / voice-synthesis backends (Piper, ElevenLabs, etc.)
- *   - Embeddings   — vector-embedding backends (Ollama, OpenAI ada-002, etc.)
+ *   - Embeddings   — vector-embedding backends (Ollama nomic-embed-text, OpenAI ada-002)
+ *   - VectorStore  — vector-search backends (Qdrant, ChromaDB, Pinecone, Weaviate)
  *   - CodeSandbox  — sandboxed code-execution backends (local Docker, E2B, etc.)
  *
  * Residency taxonomy is identical to `ModelRuntime`:
@@ -18,7 +19,13 @@ import type { TenantContext } from "@workspace/types";
 export type CapabilityResidency = "local" | "cloud-assist" | "cloud-required";
 export type CapabilityHealthStatus = "healthy" | "unreachable" | "needs-credentials" | "unknown";
 
-export type CapabilityType = "image-gen" | "web-search" | "tts" | "embeddings" | "code-sandbox";
+export type CapabilityType =
+  | "image-gen"
+  | "web-search"
+  | "tts"
+  | "embeddings"
+  | "vector-store"
+  | "code-sandbox";
 
 export interface CapabilityHealth {
   status: CapabilityHealthStatus;
@@ -163,8 +170,61 @@ export interface TTSRuntime extends CapabilityRuntime {
   ): Promise<ReadonlyArray<VoiceEntry>>;
 }
 
+/**
+ * Embeddings backend — converts raw text into a float vector.
+ * The embedding dimension is backend-specific.
+ */
 export interface EmbeddingsRuntime extends CapabilityRuntime {
   readonly capabilityType: "embeddings";
+  /** Default model name used by this backend (e.g. "nomic-embed-text"). */
+  readonly defaultModel: string;
+  /** Embed a single text string and return the float vector. */
+  embed(ctx: TenantContext, text: string, apiKey?: string | null): Promise<number[]>;
+}
+
+/**
+ * Item stored or returned by a vector store backend.
+ */
+export interface VectorStoreItem {
+  /** Unique ID for the chunk — used to correlate back to SQLite rows. */
+  id: string;
+  /** The embedding vector for this item. */
+  vector: number[];
+  /** Arbitrary JSON payload stored alongside the vector (e.g. documentId, chunkPosition). */
+  payload: Record<string, unknown>;
+}
+
+/**
+ * Search result from a vector store backend.
+ */
+export interface VectorStoreHit {
+  id: string;
+  score: number;
+  payload: Record<string, unknown>;
+}
+
+/**
+ * Vector store backend — persists vectors and runs ANN similarity search.
+ * Each tenant's knowledge base uses a dedicated collection named after the tenantId.
+ */
+export interface VectorStoreRuntime extends CapabilityRuntime {
+  readonly capabilityType: "vector-store";
+  /**
+   * Create the collection if it does not already exist.
+   * `dimension` must match the embedding model's output dimension.
+   */
+  ensureCollection(ctx: TenantContext, dimension: number, apiKey?: string | null): Promise<void>;
+  /** Upsert one or more items into the collection. */
+  upsert(ctx: TenantContext, items: VectorStoreItem[], apiKey?: string | null): Promise<void>;
+  /** Similarity search — returns the top-K nearest neighbours. */
+  search(
+    ctx: TenantContext,
+    vector: number[],
+    topK: number,
+    apiKey?: string | null,
+  ): Promise<VectorStoreHit[]>;
+  /** Remove all vectors for a given chunk ID. */
+  delete(ctx: TenantContext, ids: string[], apiKey?: string | null): Promise<void>;
 }
 
 export interface CodeSandboxRuntime extends CapabilityRuntime {

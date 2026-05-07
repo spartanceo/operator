@@ -51,7 +51,9 @@ import type { TenantContext } from "@workspace/types";
 import { withTimeout, TIMEOUTS } from "@workspace/errors";
 
 import { logger } from "../lib/logger";
+import { embedLocal, tokenise as tokeniseLocal } from "../lib/kb-embed-local";
 import { logPrivacyEvent } from "./privacy.service";
+import { resolveEmbedder, resolveVectorStore } from "./kb-embeddings.service";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -198,88 +200,21 @@ export class KbValidationError extends Error {
   }
 }
 
-// ─── Deterministic embedding ─────────────────────────────────────────────────
+// ─── Deterministic embedding (re-exported for backward compat + tests) ────────
 
-const EMBED_DIM = 256;
+/**
+ * Local deterministic embedder — delegates to the shared `embedLocal` function
+ * in `lib/kb-embed-local`. Kept as a named export for callers that depend on
+ * it (e.g. tests, backup/restore code). For new code use `resolveEmbedder`.
+ */
+export { embedLocal as embed } from "../lib/kb-embed-local";
+
 const CHUNK_TARGET_CHARS = 800;
 const CHUNK_OVERLAP_CHARS = 100;
 const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MB upper bound on a single ingest
 const MAX_CHUNKS_PER_DOC = 1000;
 const SNIPPET_MAX_CHARS = 320;
 const URL_FETCH_MAX_BYTES = 1 * 1024 * 1024;
-
-/** FNV-1a 32-bit hash — small, fast, deterministic, no crypto strength needed. */
-function fnv1a(str: string): number {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash >>> 0;
-}
-
-// tier-review: bounded — fixed 39-element English stop-word list, never grows.
-const STOP_WORDS = new Set([
-  "the", "a", "an", "and", "or", "but", "if", "then", "than", "of", "to",
-  "in", "on", "at", "by", "for", "with", "is", "are", "was", "were", "be",
-  "been", "being", "this", "that", "these", "those", "it", "its", "as",
-  "from", "into", "about", "we", "you", "i", "they", "he", "she",
-]);
-
-/**
- * Tokenise a string for the bag-of-words embedding. Lower-cased, alpha-
- * numeric runs only, stop-words removed, max length per token capped to
- * keep the loop bounded under adversarial input.
- */
-function tokenise(text: string): string[] {
-  const out: string[] = [];
-  const lowered = text.toLowerCase();
-  let buf = "";
-  for (let i = 0; i < lowered.length; i++) {
-    const c = lowered.charCodeAt(i);
-    const isAlphaNum =
-      (c >= 0x30 && c <= 0x39) || // 0-9
-      (c >= 0x61 && c <= 0x7a); // a-z
-    if (isAlphaNum) {
-      buf += lowered[i];
-      if (buf.length > 32) buf = buf.slice(0, 32);
-    } else {
-      if (buf.length >= 2 && !STOP_WORDS.has(buf)) out.push(buf);
-      buf = "";
-    }
-  }
-  if (buf.length >= 2 && !STOP_WORDS.has(buf)) out.push(buf);
-  return out;
-}
-
-/**
- * Project a document into a fixed-dimension L2-normalised float vector.
- * Sublinear TF weighting (1 + log(count)) reduces the influence of a single
- * repeated word, and the FNV-1a hash deterministically picks the bucket so
- * tests can assert exact rankings without seeded RNG.
- */
-export function embed(text: string): number[] {
-  const tokens = tokenise(text);
-  if (tokens.length === 0) return new Array(EMBED_DIM).fill(0);
-  const counts = new Map<string, number>();
-  for (const t of tokens) counts.set(t, (counts.get(t) ?? 0) + 1);
-  const v = new Array<number>(EMBED_DIM).fill(0);
-  for (const [token, count] of counts) {
-    const bucket = fnv1a(token) % EMBED_DIM;
-    // Sign trick: half the buckets contribute negatively so opposite
-    // documents don't all collide on the positive axis.
-    const sign = (fnv1a(token + "_sgn") & 1) === 0 ? 1 : -1;
-    const weight = 1 + Math.log(1 + count);
-    v[bucket] = (v[bucket] ?? 0) + sign * weight;
-  }
-  // L2 normalise so cosine == dot product.
-  let norm = 0;
-  for (const x of v) norm += x * x;
-  norm = Math.sqrt(norm);
-  if (norm === 0) return v;
-  for (let i = 0; i < EMBED_DIM; i++) v[i] = (v[i] ?? 0) / norm;
-  return v;
-}
 
 function cosine(a: number[], b: number[]): number {
   let dot = 0;
@@ -289,9 +224,9 @@ function cosine(a: number[], b: number[]): number {
 }
 
 function jaccardKeywordScore(query: string, text: string): number {
-  const qSet = new Set(tokenise(query));
+  const qSet = new Set(tokeniseLocal(query));
   if (qSet.size === 0) return 0;
-  const tSet = new Set(tokenise(text));
+  const tSet = new Set(tokeniseLocal(text));
   if (tSet.size === 0) return 0;
   let overlap = 0;
   for (const t of qSet) if (tSet.has(t)) overlap++;
@@ -577,7 +512,7 @@ function autoTags(body: string, explicit: string[] | undefined): string[] {
   // Cheap auto-tagging: top-N most frequent non-stopword tokens.
   if ((explicit?.length ?? 0) === 0) {
     const counts = new Map<string, number>();
-    for (const t of tokenise(body).slice(0, 5000)) {
+    for (const t of tokeniseLocal(body).slice(0, 5000)) {
       counts.set(t, (counts.get(t) ?? 0) + 1);
     }
     const sorted = [...counts.entries()]
@@ -814,6 +749,20 @@ export async function ingestDocument(
   const summary = autoSummary(normalised);
 
   const now = Date.now();
+
+  // Resolve the active embeddings backend (falls back to local deterministic).
+  const embedder = await resolveEmbedder(ctx, embedLocal);
+
+  // Embed all chunks — sequential to avoid hammering local GPU/API rate limits.
+  const chunkEmbeddings: number[][] = [];
+  for (const chunk of chunks) {
+    chunkEmbeddings.push(await embedder.embed(chunk));
+  }
+
+  // Pre-generate chunk IDs so the same IDs are used in both SQLite and the
+  // vector store — this is the key for correlation during search and deletion.
+  const chunkIds = chunks.map(() => `kbck_${nanoid()}`);
+
   await db.transaction((tx) => {
     tx.insert(kbDocuments).values(
       withTenantValues(ctx, {
@@ -837,16 +786,36 @@ export async function ingestDocument(
       const chunk = chunks[i] ?? "";
       tx.insert(kbChunks).values(
         withTenantValues(ctx, {
-          id: `kbck_${nanoid()}`,
+          id: chunkIds[i] ?? `kbck_${nanoid()}`,
           documentId: id,
           position: i,
           text: chunk,
           tokens: approximateTokens(chunk),
-          embedding: JSON.stringify(embed(chunk)),
+          embedding: JSON.stringify(chunkEmbeddings[i] ?? []),
         }),
       ).run();
     }
   });
+
+  // Push to the active vector store (non-blocking, silent on failure).
+  // Uses the pre-generated chunk IDs so vectors can be correlated back to SQLite rows.
+  // ensureCollection is called first so Qdrant/Pinecone/Weaviate create the index on
+  // first use; dimension is derived from the actual embedding, not a constant.
+  const vectorStore = await resolveVectorStore(ctx);
+  if (!vectorStore.isFallback) {
+    const dimension = (chunkEmbeddings[0] ?? []).length || 256;
+    const items = chunks.map((chunk, i) => ({
+      id: chunkIds[i] ?? `kbck_${id}_${i}`,
+      vector: chunkEmbeddings[i] ?? [],
+      payload: { chunkId: chunkIds[i], documentId: id, position: i },
+    }));
+    vectorStore.backend
+      .ensureCollection(ctx, dimension, vectorStore.apiKey)
+      .then(() => vectorStore.backend.upsert(ctx, items, vectorStore.apiKey))
+      .catch((e) => {
+        logger.warn({ err: e, documentId: id }, "kb.ingest: vector store upsert failed (non-fatal)");
+      });
+  }
 
   logger.info(
     { documentId: id, chunks: chunks.length, sizeBytes },
@@ -876,6 +845,14 @@ export async function deleteDocument(
     .where(and(tenantScope(ctx, kbDocuments), eq(kbDocuments.id, id)))
     .limit(1);
   if (!existing[0]) return { id, deleted: false };
+
+  // Capture chunk IDs before deletion so we can remove vectors from the store.
+  const chunkRows = await db
+    .select({ id: kbChunks.id })
+    .from(kbChunks)
+    .where(and(tenantScope(ctx, kbChunks), eq(kbChunks.documentId, id)));
+  const chunkIds = chunkRows.map((r) => r.id);
+
   await db.transaction((tx) => {
     tx
       .delete(kbChunks)
@@ -886,6 +863,19 @@ export async function deleteDocument(
       .where(and(tenantScope(ctx, kbDocuments), eq(kbDocuments.id, id)))
       .run();
   });
+
+  // Remove vectors from active vector store (non-blocking, silent on failure).
+  if (chunkIds.length > 0) {
+    resolveVectorStore(ctx)
+      .then(({ isFallback, backend, apiKey }) => {
+        if (isFallback) return;
+        return backend.delete(ctx, chunkIds, apiKey);
+      })
+      .catch((e) => {
+        logger.warn({ err: e, documentId: id }, "kb.delete: vector store delete failed (non-fatal)");
+      });
+  }
+
   return { id, deleted: true };
 }
 
@@ -895,7 +885,7 @@ function snippetForQuery(text: string, query: string): string {
   if (text.length <= SNIPPET_MAX_CHARS) return text;
   const lowered = text.toLowerCase();
   let idx = -1;
-  for (const t of tokenise(query)) {
+  for (const t of tokeniseLocal(query)) {
     const found = lowered.indexOf(t);
     if (found !== -1) {
       idx = found;
@@ -911,17 +901,30 @@ function snippetForQuery(text: string, query: string): string {
   return `${prefix}${text.slice(start, end)}${suffix}`;
 }
 
+export interface KbSearchResult {
+  hits: KbSearchHit[];
+  /**
+   * Non-null when a vector store backend is configured but the search fell
+   * back to local SQLite (e.g. backend unreachable or not yet indexed).
+   * Surface this in the API response and any UI so callers know search
+   * accuracy may be reduced.
+   */
+  fallbackNotice: string | null;
+}
+
 export async function search(
   ctx: TenantContext,
   opts: SearchOpts,
-): Promise<KbSearchHit[]> {
+): Promise<KbSearchResult> {
   const limit = Math.max(1, Math.min(opts.limit ?? 10, 50));
   const queryTrim = opts.query.trim();
-  if (queryTrim.length === 0) return [];
-  const queryVec = embed(queryTrim);
+  if (queryTrim.length === 0) return { hits: [], fallbackNotice: null };
 
-  // Fetch chunk + parent document rows for the active tenant.
-  const conditions = [tenantScope(ctx, kbChunks)];
+  // Resolve active embeddings backend — always falls back to local if not configured.
+  const embedder = await resolveEmbedder(ctx, embedLocal);
+  const queryVec = await embedder.embed(queryTrim);
+
+  // Build optional collection filter (document ID allow-list).
   let documentFilter: Set<string> | null = null;
   if (opts.collectionId) {
     const docs = await db
@@ -934,28 +937,90 @@ export async function search(
         ),
       );
     documentFilter = new Set(docs.map((d) => d.id));
-    if (documentFilter.size === 0) return [];
+    if (documentFilter.size === 0) return { hits: [], fallbackNotice: null };
   }
 
+  // Load all chunks + documents for this tenant (used by both search paths for hydration).
   const chunkRows = await db
     .select()
     .from(kbChunks)
-    .where(and(...conditions));
+    .where(tenantScope(ctx, kbChunks));
 
-  if (chunkRows.length === 0) return [];
+  if (chunkRows.length === 0) return { hits: [], fallbackNotice: null };
 
-  const docIds = new Set<string>();
-  for (const c of chunkRows) {
-    if (documentFilter && !documentFilter.has(c.documentId)) continue;
-    docIds.add(c.documentId);
-  }
   const docRows = await db
     .select()
     .from(kbDocuments)
     .where(tenantScope(ctx, kbDocuments));
   const docById = new Map<string, typeof docRows[number]>();
   for (const d of docRows) docById.set(d.id, d);
+  const chunkById = new Map<string, typeof chunkRows[number]>();
+  for (const c of chunkRows) chunkById.set(c.id, c);
 
+  // ── Vector store ANN search path ────────────────────────────────────────
+  // When a vector store backend is active, use its ANN search for top-K hits
+  // then hydrate the full text from SQLite. Fall through to the SQLite cosine
+  // hybrid path if the backend is unreachable or returns no results.
+  // When falling back, a notice is returned so callers can inform the user.
+  const vectorStore = await resolveVectorStore(ctx);
+  let sqliteFallbackReason: string | null = null;
+
+  if (!vectorStore.isFallback) {
+    try {
+      const annHits = await vectorStore.backend.search(
+        ctx,
+        queryVec,
+        limit * 3, // over-fetch so collection filter + stale-vector gaps have headroom
+        vectorStore.apiKey,
+      );
+      if (annHits.length > 0) {
+        const scored: KbSearchHit[] = [];
+        for (const h of annHits) {
+          const chunk = chunkById.get(h.id);
+          if (!chunk) continue; // stale vector — skip, don't block the result
+          if (documentFilter && !documentFilter.has(chunk.documentId)) continue;
+          const doc = docById.get(chunk.documentId);
+          if (!doc) continue;
+          scored.push({
+            chunkId: chunk.id,
+            documentId: doc.id,
+            documentTitle: doc.title,
+            position: chunk.position,
+            snippet: snippetForQuery(chunk.text, queryTrim),
+            score: h.score,
+            vectorScore: h.score,
+            textScore: 0,
+            sourceUri: doc.sourceUri,
+          });
+        }
+        if (scored.length > 0) {
+          scored.sort((a, b) => b.score - a.score);
+          return { hits: scored.slice(0, limit), fallbackNotice: null };
+        }
+        // All hits were stale/filtered — fall through to SQLite.
+        sqliteFallbackReason = `${vectorStore.backendId} returned no usable results — re-index to populate the vector store.`;
+        logger.info(
+          { tenantId: ctx.tenantId, backendId: vectorStore.backendId },
+          "kb.search: vector store hits not in SQLite, using SQLite fallback",
+        );
+      } else {
+        // Vector store returned no results — may not be indexed yet.
+        sqliteFallbackReason = `${vectorStore.backendId} has no indexed chunks yet — run re-index to enable vector search.`;
+        logger.info(
+          { tenantId: ctx.tenantId, backendId: vectorStore.backendId },
+          "kb.search: vector store returned no hits, using SQLite fallback",
+        );
+      }
+    } catch (err) {
+      sqliteFallbackReason = `${vectorStore.backendId} is unreachable — using local search as fallback. Start the service and re-index for better accuracy.`;
+      logger.warn(
+        { tenantId: ctx.tenantId, err, backendId: vectorStore.backendId },
+        "kb.search: vector store search failed, falling back to SQLite",
+      );
+    }
+  }
+
+  // ── SQLite cosine + keyword hybrid search (fallback or no vector store) ──
   const scored: KbSearchHit[] = [];
   for (const c of chunkRows) {
     if (documentFilter && !documentFilter.has(c.documentId)) continue;
@@ -985,7 +1050,7 @@ export async function search(
     });
   }
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit);
+  return { hits: scored.slice(0, limit), fallbackNotice: sqliteFallbackReason };
 }
 
 /**
@@ -997,14 +1062,14 @@ export async function retrieveContext(
   ctx: TenantContext,
   query: string,
   opts: { limit?: number; collectionId?: string } = {},
-): Promise<{ summary: string; hits: KbSearchHit[] }> {
-  const hits = await search(ctx, {
+): Promise<{ summary: string; hits: KbSearchHit[]; fallbackNotice: string | null }> {
+  const { hits, fallbackNotice } = await search(ctx, {
     query,
     ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
     ...(opts.collectionId !== undefined ? { collectionId: opts.collectionId } : {}),
   });
   if (hits.length === 0) {
-    return { summary: "Knowledge base returned no relevant snippets.", hits: [] };
+    return { summary: "Knowledge base returned no relevant snippets.", hits: [], fallbackNotice };
   }
   const lines = hits.map(
     (h, i) =>
@@ -1013,6 +1078,7 @@ export async function retrieveContext(
   return {
     summary: `Retrieved ${hits.length} knowledge-base snippet(s):\n${lines.join("\n")}`,
     hits,
+    fallbackNotice,
   };
 }
 

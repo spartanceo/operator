@@ -5,7 +5,8 @@
  *   - Image generation   (ComfyUI, DALL-E, Stability AI)
  *   - Web search         (SearXNG, Brave Search, Serper)
  *   - Text-to-speech     (Piper TTS, ElevenLabs, OpenAI TTS)
- *   - Embeddings         (Ollama, Qdrant, OpenAI ada-002)
+ *   - Embeddings         (Ollama nomic-embed-text, OpenAI ada-002)
+ *   - Vector store       (Qdrant, ChromaDB, Pinecone, Weaviate Cloud)
  *   - Code sandbox       (Local Docker, E2B, Modal)
  *
  * Each backend shows its residency (local / cloud-assist / cloud-required),
@@ -19,10 +20,15 @@
  *
  * Switching a backend immediately POSTs to /api/capabilities/:type/active
  * and invalidates the query cache so dependent UI updates instantly.
+ *
+ * Switching an embeddings or vector-store backend triggers a re-index prompt
+ * warning the user that existing embeddings will be regenerated. The user must
+ * confirm before switching.
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   CheckCircle,
   Circle,
   CloudOff,
@@ -33,6 +39,7 @@ import {
   Key,
   Loader2,
   RefreshCw,
+  RotateCw,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -71,6 +78,7 @@ type CapabilityType =
   | "web-search"
   | "tts"
   | "embeddings"
+  | "vector-store"
   | "code-sandbox";
 
 type CapabilityResidency = "local" | "cloud-assist" | "cloud-required";
@@ -121,7 +129,12 @@ const CAPABILITY_LABELS: Record<
   embeddings: {
     title: "Embeddings",
     description:
-      "Vector-embedding backends used by the knowledge base. Ollama or Qdrant run locally; OpenAI ada-002 is cloud.",
+      "Vector-embedding backends used by the knowledge base. Ollama (nomic-embed-text) runs locally; OpenAI ada-002 is cloud. Changing this backend requires re-indexing your knowledge base.",
+  },
+  "vector-store": {
+    title: "Vector Store",
+    description:
+      "Vector-search backends. Qdrant and ChromaDB run locally; Pinecone and Weaviate Cloud are paid cloud options. If no store is configured, the app falls back to SQLite-based similarity search. Changing this backend requires re-indexing your knowledge base.",
   },
   "code-sandbox": {
     title: "Code Sandbox",
@@ -171,6 +184,12 @@ const HEALTH_CONFIG: Record<
 
 const PIPER_RELEASES_URL =
   "https://github.com/rhasspy/piper/releases";
+
+// tier-review: bounded — fixed 2-element set of capability types that require re-index
+const REINDEX_REQUIRED_TYPES: ReadonlySet<CapabilityType> = new Set([
+  "embeddings",
+  "vector-store",
+]);
 
 async function fetchCapabilityInfo(): Promise<ActiveCapabilityInfo[]> {
   const res = await fetch(`${getApiBase()}/capabilities`);
@@ -526,14 +545,152 @@ function TTSVoiceSelector({ activeBackendId }: { activeBackendId: string | null 
   );
 }
 
+interface ReindexProgressState {
+  phase: string;
+  processedChunks: number;
+  totalChunks: number;
+  message: string;
+}
+
+/**
+ * Re-index confirm banner — shown above the backend list when the active
+ * capability type requires a re-index after switching. Shows live SSE progress.
+ */
+function ReindexBanner({
+  capabilityType,
+  onReindex,
+  reindexing,
+  reindexDone,
+  progress,
+}: {
+  capabilityType: CapabilityType;
+  onReindex: () => void;
+  reindexing: boolean;
+  reindexDone: boolean;
+  progress: ReindexProgressState | null;
+}) {
+  if (!REINDEX_REQUIRED_TYPES.has(capabilityType)) return null;
+
+  // Degraded: re-index ran but vector store writes failed — show a retry prompt.
+  const isDegraded = !reindexing && progress?.phase === "degraded";
+
+  if (reindexDone) {
+    return (
+      <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-2.5 text-xs text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-200">
+        <CheckCircle className="h-3.5 w-3.5 shrink-0 text-green-600" />
+        Knowledge base re-indexed successfully.
+      </div>
+    );
+  }
+
+  if (isDegraded) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 p-2.5 dark:border-red-900 dark:bg-red-950">
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
+          <div className="flex-1 space-y-1.5">
+            <p className="text-xs font-medium text-red-800 dark:text-red-200">
+              Re-index partially failed
+            </p>
+            <p className="text-[11px] text-red-700 dark:text-red-300">
+              {progress?.message ?? "Some chunks could not be written to the vector store."}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[11px] border-red-400 text-red-800 hover:bg-red-100 dark:border-red-700 dark:text-red-200"
+              onClick={onReindex}
+              data-testid="button-kb-reindex"
+            >
+              <RotateCw className="mr-1.5 h-3 w-3" />
+              Retry re-index
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const pct =
+    reindexing && progress && progress.totalChunks > 0
+      ? Math.round((progress.processedChunks / progress.totalChunks) * 100)
+      : null;
+  return (
+    <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-900 dark:bg-amber-950">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="flex-1 space-y-1.5">
+          <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+            Re-index required
+          </p>
+          {reindexing && progress ? (
+            <div className="space-y-1">
+              <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                {progress.message}
+              </p>
+              {pct !== null && (
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-amber-200 dark:bg-amber-800">
+                  <div
+                    className="h-full rounded-full bg-amber-500 transition-all duration-300 dark:bg-amber-400"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              )}
+              <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                {progress.processedChunks} / {progress.totalChunks} chunks — {progress.phase}
+              </p>
+            </div>
+          ) : (
+            <p className="text-[11px] text-amber-700 dark:text-amber-300">
+              Switching the {capabilityType === "embeddings" ? "embeddings" : "vector store"}{" "}
+              backend means existing knowledge base embeddings must be regenerated.
+              Until re-indexed, search quality may be reduced.
+            </p>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 text-[11px] border-amber-400 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200"
+            onClick={onReindex}
+            disabled={reindexing}
+            data-testid="button-kb-reindex"
+          >
+            {reindexing ? (
+              <>
+                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                Re-indexing…
+              </>
+            ) : (
+              <>
+                <RotateCw className="mr-1.5 h-3 w-3" />
+                Re-index knowledge base now
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CapabilityPanel({
   info,
   onSwitch,
   busy,
+  pendingReindex,
+  reindexing,
+  reindexDone,
+  reindexProgress,
+  onReindex,
 }: {
   info: ActiveCapabilityInfo;
   onSwitch: (backendId: string | null) => void;
   busy: boolean;
+  pendingReindex: boolean;
+  reindexing: boolean;
+  reindexDone: boolean;
+  reindexProgress: ReindexProgressState | null;
+  onReindex: () => void;
 }) {
   const label = CAPABILITY_LABELS[info.capabilityType];
   const detectedSet = new Set(info.detectedBackendIds);
@@ -541,6 +698,17 @@ function CapabilityPanel({
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">{label.description}</p>
+
+      {pendingReindex ? (
+        <ReindexBanner
+          capabilityType={info.capabilityType}
+          onReindex={onReindex}
+          reindexing={reindexing}
+          reindexDone={reindexDone}
+          progress={reindexProgress}
+        />
+      ) : null}
+
       {info.backends.length === 0 ? (
         <p className="rounded-md border border-border bg-muted/20 p-2.5 text-xs text-muted-foreground">
           No backends registered for this capability type.
@@ -582,6 +750,7 @@ const CAPABILITY_ORDER: CapabilityType[] = [
   "web-search",
   "tts",
   "embeddings",
+  "vector-store",
   "code-sandbox",
 ];
 
@@ -592,6 +761,12 @@ export function CapabilityRuntimeSettings() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [switching, setSwitching] = useState<CapabilityType | null>(null);
   const [activeTab, setActiveTab] = useState<CapabilityType>("image-gen");
+
+  // Re-index state — keyed by the capability type that was switched.
+  const [pendingReindex, setPendingReindex] = useState<Set<CapabilityType>>(new Set());
+  const [reindexing, setReindexing] = useState(false);
+  const [reindexDone, setReindexDone] = useState<Set<CapabilityType>>(new Set());
+  const [reindexProgress, setReindexProgress] = useState<ReindexProgressState | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -613,6 +788,24 @@ export function CapabilityRuntimeSettings() {
     setSwitching(capabilityType);
     try {
       await postSetActive(capabilityType, backendId);
+      setAllInfo((prev) =>
+        prev
+          ? prev.map((i) =>
+              i.capabilityType === capabilityType
+                ? { ...i, activeBackendId: backendId }
+                : i,
+            )
+          : prev,
+      );
+      // Mark as needing re-index if this is an embeddings-related capability.
+      if (REINDEX_REQUIRED_TYPES.has(capabilityType)) {
+        setPendingReindex((prev) => new Set([...prev, capabilityType]));
+        setReindexDone((prev) => {
+          const next = new Set(prev);
+          next.delete(capabilityType);
+          return next;
+        });
+      }
       void qc.invalidateQueries();
       // Re-probe all capability health after switching so the UI reflects the
       // newly selected backend's live connection state immediately.
@@ -621,6 +814,55 @@ export function CapabilityRuntimeSettings() {
       /* silently reflected in health on next load */
     } finally {
       setSwitching(null);
+    }
+  };
+
+  const handleReindex = async () => {
+    setReindexing(true);
+    setReindexProgress(null);
+    try {
+      const res = await fetch(`${getApiBase()}/knowledge/reindex`, { method: "POST" });
+      if (!res.ok || !res.body) return;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          const dataLine = line.startsWith("data: ") ? line.slice(6) : line;
+          if (!dataLine.trim()) continue;
+          try {
+            const evt = JSON.parse(dataLine) as {
+              phase?: string;
+              processedChunks?: number;
+              totalChunks?: number;
+              message?: string;
+            };
+            if (evt.phase) {
+              setReindexProgress({
+                phase: evt.phase,
+                processedChunks: evt.processedChunks ?? 0,
+                totalChunks: evt.totalChunks ?? 0,
+                message: evt.message ?? "",
+              });
+              if (evt.phase === "done") {
+                setReindexDone((prev) => new Set([...prev, ...REINDEX_REQUIRED_TYPES]));
+                setPendingReindex(new Set());
+              }
+            }
+          } catch {
+            // skip malformed SSE lines
+          }
+        }
+      }
+    } catch {
+      /* network error — user can retry */
+    } finally {
+      setReindexing(false);
     }
   };
 
@@ -678,13 +920,14 @@ export function CapabilityRuntimeSettings() {
         {ordered.length > 0 ? (
           <>
             <div
-              className="flex gap-1 border-b border-border pb-0.5"
+              className="flex flex-wrap gap-1 border-b border-border pb-0.5"
               role="tablist"
               aria-label="Capability types"
             >
               {ordered.map((info) => {
                 const label = CAPABILITY_LABELS[info.capabilityType];
                 const isActive = activeTab === info.capabilityType;
+                const hasPendingReindex = pendingReindex.has(info.capabilityType);
                 return (
                   <button
                     key={info.capabilityType}
@@ -701,7 +944,9 @@ export function CapabilityRuntimeSettings() {
                     data-testid={`tab-cap-${info.capabilityType}`}
                   >
                     {label.title}
-                    {info.activeBackendId ? (
+                    {hasPendingReindex ? (
+                      <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" title="Re-index required" />
+                    ) : info.activeBackendId ? (
                       <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
                     ) : (
                       <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
@@ -718,6 +963,11 @@ export function CapabilityRuntimeSettings() {
                   handleSwitch(activeInfo.capabilityType, backendId)
                 }
                 busy={switching === activeInfo.capabilityType}
+                pendingReindex={pendingReindex.has(activeInfo.capabilityType)}
+                reindexing={reindexing}
+                reindexDone={reindexDone.has(activeInfo.capabilityType)}
+                reindexProgress={reindexProgress}
+                onReindex={handleReindex}
               />
             ) : null}
           </>
