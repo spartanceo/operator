@@ -63,6 +63,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useListVoices } from "@workspace/api-client-react";
 import { useSettings } from "@/contexts/settings-context";
+import { getTenantId, getWorkspaceId } from "@/lib/api-config";
 
 function getApiBase(): string {
   const win = window as Window &
@@ -191,8 +192,17 @@ const REINDEX_REQUIRED_TYPES: ReadonlySet<CapabilityType> = new Set([
   "vector-store",
 ]);
 
+function tenantHeaders(): Record<string, string> {
+  return {
+    "X-Tenant-ID": getTenantId(),
+    "X-Workspace-ID": getWorkspaceId(),
+  };
+}
+
 async function fetchCapabilityInfo(): Promise<ActiveCapabilityInfo[]> {
-  const res = await fetch(`${getApiBase()}/capabilities`);
+  const res = await fetch(`${getApiBase()}/capabilities`, {
+    headers: tenantHeaders(),
+  });
   if (!res.ok) throw new Error(`Failed to load capabilities: ${res.status}`);
   const body = await res.json();
   return (body.data?.items ?? []) as ActiveCapabilityInfo[];
@@ -204,7 +214,7 @@ async function postSetActive(
 ): Promise<void> {
   const res = await fetch(`${getApiBase()}/capabilities/${capabilityType}/active`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...tenantHeaders() },
     body: JSON.stringify({ backendId }),
   });
   if (!res.ok) throw new Error(`Failed to set backend: ${res.status}`);
@@ -342,7 +352,9 @@ function PiperModelManager() {
   const modelsQuery = useQuery<{ items: PiperModelEntry[]; releasesUrl: string }>({
     queryKey: ["piper-models"],
     queryFn: async () => {
-      const res = await fetch(`${getApiBase()}/voice/piper/models`);
+      const res = await fetch(`${getApiBase()}/voice/piper/models`, {
+        headers: tenantHeaders(),
+      });
       if (!res.ok) throw new Error(`Failed to load Piper models: ${res.status}`);
       const body = await res.json();
       return body.data as { items: PiperModelEntry[]; releasesUrl: string };
@@ -360,6 +372,7 @@ function PiperModelManager() {
     try {
       const res = await fetch(`${getApiBase()}/voice/piper/models/${voiceId}/install`, {
         method: "POST",
+        headers: tenantHeaders(),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -380,7 +393,10 @@ function PiperModelManager() {
   const removeModel = async (voiceId: string) => {
     setRemoving((s) => new Set(s).add(voiceId));
     try {
-      await fetch(`${getApiBase()}/voice/piper/models/${voiceId}`, { method: "DELETE" });
+      await fetch(`${getApiBase()}/voice/piper/models/${voiceId}`, {
+        method: "DELETE",
+        headers: tenantHeaders(),
+      });
       await modelsQuery.refetch();
     } finally {
       setRemoving((s) => { const n = new Set(s); n.delete(voiceId); return n; });
@@ -821,7 +837,10 @@ export function CapabilityRuntimeSettings() {
     setReindexing(true);
     setReindexProgress(null);
     try {
-      const res = await fetch(`${getApiBase()}/knowledge/reindex`, { method: "POST" });
+      const res = await fetch(`${getApiBase()}/knowledge/reindex`, {
+        method: "POST",
+        headers: tenantHeaders(),
+      });
       if (!res.ok || !res.body) return;
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
