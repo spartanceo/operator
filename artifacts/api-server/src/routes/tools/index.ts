@@ -165,7 +165,7 @@ router.post("/install/:tool/reset", requireTenant(), async (req, res, next) => {
     const ctx = requireTenantContext();
     const toolId = String(req.params.tool);
     assertToolId(toolId);
-    const state = resetInstallJob(ctx.tenantId, toolId);
+    const state = await resetInstallJob(ctx.tenantId, toolId);
     res.json(ok(state));
   } catch (e) {
     if ((e as { code?: string }).code === "UNKNOWN_TOOL") {

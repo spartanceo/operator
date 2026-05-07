@@ -350,6 +350,18 @@ export function ToolInstallerCard({
                   <ExternalLink className="h-2.5 w-2.5" />
                 </a>
               ) : null}
+              {state?.errorCode === "PYTHON_TOO_OLD" ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[11px]"
+                  onClick={() => window.open("https://www.python.org/downloads/", "_blank")}
+                  data-testid={`button-download-python-${toolId}`}
+                >
+                  <ExternalLink className="mr-1.5 h-3 w-3" />
+                  Download Python 3.11 →
+                </Button>
+              ) : null}
             </div>
           </div>
           <Button

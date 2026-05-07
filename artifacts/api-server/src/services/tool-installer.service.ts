@@ -370,28 +370,75 @@ async function patchComfyRequirements(reqFile: string): Promise<string> {
   return tmpPath;
 }
 
+/**
+ * Known Python binary candidates in priority order.
+ * Homebrew-installed 3.11/3.10 are preferred; plain "python3" is the fallback.
+ * Checked in order; the first one that returns a version ≥ 3.10 wins.
+ */
+const PYTHON_SEARCH_PATHS = [
+  "/opt/homebrew/bin/python3.11", // Homebrew Apple Silicon
+  "/opt/homebrew/bin/python3.10",
+  "/usr/local/bin/python3.11",    // Homebrew Intel Mac
+  "/usr/local/bin/python3.10",
+  "python3.11",                   // on PATH (e.g. added by installer)
+  "python3.10",
+  "python3",                      // system default — may be < 3.10
+];
+
+/**
+ * Probe PYTHON_SEARCH_PATHS and return the first binary whose version is ≥ 3.10.
+ * Returns null if none qualify (the version string from the system default is
+ * returned as the second element so we can surface it in the error message).
+ */
+async function findPython310(): Promise<{ bin: string } | { tooOld: string }> {
+  let systemVersion = "unknown";
+  for (const candidate of PYTHON_SEARCH_PATHS) {
+    try {
+      const { stdout, stderr } = await execAsync(`${candidate} --version`, { timeout: 5000 });
+      const raw = (stdout + stderr).trim();
+      const m = raw.match(/Python (\d+)\.(\d+)/);
+      if (!m) continue;
+      const major = parseInt(m[1], 10);
+      const minor = parseInt(m[2], 10);
+      if (major > 3 || (major === 3 && minor >= 10)) {
+        return { bin: candidate };
+      }
+      if (candidate === "python3") {
+        systemVersion = `${m[1]}.${m[2]}`;
+      }
+    } catch {
+      // this candidate is not available — try next
+    }
+  }
+  return { tooOld: systemVersion };
+}
+
 async function installViaPortable(
   _tenantId: string,
   toolId: ToolId,
   cfg: ComfyUIConfig,
   set: (phase: InstallPhase, message: string, extras?: Partial<ToolInstallState>) => void,
 ): Promise<void> {
-  // 1. Check if already running (someone started it manually)
+  // 1. Homebrew auto-detection + Python version pre-flight.
+  //    Done before the "already running?" check so a bad Python is caught
+  //    immediately without any network/git activity.
+  set("checking", "Checking for Python 3.10+…");
+  const pythonResult = await findPython310();
+  if ("tooOld" in pythonResult) {
+    const detected = pythonResult.tooOld;
+    set(
+      "failed",
+      `Python 3.10 or newer is required — your Mac has ${detected}. Download Python 3.11 at https://www.python.org/downloads/`,
+      { errorCode: "PYTHON_TOO_OLD", completedAt: new Date().toISOString() },
+    );
+    return;
+  }
+  const pythonBin = pythonResult.bin;
+
+  // 2. Check if already running (someone started it manually)
   set("checking", `Checking if ${cfg.name} is already running on port ${cfg.port}…`);
   if (await isToolRunning(toolId)) {
     set("ready", `${cfg.name} is already running — connected.`, {
-      completedAt: new Date().toISOString(),
-    });
-    return;
-  }
-
-  // 2. Check Python 3
-  set("checking", "Checking for Python 3…");
-  try {
-    await execAsync("python3 --version", { timeout: 5000 });
-  } catch {
-    set("failed", "Python 3 is required to install ComfyUI. Install Python 3.10+ and try again.", {
-      errorCode: "PYTHON_REQUIRED",
       completedAt: new Date().toISOString(),
     });
     return;
@@ -416,7 +463,7 @@ async function installViaPortable(
   const patchedReqFile = await patchComfyRequirements(reqFile);
   try {
     await execAsync(
-      `pip3 install -q -r "${patchedReqFile}" --ignore-requires-python`,
+      `"${pythonBin}" -m pip install -q -r "${patchedReqFile}" --ignore-requires-python`,
       { timeout: 5 * 60_000, cwd: cfg.installDir },
     );
   } finally {
@@ -427,7 +474,7 @@ async function installViaPortable(
   set("running", `Starting ${cfg.name} on port ${cfg.port}…`);
   // Use nohup so the process survives if the parent exits
   exec(
-    `nohup python3 "${mainPy}" --listen 127.0.0.1 --port ${cfg.port} > /tmp/comfyui.log 2>&1 &`,
+    `nohup "${pythonBin}" "${mainPy}" --listen 127.0.0.1 --port ${cfg.port} > /tmp/comfyui.log 2>&1 &`,
     { cwd: cfg.installDir },
   );
 
@@ -473,8 +520,16 @@ async function waitForPort(
   }
 }
 
-/** Reset a failed/idle job so the user can retry. */
-export function resetInstallJob(tenantId: string, toolId: ToolId): ToolInstallState {
+/**
+ * Reset a failed/idle job so the user can retry.
+ * For portable installers (ComfyUI), silently deletes the install directory
+ * before returning idle so the next startInstallJob starts from a clean slate.
+ */
+export async function resetInstallJob(tenantId: string, toolId: ToolId): Promise<ToolInstallState> {
+  const cfg = TOOL_CONFIGS[toolId];
+  if (cfg.kind === "portable" && existsSync(cfg.installDir)) {
+    await rm(cfg.installDir, { recursive: true, force: true }).catch(() => undefined);
+  }
   const state = makeState(toolId, "idle", "Not started");
   STATE.set(stateKey(tenantId, toolId), state);
   return state;
