@@ -19,6 +19,7 @@ import {
 } from "@workspace/db";
 
 import app from "./app";
+import { bootstrapRuntimeSecret } from "./lib/bootstrap-secret";
 import { logger } from "./lib/logger";
 import { bindHost } from "./lib/security";
 import {
@@ -38,8 +39,15 @@ export interface ServerHandle {
  *
  * Resolves once the server is accepting connections. Rejects if the port is
  * already in use or the server fails to bind.
+ *
+ * Always calls bootstrapRuntimeSecret() first so that both the standalone
+ * process (index.ts) and the Electron main process (omninity-desktop/main.ts)
+ * get the key injected before any routes register. This is safe to call
+ * multiple times — subsequent calls exit immediately if a secret is already set.
  */
-export function startServer(port: number): Promise<ServerHandle> {
+export async function startServer(port: number): Promise<ServerHandle> {
+  await bootstrapRuntimeSecret();
+
   const host = bindHost();
 
   const sqlite = getRawSqlite();

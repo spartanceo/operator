@@ -5,14 +5,12 @@
  * `startServer()` (which is also called by the Electron main process), and
  * wires the POSIX signal handlers for graceful shutdown.
  *
- * Before starting the server we call bootstrapRuntimeSecret() to ensure
- * RUNTIME_KEY_SECRET is always set on local desktop installs. The function
- * generates a fresh key on first launch, persists it to ~/.omninity/.runtime-key,
- * and loads it on all subsequent starts — so users never need to configure it.
+ * startServer() calls bootstrapRuntimeSecret() internally so RUNTIME_KEY_SECRET
+ * is always set before routes handle requests — no manual env-var configuration
+ * needed for local desktop installs.
  */
 import { getSafeMode } from "@workspace/db";
 
-import { bootstrapRuntimeSecret } from "./lib/bootstrap-secret";
 import { logger } from "./lib/logger";
 import {
   pauseRunningTasksForShutdown,
@@ -75,9 +73,8 @@ async function gracefulShutdown(signal: string): Promise<void> {
 process.once("SIGINT", () => void gracefulShutdown("SIGINT"));
 process.once("SIGTERM", () => void gracefulShutdown("SIGTERM"));
 
-bootstrapRuntimeSecret()
-  .then(() => startServer(port))
-  .then((h) => {
+startServer(port)
+  .then((h: ServerHandle) => {
     handle = h;
     if (getSafeMode().active) {
       logger.warn("Running in SAFE MODE — mutating requests blocked");
