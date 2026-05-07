@@ -1205,10 +1205,10 @@ export function CapabilityRuntimeSettings() {
                     data-testid={`tab-cap-${info.capabilityType}`}
                   >
                     {label.title}
-                    {hasPendingReindex ? (
-                      <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" title="Re-index required" />
-                    ) : isActive ? (
+                    {isActive ? (
                       <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-foreground" title="Selected" />
+                    ) : hasPendingReindex ? (
+                      <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" title="Re-index required" />
                     ) : info.activeBackendId ? (
                       <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-green-500" title="Backend active" />
                     ) : (
