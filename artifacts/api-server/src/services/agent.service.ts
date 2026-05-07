@@ -786,8 +786,16 @@ export async function createAgentRun(
         runId: id,
         role: "system",
         content: researchSummary,
+        // Wire research (web search) results into the conversation thread so
+        // they are visible in the message list and loaded by prepareChatContext
+        // for subsequent turns. Other internal messages (knowledge base, skill
+        // injection, memory) remain run-scoped to avoid cluttering the UI.
+        conversationId: input.conversationId ?? null,
       }),
     );
+    if (input.conversationId) {
+      await touchConversation(ctx, input.conversationId, researchSummary, 1);
+    }
   }
   if (desktopNote) {
     await db.insert(messagesTable).values(
