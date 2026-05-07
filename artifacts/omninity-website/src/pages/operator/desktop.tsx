@@ -212,7 +212,7 @@ export default function DesktopPage() {
       description="Look → Act → Verify with semantic targeting. No coordinates, ever."
       actions={headerActions}
     >
-      <div className="grid h-full grid-cols-1 lg:grid-cols-[320px_1fr]">
+      <div className="grid h-full grid-cols-1 lg:grid-cols-[320px_1fr] overflow-hidden">
         <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto border-r border-border bg-muted/20 p-4">
           {!featureEnabled && feature ? (
             <div

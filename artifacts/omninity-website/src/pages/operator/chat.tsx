@@ -782,7 +782,7 @@ export default function ChatPage() {
       }
       actions={headerActions}
     >
-      <div className="grid h-full grid-cols-[auto_1fr] grid-rows-1">
+      <div className="grid h-full grid-cols-[auto_1fr] grid-rows-1 overflow-hidden">
         <ConversationSidebar
           activeId={activeConversation?.id ?? null}
           onSelect={(c) => setActiveConversation(c)}

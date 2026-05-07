@@ -33,7 +33,7 @@ export function OperatorLayout({
         <main
           id={MAIN_CONTENT_ID}
           tabIndex={-1}
-          className="min-h-0 flex-1 overflow-hidden focus:outline-none"
+          className="min-h-0 flex-1 overflow-y-auto focus:outline-none"
         >
           {children}
         </main>
