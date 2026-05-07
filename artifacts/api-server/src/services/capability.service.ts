@@ -43,6 +43,9 @@ import type {
   WebSearchResult,
   WebSearchRuntime,
   TTSRuntime,
+  ImageGenRequest,
+  ImageGenResult,
+  ImageGenRuntime,
 } from "./capability/types";
 
 export { detectLocalCapabilityBackends };
@@ -289,6 +292,38 @@ export async function setCapabilityCredential(
     detail: "encrypted-at-rest",
   });
   return { backendId, hasCredential: true };
+}
+
+/**
+ * Generate an image via the currently active image-gen backend for the tenant.
+ *
+ * Resolves the active backend and its stored credential, then delegates to
+ * the backend's `generate()` method. Throws if no backend is configured or
+ * if the backend does not implement `generate()`.
+ */
+export async function generateImage(
+  ctx: TenantContext,
+  req: ImageGenRequest,
+): Promise<ImageGenResult> {
+  const activeBackendId = await getActiveBackendId(ctx, "image-gen");
+  if (!activeBackendId) {
+    throw new Error("NO_IMAGE_GEN_BACKEND: No image-gen backend is configured. Select one in Settings → Capability Backends.");
+  }
+
+  const backend = getCapabilityBackend(activeBackendId);
+  if (!backend || backend.capabilityType !== "image-gen") {
+    throw new Error(`Unknown image-gen backend "${activeBackendId}"`);
+  }
+
+  const imageGenBackend = backend as ImageGenRuntime;
+  if (typeof imageGenBackend.generate !== "function") {
+    throw new Error(`Backend "${activeBackendId}" does not implement generate()`);
+  }
+
+  const creds = await loadCapabilityCredentialsMap(ctx);
+  const apiKey = creds.get(activeBackendId) ?? null;
+
+  return imageGenBackend.generate(ctx, req, apiKey);
 }
 
 export async function deleteCapabilityCredential(

@@ -424,7 +424,6 @@ const TOOLS: ToolEntry[] = [
       return { available: status.available, mode: status.mode, reason: status.reason };
     },
   },
-  // ─── Local media generation (Tier 1 deterministic stubs) ───────────────────
   {
     name: "media.image.generate",
     description: "Generate an image from a text prompt and save it to the media library.",

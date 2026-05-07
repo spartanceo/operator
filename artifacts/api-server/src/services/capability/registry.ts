@@ -34,6 +34,9 @@ import { bingRuntime } from "./web-search/bing";
 import { PiperTTSRuntime } from "./tts/piper";
 import { ElevenLabsTTSRuntime } from "./tts/elevenlabs";
 import { OpenAITTSRuntime } from "./tts/openai-tts";
+import { comfyuiAdapter } from "./adapters/comfyui.adapter";
+import { dalle3Adapter } from "./adapters/dalle3.adapter";
+import { stabilityAiAdapter } from "./adapters/stability-ai.adapter";
 
 function unknownHealth(): CapabilityHealth {
   return { status: "unknown", detail: "Backend not yet implemented", detectedAt: new Date().toISOString() };
@@ -106,9 +109,9 @@ function stubBackend(
 }
 
 export const ALL_CAPABILITY_BACKENDS: ReadonlyArray<CapabilityRuntime> = [
-  stubBackend("comfyui", "ComfyUI (local)", "image-gen", "local", false, 8188),
-  stubBackend("dalle", "DALL-E (OpenAI)", "image-gen", "cloud-required", true),
-  stubBackend("stability-ai", "Stability AI", "image-gen", "cloud-required", true),
+  comfyuiAdapter,
+  dalle3Adapter,
+  stabilityAiAdapter,
 
   searxngRuntime,
   braveRuntime,

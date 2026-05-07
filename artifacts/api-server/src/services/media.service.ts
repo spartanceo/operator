@@ -38,6 +38,7 @@ import type { TenantContext } from "@workspace/types";
 import { resolveSandboxedPath, workspaceRoot } from "../lib/sandbox";
 import { getConnectedProvider } from "./integrations.service";
 import { logPrivacyEvent } from "./privacy.service";
+import { generateImage as capabilityGenerateImage } from "./capability.service";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MEDIA_SUBDIR = "media";
@@ -733,8 +734,60 @@ export async function generateImage(
   const width = Math.max(64, Math.min(2048, input.width ?? 768));
   const height = Math.max(64, Math.min(2048, input.height ?? 512));
   const id = `med_${nanoid()}`;
-  const model = pickModel("image");
 
+  // Try the active capability backend first (ComfyUI, DALL-E 3, Stability AI).
+  // Only fall back to the deterministic SVG stub when no backend is configured
+  // (NO_IMAGE_GEN_BACKEND). Real upstream errors (network, key rejection, etc.)
+  // are propagated so callers receive an explicit failure rather than a silent
+  // placeholder image.
+  let capabilityResult: Awaited<ReturnType<typeof capabilityGenerateImage>> | null = null;
+  try {
+    capabilityResult = await capabilityGenerateImage(ctx, {
+      prompt,
+      width,
+      height,
+      negativePrompt: undefined,
+      steps: undefined,
+      cfgScale: undefined,
+      seed: undefined,
+      checkpoint: undefined,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!msg.startsWith("NO_IMAGE_GEN_BACKEND")) {
+      throw e;
+    }
+    // No backend configured — fall through to SVG stub.
+  }
+
+  if (capabilityResult) {
+    const imgBuf = Buffer.from(capabilityResult.imageBase64, "base64");
+    const ext = capabilityResult.mimeType === "image/jpeg" ? "jpg" : "png";
+    await logPrivacyEvent(ctx, {
+      eventType: "media.image.generate",
+      actor: ctx.userId ?? ctx.tenantId,
+      target: id,
+      severity: "info",
+      detail: `backend=${capabilityResult.backendId} ${capabilityResult.width ?? width}x${capabilityResult.height ?? height}`,
+    });
+    const { relPath } = await writeBinary(ctx, id, ext, imgBuf);
+    return persistAsset(ctx, {
+      id,
+      kind: "image",
+      prompt,
+      style,
+      mimeType: capabilityResult.mimeType,
+      sizeBytes: imgBuf.byteLength,
+      width: capabilityResult.width ?? width,
+      height: capabilityResult.height ?? height,
+      durationMs: null,
+      modelUsed: capabilityResult.backendId,
+      sourceAssetId: null,
+      relPath,
+    });
+  }
+
+  const model = pickModel("image");
   await logPrivacyEvent(ctx, {
     eventType: "media.image.generate",
     actor: ctx.userId ?? ctx.tenantId,

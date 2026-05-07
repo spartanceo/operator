@@ -48,6 +48,7 @@ import {
 import { ErrorBanner } from "@/components/operator/error-banner";
 import { JsonView } from "@/components/operator/json-view";
 import { RemoteAccessCard } from "@/components/operator/remote-access-card";
+import { ImageGenSetupCard } from "@/components/operator/image-gen-setup-card";
 import { LanguageSwitcher } from "@/components/a11y/language-switcher";
 
 export default function SettingsPage() {
@@ -329,6 +330,12 @@ export default function SettingsPage() {
         </Card>
 
         <HardwareModelSettings />
+
+        <ImageGenSetupCard onNavigateToSettings={() => {
+          const el = document.querySelector("[data-testid='tab-cap-image-gen']");
+          if (el instanceof HTMLElement) el.click();
+          el?.scrollIntoView({ behavior: "smooth" });
+        }} />
 
         <CapabilityRuntimeSettings />
 

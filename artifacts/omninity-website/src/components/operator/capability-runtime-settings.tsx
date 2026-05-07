@@ -216,6 +216,10 @@ function HealthDot({ status }: { status: CapabilityHealthStatus }) {
   );
 }
 
+const SETUP_GUIDE_URLS: Partial<Record<string, string>> = {
+  comfyui: "https://github.com/comfyanonymous/ComfyUI#installing",
+};
+
 function BackendRow({
   backend,
   active,
@@ -229,49 +233,68 @@ function BackendRow({
   onSelect: () => void;
   busy: boolean;
 }) {
+  const showGuideLink =
+    backend.health.status === "unreachable" &&
+    SETUP_GUIDE_URLS[backend.id] !== undefined;
+
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      disabled={busy}
-      className={cn(
-        "w-full rounded-md border p-2.5 text-left transition-colors",
-        active
-          ? "border-primary bg-primary/5"
-          : "border-border hover:bg-muted/30",
-      )}
-      data-testid={`button-cap-select-${backend.id}`}
-    >
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-sm font-medium text-foreground">
-          {backend.displayName}
-        </span>
-        {active ? (
-          <Badge variant="secondary" className="text-[9px] uppercase">
-            Active
-          </Badge>
-        ) : null}
-        {detected && !active ? (
-          <Badge variant="outline" className="text-[9px] uppercase text-green-600 border-green-400">
-            Detected
-          </Badge>
-        ) : null}
-        {backend.requiresApiKey ? (
-          <Badge variant="outline" className="text-[9px] uppercase">
-            Paid
-          </Badge>
-        ) : null}
-      </div>
-      <div className="mt-1 flex flex-wrap items-center gap-3">
-        <ResidencyBadge residency={backend.residency} />
-        <HealthDot status={backend.health.status} />
-        {backend.health.detail ? (
-          <span className="text-[10px] text-muted-foreground">
-            {backend.health.detail}
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={onSelect}
+        disabled={busy}
+        className={cn(
+          "w-full rounded-md border p-2.5 text-left transition-colors",
+          active
+            ? "border-primary bg-primary/5"
+            : "border-border hover:bg-muted/30",
+        )}
+        data-testid={`button-cap-select-${backend.id}`}
+      >
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-sm font-medium text-foreground">
+            {backend.displayName}
           </span>
-        ) : null}
-      </div>
-    </button>
+          {active ? (
+            <Badge variant="secondary" className="text-[9px] uppercase">
+              Active
+            </Badge>
+          ) : null}
+          {detected && !active ? (
+            <Badge variant="outline" className="text-[9px] uppercase text-green-600 border-green-400">
+              Detected
+            </Badge>
+          ) : null}
+          {backend.requiresApiKey ? (
+            <Badge variant="outline" className="text-[9px] uppercase">
+              Paid
+            </Badge>
+          ) : null}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          <ResidencyBadge residency={backend.residency} />
+          <HealthDot status={backend.health.status} />
+          {backend.health.detail ? (
+            <span className="text-[10px] text-muted-foreground">
+              {backend.health.detail}
+            </span>
+          ) : null}
+        </div>
+      </button>
+
+      {showGuideLink ? (
+        <a
+          href={SETUP_GUIDE_URLS[backend.id]}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1 pl-1 text-[10px] text-primary underline underline-offset-2 hover:text-primary/80"
+          data-testid={`link-cap-setup-guide-${backend.id}`}
+        >
+          <ExternalLink className="h-2.5 w-2.5" />
+          Setup guide — install {backend.displayName}
+        </a>
+      ) : null}
+    </div>
   );
 }
 
@@ -590,16 +613,10 @@ export function CapabilityRuntimeSettings() {
     setSwitching(capabilityType);
     try {
       await postSetActive(capabilityType, backendId);
-      setAllInfo((prev) =>
-        prev
-          ? prev.map((i) =>
-              i.capabilityType === capabilityType
-                ? { ...i, activeBackendId: backendId }
-                : i,
-            )
-          : prev,
-      );
       void qc.invalidateQueries();
+      // Re-probe all capability health after switching so the UI reflects the
+      // newly selected backend's live connection state immediately.
+      await load();
     } catch {
       /* silently reflected in health on next load */
     } finally {

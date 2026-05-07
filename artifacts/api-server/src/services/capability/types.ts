@@ -37,8 +37,54 @@ export interface CapabilityRuntime {
   health(ctx: TenantContext, apiKey?: string | null): Promise<CapabilityHealth>;
 }
 
+/**
+ * Image generation request — passed to ImageGenRuntime.generate().
+ * All size / sampler fields are optional; adapters fall back to sensible
+ * defaults when omitted so callers don't need to know adapter-specific
+ * limits (e.g. DALL-E snaps to its fixed aspect-ratio set regardless).
+ */
+export interface ImageGenRequest {
+  prompt: string;
+  negativePrompt?: string;
+  width?: number;
+  height?: number;
+  steps?: number;
+  cfgScale?: number;
+  seed?: number | null;
+  /** ComfyUI only — name of the checkpoint file to use. */
+  checkpoint?: string;
+}
+
+/**
+ * Uniform image generation result. All adapters return base64-encoded PNG
+ * so the chat UI can embed the image without an extra download step.
+ */
+export interface ImageGenResult {
+  /** Raw image bytes encoded as base64. */
+  imageBase64: string;
+  mimeType: "image/png" | "image/webp" | "image/jpeg";
+  width: number;
+  height: number;
+  /** Null when the backend does not expose the seed used (e.g. DALL-E). */
+  seed: number | null;
+  backendId: string;
+  /** DALL-E 3 may rewrite the prompt — stored here for transparency. */
+  revisedPrompt?: string | null;
+}
+
 export interface ImageGenRuntime extends CapabilityRuntime {
   readonly capabilityType: "image-gen";
+
+  /**
+   * Submit an image generation request and wait for the result.
+   * Adapters MUST throw CapabilityUpstreamError on upstream failure
+   * rather than returning partial / empty results.
+   */
+  generate(
+    ctx: TenantContext,
+    req: ImageGenRequest,
+    apiKey?: string | null,
+  ): Promise<ImageGenResult>;
 }
 
 export interface WebSearchResult {

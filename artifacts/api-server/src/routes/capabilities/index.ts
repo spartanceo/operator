@@ -1,12 +1,13 @@
 /**
  * /api/capabilities — capability runtime switcher surface.
  *
- *   GET    /                       — list all capability types with their backends + health
- *   GET    /:type                  — get active backend for one capability type
- *   POST   /:type/active           — set active backend for one capability type
- *   POST   /:type/:id/credentials  — store encrypted API key for a backend
- *   DELETE /:type/:id/credentials  — remove API key for a backend
- *   GET    /detect                 — run local service probe, return detected backend ids
+ *   GET    /                            — list all capability types with their backends + health
+ *   GET    /:type                       — get active backend for one capability type
+ *   POST   /:type/active                — set active backend for one capability type
+ *   POST   /:type/:id/credentials       — store encrypted API key for a backend
+ *   DELETE /:type/:id/credentials       — remove API key for a backend
+ *   GET    /detect                      — run local service probe, return detected backend ids
+ *   POST   /image-gen/generate          — generate an image via the active image-gen backend
  *
  * Capability types: image-gen | web-search | tts | embeddings | code-sandbox
  */
@@ -25,6 +26,7 @@ import {
   listAllCapabilityInfo,
   setActiveCapabilityBackend,
   setCapabilityCredential,
+  generateImage,
 } from "../../services/capability.service";
 
 const router: IRouter = Router();
@@ -155,6 +157,32 @@ router.delete("/:type/:id/credentials", requireTenant(), async (req, res, next) 
       return;
     }
     const result = await deleteCapabilityCredential(ctx, id);
+    res.json(ok(result));
+  } catch (e) {
+    next(e);
+  }
+});
+
+const GenerateImageSchema = z.object({
+  prompt: z.string().min(1).max(2000),
+  negativePrompt: z.string().max(2000).optional(),
+  width: z.number().int().min(64).max(2048).optional(),
+  height: z.number().int().min(64).max(2048).optional(),
+  steps: z.number().int().min(1).max(150).optional(),
+  cfgScale: z.number().min(1).max(30).optional(),
+  seed: z.number().int().nullable().optional(),
+  checkpoint: z.string().max(255).optional(),
+});
+
+router.post("/image-gen/generate", requireTenant(), async (req, res, next) => {
+  try {
+    const ctx = requireTenantContext();
+    const parsed = GenerateImageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json(err("VALIDATION", "Invalid image generation payload"));
+      return;
+    }
+    const result = await generateImage(ctx, parsed.data);
     res.json(ok(result));
   } catch (e) {
     next(e);

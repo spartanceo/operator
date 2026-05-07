@@ -30,6 +30,7 @@ import {
   Download,
   Zap,
 } from "lucide-react";
+import { ImageGenSetupCard } from "@/components/operator/image-gen-setup-card";
 import {
   useGetOnboardingOllamaStatus,
   useGetOnboardingHardware,
@@ -507,9 +508,14 @@ export function LaunchSequence({ onComplete }: LaunchSequenceProps) {
 
         {/* Completing state */}
         {completing && (
-          <div className="mt-10 flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Opening Operator…
+          <div className="mt-10 space-y-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Opening Operator…
+            </div>
+            <ImageGenSetupCard
+              onNavigateToSettings={() => void navigate("/settings")}
+            />
           </div>
         )}
 
