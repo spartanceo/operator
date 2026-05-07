@@ -274,7 +274,7 @@ const SETUP_COMMANDS: Partial<Record<string, SetupEntry>> = {
     docsLabel: "ComfyUI guide",
   },
   "piper-tts": {
-    command: "./piper --model en_US-lessac-medium.onnx --output_raw | aplay -r 22050 -f S16_LE -t raw -",
+    command: "./piper-http --model ~/.omninity/piper-voices/en_US-lessac-medium.onnx --port 5000",
     docsUrl: "https://github.com/rhasspy/piper/releases",
     docsLabel: "Piper releases",
   },
@@ -459,28 +459,27 @@ function BackendRow({
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               <strong>Step 1:</strong> download voice model files using the Install buttons below.
               <br />
-              <strong>Step 2:</strong> install the piper-http binary from the releases page, then start it so it listens on port 5000.
+              <strong>Step 2:</strong> install and launch piper-http from the releases page:
             </p>
-          ) : (
-            <div className="flex items-start gap-1.5">
-              <code className="flex-1 min-w-0 rounded bg-muted px-2 py-1 text-[10px] font-mono text-foreground break-all">
-                {setup!.command}
-              </code>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); void handleCopy(); }}
-                className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label={copied ? "Copied!" : "Copy command"}
-                title={copied ? "Copied!" : "Copy command"}
-              >
-                {copied ? (
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                ) : (
-                  <Clipboard className="h-3 w-3" />
-                )}
-              </button>
-            </div>
-          )}
+          ) : null}
+          <div className="flex items-start gap-1.5">
+            <code className="flex-1 min-w-0 rounded bg-muted px-2 py-1 text-[10px] font-mono text-foreground break-all">
+              {setup!.command}
+            </code>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); void handleCopy(); }}
+              className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label={copied ? "Copied!" : "Copy command"}
+              title={copied ? "Copied!" : "Copy command"}
+            >
+              {copied ? (
+                <CheckCircle className="h-3 w-3 text-green-500" />
+              ) : (
+                <Clipboard className="h-3 w-3" />
+              )}
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -1196,7 +1195,7 @@ export function CapabilityRuntimeSettings() {
                     type="button"
                     role="tab"
                     aria-selected={isActive}
-                    onClick={() => setActiveTab(info.capabilityType)}
+                    onClick={() => { setSwitchError(null); setActiveTab(info.capabilityType); }}
                     className={cn(
                       "rounded-t-md px-2.5 py-1 text-[11px] font-medium transition-colors",
                       isActive
