@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useGetOnboardingProfile } from "@workspace/api-client-react";
@@ -156,7 +156,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, isError } = useAuth();
   const [, navigate] = useLocation();
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && (isError || !isAuthenticated)) {
+      void navigate("/login", { replace: true });
+    }
+  }, [isLoading, isError, isAuthenticated, navigate]);
+
+  if (isLoading || isError || !isAuthenticated) {
     return (
       <div
         className="grid min-h-screen w-full place-items-center bg-background text-foreground"
@@ -165,11 +171,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
-  }
-
-  if (isError || !isAuthenticated) {
-    void navigate("/login", { replace: true });
-    return null;
   }
 
   return <>{children}</>;
