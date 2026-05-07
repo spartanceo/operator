@@ -221,15 +221,19 @@ export function ToolInstallerCard({
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
           <p className="text-[11px] text-amber-800 dark:text-amber-200">
             Docker is required for automatic SearXNG install.{" "}
+            If Docker Desktop is already installed, try restarting Omninity so
+            it can detect Docker, then click Install again.{" "}
+            Otherwise,{" "}
             <a
               href="https://docker.com/get-started"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-0.5 font-medium underline underline-offset-2"
             >
-              Download Docker
+              download Docker Desktop
               <ExternalLink className="h-2.5 w-2.5" />
             </a>
+            {" "}first.
           </p>
         </div>
       ) : null}

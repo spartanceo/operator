@@ -13,6 +13,9 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { existsSync } from "node:fs";
+import { readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 
 const execAsync = promisify(exec);
 
@@ -73,6 +76,28 @@ const TOOL_CONFIGS: Record<ToolId, ToolConfig> = {
 // tier-review: bounded — keyed by `${tenantId}:${toolId}`; max 2 entries per tenant (toolId is a 2-value enum). Evicted on server restart.
 const STATE = new Map<string, ToolInstallState>();
 
+/**
+ * Resolved Docker binary path — persisted across calls so all subsequent
+ * Docker commands use the same known-good path directly instead of PATH lookup.
+ * null means not yet resolved; empty string means not found.
+ */
+let resolvedDockerBin: string | null = null;
+
+/**
+ * Known locations where Docker Desktop installs its binary on macOS and Linux.
+ * Checked in order; first successful exec wins.
+ */
+const DOCKER_SEARCH_PATHS = [
+  "docker", // inherited PATH — works on most Linux setups and CI
+  "/usr/local/bin/docker", // Homebrew / Docker Desktop on Intel Mac
+  "/opt/homebrew/bin/docker", // Homebrew on Apple Silicon Mac
+  "/usr/bin/docker", // common Linux package install path
+  "/Applications/Docker.app/Contents/Resources/bin/docker", // Docker Desktop app bundle (macOS)
+];
+
+/** Secondary signal: if the Docker socket exists the daemon is running. */
+const DOCKER_SOCKET = "/var/run/docker.sock";
+
 function stateKey(tenantId: string, toolId: ToolId): string {
   return `${tenantId}:${toolId}`;
 }
@@ -103,13 +128,76 @@ export interface DockerStatus {
   version: string | null;
 }
 
+/**
+ * Probe each known Docker binary location in order.
+ * Returns the resolved path + version on first success.
+ * Falls back to checking the Docker socket as a secondary signal.
+ * Persists the resolved path in `resolvedDockerBin` so subsequent
+ * Docker commands use it directly.
+ */
 export async function checkDockerAvailable(): Promise<DockerStatus> {
-  try {
-    const { stdout } = await execAsync("docker --version", { timeout: 5000 });
-    return { available: true, version: stdout.trim() };
-  } catch {
-    return { available: false, version: null };
+  // Return cached result if already resolved
+  if (resolvedDockerBin !== null) {
+    if (resolvedDockerBin === "") {
+      return { available: false, version: null };
+    }
+    try {
+      const { stdout } = await execAsync(`"${resolvedDockerBin}" --version`, { timeout: 5000 });
+      return { available: true, version: stdout.trim() };
+    } catch {
+      // cached path is no longer valid — re-probe
+      resolvedDockerBin = null;
+    }
   }
+
+  for (const candidate of DOCKER_SEARCH_PATHS) {
+    try {
+      const cmd = candidate.includes(" ") ? `"${candidate}" --version` : `${candidate} --version`;
+      const { stdout } = await execAsync(cmd, { timeout: 5000 });
+      resolvedDockerBin = candidate;
+      return { available: true, version: stdout.trim() };
+    } catch {
+      // this path didn't work — try next
+    }
+  }
+
+  // Secondary signal: Docker socket implies daemon is running even if binary
+  // is not on any of the probed paths (e.g. rootless Docker on Linux).
+  if (existsSync(DOCKER_SOCKET)) {
+    // We know Docker is running but couldn't resolve the binary path.
+    // Mark as available; commands will attempt to use PATH-resolved "docker".
+    resolvedDockerBin = "docker";
+    return { available: true, version: null };
+  }
+
+  // Nothing found
+  resolvedDockerBin = "";
+  return { available: false, version: null };
+}
+
+/**
+ * Build exec options that include the resolved Docker binary directory in
+ * PATH so all child processes spawned for Docker commands find the binary.
+ */
+function dockerExecOptions(timeoutMs: number): Parameters<typeof execAsync>[1] {
+  const bin = resolvedDockerBin && resolvedDockerBin !== "" ? resolvedDockerBin : "docker";
+  const binDir = bin.includes("/") ? bin.substring(0, bin.lastIndexOf("/")) : "";
+  const extraPath = binDir ? `${binDir}:` : "";
+  return {
+    timeout: timeoutMs,
+    env: {
+      ...process.env,
+      PATH: `${extraPath}${process.env.PATH ?? ""}`,
+    },
+  };
+}
+
+/** Resolve the docker binary to use for commands (full path if known). */
+function dockerBin(): string {
+  if (resolvedDockerBin && resolvedDockerBin !== "") {
+    return resolvedDockerBin.includes(" ") ? `"${resolvedDockerBin}"` : resolvedDockerBin;
+  }
+  return "docker";
 }
 
 /** Check if the tool is already listening on its expected port. */
@@ -120,8 +208,8 @@ export async function isToolRunning(toolId: ToolId): Promise<boolean> {
     try {
       const containerName = `omninity-${toolId}`;
       const { stdout } = await execAsync(
-        `docker ps --filter "name=${containerName}" --filter "status=running" --format "{{.Names}}"`,
-        { timeout: 5000 },
+        `${dockerBin()} ps --filter "name=${containerName}" --filter "status=running" --format "{{.Names}}"`,
+        dockerExecOptions(5000),
       );
       if (stdout.includes(containerName)) return true;
     } catch {
@@ -233,23 +321,67 @@ async function installViaDocker(
   // 3. Remove stopped container with same name (idempotent)
   set("downloading", `Pulling ${cfg.name} image (${cfg.image})…`);
   try {
-    await execAsync(`docker rm -f omninity-${toolId}`, { timeout: 10_000 });
+    await execAsync(`${dockerBin()} rm -f omninity-${toolId}`, dockerExecOptions(10_000));
   } catch {
     // container didn't exist — that's fine
   }
 
   // 4. Pull image
-  await execAsync(`docker pull ${cfg.image}`, { timeout: 5 * 60_000 });
+  await execAsync(`${dockerBin()} pull ${cfg.image}`, dockerExecOptions(5 * 60_000));
 
   // 5. Start container
   set("running", `Starting ${cfg.name}…`);
   await execAsync(
-    `docker run -d --name omninity-${toolId} -p ${cfg.port}:${cfg.port} --restart unless-stopped ${cfg.image}`,
-    { timeout: 30_000 },
+    `${dockerBin()} run -d --name omninity-${toolId} -p ${cfg.port}:${cfg.port} --restart unless-stopped ${cfg.image}`,
+    dockerExecOptions(30_000),
   );
 
   // 6. Wait for port (up to 30 s)
   await waitForPort(toolId, cfg.port, cfg.name, set);
+}
+
+/**
+ * Parse a requirements.txt and return lines that pip can actually resolve.
+ * Each package line is tested with `pip3 download --no-deps` into a temp dir.
+ * Lines that fail are logged as warnings and excluded from the install.
+ * Comments, blank lines, and option flags (e.g. -r, --extra-index-url) are
+ * always kept as-is without validation.
+ */
+async function filterResolvablePipLines(reqFile: string): Promise<{
+  filteredLines: string[];
+  skipped: string[];
+}> {
+  const raw = await readFile(reqFile, "utf8");
+  const lines = raw.split("\n");
+  const filteredLines: string[] = [];
+  const skipped: string[] = [];
+  const scratchDir = await mkdtemp(join(tmpdir(), "omninity-pip-"));
+
+  try {
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Keep blank lines, comments, and pip option flags verbatim
+      if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) {
+        filteredLines.push(line);
+        continue;
+      }
+      // Test whether pip can resolve this package
+      try {
+        await execAsync(
+          `pip3 download --no-deps --quiet --dest "${scratchDir}" "${trimmed}"`,
+          { timeout: 30_000 },
+        );
+        filteredLines.push(line);
+      } catch {
+        console.warn(`[tool-installer] Skipping unresolvable pip package: ${trimmed}`);
+        skipped.push(trimmed);
+      }
+    }
+  } finally {
+    await rm(scratchDir, { recursive: true, force: true }).catch(() => undefined);
+  }
+
+  return { filteredLines, skipped };
 }
 
 async function installViaPortable(
@@ -281,7 +413,6 @@ async function installViaPortable(
 
   // 3. Clone repo if not already present
   set("downloading", `Downloading ${cfg.name} from GitHub…`);
-  const { existsSync } = await import("node:fs");
   const mainPy = join(cfg.installDir, "main.py");
   if (!existsSync(mainPy)) {
     const { mkdir } = await import("node:fs/promises");
@@ -292,13 +423,36 @@ async function installViaPortable(
     );
   }
 
-  // 4. Install Python requirements
-  set("downloading", `Installing ${cfg.name} dependencies (pip)…`);
+  // 4. Filter requirements to only packages pip can resolve, then install
+  set("downloading", `Checking ${cfg.name} dependencies…`);
   const reqFile = join(cfg.installDir, "requirements.txt");
-  await execAsync(
-    `pip3 install -q -r "${reqFile}"`,
-    { timeout: 5 * 60_000, cwd: cfg.installDir },
+  const { filteredLines, skipped } = await filterResolvablePipLines(reqFile);
+
+  if (skipped.length > 0) {
+    console.warn(
+      `[tool-installer] ComfyUI: skipped ${skipped.length} unresolvable package(s): ${skipped.join(", ")}`,
+    );
+  }
+
+  // Write filtered requirements to a temp file and install from that
+  const filteredReqFile = join(tmpdir(), `omninity-comfyui-req-${Date.now()}.txt`);
+  await writeFile(filteredReqFile, filteredLines.join("\n"), "utf8");
+
+  set(
+    "downloading",
+    skipped.length > 0
+      ? `Installing ${cfg.name} dependencies (skipped ${skipped.length} unavailable package${skipped.length === 1 ? "" : "s"})…`
+      : `Installing ${cfg.name} dependencies (pip)…`,
   );
+
+  try {
+    await execAsync(
+      `pip3 install -q -r "${filteredReqFile}"`,
+      { timeout: 5 * 60_000, cwd: cfg.installDir },
+    );
+  } finally {
+    await rm(filteredReqFile, { force: true }).catch(() => undefined);
+  }
 
   // 5. Launch ComfyUI in the background
   set("running", `Starting ${cfg.name} on port ${cfg.port}…`);
