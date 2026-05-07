@@ -22,6 +22,7 @@ import {
 } from "../../lib/cloud-session";
 import { requireTenantContext } from "../../lib/tenant-context";
 import { requireTenant } from "../../middlewares/tenant-context";
+import { RuntimeKeySecretMissingError } from "../../services/runtime/credentials";
 import { getRuntime } from "../../services/runtime/registry";
 import {
   deleteRuntimeCredential,
@@ -140,6 +141,10 @@ router.post("/:id/credentials", requireTenant(), async (req, res, next) => {
     );
     res.json(ok(result));
   } catch (e) {
+    if (e instanceof RuntimeKeySecretMissingError) {
+      res.status(503).json(err("SERVICE_UNAVAILABLE", e.message));
+      return;
+    }
     next(e);
   }
 });

@@ -17,6 +17,7 @@ import { z } from "zod";
 import { err, ok } from "../../lib/api-envelope";
 import { requireTenantContext } from "../../lib/tenant-context";
 import { requireTenant } from "../../middlewares/tenant-context";
+import { RuntimeKeySecretMissingError } from "../../services/runtime/credentials";
 import { ALL_CAPABILITY_TYPES, getCapabilityBackend } from "../../services/capability/registry";
 import type { CapabilityType } from "../../services/capability/types";
 import {
@@ -138,6 +139,10 @@ router.post("/:type/:id/credentials", requireTenant(), async (req, res, next) =>
     );
     res.json(ok(result));
   } catch (e) {
+    if (e instanceof RuntimeKeySecretMissingError) {
+      res.status(503).json(err("SERVICE_UNAVAILABLE", e.message));
+      return;
+    }
     next(e);
   }
 });

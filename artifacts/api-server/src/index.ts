@@ -16,11 +16,10 @@ import { startServer } from "./server";
 import type { ServerHandle } from "./server";
 
 if (!process.env["RUNTIME_KEY_SECRET"] && !process.env["SESSION_SECRET"]) {
-  logger.warn(
-    {
-      hint: "Set RUNTIME_KEY_SECRET to a 32+ character random value to enable encrypted credential storage.",
-    },
-    "RUNTIME_KEY_SECRET and SESSION_SECRET are both absent — saving API keys for cloud runtimes and capabilities will fail until one is set. Local-only use (Ollama, SearXNG) is unaffected.",
+  console.error(
+    "[STARTUP ERROR] RUNTIME_KEY_SECRET is not set — saving API keys for cloud runtimes and capabilities will fail with a 503 until you set it. " +
+    "Fix: add RUNTIME_KEY_SECRET=<32+ char random value> to your environment secrets. " +
+    "Local-only use (Ollama, SearXNG) is unaffected.",
   );
 }
 

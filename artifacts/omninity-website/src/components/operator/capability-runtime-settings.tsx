@@ -68,6 +68,7 @@ import { useListVoices } from "@workspace/api-client-react";
 import { useSettings } from "@/contexts/settings-context";
 import { getTenantId, getWorkspaceId } from "@/lib/api-config";
 import { ToolInstallerCard } from "@/components/operator/tool-installer-card";
+import { extractApiErrorMessage } from "@/lib/api-helpers";
 
 function getApiBase(): string {
   const win = window as Window &
@@ -223,7 +224,7 @@ async function postSetActive(
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error((body as { message?: string }).message ?? `Failed to set backend: ${res.status}`);
+    throw new Error(extractApiErrorMessage(body, `Failed to set backend: ${res.status}`));
   }
 }
 
@@ -239,7 +240,7 @@ async function postSaveCredential(
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error((body as { message?: string }).message ?? `Failed to save credential: ${res.status}`);
+    throw new Error(extractApiErrorMessage(body, `Failed to save credential: ${res.status}`));
   }
 }
 
@@ -253,7 +254,7 @@ async function deleteCredentialFn(
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error((body as { message?: string }).message ?? `Failed to remove credential: ${res.status}`);
+    throw new Error(extractApiErrorMessage(body, `Failed to remove credential: ${res.status}`));
   }
 }
 
@@ -610,7 +611,7 @@ function PiperModelManager() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as { message?: string }).message ?? `HTTP ${res.status}`);
+        throw new Error(extractApiErrorMessage(body, `HTTP ${res.status}`));
       }
       await qc.invalidateQueries({ queryKey: ["piper-models"] });
       await modelsQuery.refetch();
