@@ -1,4 +1,5 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useGetOnboardingProfile } from "@workspace/api-client-react";
@@ -63,6 +64,57 @@ import LegalPage from "@/pages/legal";
 const SuperAdminPage = lazy(() => import("@/pages/admin/super"));
 const EnterpriseAdminPage = lazy(() => import("@/pages/admin/enterprise"));
 import { LegalGate } from "@/components/operator/legal-gate";
+
+// ─── Route Error Boundary ─────────────────────────────────────────────────────
+
+interface RouteErrorBoundaryState {
+  error: Error | null;
+}
+
+class RouteErrorBoundary extends Component<
+  { children: ReactNode; routeName?: string },
+  RouteErrorBoundaryState
+> {
+  constructor(props: { children: ReactNode; routeName?: string }) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): RouteErrorBoundaryState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`[RouteErrorBoundary] ${this.props.routeName ?? "route"} crashed:`, error, info);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex min-h-[60vh] w-full flex-col items-center justify-center gap-4 p-8 text-center">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-6 text-left shadow-sm max-w-lg w-full">
+            <h2 className="mb-1 text-base font-semibold text-destructive">
+              {this.props.routeName ? `${this.props.routeName} failed to load` : "Something went wrong"}
+            </h2>
+            <p className="mb-3 text-sm text-muted-foreground">
+              An unexpected error occurred while rendering this page.
+            </p>
+            <pre className="overflow-auto rounded bg-muted px-3 py-2 text-xs text-muted-foreground whitespace-pre-wrap break-all">
+              {this.state.error.message}
+            </pre>
+            <button
+              className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+              onClick={() => this.setState({ error: null })}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 initApiClient();
 
@@ -250,7 +302,11 @@ function OperatorRoutes() {
       <Switch>
         <Route path="/chat" component={ChatPage} />
         <Route path="/agents" component={AgentsPage} />
-        <Route path="/desktop" component={DesktopPage} />
+        <Route path="/desktop">
+          <RouteErrorBoundary routeName="Desktop">
+            <DesktopPage />
+          </RouteErrorBoundary>
+        </Route>
         <Route path="/tools" component={ToolsPage} />
         <Route path="/media" component={MediaPage} />
         <Route path="/privacy" component={PrivacyPage} />

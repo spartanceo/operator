@@ -172,9 +172,14 @@ function createWindow(apiPort: number): BrowserWindow {
 
   process.env["ELECTRON_API_PORT"] = String(apiPort);
 
-  if (!app.isPackaged) {
-    const devUrl = process.env["RENDERER_DEV_URL"] ?? "http://127.0.0.1:20599/";
-    win.loadURL(devUrl).catch(() => {
+  // In development (not packaged, or NODE_ENV !== "production"), load the live
+  // Vite dev-server so code changes are reflected immediately without a rebuild.
+  const isDev = !app.isPackaged || process.env["NODE_ENV"] !== "production";
+  if (isDev) {
+    const websitePort = process.env["WEBSITE_PORT"] ?? "20599";
+    const devUrl = process.env["RENDERER_DEV_URL"] ?? `http://localhost:${websitePort}/`;
+    win.loadURL(devUrl).catch((err: unknown) => {
+      crashLog(`Dev URL failed (${devUrl}): ${err} — falling back to API port`);
       if (!win.isDestroyed()) win.loadURL(`http://127.0.0.1:${apiPort}/`);
     });
   } else {
