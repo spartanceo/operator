@@ -247,6 +247,30 @@ export const OLLAMA_LIBRARY: ReadonlyArray<ModelCatalogueEntry> = [
     capabilities: ["writing", "reasoning", "general"],
     tradeoff: "Best Gemma quality — 32GB+ recommended.",
   },
+  {
+    id: "gemma4:31b-coding-mtp-bf16",
+    displayName: "Gemma 4 31B Coding MTP (BF16)",
+    family: "gemma",
+    role: "primary",
+    sizeBytes: gb(62),
+    ramRequiredBytes: gb(36),
+    minTier: "pro",
+    capabilities: ["code", "reasoning", "agent", "general"],
+    tradeoff:
+      "Runs fully on-device via Apple Silicon MLX with native Multi-Token Prediction (MTP). Privacy-first — no data leaves the device. Requires ~36 GB unified memory (M3 Max / Ultra or equivalent).",
+  },
+  {
+    id: "gemma4:31b-cloud",
+    displayName: "Gemma 4 31B (Cloud)",
+    family: "gemma",
+    role: "primary",
+    sizeBytes: 0,
+    ramRequiredBytes: 0,
+    minTier: "low",
+    capabilities: ["code", "reasoning", "agent", "general"],
+    tradeoff:
+      "Routes prompts through Ollama's cloud servers — no local download required and fast to start, but data leaves the device. Not suitable for private or sensitive workloads.",
+  },
   // ─── Phi family ───────────────────────────────────────────────────
   {
     id: "phi3:medium",

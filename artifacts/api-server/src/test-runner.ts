@@ -1577,14 +1577,20 @@ const cases: TestCase[] = [
       );
       // Every library entry must carry the metadata the fit-annotation
       // UI needs (size, ram, capability tags).
+      // Cloud-routed models (sizeBytes === 0) have no local footprint and
+      // are exempt from the size/RAM assertions — they still require
+      // capability tags so the UI can render them correctly.
       for (const m of res.body.data.library as Array<{
         id: string;
         sizeBytes: number;
         ramRequiredBytes: number;
         capabilities: ReadonlyArray<string>;
       }>) {
-        assert.ok(m.sizeBytes > 0, `${m.id} sizeBytes`);
-        assert.ok(m.ramRequiredBytes > 0, `${m.id} ramRequiredBytes`);
+        const isCloud = m.sizeBytes === 0;
+        if (!isCloud) {
+          assert.ok(m.sizeBytes > 0, `${m.id} sizeBytes`);
+          assert.ok(m.ramRequiredBytes > 0, `${m.id} ramRequiredBytes`);
+        }
         assert.ok(
           Array.isArray(m.capabilities) && m.capabilities.length > 0,
           `${m.id} capabilities`,
